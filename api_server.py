@@ -313,12 +313,28 @@ def get_project_details(project_id: str):
         raise HTTPException(status_code=404, detail="Project not found")
     p = Project(project_id)
     p.reload()
+    if not p.data.usage.stage_costs:
+        try:
+            from core.pricing import calculate_and_update_project_costs
+            calculate_and_update_project_costs(p)
+        except Exception:
+            pass
     return {
         "project": p.data.model_dump(mode="json"),
         "scenes": [s.model_dump(mode="json") for s in p.scenes],
         "script": p.read_json("script/script.json"),
         "research": p.read_json("research/research.json"),
     }
+
+
+@app.get("/api/projects/{project_id}/costs")
+def get_project_costs(project_id: str):
+    if not (PROJECTS_DIR / project_id).exists():
+        raise HTTPException(status_code=404, detail="Project not found")
+    p = Project(project_id)
+    p.reload()
+    from core.pricing import calculate_and_update_project_costs
+    return calculate_and_update_project_costs(p)
 
 
 @app.post("/api/projects/{project_id}/start")

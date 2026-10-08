@@ -113,7 +113,26 @@ class Pipeline:
                         pass
                 self.p.data.activity = "Video generation complete!"
                 self.p.save()
-            log.info("Project '%s' finished successfully (took %.1fs)", self.p.id, self.p.data.total_duration_seconds)
+
+            # Calculate and save accurate cost breakdown for each stage and total sum
+            try:
+                from core.pricing import calculate_and_update_project_costs
+                cost_summary = calculate_and_update_project_costs(self.p)
+                total_usd = cost_summary.get("total_cost_usd", 0.0)
+                is_cloud = cost_summary.get("is_cloud_accelerated", False)
+                stage_costs = cost_summary.get("stage_costs", {})
+                parts = [f"{k}: ${v:.4f}" for k, v in stage_costs.items() if v > 0]
+                breakdown_str = ", ".join(parts) if parts else "100% Local GPU Free"
+                log.info("Project '%s' finished successfully (%.1fs). Cloud Cost: $%.4f (%s)",
+                         self.p.id, self.p.data.total_duration_seconds, total_usd, breakdown_str)
+                with self.p.lock:
+                    if is_cloud:
+                        self.p.data.activity = f"Complete! Cloud Cost: ${total_usd:.4f} ({breakdown_str})"
+                    else:
+                        self.p.data.activity = "Video generation complete! (Local GPU: $0.00)"
+                    self.p.save()
+            except Exception as cost_err:
+                log.warning("Cost calculation note: %s", cost_err)
 
         except PipelineCancelled:
             with self.p.lock:
@@ -211,6 +230,11 @@ class Pipeline:
                 record_stage_version(self.p, stage_name)
             except Exception as ex:
                 log.warning("Could not record new version for %s: %s", stage_name, ex)
+            try:
+                from core.pricing import calculate_and_update_project_costs
+                calculate_and_update_project_costs(self.p)
+            except Exception as ex:
+                log.debug("run_stage cost update note: %s", ex)
             with self.p.lock:
                 self.p.data.state = "paused"
                 self.p.data.activity = f"Stage '{stage_name}' complete! Ready for tuning & review."

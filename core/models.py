@@ -94,6 +94,8 @@ class Usage(BaseModel):
     video_clips_local: int = 0
     tts_cloud_chars: int = 0
     estimated_cost_usd: float = 0.0
+    stage_costs: dict[str, float] = Field(default_factory=dict)
+    stage_details: dict[str, dict[str, Any]] = Field(default_factory=dict)
 
 
 class ProjectData(BaseModel):

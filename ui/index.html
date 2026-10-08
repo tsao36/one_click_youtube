@@ -2595,6 +2595,95 @@
           stageBreakdownHtml += '</div></div>';
         }
 
+        const stageMeta = [
+          { key: 'research', title: '1. Research', icon: '🔬' },
+          { key: 'script', title: '2. Script', icon: '📜' },
+          { key: 'scenes', title: '3. Scenes', icon: '🎬' },
+          { key: 'prompts', title: '4. Prompts', icon: '🎨' },
+          { key: 'images', title: '5. Images', icon: '🖼️' },
+          { key: 'voice', title: '6. Voice', icon: '🎙️' },
+          { key: 'animation', title: '7. Animation', icon: '✨' },
+          { key: 'subtitles', title: '8. Subtitles', icon: '📝' },
+          { key: 'render', title: '9. Render', icon: '⚡' }
+        ];
+
+        const stageCosts = u.stage_costs || {};
+        const stageDetails = u.stage_details || {};
+        const totalCost = u.estimated_cost_usd !== undefined ? u.estimated_cost_usd : 0;
+        const isCloudAccelerated = (p && p.settings && p.settings.cloud && p.settings.cloud.enabled) || totalCost > 0;
+
+        let costRows = '';
+        stageMeta.forEach(sm => {
+          const c = stageCosts[sm.key] !== undefined ? stageCosts[sm.key] : 0.0;
+          const det = stageDetails[sm.key] || {};
+          const prov = det.provider || '-';
+          const units = det.units || '';
+          const costStr = c > 0 ? (c < 0.0001 ? '< $0.0001' : (c < 0.01 ? '$' + c.toFixed(4) : '$' + c.toFixed(3))) : '$0.0000';
+          const isFree = c === 0.0;
+          const costBadgeStyle = isFree 
+            ? 'background: rgba(100, 116, 139, 0.15); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.2);'
+            : 'background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); font-weight: 700;';
+
+          costRows += `
+            <tr style="border-bottom: 1px solid #142033;">
+              <td style="padding: 6px 8px; font-weight: 600; color: #cbd5e1; white-space: nowrap;">
+                ${sm.icon} ${sm.title}
+              </td>
+              <td style="padding: 6px 8px; color: #94a3b8; font-size: 11px;">
+                <div style="font-weight: 600; color: #cbd5e1;">${prov}</div>
+                ${units ? `<div style="color: #64748b; font-size: 10px;">${units}</div>` : ''}
+              </td>
+              <td style="padding: 6px 8px; text-align: right; white-space: nowrap;">
+                <span style="display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 11px; font-family: monospace; ${costBadgeStyle}">
+                  ${costStr}
+                </span>
+              </td>
+            </tr>
+          `;
+        });
+
+        const totalCostStr = totalCost > 0 
+          ? (totalCost < 0.01 ? '$' + totalCost.toFixed(4) : '$' + totalCost.toFixed(3)) 
+          : '$0.0000';
+
+        const costBreakdownHtml = `
+          <div style="margin-top: 14px; background: linear-gradient(135deg, #091322 0%, #060b14 100%); border: 1px solid #1e3a5f; border-radius: 8px; padding: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.4);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid #172a45; padding-bottom: 8px;">
+              <div style="font-size: 12px; text-transform: uppercase; color: #93c5fd; font-weight: 700; letter-spacing: 0.5px; display: flex; align-items: center; gap: 5px;">
+                <span>💰 Cloud Cost Breakdown</span>
+                ${isCloudAccelerated ? '<span style="font-size: 10px; background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4); padding: 1px 5px; border-radius: 4px;">Cloud Accelerated</span>' : '<span style="font-size: 10px; background: rgba(34, 197, 94, 0.2); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.4); padding: 1px 5px; border-radius: 4px;">100% Local GPU</span>'}
+              </div>
+            </div>
+            
+            <div style="overflow-x: auto;">
+              <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                <thead>
+                  <tr style="color: #64748b; font-size: 10px; text-transform: uppercase; border-bottom: 1px solid #172a45;">
+                    <th style="padding: 4px 8px; text-align: left;">Stage</th>
+                    <th style="padding: 4px 8px; text-align: left;">Engine / Volume</th>
+                    <th style="padding: 4px 8px; text-align: right;">Cost (USD)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${costRows}
+                </tbody>
+                <tfoot>
+                  <tr style="border-top: 2px solid #2563eb; background: rgba(15, 23, 42, 0.6);">
+                    <td colspan="2" style="padding: 8px 8px; font-weight: 800; color: #f8fafc; font-size: 13px;">
+                      ∑ Total Production Cost:
+                    </td>
+                    <td style="padding: 8px 8px; text-align: right;">
+                      <span style="font-size: 14px; font-weight: 800; color: #34d399; font-family: monospace; background: rgba(16, 185, 129, 0.18); border: 1px solid #059669; padding: 3px 8px; border-radius: 5px;">
+                        ${totalCostStr}
+                      </span>
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        `;
+
         const usageEl = document.getElementById('project-usage-info');
         if (usageEl) {
           usageEl.innerHTML = `
@@ -2606,8 +2695,8 @@
             <div style="margin-bottom:6px;">Total Scenes: <b style="color:#fff;">${d.scenes ? d.scenes.length : 0}</b></div>
             <div style="margin-bottom:6px;">Narration Language: <b style="color:#93c5fd;">${(p.settings && p.settings.video && p.settings.video.language) || 'English'}</b></div>
             <div style="margin-bottom:6px;">LLM Requests: <b style="color:#fff;">${u.llm_requests}</b></div>
-            <div style="margin-bottom:6px;">Video Motion Engine: <b style="color:#fff;">Ken Burns (Hardware Accelerated)</b></div>
-            <div style="margin-bottom:6px;">Est. Cloud Cost: <b style="color:#34d399;">$${(u.estimated_cost_usd || 0).toFixed(2)}</b></div>
+            <div style="margin-bottom:6px;">Total Cloud Cost: <b style="color:#34d399; font-size: 14px;">${totalCostStr}</b></div>
+            ${costBreakdownHtml}
             ${stageBreakdownHtml}
           `;
         }
