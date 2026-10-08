@@ -1,0 +1,14 @@
+{
+  "name": "default_local",
+  "display_name": "Windows Local Voice (fallback)",
+  "provider": "sapi",
+  "voice": "",
+  "language": "English",
+  "language_code": "en",
+  "speech_rate": 1.0,
+  "stability": 0.5,
+  "style": "",
+  "reference_wav": "",
+  "reference_text": "",
+  "is_default": true
+}

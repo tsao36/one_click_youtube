@@ -1,0 +1,188 @@
+# AI Video Creator - main settings (human readable, safe to edit)
+# Project-level overrides from the UI are stored inside each project's project.json.
+
+video:
+  duration_minutes: 10
+  width: 1920
+  height: 1080
+  aspect_ratio: "16:9"
+  fps: 30
+  language: English
+  visual_style: photorealistic_cinema   # key in visual_styles below
+  narration_style: "warm, curious, conversational documentary narrator"
+
+script:
+  speech_rate_wpm: 150
+  research_enabled: false        # true = use the research provider (web grounding) if configured
+  single_pass_word_limit: 350    # scripts shorter than this are written in one LLM call
+
+scenes:
+  average_duration: 8
+  minimum_duration: 4
+  maximum_duration: 14
+  llm_batch_size: 8              # scenes per LLM call when writing visual descriptions
+
+images:
+  provider: comfyui              # comfyui | placeholder
+  fallback_provider: placeholder # used when the primary provider is unavailable (set "" to disable)
+  workflow: workflows/default_image.json
+  checkpoint: juggernautXL_v8Rundiffusion.safetensors
+  width: 1024
+  height: 576
+  steps: 25
+  cfg: 6.5
+  sampler: dpmpp_2m
+  scheduler: karras
+  retries: 2
+  timeout_seconds: 900           # per image (first image includes model load on DirectML)
+  free_vram_after_stage: true
+
+animation:
+  ai_video_percentage: 10        # 0 | 5 | 10 | 20
+  min_motion_zoom: 1.06
+  max_motion_zoom: 1.14
+  oversample: 2                  # Ken Burns internal supersampling (reduces jitter)
+
+voice:
+  profile: default_local         # folder name in data/voices
+  pause_after_scene: 0.35        # seconds of silence after each scene's narration
+  lead_in: 0.25                  # seconds of silence at very start
+  target_lufs: -16
+  sample_rate: 48000
+
+subtitles:
+  enabled: true
+  burn_in: true
+  style: youtube_standard        # youtube_standard | minimal | large_centered | short_form
+  max_chars_per_line: 42
+  max_lines: 2
+
+music:
+  enabled: true
+  directory: data/music
+  volume_db: -24                 # music level relative to voice
+  ducking: true
+  fade_in: 2.0
+  fade_out: 3.0
+
+rendering:
+  encoder: libx264               # libx264 | h264_amf | auto  (always falls back to libx264)
+  crf: 20
+  preset: medium
+  audio_bitrate: 192k
+  transition: crossfade          # default transition
+  transition_duration: 0.5
+  final_lufs: -14
+  draft_width: 854
+  draft_height: 480
+  render_draft_first: false
+
+cloud:
+  enabled: false                 # master switch for ANY paid cloud generation
+  max_video_clips: 8
+  max_cost_usd: 5
+
+llm:
+  json_retries: 3
+
+youtube:
+  channel_url: "https://www.youtube.com/@tsao36"
+  channel_handle: "@tsao36"
+  default_privacy: "public"          # unlisted | private | public
+  default_category_id: "28"          # 28 = Science & Technology, 27 = Education, 22 = People & Blogs
+  auto_generate_chapters: true
+  auto_generate_tags: true
+
+visual_styles:
+  photorealistic_cinema:
+    label: "Photorealistic Cinema (Juggernaut XL)"
+    style: "ultra-realistic cinematic 35mm photograph, authentic skin texture, natural pores, subtle imperfections, photorealistic, 8k UHD, masterpiece photography"
+    lighting: "cinematic natural lighting, soft directional window light, rich tonal depth"
+    lens: "50mm prime lens, f/1.8, shallow depth of field, natural background blur"
+    mood: "authentic, hyper-realistic, emotionally grounded, atmospheric"
+    negative: "ugly, deformed, disfigured, poor details, bad anatomy, cartoon, 3d, anime, airbrushed, plastic skin, render, drawing, watermark, signature, blur"
+    recommended_model: "juggernautXL_v8Rundiffusion.safetensors"
+  cinematic_documentary:
+    label: Cinematic Documentary
+    style: "cinematic documentary photography, photorealistic, highly detailed"
+    lighting: "natural cinematic lighting"
+    lens: "35mm lens, shallow depth of field"
+    mood: "thoughtful, informative"
+    negative: "text, watermark, logo, signature, blurry, lowres, deformed, extra fingers, bad anatomy, jpeg artifacts, cartoon"
+  photorealistic_editorial:
+    label: Photorealistic Editorial (NatGeo)
+    style: "National Geographic editorial documentary photograph, 8k resolution, raw lifelike textures, master photographer composition"
+    lighting: "natural cinematic side lighting, rich micro-contrast"
+    lens: "85mm f/1.4 portrait prime lens, razor sharp center"
+    mood: "authentic, compelling, journalistic"
+    negative: "text, watermark, logo, CGI, 3D render, digital painting, airbrushed, cartoon, smooth plastic"
+  clean_explainer:
+    label: Clean 3D Explainer
+    style: "clean 3D render, isometric explainer illustration, soft materials, minimal"
+    lighting: "soft studio lighting"
+    lens: "orthographic view"
+    mood: "clear, friendly, educational"
+    negative: "text, watermark, logo, photo noise, clutter, blurry, deformed"
+  vintage_archive:
+    label: Vintage Archive
+    style: "vintage archival photograph, film grain, 1970s color film"
+    lighting: "available light"
+    lens: "50mm lens"
+    mood: "nostalgic"
+    negative: "text, watermark, logo, modern digital look, blurry, deformed"
+  digital_painting:
+    label: Digital Painting
+    style: "detailed digital painting, concept art, painterly brush strokes"
+    lighting: "dramatic volumetric lighting"
+    lens: "wide angle composition"
+    mood: "epic, atmospheric"
+    negative: "text, watermark, logo, photo, blurry, deformed"
+  anime_ghibli:
+    label: Anime / Studio Ghibli
+    style: "Studio Ghibli aesthetic, vibrant hand-painted anime art, painterly anime illustration, rich cel animation style"
+    lighting: "warm golden hour sunlight"
+    lens: "cinematic anime composition"
+    mood: "whimsical, enchanting, nostalgic"
+    negative: "text, watermark, logo, 3D CGI, photo, photorealistic, blurry, distorted"
+  cyberpunk_neon:
+    label: Cyberpunk Sci-Fi
+    style: "futuristic cyberpunk metropolis, glowing neon reflections, holographic displays, high-tech intricate machinery"
+    lighting: "vibrant neon cyan and magenta illumination, atmospheric rain mist"
+    lens: "cinematic anamorphic lens with subtle chromatic aberration"
+    mood: "dystopian, electrifying, moody"
+    negative: "text, watermark, logo, daytime, vintage, sunny, blurry, oversaturated"
+  watercolor_art:
+    label: Watercolor Illustration
+    style: "delicate watercolor painting, fluid pigment washes, soft wet-on-wet gradients, textured paper grain, fine ink accents"
+    lighting: "gentle diffused morning daylight"
+    lens: "artistic soft vignette composition"
+    mood: "serene, poetic, elegant"
+    negative: "text, watermark, logo, 3D render, photo, photorealistic, harsh stark shadows"
+  hyperreal_3d:
+    label: Hyperreal 3D Unreal Engine 5
+    style: "Unreal Engine 5 architectural cinematic render, Octane render, raytraced global illumination, photorealistic materials"
+    lighting: "volumetric sun godrays, realistic subsurface scattering"
+    lens: "cinematic IMAX composition, sharp depth of field"
+    mood: "breathtaking, polished, majestic"
+    negative: "text, watermark, logo, low-poly, pixelated, flat lighting, blurry"
+  retro_comic:
+    label: Retro Comic Book / Pop Art
+    style: "vintage American comic book art, bold black ink linework, stylized halftone ben-day dots, classic pop art palette"
+    lighting: "high contrast dramatic comic cell lighting"
+    lens: "dynamic low-angle heroic perspective"
+    mood: "bold, punchy, retro"
+    negative: "text, speech bubbles, watermark, logo, photorealistic, 3D CGI, blurry"
+  minimalist_vector:
+    label: Minimalist Vector Art
+    style: "clean minimalist modern vector illustration, elegant geometric shapes, refined flat design, harmonious color palette"
+    lighting: "even ambient lighting, flat shading"
+    lens: "flat 2D isometric or front perspective"
+    mood: "sophisticated, modern, clear"
+    negative: "text, watermark, logo, photorealistic, 3D render, noise, complex clutter, gradients"
+  dark_fantasy:
+    label: Dark Fantasy Gothic
+    style: "dark gothic fantasy artwork, brooding atmospheric concept art, Elden Ring aesthetic, weathered ancient stone and fog"
+    lighting: "dim eerie moonlight, torchlight glow in shadows"
+    lens: "dramatic wide environmental perspective"
+    mood: "mysterious, haunting, epic"
+    negative: "text, watermark, logo, bright sunny, cartoon, anime, modern technology"

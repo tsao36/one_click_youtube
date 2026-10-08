@@ -1,0 +1,91 @@
+# Provider configuration (non-secret). API keys live in .env only.
+
+llm:
+  providers:
+    ollama:
+      type: ollama
+      base_url: http://localhost:11434
+      model: qwen3:8b
+      keep_alive: 0          # unload right after each request -> frees VRAM for ComfyUI
+      num_ctx: 8192
+    gemini:
+      type: gemini
+      model: gemini-2.5-flash
+      api_key_env: GEMINI_API_KEY
+    openai_compat:
+      type: openai_compat
+      base_url: https://api.openai.com/v1
+      model: gpt-4o-mini
+      api_key_env: OPENAI_API_KEY
+  # which provider (and optional model override) to use for each job
+  jobs:
+    research:          {provider: ollama}
+    script:            {provider: ollama}
+    scene_planning:    {provider: ollama}
+    prompt_generation: {provider: ollama}
+  # used automatically when the configured provider is not reachable
+  fallback_order: [ollama, gemini, openai_compat]
+
+research:
+  provider: none             # none | gemini_search (Gemini + Google Search grounding)
+
+images:
+  comfyui:
+    base_url: http://127.0.0.1:8188
+
+tts:
+  # Profiles in data/voices/<name>/voice.json select one of these providers.
+  sapi:
+    type: sapi               # Windows built-in voices, fully local, always available
+  edge:
+    type: edge               # Microsoft Edge online voices (free cloud, no cloning)
+  http_clone:
+    type: http_clone         # any local voice-cloning server (F5-TTS / XTTS / GPT-SoVITS / Fish-Speech wrappers)
+    endpoint: http://127.0.0.1:9880/tts
+    method: POST
+    # JSON body template. Placeholders: {text} {reference_wav} {reference_text} {language} {speed}
+    body:
+      text: "{text}"
+      ref_audio_path: "{reference_wav}"
+      prompt_text: "{reference_text}"
+      text_lang: "{language}"
+      speed_factor: "{speed}"
+    timeout_seconds: 300
+  openai_tts:
+    type: openai_tts         # OpenAI-compatible /v1/audio/speech (cloud or local server)
+    base_url: https://api.openai.com/v1
+    model: gpt-4o-mini-tts
+    api_key_env: OPENAI_API_KEY
+  bluemagpie:
+    type: bluemagpie         # OpenFormosa/BlueMagpie-TTS zero-shot voice cloning server
+    endpoint: http://127.0.0.1:8008/tts
+    timeout_seconds: 300
+  elevenlabs:
+    type: elevenlabs         # ElevenLabs Cloud TTS & Voice Cloning API
+    api_key_env: ELEVENLABS_API_KEY
+    base_url: https://api.elevenlabs.io/v1
+    model: eleven_multilingual_v2
+    timeout_seconds: 180
+
+video:
+  provider: none             # none | comfyui_video | veo | kling | runway
+  comfyui_video:
+    workflow: workflows/image_to_video.json
+    timeout_seconds: 1800
+    is_cloud: false
+  veo:
+    api_key_env: GEMINI_API_KEY
+    model: veo-3.0-fast-generate-001
+    is_cloud: true
+  kling:
+    api_key_env: KLING_API_KEY
+    is_cloud: true
+  runway:
+    api_key_env: RUNWAY_API_KEY
+    is_cloud: true
+
+# Optional prices used for cost estimates (USD). Leave 0 if unknown.
+pricing:
+  llm_request_usd: 0.0
+  video_clip_usd: 0.50
+  tts_cloud_per_1k_chars_usd: 0.0
