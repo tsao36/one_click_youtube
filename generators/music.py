@@ -21,8 +21,12 @@ def pick_track(directory: str, key: str, preferred: str | None = None) -> Path |
     if not tracks:
         return None
     if preferred:
-        for t in tracks:
-            if t.name == preferred:
-                return t
+        pref = str(preferred).strip()
+        if pref.lower() in ("none", "off", "disable", "disabled", "false", "no_music"):
+            return None
+        if pref.lower() != "auto":
+            for t in tracks:
+                if t.name == pref or t.stem == pref or pref.lower() in t.name.lower():
+                    return t
     idx = int(hashlib.md5(key.encode()).hexdigest(), 16) % len(tracks)
     return tracks[idx]

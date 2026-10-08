@@ -104,10 +104,19 @@ def build_narration(project: Project, scenes: list[Scene], slots: list[Slot], ou
 
 def build_audio_mix(project: Project, narration: Path, total: float, out: Path, cancel: Callable[[], bool] | None = None) -> dict:
     s = project.settings
-    m, r = s["music"], s["rendering"]
+    m = s.get("music", {})
+    r = s.get("rendering", {})
     info: dict = {"music": None}
-    track = pick_track(m.get("directory", "data/music"), project.id, project.data.settings.get("music_track")) \
-        if m.get("enabled", True) else None
+    
+    preferred = (
+        m.get("track")
+        or project.settings.get("music_track")
+        or project.data.settings.get("music_track")
+    )
+    is_explicit_none = preferred and str(preferred).strip().lower() in ("none", "off", "disabled", "false", "no_music")
+    is_enabled = m.get("enabled", True) and not is_explicit_none
+    
+    track = pick_track(m.get("directory", "data/music"), project.id, preferred) if is_enabled else None
     final_norm = f"loudnorm=I={r.get('final_lufs', -14)}:TP=-1.5:LRA=11"
     if track is None:
         run_ffmpeg(["-i", str(narration), "-af", final_norm, "-ar", "48000", "-ac", "2", "-c:a", "pcm_s16le", str(out)], cancel=cancel)

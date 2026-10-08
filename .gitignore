@@ -13,6 +13,7 @@ data/voices/*/
 data/voices/*.wav
 data/music/*
 !data/music/README.txt
+!data/music/*.mp3
 .pytest_cache/
 data/youtube/
 *client_secrets*.json

@@ -81,6 +81,8 @@ class CreateProjectRequest(BaseModel):
     cloud_enabled: bool = False
     start_now: bool = True
     stage_models: Optional[dict[str, str]] = None
+    music_track: Optional[str] = "auto"
+    music_volume_db: Optional[float] = -24.0
 
 
 class UpdateSettingsRequest(BaseModel):
@@ -212,8 +214,12 @@ def create_project(req: CreateProjectRequest, background_tasks: BackgroundTasks)
         overrides["stage_models"] = req.stage_models
     if req.checkpoint and req.checkpoint not in ("dalle3", "imagen3"):
         overrides.setdefault("images", {})["checkpoint"] = req.checkpoint
-    elif req.visual_style in ("photorealistic_cinema", "photorealistic_editorial"):
-        overrides.setdefault("images", {})["checkpoint"] = "juggernautXL_v8Rundiffusion.safetensors"
+    if req.music_track:
+        m_enabled = req.music_track.lower() not in ("none", "off", "disabled", "false", "no_music")
+        overrides.setdefault("music", {})["track"] = req.music_track
+        overrides["music"]["enabled"] = m_enabled
+        if req.music_volume_db is not None:
+            overrides["music"]["volume_db"] = req.music_volume_db
 
     p = Project.create(topic=req.topic, overrides=overrides)
 
@@ -335,6 +341,85 @@ def get_project_costs(project_id: str):
     p.reload()
     from core.pricing import calculate_and_update_project_costs
     return calculate_and_update_project_costs(p)
+
+
+# ---------------- Background Music Endpoints ----------------
+@app.get("/api/music/tracks")
+def get_music_tracks():
+    music_dir = DATA_DIR / "music"
+    if not music_dir.exists():
+        return {"tracks": []}
+    tracks = []
+    audio_exts = {".mp3", ".wav", ".m4a", ".ogg", ".flac", ".aac"}
+    for p in sorted(music_dir.iterdir()):
+        if p.suffix.lower() in audio_exts and p.is_file():
+            clean_name = p.stem.replace("_", " ").title()
+            tracks.append({
+                "id": p.name,
+                "name": clean_name,
+                "filename": p.name,
+                "size_mb": round(p.stat().st_size / (1024 * 1024), 2),
+                "url": f"/api/music/audio/{p.name}"
+            })
+    return {"tracks": tracks}
+
+
+@app.get("/api/music/audio/{filename}")
+def stream_music_audio(filename: str):
+    music_path = (DATA_DIR / "music" / filename).resolve()
+    if not music_path.exists() or not music_path.is_file():
+        raise HTTPException(status_code=404, detail="Music track not found")
+    media_type = "audio/mpeg" if music_path.suffix.lower() == ".mp3" else "audio/wav"
+    return FileResponse(music_path, media_type=media_type)
+
+
+@app.post("/api/music/upload")
+async def upload_music_track(file: UploadFile = File(...)):
+    music_dir = DATA_DIR / "music"
+    music_dir.mkdir(parents=True, exist_ok=True)
+    raw_name = file.filename or "ambient_track.mp3"
+    clean_name = re.sub(r"[^a-zA-Z0-9_\-\.]", "_", raw_name)
+    target = music_dir / clean_name
+    content = await file.read()
+    target.write_bytes(content)
+    return {"status": "uploaded", "filename": clean_name}
+
+
+@app.delete("/api/music/tracks/{filename}")
+def delete_music_track(filename: str):
+    music_path = (DATA_DIR / "music" / filename).resolve()
+    if music_path.exists() and music_path.is_file():
+        music_path.unlink()
+        return {"status": "deleted", "filename": filename}
+    raise HTTPException(status_code=404, detail="Music track not found")
+
+
+class UpdateProjectMusicRequest(BaseModel):
+    track: Optional[str] = None
+    volume_db: Optional[float] = None
+    enabled: Optional[bool] = None
+
+
+@app.post("/api/projects/{project_id}/music")
+def update_project_music(project_id: str, req: UpdateProjectMusicRequest):
+    if not (PROJECTS_DIR / project_id).exists():
+        raise HTTPException(status_code=404, detail="Project not found")
+    p = Project(project_id)
+    p.reload()
+    with p.lock:
+        m = p.settings.setdefault("music", {})
+        if req.track is not None:
+            m["track"] = req.track
+            if req.track.lower() in ("none", "off", "disabled", "false", "no_music"):
+                m["enabled"] = False
+            else:
+                m["enabled"] = True
+        if req.volume_db is not None:
+            m["volume_db"] = req.volume_db
+        if req.enabled is not None:
+            m["enabled"] = req.enabled
+        p.save()
+    return {"status": "updated", "music": p.settings.get("music", {})}
 
 
 @app.post("/api/projects/{project_id}/start")

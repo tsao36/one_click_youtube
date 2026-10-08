@@ -648,6 +648,7 @@
     <button class="nav-tab" onclick="switchTab('editor')">Scene Editor</button>
     <button class="nav-tab" onclick="switchTab('preview')">📺 Player & YouTube</button>
     <button class="nav-tab" onclick="switchTab('voices')">Voice Profiles</button>
+    <button class="nav-tab" onclick="switchTab('music')">🎵 Ambient Music</button>
     <button class="nav-tab" onclick="switchTab('settings')">Settings</button>
     <button class="nav-tab" onclick="switchTab('logs')">Logs</button>
   </div>
@@ -722,6 +723,30 @@
           <select id="cloud-toggle" onchange="onCloudToggleChange(this.value)">
             <option value="false" selected>Disabled (100% Local AMD/CPU)</option>
             <option value="true">Enabled (Use Cloud APIs if configured)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label style="display: flex; justify-content: space-between; align-items: center;">
+            <span>🎵 Background Ambient Music</span>
+            <button type="button" class="btn-sec" onclick="previewCreatorMusic()" id="btn-preview-music" style="padding: 1px 7px; font-size: 11px; height: auto;">▶ Preview</button>
+          </label>
+          <select id="music-select">
+            <option value="auto" selected>Auto (Smart Matching Ambient Track)</option>
+            <option value="Calm_Ambient_Pad.mp3">Calm Ambient Pad (Warm & Reflective)</option>
+            <option value="Deep_Documentary_Drone.mp3">Deep Documentary Drone (Scientific / Tech)</option>
+            <option value="Ocean_Breeze_Soundscape.mp3">Ocean Breeze Soundscape (Serene Nature)</option>
+            <option value="LoFi_Warmth_Chills.mp3">Lo-Fi Warmth Chills (Mellow Rhodes)</option>
+            <option value="Cinematic_Inspiration.mp3">Cinematic Inspiration (Gentle Uplifting)</option>
+            <option value="none">None (Voice Only, No Music)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Music Volume & Ducking</label>
+          <select id="music-volume">
+            <option value="-24" selected>-24 dB (Balanced Ducking - Recommended)</option>
+            <option value="-28">-28 dB (Subtle Ambient Wash)</option>
+            <option value="-20">-20 dB (Prominent Soundtrack)</option>
+            <option value="-32">-32 dB (Whisper Quiet)</option>
           </select>
         </div>
       </div>
@@ -1115,6 +1140,69 @@
         * For BlueMagpie-TTS cloning: upload 3-10 seconds of clear speech (no background noise or music).
       </div>
       <button onclick="createNewVoice()">Upload & Create Voice Profile</button>
+    </div>
+  </div>
+
+  <!-- TAB: MUSIC -->
+  <div id="tab-music" class="tab-content">
+    <div class="card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+        <div>
+          <div class="card-title" style="display: flex; align-items: center; gap: 8px; margin-bottom: 2px;">
+            <span>🎵 Background Ambient Music Library</span>
+          </div>
+          <div style="font-size: 12px; color: var(--text-muted);">
+            High-quality royalty-free ambient music tracks. During final rendering, tracks are seamlessly looped and <b>automatically ducked (-24 dB)</b> under speech narration.
+          </div>
+        </div>
+        <button class="btn-sec" onclick="loadMusicTracks()" style="padding: 6px 12px; font-size: 12px;">🔄 Refresh Library</button>
+      </div>
+
+      <!-- Music Tracks Table / Grid -->
+      <div id="music-tracks-list" style="margin-top: 14px;">
+        <div style="color: var(--text-muted); font-size: 13px;">Loading music tracks...</div>
+      </div>
+    </div>
+
+    <!-- UPLOAD CUSTOM MUSIC CARD -->
+    <div class="card" style="margin-top: 20px;">
+      <div class="card-title">📤 Upload Custom Background Track</div>
+      <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px;">
+        Add your own royalty-free ambient music (.mp3, .wav, .m4a, .ogg, .flac). It will instantly become available across all video projects.
+      </div>
+      <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+        <input type="file" id="music-upload-file" accept="audio/*" style="font-size: 13px; max-width: 320px;">
+        <button onclick="uploadMusicFile()" class="btn-primary" style="padding: 8px 16px; font-weight: 700;">Upload Track</button>
+      </div>
+      <div id="music-upload-status" style="font-size: 12px; margin-top: 8px; color: #94a3b8;"></div>
+    </div>
+
+    <!-- ACTIVE PROJECT MUSIC MIXER CARD -->
+    <div class="card" style="margin-top: 20px;">
+      <div class="card-title">🎚️ Active Project Ambient Music Settings</div>
+      <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px;">
+        Customize or change the background ambient music for the active project, then re-render Stage 9 to apply.
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Selected Ambient Track</label>
+          <select id="project-music-track-select"></select>
+        </div>
+        <div class="form-group">
+          <label>Music Volume (Ducked under voice)</label>
+          <select id="project-music-volume-select">
+            <option value="-24">-24 dB (Balanced Ducking - Standard)</option>
+            <option value="-28">-28 dB (Subtle Ambient Wash)</option>
+            <option value="-20">-20 dB (Prominent Soundtrack)</option>
+            <option value="-32">-32 dB (Whisper Quiet)</option>
+          </select>
+        </div>
+      </div>
+      <div style="display: flex; gap: 10px; margin-top: 14px; align-items: center; flex-wrap: wrap;">
+        <button onclick="saveActiveProjectMusic()" class="btn-primary" style="padding: 9px 18px; font-weight: 700;">💾 Save Music Settings</button>
+        <button onclick="saveAndRerenderAudioMix()" class="btn-sec" style="padding: 9px 16px; font-weight: 700; background: #065f46; color: #fff; border-color: #059669;">⚡ Re-Render 1080p Video With New Music</button>
+        <span id="project-music-save-status" style="font-size: 12px; color: #34d399;"></span>
+      </div>
     </div>
   </div>
 
@@ -1708,6 +1796,7 @@
       if (name === 'studio') loadStageStudio();
       if (name === 'editor') loadScenesForEditor();
       if (name === 'voices') { loadVoiceProfiles(); loadElevenLabsVoices(); }
+      if (name === 'music') loadMusicTracks();
       if (name === 'settings') { loadApiKeys(); if (typeof checkYouTubeStatus === 'function') checkYouTubeStatus(); }
       if (name === 'logs') refreshLogs();
       if (name === 'preview') updatePreviewMedia();
@@ -2200,6 +2289,10 @@
       const ai_pct = parseFloat(document.getElementById('ai-video-pct').value);
       const cloud = document.getElementById('cloud-toggle').value === 'true';
       const stageModels = getSelectedStageModels();
+      const musicSelectEl = document.getElementById('music-select');
+      const musicTrack = musicSelectEl ? musicSelectEl.value : 'auto';
+      const musicVolEl = document.getElementById('music-volume');
+      const musicVolume = musicVolEl ? parseFloat(musicVolEl.value) : -24.0;
 
       const res = await fetch('/api/projects', {
         method: 'POST',
@@ -2214,6 +2307,8 @@
           ai_video_percentage: ai_pct,
           cloud_enabled: cloud,
           stage_models: stageModels,
+          music_track: musicTrack,
+          music_volume_db: musicVolume,
           start_now: true
         })
       });
@@ -2686,7 +2781,11 @@
 
         const usageEl = document.getElementById('project-usage-info');
         if (usageEl) {
-          usageEl.innerHTML = `
+            const rawMusic = (p.settings && p.settings.music && p.settings.music.track) || (d.outputs && d.outputs.music_track) || 'None';
+            const musicVol = (p.settings && p.settings.music && p.settings.music.volume_db !== undefined) ? p.settings.music.volume_db + ' dB' : '-24 dB';
+            const musicDisplay = (rawMusic && rawMusic.toLowerCase() !== 'none') ? (rawMusic.replace(/\.[^/.]+$/, '').replace(/_/g, ' ') + ' (' + musicVol + ' ducked)') : 'None (Narration Voice Only)';
+
+            usageEl.innerHTML = `
             <div style="background:linear-gradient(135deg, #10213d 0%, #0c1524 100%); border:1px solid #2563eb; border-radius:6px; padding:10px 14px; margin-bottom:14px;">
               <div style="font-size: 12px; text-transform:uppercase; color:#93c5fd; font-weight:700; letter-spacing:0.5px;">⏱️ Production Time Lapse</div>
               <div style="font-size:22px; font-weight:800; color:#38bdf8; margin-top:2px;">${durFormatted}</div>
@@ -2694,6 +2793,7 @@
             </div>
             <div style="margin-bottom:6px;">Total Scenes: <b style="color:#fff;">${d.scenes ? d.scenes.length : 0}</b></div>
             <div style="margin-bottom:6px;">Narration Language: <b style="color:#93c5fd;">${(p.settings && p.settings.video && p.settings.video.language) || 'English'}</b></div>
+            <div style="margin-bottom:6px;">Background Music: <b style="color:#60a5fa;">🎵 ${musicDisplay}</b></div>
             <div style="margin-bottom:6px;">LLM Requests: <b style="color:#fff;">${u.llm_requests}</b></div>
             <div style="margin-bottom:6px;">Total Cloud Cost: <b style="color:#34d399; font-size: 14px;">${totalCostStr}</b></div>
             ${costBreakdownHtml}
@@ -3124,6 +3224,257 @@
       await fetch('/api/voices/' + vName, { method: 'DELETE' });
       loadVoices();
       loadVoiceProfiles();
+    }
+
+    // ==========================================
+    // BACKGROUND AMBIENT MUSIC FUNCTIONS
+    // ==========================================
+    let cachedMusicTracks = [];
+    let currentPreviewAudio = null;
+
+    async function loadMusicTracks() {
+      try {
+        const res = await fetch('/api/music/tracks');
+        if (!res.ok) return;
+        const d = await res.json();
+        cachedMusicTracks = d.tracks || [];
+
+        // 1. Update music selector in creator form
+        const creatorSel = document.getElementById('music-select');
+        if (creatorSel) {
+          const curVal = creatorSel.value || 'auto';
+          let optionsHtml = `
+            <option value="auto">Auto (Smart Matching Ambient Track)</option>
+          `;
+          cachedMusicTracks.forEach(t => {
+            optionsHtml += `<option value="${t.filename}">${t.name} (${t.size_mb} MB)</option>`;
+          });
+          optionsHtml += `<option value="none">None (Voice Only, No Music)</option>`;
+          creatorSel.innerHTML = optionsHtml;
+          if (Array.from(creatorSel.options).some(o => o.value === curVal)) {
+            creatorSel.value = curVal;
+          }
+        }
+
+        // 2. Update music selector in project mixer card
+        const projSel = document.getElementById('project-music-track-select');
+        if (projSel) {
+          const curProjVal = projSel.value || 'auto';
+          let projOpts = `
+            <option value="auto">Auto-Select Matching Ambient Track</option>
+          `;
+          cachedMusicTracks.forEach(t => {
+            projOpts += `<option value="${t.filename}">${t.name} (${t.size_mb} MB)</option>`;
+          });
+          projOpts += `<option value="none">None (No Music / Voice Only)</option>`;
+          projSel.innerHTML = projOpts;
+          if (Array.from(projSel.options).some(o => o.value === curProjVal)) {
+            projSel.value = curProjVal;
+          }
+        }
+
+        // 3. Render music tracks table in tab-music
+        renderMusicTracksList(cachedMusicTracks);
+
+        // 4. Sync active project setting if project loaded
+        if (currentProjectId) {
+          syncActiveProjectMusicSetting();
+        }
+      } catch (e) {
+        console.error("Error loading music tracks:", e);
+      }
+    }
+
+    function renderMusicTracksList(tracks) {
+      const listEl = document.getElementById('music-tracks-list');
+      if (!listEl) return;
+      if (!tracks.length) {
+        listEl.innerHTML = '<div style="color:var(--text-muted); padding:10px;">No music tracks found in data/music.</div>';
+        return;
+      }
+
+      let html = '<div style="display:flex; flex-direction:column; gap:10px;">';
+      tracks.forEach(t => {
+        html += `
+          <div style="background:#080d16; border:1px solid var(--card-border); padding:12px 16px; border-radius:var(--radius); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+            <div style="display:flex; align-items:center; gap:12px;">
+              <div style="font-size:24px;">🎵</div>
+              <div>
+                <div style="font-weight:700; font-size:14px; color:#f1f5f9;">${t.name}</div>
+                <div style="font-size:12px; color:var(--text-muted); font-family:monospace; margin-top:2px;">
+                  ${t.filename} • ${t.size_mb} MB • Royalty-Free Ambient
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+              <audio controls src="${t.url}" preload="none" style="height:32px; width:220px;"></audio>
+              <button class="btn-sec" onclick="applyMusicToActiveProject('${t.filename}')" style="padding:6px 12px; font-size:12px; color:#93c5fd; border-color:#2563eb;" title="Apply to active project">
+                ✓ Use in Active Project
+              </button>
+              <button class="btn-sec btn-danger" onclick="deleteMusicTrack('${t.filename}')" style="padding:6px 10px; font-size:12px;" title="Delete this track">
+                🗑️
+              </button>
+            </div>
+          </div>
+        `;
+      });
+      html += '</div>';
+      listEl.innerHTML = html;
+    }
+
+    function previewCreatorMusic() {
+      const sel = document.getElementById('music-select');
+      if (!sel) return;
+      const trackVal = sel.value;
+      if (!trackVal || trackVal === 'none') {
+        alert("Please select an ambient track to preview (not 'None').");
+        return;
+      }
+      let filename = trackVal;
+      if (trackVal === 'auto') {
+        filename = cachedMusicTracks.length ? cachedMusicTracks[0].filename : 'Calm_Ambient_Pad.mp3';
+      }
+      playAmbientPreview(`/api/music/audio/${filename}`, 'btn-preview-music');
+    }
+
+    function previewProjectMusic(trackVal) {
+      if (!trackVal || trackVal === 'none' || trackVal === 'auto') return;
+      playAmbientPreview(`/api/music/audio/${trackVal}`, null);
+    }
+
+    function playAmbientPreview(audioUrl, btnId) {
+      const btn = btnId ? document.getElementById(btnId) : null;
+      if (currentPreviewAudio && !currentPreviewAudio.paused) {
+        currentPreviewAudio.pause();
+        currentPreviewAudio = null;
+        if (btn) btn.textContent = '▶ Preview';
+        return;
+      }
+      if (currentPreviewAudio) {
+        currentPreviewAudio.pause();
+      }
+      currentPreviewAudio = new Audio(audioUrl);
+      currentPreviewAudio.volume = 0.5;
+      currentPreviewAudio.play();
+      if (btn) {
+        btn.textContent = '⏹ Stop';
+        currentPreviewAudio.onended = () => { btn.textContent = '▶ Preview'; };
+      }
+    }
+
+    async function uploadMusicFile() {
+      const fileInput = document.getElementById('music-upload-file');
+      const statusEl = document.getElementById('music-upload-status');
+      if (!fileInput || !fileInput.files.length) {
+        return alert("Please select an audio file (.mp3, .wav, .m4a, etc.) to upload.");
+      }
+      const file = fileInput.files[0];
+      const formData = new FormData();
+      formData.append('file', file);
+
+      if (statusEl) statusEl.textContent = "Uploading track...";
+      try {
+        const res = await fetch('/api/music/upload', {
+          method: 'POST',
+          body: formData
+        });
+        if (res.ok) {
+          if (statusEl) statusEl.textContent = `✓ Uploaded ${file.name} successfully!`;
+          fileInput.value = '';
+          await loadMusicTracks();
+        } else {
+          if (statusEl) statusEl.textContent = `Upload failed: ${res.statusText}`;
+        }
+      } catch (e) {
+        if (statusEl) statusEl.textContent = `Upload error: ${e.message}`;
+      }
+    }
+
+    async function deleteMusicTrack(filename) {
+      if (!confirm(`Delete music track "${filename}"?`)) return;
+      try {
+        const res = await fetch(`/api/music/tracks/${encodeURIComponent(filename)}`, {
+          method: 'DELETE'
+        });
+        if (res.ok) {
+          await loadMusicTracks();
+        }
+      } catch (e) {
+        alert("Failed to delete track: " + e.message);
+      }
+    }
+
+    async function applyMusicToActiveProject(filename) {
+      if (!currentProjectId) {
+        alert("No project currently selected.");
+        return;
+      }
+      const sel = document.getElementById('project-music-track-select');
+      if (sel) sel.value = filename;
+      await saveActiveProjectMusic();
+      alert(`Applied "${filename}" to project ${currentProjectId}. You can click "Re-Render 1080p Video" to compose the mix with this music.`);
+    }
+
+    async function syncActiveProjectMusicSetting() {
+      if (!currentProjectId) return;
+      try {
+        const res = await fetch(`/api/projects/${currentProjectId}`);
+        if (!res.ok) return;
+        const d = await res.json();
+        const p = d.project;
+        if (p && p.settings && p.settings.music) {
+          const m = p.settings.music;
+          const trkSel = document.getElementById('project-music-track-select');
+          if (trkSel && m.track) trkSel.value = m.track;
+          const volSel = document.getElementById('project-music-volume-select');
+          if (volSel && m.volume_db !== undefined) volSel.value = String(m.volume_db);
+        }
+      } catch (_) {}
+    }
+
+    async function saveActiveProjectMusic() {
+      if (!currentProjectId) return alert("Please select an active project first.");
+      const trkSel = document.getElementById('project-music-track-select');
+      const volSel = document.getElementById('project-music-volume-select');
+      const statusEl = document.getElementById('project-music-save-status');
+
+      const track = trkSel ? trkSel.value : 'auto';
+      const volume = volSel ? parseFloat(volSel.value) : -24.0;
+
+      try {
+        const res = await fetch(`/api/projects/${currentProjectId}/music`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ track: track, volume_db: volume })
+        });
+        if (res.ok) {
+          if (statusEl) {
+            statusEl.textContent = "✓ Settings saved!";
+            setTimeout(() => { statusEl.textContent = ""; }, 3000);
+          }
+          pollProject();
+        }
+      } catch (e) {
+        alert("Failed to save music settings: " + e.message);
+      }
+    }
+
+    async function saveAndRerenderAudioMix() {
+      if (!currentProjectId) return alert("Please select an active project first.");
+      await saveActiveProjectMusic();
+      if (!confirm("Re-render 1080p video with the updated ambient background music now?")) return;
+      try {
+        const res = await fetch(`/api/projects/${currentProjectId}/run_stage/render`, {
+          method: 'POST'
+        });
+        if (res.ok) {
+          switchTab('preview');
+          pollProject();
+        }
+      } catch (e) {
+        alert("Failed to trigger re-render: " + e.message);
+      }
     }
 
     async function saveApiKeys() {
@@ -6639,6 +6990,7 @@
     window.addEventListener('DOMContentLoaded', () => {
       loadStatus();
       loadVoices();
+      loadMusicTracks();
       loadImageModels();
       syncCloudVisualControls();
       loadProjectsList();
