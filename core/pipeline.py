@@ -473,7 +473,28 @@ class Pipeline:
                         if attempt == retries:
                             s.image.error = str(e)
 
-                # Fallback to placeholder if primary model crashed or failed
+                # Fallback if primary model crashed or failed (e.g. cloud API credits exhausted or 404)
+                if not generated and provider.name != "comfyui":
+                    try:
+                        comfy_prov = get_image_provider("comfyui", cfg)
+                        avail, _ = comfy_prov.available()
+                        if avail:
+                            log.warning("Scene %d primary image provider '%s' failed (%s); automatically falling back to local GPU ComfyUI...",
+                                        s.scene_id, provider.name, s.image.error)
+                            self.p.activity(f"Stage 5/9: Scene {s.scene_id} falling back to ComfyUI (GPU)...")
+                            meta = comfy_prov.generate(req, cancel=self.is_cancelled)
+                            merged_meta = dict(existing_img_meta)
+                            merged_meta.update(meta)
+                            merged_meta["takes"] = prev_img_takes
+                            s.image.status = Status.COMPLETED
+                            s.image.path = self.p.rel(img_path)
+                            s.image.meta = merged_meta
+                            s.image.error = None
+                            generated = True
+                    except Exception as comfy_err:
+                        log.warning("ComfyUI fallback also failed for scene %d: %s", s.scene_id, comfy_err)
+
+                # Only if all real image generation engines failed, fall back to placeholder
                 if not generated and fallback_name and fallback_name != provider.name:
                     log.warning("Scene %d falling back to %s image", s.scene_id, fallback_name)
                     fb = get_image_provider(fallback_name, cfg)

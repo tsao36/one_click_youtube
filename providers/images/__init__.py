@@ -52,6 +52,15 @@ class ComfyUIImageProvider(ImageProvider):
 
     def generate(self, req, cancel=None):
         ckpt = req.extra.get("checkpoint") or self.s.get("checkpoint", "")
+        # Validate checkpoint against installed ComfyUI models to prevent workflow errors
+        try:
+            installed = self.client.list_checkpoints()
+            if installed and (not ckpt or ckpt not in installed or not ckpt.endswith((".safetensors", ".ckpt"))):
+                best = next((c for c in installed if "juggernaut" in c.lower()), None)
+                ckpt = best or installed[0]
+        except Exception:
+            pass
+
         sampler = req.extra.get("sampler") or self.s.get("sampler", "dpmpp_2m")
         scheduler = req.extra.get("scheduler") or self.s.get("scheduler", "karras")
         values = {
@@ -113,34 +122,48 @@ class DallE3ImageProvider(ImageProvider):
             "Content-Type": "application/json"
         }
         size = "1792x1024" if req.width >= req.height else "1024x1792"
-        body = {
-            "model": "dall-e-3",
-            "prompt": req.prompt,
-            "n": 1,
-            "size": size,
-            "response_format": "b64_json",
-            "quality": "standard"
-        }
-        r = requests.post(url, json=body, headers=headers, timeout=180)
-        if r.status_code != 200:
-            raise RuntimeError(f"OpenAI DALL-E 3 failed ({r.status_code}): {r.text[:300]}")
-        data = r.json()
-        b64_str = data["data"][0]["b64_json"]
-        img_bytes = base64.b64decode(b64_str)
-        req.output.parent.mkdir(parents=True, exist_ok=True)
-        req.output.write_bytes(img_bytes)
-        _check_not_blank(req.output)
-        revised = data["data"][0].get("revised_prompt", req.prompt)
-        return {
-            "provider": "dalle3",
-            "model": "dall-e-3",
-            "seed": req.seed,
-            "width": req.width,
-            "height": req.height,
-            "prompt": req.prompt,
-            "revised_prompt": revised,
-            "is_cloud": True
-        }
+        models_to_try = ["chatgpt-image-latest", "gpt-image-1", "dall-e-3"]
+        last_error = None
+        for m in models_to_try:
+            body = {
+                "model": m,
+                "prompt": req.prompt,
+                "n": 1,
+                "size": size,
+                "response_format": "b64_json",
+            }
+            if m == "dall-e-3":
+                body["quality"] = "standard"
+            try:
+                r = requests.post(url, json=body, headers=headers, timeout=180)
+            except Exception as e:
+                last_error = str(e)
+                continue
+
+            if r.status_code == 200:
+                data = r.json()
+                b64_str = data["data"][0]["b64_json"]
+                img_bytes = base64.b64decode(b64_str)
+                req.output.parent.mkdir(parents=True, exist_ok=True)
+                req.output.write_bytes(img_bytes)
+                _check_not_blank(req.output)
+                revised = data["data"][0].get("revised_prompt", req.prompt)
+                return {
+                    "provider": "dalle3",
+                    "model": m,
+                    "seed": req.seed,
+                    "width": req.width,
+                    "height": req.height,
+                    "prompt": req.prompt,
+                    "revised_prompt": revised,
+                    "is_cloud": True
+                }
+            elif r.status_code == 429:
+                raise RuntimeError("OpenAI image API failed: credit balance exhausted or quota exceeded.")
+            else:
+                last_error = f"{m} failed ({r.status_code}): {r.text[:200]}"
+
+        raise RuntimeError(f"OpenAI image generation failed: {last_error}")
 
 
 class Imagen3ImageProvider(ImageProvider):
@@ -166,39 +189,48 @@ class Imagen3ImageProvider(ImageProvider):
         if not self.key:
             raise RuntimeError("GEMINI_API_KEY not set in .env")
 
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key={self.key}"
-        headers = {"Content-Type": "application/json"}
-        aspect = "16:9" if req.width >= req.height else "9:16"
-        body = {
-            "instances": [{"prompt": req.prompt}],
-            "parameters": {
-                "sampleCount": 1,
-                "aspectRatio": aspect,
-                "personGeneration": "ALLOW_ADULT",
-                "outputOptions": {"mimeType": "image/png"}
+        models_to_try = ["gemini-2.5-flash-image", "gemini-3-pro-image", "gemini-nano-banana-2.1"]
+        last_error = None
+        for m in models_to_try:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent?key={self.key}"
+            headers = {"Content-Type": "application/json"}
+            body = {
+                "contents": [{"parts": [{"text": f"Generate an image: {req.prompt}"}]}]
             }
-        }
-        r = requests.post(url, json=body, headers=headers, timeout=180)
-        if r.status_code != 200:
-            raise RuntimeError(f"Google Imagen 3 failed ({r.status_code}): {r.text[:300]}")
-        data = r.json()
-        preds = data.get("predictions", [])
-        if not preds or "bytesBase64Encoded" not in preds[0]:
-            raise RuntimeError(f"No image returned from Google Imagen 3: {str(data)[:300]}")
-        b64_str = preds[0]["bytesBase64Encoded"]
-        img_bytes = base64.b64decode(b64_str)
-        req.output.parent.mkdir(parents=True, exist_ok=True)
-        req.output.write_bytes(img_bytes)
-        _check_not_blank(req.output)
-        return {
-            "provider": "imagen3",
-            "model": "imagen-3.0-generate-002",
-            "seed": req.seed,
-            "width": req.width,
-            "height": req.height,
-            "prompt": req.prompt,
-            "is_cloud": True
-        }
+            try:
+                r = requests.post(url, json=body, headers=headers, timeout=180)
+            except Exception as e:
+                last_error = str(e)
+                continue
+
+            if r.status_code == 200:
+                data = r.json()
+                try:
+                    candidates = data.get("candidates", [])
+                    parts = candidates[0].get("content", {}).get("parts", [])
+                    for part in parts:
+                        if "inlineData" in part and "data" in part["inlineData"]:
+                            img_bytes = base64.b64decode(part["inlineData"]["data"])
+                            req.output.parent.mkdir(parents=True, exist_ok=True)
+                            req.output.write_bytes(img_bytes)
+                            _check_not_blank(req.output)
+                            return {
+                                "provider": "imagen3",
+                                "model": m,
+                                "seed": req.seed,
+                                "width": req.width,
+                                "height": req.height,
+                                "prompt": req.prompt,
+                                "is_cloud": True
+                            }
+                except Exception as ex:
+                    last_error = f"Failed to parse image from {m}: {ex}"
+            elif r.status_code == 429:
+                raise RuntimeError("Google Gemini image API failed: free tier quota limit is 0 (requires paid billing).")
+            else:
+                last_error = f"{m} failed ({r.status_code}): {r.text[:200]}"
+
+        raise RuntimeError(f"Google Gemini image generation failed: {last_error}")
 
 
 def _check_not_blank(path: Path) -> None:

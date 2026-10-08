@@ -781,9 +781,9 @@
           <div class="form-group">
             <label>Stage 5: Image Generation</label>
             <select id="model-stage-images" onchange="onStageModelChange()">
-              <option value="comfyui" selected>Local GPU: ComfyUI (DirectML RX 9060 XT)</option>
-              <option value="dalle3">Cloud API: OpenAI DALL-E 3 (1792×1024)</option>
-              <option value="imagen3">Cloud API: Google Imagen 3 (Gemini)</option>
+              <option value="comfyui" selected>Local GPU: ComfyUI (DirectML RX 9060 XT - Recommended)</option>
+              <option value="dalle3">Cloud API: OpenAI (Paid Billing Required)</option>
+              <option value="imagen3">Cloud API: Google Imagen (Paid Billing Required)</option>
             </select>
           </div>
           <div class="form-group">
@@ -1822,19 +1822,17 @@
       const currentVal = selEl.value;
 
       if (isCloud) {
-        if (labelEl) labelEl.textContent = 'Cloud Image Engine';
+        if (labelEl) labelEl.textContent = 'Image Engine';
         selEl.innerHTML = `
-          <option value="dalle3">OpenAI DALL-E 3 (Cloud API - High Res)</option>
-          <option value="imagen3">Google Imagen 3 (Cloud API - Photoreal)</option>
+          <option value="comfyui">Local GPU: ComfyUI DirectML (Free & Recommended)</option>
+          <option value="dalle3">OpenAI Cloud API (Paid Billing Required)</option>
+          <option value="imagen3">Google Imagen Cloud API (Paid Billing Required)</option>
         `;
         const stageImagesEl = document.getElementById('model-stage-images');
-        if (stageImagesEl && (stageImagesEl.value === 'dalle3' || stageImagesEl.value === 'imagen3')) {
+        if (stageImagesEl && (stageImagesEl.value === 'dalle3' || stageImagesEl.value === 'imagen3' || stageImagesEl.value === 'comfyui')) {
           selEl.value = stageImagesEl.value;
         } else {
-          selEl.value = 'dalle3';
-          if (stageImagesEl && stageImagesEl.value === 'comfyui') {
-            stageImagesEl.value = 'dalle3';
-          }
+          selEl.value = 'comfyui';
         }
       } else {
         if (labelEl) labelEl.textContent = 'Image Model / Checkpoint';
@@ -1860,7 +1858,7 @@
       const isCloud = isCloudAccelerationActive();
       if (isCloud) {
         const stageImagesEl = document.getElementById('model-stage-images');
-        if (stageImagesEl) {
+        if (stageImagesEl && (val === 'dalle3' || val === 'imagen3' || val === 'comfyui')) {
           stageImagesEl.value = val;
           onStageModelChange();
         }
@@ -2195,7 +2193,10 @@
       const voice = document.getElementById('voice-select').value;
       const style = document.getElementById('visual-style').value;
       const ckptEl = document.getElementById('checkpoint-select');
-      const checkpoint = ckptEl ? ckptEl.value : null;
+      let checkpoint = ckptEl ? ckptEl.value : null;
+      if (isCloudAccelerationActive() && (checkpoint === 'dalle3' || checkpoint === 'imagen3' || checkpoint === 'comfyui')) {
+        checkpoint = null;
+      }
       const ai_pct = parseFloat(document.getElementById('ai-video-pct').value);
       const cloud = document.getElementById('cloud-toggle').value === 'true';
       const stageModels = getSelectedStageModels();
