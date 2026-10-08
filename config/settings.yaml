@@ -95,7 +95,7 @@ youtube:
 
 visual_styles:
   photorealistic_cinema:
-    label: "Photorealistic Cinema (Juggernaut XL)"
+    label: "Photorealistic Cinema"
     style: "ultra-realistic cinematic 35mm photograph, authentic skin texture, natural pores, subtle imperfections, photorealistic, 8k UHD, masterpiece photography"
     lighting: "cinematic natural lighting, soft directional window light, rich tonal depth"
     lens: "50mm prime lens, f/1.8, shallow depth of field, natural background blur"

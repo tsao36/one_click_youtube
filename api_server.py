@@ -210,7 +210,7 @@ def create_project(req: CreateProjectRequest, background_tasks: BackgroundTasks)
     }
     if req.stage_models:
         overrides["stage_models"] = req.stage_models
-    if req.checkpoint:
+    if req.checkpoint and req.checkpoint not in ("dalle3", "imagen3"):
         overrides.setdefault("images", {})["checkpoint"] = req.checkpoint
     elif req.visual_style in ("photorealistic_cinema", "photorealistic_editorial"):
         overrides.setdefault("images", {})["checkpoint"] = "juggernautXL_v8Rundiffusion.safetensors"

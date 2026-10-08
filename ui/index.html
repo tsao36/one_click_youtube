@@ -701,9 +701,9 @@
             <option value="minimalist_vector">Minimalist Modern Vector</option>
           </select>
         </div>
-        <div class="form-group">
-          <label>Image Model / Checkpoint</label>
-          <select id="checkpoint-select">
+        <div class="form-group" id="checkpoint-form-group">
+          <label id="checkpoint-label">Image Model / Checkpoint</label>
+          <select id="checkpoint-select" onchange="onCheckpointChange(this.value)">
             <option value="juggernautXL_v8Rundiffusion.safetensors" selected>Juggernaut XL v8 (Photorealistic Cinema)</option>
             <option value="sd_xl_base_1.0.safetensors">SDXL Base 1.0 (General / Stylized)</option>
           </select>
@@ -1751,25 +1751,155 @@
       return modelName;
     }
 
+    const VISUAL_STYLE_DEFINITIONS = [
+      { value: 'photorealistic_cinema', localLabel: 'Photorealistic Cinema (Juggernaut XL)', cloudLabel: 'Photorealistic Cinema' },
+      { value: 'cinematic_documentary', localLabel: 'Cinematic Documentary', cloudLabel: 'Cinematic Documentary' },
+      { value: 'vintage_archive', localLabel: 'Vintage Archive (1970s Film)', cloudLabel: 'Vintage Archive' },
+      { value: 'photorealistic_editorial', localLabel: 'Photorealistic Editorial (NatGeo)', cloudLabel: 'Photorealistic Editorial' },
+      { value: 'hyperreal_3d', localLabel: 'Hyperreal 3D (Unreal Engine 5)', cloudLabel: 'Hyperreal 3D' },
+      { value: 'anime_ghibli', localLabel: 'Anime / Studio Ghibli', cloudLabel: 'Anime / Studio Ghibli' },
+      { value: 'cyberpunk_neon', localLabel: 'Cyberpunk Sci-Fi Neon', cloudLabel: 'Cyberpunk Sci-Fi' },
+      { value: 'watercolor_art', localLabel: 'Watercolor Illustration', cloudLabel: 'Watercolor Illustration' },
+      { value: 'digital_painting', localLabel: 'Digital Concept Painting', cloudLabel: 'Digital Concept Painting' },
+      { value: 'clean_explainer', localLabel: 'Clean 3D Isometric Explainer', cloudLabel: 'Clean 3D Explainer' },
+      { value: 'retro_comic', localLabel: 'Retro Comic Book / Pop Art', cloudLabel: 'Retro Comic Book' },
+      { value: 'dark_fantasy', localLabel: 'Dark Fantasy Gothic', cloudLabel: 'Dark Fantasy Gothic' },
+      { value: 'minimalist_vector', localLabel: 'Minimalist Modern Vector', cloudLabel: 'Minimalist Modern Vector' }
+    ];
+
+    let cachedLocalCheckpoints = [
+      'juggernautXL_v8Rundiffusion.safetensors',
+      'sd_xl_base_1.0.safetensors'
+    ];
+
+    function isCloudAccelerationActive() {
+      const cloudToggle = document.getElementById('cloud-toggle');
+      if (cloudToggle && cloudToggle.value === 'true') return true;
+      const imgStage = document.getElementById('model-stage-images');
+      if (imgStage && (imgStage.value === 'dalle3' || imgStage.value === 'imagen3')) return true;
+      return false;
+    }
+
+    function isProjectCloudAccelerated(p) {
+      if (!p) return isCloudAccelerationActive();
+      if (p.settings && p.settings.cloud && p.settings.cloud.enabled) return true;
+      if (p.settings && p.settings.stage_models && (p.settings.stage_models.images === 'dalle3' || p.settings.stage_models.images === 'imagen3')) return true;
+      return false;
+    }
+
+    function formatStyleDisplayName(styleKey, fallbackLabel, isCloud) {
+      const def = VISUAL_STYLE_DEFINITIONS.find(d => d.value === styleKey);
+      if (def) {
+        return isCloud ? def.cloudLabel : def.localLabel;
+      }
+      if (isCloud && fallbackLabel) {
+        return fallbackLabel.replace(/\s*\([^)]*juggernaut[^)]*\)/gi, '').trim();
+      }
+      return fallbackLabel || styleKey;
+    }
+
+    function updateVisualStyleOptions(isCloud) {
+      const sel = document.getElementById('visual-style');
+      if (!sel) return;
+      const currentVal = sel.value || 'photorealistic_cinema';
+      sel.innerHTML = '';
+      VISUAL_STYLE_DEFINITIONS.forEach(def => {
+        const opt = document.createElement('option');
+        opt.value = def.value;
+        opt.textContent = isCloud ? def.cloudLabel : def.localLabel;
+        if (def.value === currentVal) opt.selected = true;
+        sel.appendChild(opt);
+      });
+      if (!sel.value && sel.options.length) {
+        sel.selectedIndex = 0;
+      }
+    }
+
+    function updateCheckpointControls(isCloud) {
+      const labelEl = document.getElementById('checkpoint-label');
+      const selEl = document.getElementById('checkpoint-select');
+      if (!selEl) return;
+      const currentVal = selEl.value;
+
+      if (isCloud) {
+        if (labelEl) labelEl.textContent = 'Cloud Image Engine';
+        selEl.innerHTML = `
+          <option value="dalle3">OpenAI DALL-E 3 (Cloud API - High Res)</option>
+          <option value="imagen3">Google Imagen 3 (Cloud API - Photoreal)</option>
+        `;
+        const stageImagesEl = document.getElementById('model-stage-images');
+        if (stageImagesEl && (stageImagesEl.value === 'dalle3' || stageImagesEl.value === 'imagen3')) {
+          selEl.value = stageImagesEl.value;
+        } else {
+          selEl.value = 'dalle3';
+          if (stageImagesEl && stageImagesEl.value === 'comfyui') {
+            stageImagesEl.value = 'dalle3';
+          }
+        }
+      } else {
+        if (labelEl) labelEl.textContent = 'Image Model / Checkpoint';
+        selEl.innerHTML = '';
+        cachedLocalCheckpoints.forEach(m => {
+          const opt = document.createElement('option');
+          opt.value = m;
+          opt.textContent = formatModelLabel(m);
+          if (m.includes('juggernaut')) opt.selected = true;
+          selEl.appendChild(opt);
+        });
+        if (currentVal && cachedLocalCheckpoints.includes(currentVal)) {
+          selEl.value = currentVal;
+        }
+        const stageImagesEl = document.getElementById('model-stage-images');
+        if (stageImagesEl && (stageImagesEl.value === 'dalle3' || stageImagesEl.value === 'imagen3')) {
+          stageImagesEl.value = 'comfyui';
+        }
+      }
+    }
+
+    function onCheckpointChange(val) {
+      const isCloud = isCloudAccelerationActive();
+      if (isCloud) {
+        const stageImagesEl = document.getElementById('model-stage-images');
+        if (stageImagesEl) {
+          stageImagesEl.value = val;
+          onStageModelChange();
+        }
+      }
+    }
+
+    function syncCloudVisualControls() {
+      const isCloud = isCloudAccelerationActive();
+      updateVisualStyleOptions(isCloud);
+      updateCheckpointControls(isCloud);
+    }
+
     async function loadImageModels() {
       try {
         const res = await fetch('/api/images/models');
         if (!res.ok) return;
         const d = await res.json();
-        const sel = document.getElementById('checkpoint-select');
-        if (!sel || !d.models || !d.models.length) return;
-        sel.innerHTML = '';
-        d.models.forEach(m => {
-          const opt = document.createElement('option');
-          opt.value = m;
-          opt.textContent = formatModelLabel(m);
-          if (m.includes('juggernaut')) opt.selected = true;
-          sel.appendChild(opt);
-        });
+        if (d.models && d.models.length) {
+          cachedLocalCheckpoints = d.models;
+        }
+        if (!isCloudAccelerationActive()) {
+          const sel = document.getElementById('checkpoint-select');
+          if (!sel) return;
+          const cur = sel.value;
+          sel.innerHTML = '';
+          cachedLocalCheckpoints.forEach(m => {
+            const opt = document.createElement('option');
+            opt.value = m;
+            opt.textContent = formatModelLabel(m);
+            if (m.includes('juggernaut')) opt.selected = true;
+            sel.appendChild(opt);
+          });
+          if (cur && cachedLocalCheckpoints.includes(cur)) sel.value = cur;
+        }
       } catch (_) {}
     }
 
     function onCreatorStyleChange(styleKey) {
+      if (isCloudAccelerationActive()) return;
       const sel = document.getElementById('checkpoint-select');
       if (!sel) return;
       if (styleKey === 'photorealistic_cinema' || styleKey.includes('photorealistic') || styleKey.includes('vintage') || styleKey.includes('cinematic')) {
@@ -1980,7 +2110,7 @@
       if (val === 'false') {
         applyStageModelPreset('local');
       } else {
-        applyStageModelPreset('hybrid');
+        applyStageModelPreset('cloud');
       }
     }
 
@@ -1997,17 +2127,19 @@
         }
       });
       const badge = document.getElementById('stage-model-mode-badge');
-      if (!badge) return;
-      if (cloudCount === 0) {
-        badge.className = 'badge badge-ok';
-        badge.textContent = '100% Local GPU/CPU';
-      } else if (localCount <= 2) {
-        badge.className = 'badge badge-warn';
-        badge.textContent = `Cloud Accelerated (${cloudCount} Cloud Stages)`;
-      } else {
-        badge.className = 'badge badge-blue';
-        badge.textContent = `Hybrid (${localCount} Local, ${cloudCount} Cloud)`;
+      if (badge) {
+        if (cloudCount === 0) {
+          badge.className = 'badge badge-ok';
+          badge.textContent = '100% Local GPU/CPU';
+        } else if (localCount <= 2) {
+          badge.className = 'badge badge-warn';
+          badge.textContent = `Cloud Accelerated (${cloudCount} Cloud Stages)`;
+        } else {
+          badge.className = 'badge badge-blue';
+          badge.textContent = `Hybrid (${localCount} Local, ${cloudCount} Cloud)`;
+        }
       }
+      syncCloudVisualControls();
     }
 
     function getSelectedStageModels() {
@@ -2021,12 +2153,17 @@
     }
 
     function populateStageModelsFromProject(p) {
-      if (!p || !p.settings || !p.settings.stage_models) return;
-      const sm = p.settings.stage_models;
-      Object.keys(sm).forEach(st => {
-        const el = document.getElementById('model-stage-' + st);
-        if (el && sm[st]) el.value = sm[st];
-      });
+      if (!p || !p.settings) return;
+      if (p.settings.stage_models) {
+        const sm = p.settings.stage_models;
+        Object.keys(sm).forEach(st => {
+          const el = document.getElementById('model-stage-' + st);
+          if (el && sm[st]) el.value = sm[st];
+        });
+      }
+      if (p.settings.cloud && typeof p.settings.cloud.enabled === 'boolean') {
+        setVal('cloud-toggle', p.settings.cloud.enabled ? 'true' : 'false');
+      }
       onStageModelChange();
     }
 
@@ -3146,9 +3283,11 @@
         const curSteps = data.current_steps || 25;
         const curCfg = data.current_cfg || 6.5;
 
+        const isProjCloud = isProjectCloudAccelerated(inspectedStageData);
         let styleOptionsHtml = '';
         for (const [sKey, sObj] of Object.entries(styles)) {
-          styleOptionsHtml += `<option value="${sKey}" ${sKey === curStyle ? 'selected' : ''}>${sObj.label || sKey}</option>`;
+          const lbl = formatStyleDisplayName(sKey, sObj.label, isProjCloud);
+          styleOptionsHtml += `<option value="${sKey}" ${sKey === curStyle ? 'selected' : ''}>${lbl}</option>`;
         }
 
         let modelOptionsHtml = '';
@@ -3217,7 +3356,8 @@
 
           let perSceneStyleOptions = '';
           for (const [stk, stv] of Object.entries(styles)) {
-            perSceneStyleOptions += `<option value="${stk}" ${stk === renderedStyle ? 'selected' : ''}>${stv.label || stk}</option>`;
+            const lbl = formatStyleDisplayName(stk, stv ? stv.label : '', isProjCloud);
+            perSceneStyleOptions += `<option value="${stk}" ${stk === renderedStyle ? 'selected' : ''}>${lbl}</option>`;
           }
 
           const takes = (s.image && s.image.meta && s.image.meta.takes) ? s.image.meta.takes : [];
@@ -4195,9 +4335,11 @@
         const curSteps = data.current_steps || 25;
         const curCfg = data.current_cfg || 6.5;
 
+        const isProjCloud = isProjectCloudAccelerated(project || data);
         let styleOptionsHtml = '';
         for (const [sKey, sObj] of Object.entries(styles)) {
-          styleOptionsHtml += `<option value="${sKey}" ${sKey === curStyle ? 'selected' : ''}>${sObj.label || sKey}</option>`;
+          const lbl = formatStyleDisplayName(sKey, sObj.label, isProjCloud);
+          styleOptionsHtml += `<option value="${sKey}" ${sKey === curStyle ? 'selected' : ''}>${lbl}</option>`;
         }
 
         let modelOptionsHtml = '';
@@ -4283,7 +4425,8 @@
 
           let perSceneStyleOptions = '';
           for (const [stk, stv] of Object.entries(styles)) {
-            perSceneStyleOptions += `<option value="${stk}" ${stk === renderedStyle ? 'selected' : ''}>${stv.label || stk}</option>`;
+            const lbl = formatStyleDisplayName(stk, stv ? stv.label : '', isProjCloud);
+            perSceneStyleOptions += `<option value="${stk}" ${stk === renderedStyle ? 'selected' : ''}>${lbl}</option>`;
           }
 
           const takes = (s.image && s.image.meta && s.image.meta.takes) ? s.image.meta.takes : [];
@@ -6407,6 +6550,7 @@
       loadStatus();
       loadVoices();
       loadImageModels();
+      syncCloudVisualControls();
       loadProjectsList();
       loadYouTubeStatus();
       loadApiKeys();
