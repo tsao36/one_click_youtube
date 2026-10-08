@@ -758,7 +758,7 @@
             <label>Stage 2: Script Writing</label>
             <select id="model-stage-script" onchange="onStageModelChange()">
               <option value="ollama" selected>Local GPU: Ollama (qwen3:8b)</option>
-              <option value="gemini">Cloud: Google Gemini 2.5 Flash</option>
+              <option value="gemini">Cloud: Google Gemini 3.8 Flash</option>
               <option value="openai_compat">Cloud: OpenAI GPT-4o-mini</option>
             </select>
           </div>
@@ -766,7 +766,7 @@
             <label>Stage 3: Storyboard & Scenes</label>
             <select id="model-stage-scenes" onchange="onStageModelChange()">
               <option value="ollama" selected>Local GPU: Ollama (qwen3:8b)</option>
-              <option value="gemini">Cloud: Google Gemini 2.5 Flash</option>
+              <option value="gemini">Cloud: Google Gemini 3.8 Flash</option>
               <option value="openai_compat">Cloud: OpenAI GPT-4o-mini</option>
             </select>
           </div>
@@ -774,7 +774,7 @@
             <label>Stage 4: Visual Prompts</label>
             <select id="model-stage-prompts" onchange="onStageModelChange()">
               <option value="ollama" selected>Local GPU: Ollama (qwen3:8b)</option>
-              <option value="gemini">Cloud: Google Gemini 2.5 Flash</option>
+              <option value="gemini">Cloud: Google Gemini 3.8 Flash</option>
               <option value="openai_compat">Cloud: OpenAI GPT-4o-mini</option>
             </select>
           </div>
@@ -4065,7 +4065,7 @@
             <label style="font-size:12px; font-weight:700; color:var(--text-muted); margin:0;">Model:</label>
             <select style="padding:4px 8px; font-size:12px; border-radius:var(--radius-sm); background:var(--bg-canvas); color:var(--text-primary); border:1px solid var(--border-muted);" onchange="updateStudioStageModel('${stKey}', this.value)">
               <option value="ollama" ${currentSm === 'ollama' || !currentSm ? 'selected' : ''}>Local: Ollama (qwen3:8b)</option>
-              <option value="gemini" ${currentSm === 'gemini' ? 'selected' : ''}>Cloud: Gemini 2.5 Flash</option>
+              <option value="gemini" ${currentSm === 'gemini' ? 'selected' : ''}>Cloud: Gemini 3.8 Flash</option>
               <option value="openai_compat" ${currentSm === 'openai_compat' ? 'selected' : ''}>Cloud: GPT-4o-mini</option>
             </select>
           </div>
