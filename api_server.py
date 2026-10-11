@@ -285,6 +285,7 @@ def get_stage_models_catalogue():
             ],
             "images": [
                 {"id": "comfyui", "name": "ComfyUI (Local AMD GPU - SDXL)", "type": "local", "available": comfy_ok, "desc": "DirectML Juggernaut XL / SDXL on your RX 9060 XT"},
+                {"id": "stock", "name": "Online Stock Photos & Footage (Free, 0 VRAM)", "type": "free", "available": True, "desc": "Royalty-free online stock footage & photos from Wikimedia & Pexels"},
                 {"id": "dalle3", "name": "OpenAI DALL-E 3 (Cloud API)", "type": "cloud", "available": has_openai, "desc": "1792x1024 widescreen photorealism in seconds"},
                 {"id": "imagen3", "name": "Google Imagen 3 (Gemini Cloud API)", "type": "cloud", "available": has_gemini, "desc": "State-of-the-art cinematic image generation via Google Cloud"},
             ],
@@ -511,6 +512,9 @@ def get_stage_data_endpoint(project_id: str, stage_name: str):
             prof = load_profile(voice_prof_name)
         except Exception:
             pass
+        models_list = get_available_checkpoints()
+        if "stock" not in models_list:
+            models_list = ["stock"] + models_list
         ret = {
             "scenes": [s.model_dump(mode="json") for s in p.scenes],
             "prompts": p.read_json("prompts/image_prompts.json", []),
@@ -518,9 +522,9 @@ def get_stage_data_endpoint(project_id: str, stage_name: str):
             "voice_name": voice_prof_name,
             "available_voices": list_profiles(),
             "available_styles": load_settings().get("visual_styles", {}),
-            "available_models": get_available_checkpoints(),
+            "available_models": models_list,
             "current_style": p.data.settings.get("video", {}).get("visual_style") or p.settings.get("video", {}).get("visual_style", "cinematic_documentary"),
-            "current_model": p.data.settings.get("images", {}).get("checkpoint") or p.settings.get("images", {}).get("checkpoint", "sd_xl_base_1.0.safetensors"),
+            "current_model": p.data.settings.get("stage_models", {}).get("images") or p.data.settings.get("images", {}).get("provider") or p.data.settings.get("images", {}).get("checkpoint") or "sd_xl_base_1.0.safetensors",
             "current_steps": p.data.settings.get("images", {}).get("steps") or p.settings.get("images", {}).get("steps", 25),
             "current_cfg": p.data.settings.get("images", {}).get("cfg") or p.settings.get("images", {}).get("cfg", 6.5),
         }
@@ -734,7 +738,10 @@ def get_image_styles():
 
 @app.get("/api/images/models")
 def get_image_models():
-    return {"models": get_available_checkpoints()}
+    ckpts = get_available_checkpoints()
+    if "stock" not in ckpts:
+        ckpts = ["stock"] + ckpts
+    return {"models": ckpts}
 
 
 # ---------------- Real-time GPU & Image Progress Monitoring ----------------
@@ -820,11 +827,19 @@ def update_project_image_settings(project_id: str, req: ProjectImageSettingsRequ
     p.reload()
     video_s = p.data.settings.setdefault("video", {})
     images_s = p.data.settings.setdefault("images", {})
+    stage_models = p.data.settings.setdefault("stage_models", {})
 
     if req.visual_style:
         video_s["visual_style"] = req.visual_style
     if req.checkpoint:
-        images_s["checkpoint"] = req.checkpoint
+        if req.checkpoint in ("stock", "stock_photos"):
+            images_s["provider"] = "stock"
+            images_s["checkpoint"] = "stock"
+            stage_models["images"] = "stock"
+        else:
+            images_s["provider"] = "comfyui"
+            images_s["checkpoint"] = req.checkpoint
+            stage_models["images"] = req.checkpoint
     if req.steps:
         images_s["steps"] = req.steps
     if req.cfg:
@@ -863,7 +878,22 @@ def regenerate_scene_image(project_id: str, scene_id: int, req_body: Optional[Re
     s = p.scene(scene_id)
     cfg = p.settings
     img_cfg = cfg.get("images", {})
-    provider = get_image_provider(img_cfg.get("provider", "comfyui"), cfg)
+    stage_models = cfg.get("stage_models", {})
+
+    chosen_model = (req_body.model if req_body and req_body.model else None) or (s.image.meta.get("model") if s.image and s.image.meta else None) or stage_models.get("images") or img_cfg.get("provider") or img_cfg.get("checkpoint", "sd_xl_base_1.0.safetensors")
+
+    if chosen_model in ("stock", "stock_photos", "wikimedia", "pexels", "pixabay"):
+        prov_name = "stock"
+    elif chosen_model in ("dalle3", "dall-e-3"):
+        prov_name = "dalle3"
+    elif chosen_model in ("imagen3", "gemini_image"):
+        prov_name = "imagen3"
+    elif chosen_model == "placeholder":
+        prov_name = "placeholder"
+    else:
+        prov_name = "comfyui"
+
+    provider = get_image_provider(prov_name, cfg)
     if not provider.available()[0]:
         provider = get_image_provider(img_cfg.get("fallback_provider", "placeholder"), cfg)
 
@@ -881,7 +911,6 @@ def regenerate_scene_image(project_id: str, scene_id: int, req_body: Optional[Re
         if req_body.negative:
             s.negative_prompt = req_body.negative
 
-    chosen_model = (req_body.model if req_body and req_body.model else None) or (s.image.meta.get("model") if s.image and s.image.meta else None) or img_cfg.get("checkpoint", "sd_xl_base_1.0.safetensors")
     chosen_seed = (req_body.seed if req_body and req_body.seed else None) or random.randint(1, 9999999)
     chosen_steps = (req_body.steps if req_body and req_body.steps else None) or int(img_cfg.get("steps", 25))
     chosen_cfg = (req_body.cfg if req_body and req_body.cfg else None) or float(img_cfg.get("cfg", 6.5))
@@ -890,7 +919,12 @@ def regenerate_scene_image(project_id: str, scene_id: int, req_body: Optional[Re
         update_image_progress(project_id, scene_id, step, total, f"Sampling: Step {step}/{total}")
         p.activity(f"Scene #{scene_id} image: step {step}/{total} ({round(step / total * 100 if total else 0)}%)")
 
-    update_image_progress(project_id, scene_id, 0, chosen_steps, "Queued in ComfyUI DirectML...")
+    if prov_name == "stock":
+        update_image_progress(project_id, scene_id, 0, 1, "Sourcing online stock photo...")
+    elif prov_name in ("dalle3", "imagen3"):
+        update_image_progress(project_id, scene_id, 0, 1, f"Calling {prov_name} cloud API...")
+    else:
+        update_image_progress(project_id, scene_id, 0, chosen_steps, "Queued in ComfyUI DirectML...")
 
     # Ensure prompt is translated to English for SDXL CLIP encoder if Chinese is detected
     raw_prompt = s.prompt or s.visual_description

@@ -1903,6 +1903,7 @@
 
     function formatModelLabel(modelName) {
       if (!modelName) return 'Default Model';
+      if (modelName === 'stock' || modelName === 'stock_photos') return '🌐 Online Stock Photos (Free, 0 VRAM)';
       if (modelName.includes('juggernaut')) return 'Juggernaut XL v8 (Photorealistic Cinema)';
       if (modelName.includes('sd_xl_base')) return 'SDXL Base 1.0 (General / Stylized)';
       return modelName;
@@ -3810,8 +3811,9 @@
           styleOptionsHtml += `<option value="${sKey}" ${sKey === curStyle ? 'selected' : ''}>${lbl}</option>`;
         }
 
+        const allModels = models.includes('stock') ? models : ['stock', ...models];
         let modelOptionsHtml = '';
-        models.forEach(m => {
+        allModels.forEach(m => {
           modelOptionsHtml += `<option value="${m}" ${m === curModel ? 'selected' : ''}>${formatModelLabel(m)}</option>`;
         });
 
@@ -3821,7 +3823,7 @@
           <!-- Global Style & Model Config Panel -->
           <div style="background: linear-gradient(135deg, #0e1e38 0%, #0a1324 100%); border: 1px solid #1e3a8a; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
             <div style="font-size: 14px; font-weight: 700; color: #93c5fd; margin-bottom: 12px; display:flex; align-items:center; gap:8px;">
-              <span>🎨 Global Image Style & Model Configuration</span>
+              <span>🎨 Global Image Style & Engine Configuration</span>
             </div>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 12px;">
               <div>
@@ -3831,7 +3833,7 @@
                 </select>
               </div>
               <div>
-                <label style="font-size: 12px; font-weight:600; color: #cbd5e1; display:block; margin-bottom: 4px;">ComfyUI Model / Checkpoint:</label>
+                <label style="font-size: 12px; font-weight:600; color: #cbd5e1; display:block; margin-bottom: 4px;">Image Engine / Checkpoint:</label>
                 <select id="insp-img-model" style="width:100%; font-size:12px; padding:6px; background:#080d16; color:#fff; border:1px solid #2b456b; border-radius:4px;">
                   ${modelOptionsHtml}
                 </select>
@@ -3853,7 +3855,8 @@
             <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
               <button class="btn-sec" style="font-size:12px; padding:5px 12px;" onclick="saveImageSettings(false)">💾 Save Style & Model</button>
               <button class="btn-sec" style="font-size:12px; padding:5px 12px; background:#1e3a8a; border-color:#3b82f6; color:#fff;" onclick="saveImageSettings(true)">🎨 Apply Style to All Prompts</button>
-              <button class="btn-primary" style="font-size:12px; padding:5px 12px;" onclick="saveAndRunFullImages()">▶ Save & Generate All Images</button>
+              <button class="btn-primary" style="font-size:12px; padding:5px 12px;" onclick="saveAndRunFullImages(false)">▶ Save & Generate All Images</button>
+              <button class="btn-primary" style="font-size:12px; padding:5px 12px; background: linear-gradient(135deg, #059669 0%, #047857 100%); border-color: #10b981; font-weight: 700;" onclick="saveAndRunFullImages(true)" title="Source online stock photos for all scenes without using local GPU">🌐 Fetch Online Stock Photos (All Scenes)</button>
             </div>
           </div>
 
@@ -3870,8 +3873,8 @@
           const renderedStyle = s.visual_style || (s.image && s.image.meta && (s.image.meta.visual_style || s.image.meta.style)) || curStyle || 'cinematic_documentary';
 
           let perSceneModelOptions = '';
-          models.forEach(m => {
-            perSceneModelOptions += `<option value="${m}" ${m === renderedModel ? 'selected' : ''}>${m}</option>`;
+          allModels.forEach(m => {
+            perSceneModelOptions += `<option value="${m}" ${m === renderedModel ? 'selected' : ''}>${formatModelLabel(m)}</option>`;
           });
 
           let perSceneStyleOptions = '';
@@ -3996,7 +3999,8 @@
 
               <div style="margin-top: 2px; display: flex; gap: 4px; flex-wrap: wrap;">
                 <button class="btn-sec" style="flex: 1; font-size: 12px; padding:5px 8px; background:#1e3a8a; border-color:#3b82f6; color:#fff; font-weight: 600;" onclick="regenImageWithCustomSettings(${s.scene_id})" id="btn-regen-${s.scene_id}">🔄 Regenerate</button>
-                <button class="btn-sec" style="font-size: 12px; padding: 5px 8px; background: rgba(16, 185, 129, 0.2); border-color: #059669; color: #6ee7b7; font-weight: 600;" onclick="openStockMediaModal(${s.scene_id}, \`${(s.visual_description || s.prompt || '').replace(/[`\\$]/g, ' ')}\`)" title="Search online stock videos & photos for Scene #${s.scene_id}">🌐 Online Footage</button>
+                <button class="btn-sec" style="font-size: 12px; padding: 5px 8px; background: rgba(5, 150, 105, 0.25); border-color: #059669; color: #6ee7b7; font-weight: 600;" onclick="quickStockPhotoForScene(${s.scene_id}, true)" title="Immediately fetch online stock photo for Scene #${s.scene_id}">🌐 Quick Stock</button>
+                <button class="btn-sec" style="font-size: 12px; padding: 5px 8px; background: rgba(16, 185, 129, 0.2); border-color: #059669; color: #6ee7b7; font-weight: 600;" onclick="openStockMediaModal(${s.scene_id}, \`${(s.visual_description || s.prompt || '').replace(/[`\\$]/g, ' ')}\`)" title="Search online stock videos & photos for Scene #${s.scene_id}">🔍 Stock Library</button>
                 ${imgUrl ? `<button class="btn-sec" style="padding: 5px 8px; font-size: 12px; background: rgba(239, 68, 68, 0.15); border-color: #b91c1c; color: #fca5a5; font-weight: 600;" onclick="deleteSceneActiveImage(${s.scene_id})" title="Delete image for Scene #${s.scene_id}">🗑️ Delete</button>` : ''}
               </div>
             </div>
@@ -4299,10 +4303,24 @@
       }
     }
 
-    async function saveAndRunFullImages() {
+    async function saveAndRunFullImages(forceStock = false) {
+      if (forceStock) {
+        const modelEl = document.getElementById('insp-img-model');
+        if (modelEl) modelEl.value = 'stock';
+      }
       await saveImageSettings(false);
       closeStageInspector();
       runSingleStage('images');
+    }
+
+    async function quickStockPhotoForScene(sceneId, isInspector = false) {
+      const modelEl = document.getElementById(isInspector ? `scene-model-${sceneId}` : `studio-scene-model-${sceneId}`);
+      if (modelEl) modelEl.value = 'stock';
+      if (isInspector) {
+        await regenImageWithCustomSettings(sceneId);
+      } else {
+        await regenStudioImage(sceneId);
+      }
     }
 
     function onInspSceneStyleChange(sceneId, styleKey) {
@@ -4345,10 +4363,10 @@
 
       if (progBox) {
         progBox.style.display = 'block';
-        if (progTitle) progTitle.textContent = "🚀 Starting ComfyUI DirectML...";
+        if (progTitle) progTitle.textContent = (modelEl && modelEl.value === 'stock') ? "🌐 Fetching online stock photo..." : "🚀 Starting ComfyUI DirectML...";
         if (progPct) progPct.textContent = "0%";
         if (progBar) progBar.style.width = "5%";
-        if (progGpuVal) progGpuVal.textContent = "Querying GPU...";
+        if (progGpuVal) progGpuVal.textContent = (modelEl && modelEl.value === 'stock') ? "Online Service (0 GPU)" : "Querying GPU...";
       }
 
       let pollTimer = null;
@@ -4863,8 +4881,9 @@
           styleOptionsHtml += `<option value="${sKey}" ${sKey === curStyle ? 'selected' : ''}>${lbl}</option>`;
         }
 
+        const allModels = models.includes('stock') ? models : ['stock', ...models];
         let modelOptionsHtml = '';
-        models.forEach(m => {
+        allModels.forEach(m => {
           modelOptionsHtml += `<option value="${m}" ${m === curModel ? 'selected' : ''}>${formatModelLabel(m)}</option>`;
         });
 
@@ -4874,7 +4893,7 @@
           <!-- Global Style & Checkpoint Config Panel -->
           <div style="background: linear-gradient(135deg, #0e1e38 0%, #0a1324 100%); border: 1px solid #1e3a8a; border-radius: 8px; padding: 18px; margin-bottom: 22px;">
             <div style="font-size: 14px; font-weight: 700; color: #93c5fd; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
-              <span>🎨 Global Image Style & Model Configuration</span>
+              <span>🎨 Global Image Style & Engine Configuration</span>
             </div>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 12px;">
               <div>
@@ -4884,7 +4903,7 @@
                 </select>
               </div>
               <div>
-                <label style="font-size: 12px; font-weight: 600; color: #cbd5e1; display: block; margin-bottom: 4px;">ComfyUI Model / Checkpoint:</label>
+                <label style="font-size: 12px; font-weight: 600; color: #cbd5e1; display: block; margin-bottom: 4px;">Image Engine / Checkpoint:</label>
                 <select id="studio-img-model" style="width: 100%; font-size: 12px; padding: 7px; background: #080d16; color: #fff; border: 1px solid #2b456b; border-radius: 4px;">
                   ${modelOptionsHtml}
                 </select>
@@ -4916,7 +4935,8 @@
             <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
               <button class="btn-sec" style="font-size: 12px; padding: 6px 14px;" onclick="saveStudioImageSettings(false)">💾 Save Style & Model</button>
               <button class="btn-sec" style="font-size: 12px; padding: 6px 14px; background: #1e3a8a; border-color: #3b82f6; color: #fff;" onclick="saveStudioImageSettings(true)">🎨 Apply Style to All Prompts</button>
-              <button class="btn-primary" style="font-size: 12px; padding: 6px 14px;" onclick="runStudioStageOnly('images')">▶ Generate All Images</button>
+              <button class="btn-primary" style="font-size: 12px; padding: 6px 14px;" onclick="runStudioImagesWithSave(false)">▶ Generate All Images</button>
+              <button class="btn-primary" style="font-size: 12px; padding: 6px 14px; background: linear-gradient(135deg, #059669 0%, #047857 100%); border-color: #10b981; font-weight: 700;" onclick="runStudioImagesWithSave(true)" title="Fetch online stock photos for all scenes without using local GPU">🌐 Fetch Online Stock Photos (All Scenes)</button>
             </div>
           </div>
 
@@ -4940,7 +4960,7 @@
           const renderedStyle = s.visual_style || (s.image && s.image.meta && (s.image.meta.visual_style || s.image.meta.style)) || curStyle || 'cinematic_documentary';
 
           let perSceneModelOptions = '';
-          models.forEach(m => {
+          allModels.forEach(m => {
             perSceneModelOptions += `<option value="${m}" ${m === renderedModel ? 'selected' : ''}>${formatModelLabel(m)}</option>`;
           });
 
@@ -5077,7 +5097,8 @@
 
               <div style="margin-top: 2px; display: flex; gap: 4px; flex-wrap: wrap;">
                 <button class="btn-sec" style="flex: 1; font-size: 12px; padding: 6px 12px; background: #1e3a8a; border-color: #3b82f6; color: #fff; font-weight: 600;" onclick="regenStudioImage(${s.scene_id})" id="studio-btn-regen-${s.scene_id}">🔄 Regenerate Scene Image</button>
-                <button class="btn-sec" style="font-size: 12px; padding: 6px 10px; background: rgba(16, 185, 129, 0.2); border-color: #059669; color: #6ee7b7; font-weight: 600;" onclick="openStockMediaModal(${s.scene_id}, \`${(s.visual_description || s.prompt || '').replace(/[`\\$]/g, ' ')}\`)" title="Search online stock footage & photos for Scene #${s.scene_id}">🌐 Online Footage</button>
+                <button class="btn-sec" style="font-size: 12px; padding: 6px 10px; background: rgba(5, 150, 105, 0.25); border-color: #059669; color: #6ee7b7; font-weight: 600;" onclick="quickStockPhotoForScene(${s.scene_id}, false)" title="Immediately fetch online stock photo for Scene #${s.scene_id}">🌐 Quick Stock</button>
+                <button class="btn-sec" style="font-size: 12px; padding: 6px 10px; background: rgba(16, 185, 129, 0.2); border-color: #059669; color: #6ee7b7; font-weight: 600;" onclick="openStockMediaModal(${s.scene_id}, \`${(s.visual_description || s.prompt || '').replace(/[`\\$]/g, ' ')}\`)" title="Search online stock footage & photos for Scene #${s.scene_id}">🔍 Stock Library</button>
                 ${imgUrl ? `<button class="btn-sec" style="padding: 6px 10px; font-size: 12px; background: rgba(239, 68, 68, 0.15); border-color: #b91c1c; color: #fca5a5; font-weight: 600;" onclick="deleteSceneActiveImage(${s.scene_id})" title="Delete image for Scene #${s.scene_id}">🗑️ Delete</button>` : ''}
               </div>
             </div>
@@ -6478,11 +6499,21 @@
           body: JSON.stringify(payload)
         });
         if (!res.ok) throw new Error("Failed to save image settings");
-        alert(applyToPrompts ? "Image style & model saved and applied to all scene prompts!" : "Image style & model saved successfully!");
+        if (applyToPrompts) alert("Image style & model saved and applied to all scene prompts!");
         loadStageStudio('images');
       } catch (e) {
         alert("Error saving settings: " + e.message);
       }
+    }
+
+    async function runStudioImagesWithSave(forceStock = false) {
+      if (!currentProjectId) return alert("Please select or create a project first.");
+      if (forceStock) {
+        const modelEl = document.getElementById('studio-img-model');
+        if (modelEl) modelEl.value = 'stock';
+      }
+      await saveStudioImageSettings(false);
+      runStudioStageOnly('images');
     }
 
     async function applyStudioStyleFromPromptsTab() {
@@ -6557,10 +6588,10 @@
 
       if (progBox) {
         progBox.style.display = 'block';
-        if (progTitle) progTitle.textContent = "🚀 Starting ComfyUI DirectML...";
+        if (progTitle) progTitle.textContent = (modelEl && modelEl.value === 'stock') ? "🌐 Fetching online stock photo..." : "🚀 Starting ComfyUI DirectML...";
         if (progPct) progPct.textContent = "0%";
         if (progBar) progBar.style.width = "5%";
-        if (progGpuVal) progGpuVal.textContent = "Querying GPU...";
+        if (progGpuVal) progGpuVal.textContent = (modelEl && modelEl.value === 'stock') ? "Online Service (0 GPU)" : "Querying GPU...";
       }
 
       let pollTimer = null;
