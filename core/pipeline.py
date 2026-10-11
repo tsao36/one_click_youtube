@@ -497,8 +497,9 @@ class Pipeline:
                         if attempt == retries:
                             s.image.error = str(e)
 
-                # Fallback if primary model crashed or failed (e.g. cloud API credits exhausted or 404)
-                if not generated and provider.name != "comfyui":
+                # Fallback to local GPU ComfyUI ONLY if primary was a cloud AI model (dalle3/imagen3) that hit quota/credit errors,
+                # never if the user chose online stock photos or placeholder
+                if not generated and primary_name not in ("comfyui", "stock", "stock_photos", "placeholder") and provider.name not in ("comfyui", "stock", "placeholder"):
                     try:
                         comfy_prov = get_image_provider("comfyui", cfg)
                         avail, _ = comfy_prov.available()

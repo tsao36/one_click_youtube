@@ -239,6 +239,64 @@ def search_pixabay(query: str, media_type: str = "all", limit: int = 15) -> list
     return results[:limit]
 
 
+# ---------------- Keyword Extraction & Fallback Helpers ----------------
+def extract_stock_search_keywords(text: str) -> list[str]:
+    """
+    Extract high-precision search keywords from an AI prompt or visual description,
+    ordered from specific subject phrases to broader fallback search terms.
+    """
+    if not text or not text.strip():
+        return ["technology", "modern vehicle", "city skyline", "nature landscape"]
+
+    cleaned = text.strip()
+    if re.search(r"[\u4e00-\u9fff]", cleaned):
+        try:
+            from agents.prompt_generator import translate_to_english_for_sdxl
+            en_q = translate_to_english_for_sdxl(cleaned)
+            if en_q:
+                cleaned = en_q
+        except Exception:
+            pass
+
+    # Strip camera angles, AI formatting boilerplate and diffusion jargon
+    cleaned = re.sub(
+        r"\b(16:9|widescreen|composition|high detail|cinematic|photorealistic|hyperrealistic|realistic|detailed|ultra|high quality|4k|8k|hd|sharp focus|film|photo of|rendering of|shot of|extreme close-up|close-up|wide shot|medium shot|bird's-eye view|macro view|blur effect|dramatic lighting|studio lighting|award winning|masterpiece|artstation|lines|glowing|radiating|emphasizing)\b",
+        " ", cleaned, flags=re.IGNORECASE
+    )
+
+    stop_words = r"\b(a|an|the|of|with|and|in|on|at|by|for|from|to|is|are|was|were|showing|shown|shows|depicting|features|featuring|view|angle)\b"
+    candidates: list[str] = []
+
+    # 1. First clause before punctuation (usually contains the main subject)
+    first_clause = re.split(r"[,.;\n]", cleaned)[0].strip()
+    words_first = [w for w in re.findall(r"[a-zA-Z]{3,}", re.sub(stop_words, " ", first_clause, flags=re.IGNORECASE))]
+    if words_first:
+        candidates.append(" ".join(words_first[:3]))
+        if len(words_first) >= 2:
+            candidates.append(" ".join(words_first[:2]))
+
+    # 2. Key words across the whole prompt
+    words_all = [w for w in re.findall(r"[a-zA-Z]{3,}", re.sub(stop_words, " ", cleaned, flags=re.IGNORECASE))]
+    if words_all:
+        kw3 = " ".join(words_all[:3])
+        if kw3 not in candidates:
+            candidates.append(kw3)
+        if len(words_all) >= 4:
+            kw_mid = " ".join(words_all[1:3])
+            if kw_mid not in candidates:
+                candidates.append(kw_mid)
+        if words_all[0] not in candidates:
+            candidates.append(words_all[0])
+
+    # 3. High-availability fallback terms
+    for fb in ["modern technology", "transportation vehicle", "clean energy", "city skyline", "nature landscape"]:
+        if fb not in candidates:
+            candidates.append(fb)
+
+    # Deduplicate while preserving order
+    return list(dict.fromkeys(c.strip() for c in candidates if c.strip()))
+
+
 # ---------------- Unified Search Engine ----------------
 def search_stock_media(query: str, media_type: str = "all", source: str = "auto", limit: int = 20) -> list[dict[str, Any]]:
     """
@@ -250,7 +308,7 @@ def search_stock_media(query: str, media_type: str = "all", source: str = "auto"
     if not cleaned_query:
         return []
 
-    # If Chinese/Japanese characters in query, try transliterating or extracting English keywords for broader stock search
+    # If Chinese/Japanese characters in query, try transliterating or extracting English keywords
     if re.search(r"[\u4e00-\u9fff]", cleaned_query):
         try:
             from agents.prompt_generator import translate_to_english_for_sdxl
@@ -260,38 +318,50 @@ def search_stock_media(query: str, media_type: str = "all", source: str = "auto"
         except Exception:
             pass
 
-    results: list[dict[str, Any]] = []
+    def _execute_search(q: str) -> list[dict[str, Any]]:
+        if source == "pexels":
+            return search_pexels(q, media_type, limit)
+        elif source == "pixabay":
+            return search_pixabay(q, media_type, limit)
+        elif source == "wikimedia":
+            return search_wikimedia(q, media_type, limit)
 
-    if source == "pexels":
-        return search_pexels(cleaned_query, media_type, limit)
-    elif source == "pixabay":
-        return search_pixabay(cleaned_query, media_type, limit)
-    elif source == "wikimedia":
-        return search_wikimedia(cleaned_query, media_type, limit)
+        # AUTO MODE: Check Pexels & Pixabay (if keys configured), then combine with Wikimedia Commons
+        pexels_res = search_pexels(q, media_type, limit=limit // 2)
+        pixabay_res = search_pixabay(q, media_type, limit=limit // 2)
+        wiki_res = search_wikimedia(q, media_type, limit=limit)
 
-    # AUTO MODE: Check Pexels & Pixabay (if keys configured), then combine with Wikimedia Commons
-    pexels_res = search_pexels(cleaned_query, media_type, limit=limit // 2)
-    pixabay_res = search_pixabay(cleaned_query, media_type, limit=limit // 2)
-    wiki_res = search_wikimedia(cleaned_query, media_type, limit=limit)
+        combined = []
+        if media_type == "video":
+            combined.extend(pexels_res + pixabay_res + wiki_res)
+        else:
+            combined.extend(pexels_res + wiki_res + pixabay_res)
 
-    # Interleave results: prioritize video clips if video was requested, else balanced
-    combined = []
-    if media_type == "video":
-        combined.extend(pexels_res + pixabay_res + wiki_res)
-    else:
-        combined.extend(pexels_res + wiki_res + pixabay_res)
+        seen = set()
+        unique_results = []
+        for item in combined:
+            if item["media_url"] not in seen:
+                seen.add(item["media_url"])
+                unique_results.append(item)
+                if len(unique_results) >= limit:
+                    break
+        return unique_results
 
-    # Deduplicate by media_url
-    seen = set()
-    unique_results = []
-    for item in combined:
-        if item["media_url"] not in seen:
-            seen.add(item["media_url"])
-            unique_results.append(item)
-            if len(unique_results) >= limit:
-                break
+    # 1. Try search directly
+    results = _execute_search(cleaned_query)
+    if results:
+        return results
 
-    return unique_results
+    # 2. If long query or zero results, extract concise subject keywords and try sequentially
+    candidate_queries = extract_stock_search_keywords(cleaned_query)
+    for cand in candidate_queries:
+        if cand.lower() == cleaned_query.lower():
+            continue
+        results = _execute_search(cand)
+        if results:
+            return results
+
+    return []
 
 
 # ---------------- Downloader & Formatter ----------------

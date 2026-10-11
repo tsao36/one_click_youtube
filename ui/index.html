@@ -1933,14 +1933,14 @@
       const cloudToggle = document.getElementById('cloud-toggle');
       if (cloudToggle && cloudToggle.value === 'true') return true;
       const imgStage = document.getElementById('model-stage-images');
-      if (imgStage && (imgStage.value === 'dalle3' || imgStage.value === 'imagen3')) return true;
+      if (imgStage && (imgStage.value === 'dalle3' || imgStage.value === 'imagen3' || imgStage.value === 'stock')) return true;
       return false;
     }
 
     function isProjectCloudAccelerated(p) {
       if (!p) return isCloudAccelerationActive();
       if (p.settings && p.settings.cloud && p.settings.cloud.enabled) return true;
-      if (p.settings && p.settings.stage_models && (p.settings.stage_models.images === 'dalle3' || p.settings.stage_models.images === 'imagen3')) return true;
+      if (p.settings && p.settings.stage_models && (p.settings.stage_models.images === 'dalle3' || p.settings.stage_models.images === 'imagen3' || p.settings.stage_models.images === 'stock')) return true;
       return false;
     }
 
@@ -1976,17 +1976,26 @@
       const labelEl = document.getElementById('checkpoint-label');
       const selEl = document.getElementById('checkpoint-select');
       if (!selEl) return;
-      const currentVal = selEl.value;
+      const stageImagesEl = document.getElementById('model-stage-images');
+      const isStock = stageImagesEl && stageImagesEl.value === 'stock';
+
+      if (isStock) {
+        if (labelEl) labelEl.textContent = 'Image Sourcing Engine';
+        selEl.innerHTML = `
+          <option value="stock" selected>🌐 Online Stock Photos & Footage (Free, 0 VRAM)</option>
+        `;
+        return;
+      }
 
       if (isCloud) {
         if (labelEl) labelEl.textContent = 'Image Engine';
         selEl.innerHTML = `
           <option value="comfyui">Local GPU: ComfyUI DirectML (Free & Recommended)</option>
+          <option value="stock">🌐 Online Stock Photos & Footage (Free, 0 VRAM)</option>
           <option value="dalle3">OpenAI Cloud API (Paid Billing Required)</option>
           <option value="imagen3">Google Imagen Cloud API (Paid Billing Required)</option>
         `;
-        const stageImagesEl = document.getElementById('model-stage-images');
-        if (stageImagesEl && (stageImagesEl.value === 'dalle3' || stageImagesEl.value === 'imagen3' || stageImagesEl.value === 'comfyui')) {
+        if (stageImagesEl && (stageImagesEl.value === 'dalle3' || stageImagesEl.value === 'imagen3' || stageImagesEl.value === 'stock' || stageImagesEl.value === 'comfyui')) {
           selEl.value = stageImagesEl.value;
         } else {
           selEl.value = 'comfyui';
@@ -2001,10 +2010,10 @@
           if (m.includes('juggernaut')) opt.selected = true;
           selEl.appendChild(opt);
         });
+        const currentVal = selEl.value;
         if (currentVal && cachedLocalCheckpoints.includes(currentVal)) {
           selEl.value = currentVal;
         }
-        const stageImagesEl = document.getElementById('model-stage-images');
         if (stageImagesEl && (stageImagesEl.value === 'dalle3' || stageImagesEl.value === 'imagen3')) {
           stageImagesEl.value = 'comfyui';
         }
@@ -2012,13 +2021,10 @@
     }
 
     function onCheckpointChange(val) {
-      const isCloud = isCloudAccelerationActive();
-      if (isCloud) {
-        const stageImagesEl = document.getElementById('model-stage-images');
-        if (stageImagesEl && (val === 'dalle3' || val === 'imagen3' || val === 'comfyui')) {
-          stageImagesEl.value = val;
-          onStageModelChange();
-        }
+      const stageImagesEl = document.getElementById('model-stage-images');
+      if (stageImagesEl && (val === 'dalle3' || val === 'imagen3' || val === 'stock' || val === 'comfyui')) {
+        stageImagesEl.value = val;
+        onStageModelChange();
       }
     }
 
@@ -2270,7 +2276,7 @@
     }
 
     function onStageModelChange() {
-      const cloudOpts = ['gemini_search', 'gemini', 'openai_compat', 'dalle3', 'imagen3', 'elevenlabs', 'edge', 'veo', 'kling', 'runway'];
+      const cloudOpts = ['gemini_search', 'gemini', 'openai_compat', 'dalle3', 'imagen3', 'stock', 'stock_video', 'elevenlabs', 'edge', 'veo', 'kling', 'runway'];
       const stages = ['research', 'script', 'scenes', 'prompts', 'images', 'voice', 'animation', 'subtitles', 'render'];
       let cloudCount = 0;
       let localCount = 0;
@@ -2350,13 +2356,12 @@
       const voice = document.getElementById('voice-select').value;
       const style = document.getElementById('visual-style').value;
       const ckptEl = document.getElementById('checkpoint-select');
-      let checkpoint = ckptEl ? ckptEl.value : null;
-      if (isCloudAccelerationActive() && (checkpoint === 'dalle3' || checkpoint === 'imagen3' || checkpoint === 'comfyui')) {
+      const stageModels = getSelectedStageModels();
+      if (stageModels.images === 'stock' || checkpoint === 'stock' || (isCloudAccelerationActive() && (checkpoint === 'dalle3' || checkpoint === 'imagen3' || checkpoint === 'comfyui'))) {
         checkpoint = null;
       }
       const ai_pct = parseFloat(document.getElementById('ai-video-pct').value);
       const cloud = document.getElementById('cloud-toggle').value === 'true';
-      const stageModels = getSelectedStageModels();
       const musicSelectEl = document.getElementById('music-select');
       const musicTrack = musicSelectEl ? musicSelectEl.value : 'auto';
       const musicVolEl = document.getElementById('music-volume');

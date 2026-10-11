@@ -221,7 +221,9 @@ def create_project(req: CreateProjectRequest, background_tasks: BackgroundTasks)
     }
     if req.stage_models:
         overrides["stage_models"] = req.stage_models
-    if req.checkpoint and req.checkpoint not in ("dalle3", "imagen3"):
+        if req.stage_models.get("images") == "stock":
+            overrides.setdefault("images", {})["provider"] = "stock"
+    if req.checkpoint and req.checkpoint not in ("dalle3", "imagen3", "stock") and (not req.stage_models or req.stage_models.get("images") != "stock"):
         overrides.setdefault("images", {})["checkpoint"] = req.checkpoint
     if req.music_track:
         m_enabled = req.music_track.lower() not in ("none", "off", "disabled", "false", "no_music")

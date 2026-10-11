@@ -296,8 +296,10 @@ class StockImageProvider(ImageProvider):
         query = req.extra.get("description") or req.prompt
         results = search_stock_media(query=query, media_type="image", source=self.source, limit=10)
         if not results:
-            # Fallback to broad query
-            results = search_stock_media(query="cinematic background scenery", media_type="image", source=self.source, limit=10)
+            for fb in ["modern technology", "vehicle motion", "city scenery", "clean energy landscape"]:
+                results = search_stock_media(query=fb, media_type="image", source=self.source, limit=10)
+                if results:
+                    break
 
         if not results:
             raise RuntimeError(f"No stock images found online for query: {query}")
