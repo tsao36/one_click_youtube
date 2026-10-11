@@ -140,12 +140,56 @@ class RunwayProvider(_NotYetImplemented):
     name = "runway"
 
 
+class StockVideoProvider(VideoProvider):
+    """Fetches high-quality stock b-roll clips online (Wikimedia, Pexels, Pixabay)."""
+    name = "stock_video"
+    is_cloud = True
+
+    def available(self):
+        return True, "Wikimedia Commons (Free, no key) + Pexels/Pixabay (if configured)"
+
+    def generate(self, image: Path, prompt: str, duration: float, output: Path,
+                 cancel: Callable[[], bool] | None = None) -> dict:
+        import tempfile
+        from providers.stock_client import search_stock_media, download_media_file, format_stock_video
+
+        results = search_stock_media(query=prompt, media_type="video", source="auto", limit=10)
+        if not results:
+            results = search_stock_media(query="cinematic background", media_type="video", source="auto", limit=10)
+        if not results:
+            raise VideoProviderError(f"No stock video found online for query: {prompt}")
+
+        chosen = results[0]
+        with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as tmp:
+            tmp_path = Path(tmp.name)
+
+        try:
+            download_media_file(chosen["media_url"], tmp_path)
+            format_stock_video(tmp_path, output, fps=30)
+        finally:
+            if tmp_path.exists():
+                try:
+                    tmp_path.unlink()
+                except Exception:
+                    pass
+
+        return {
+            "provider": "stock_video",
+            "source": chosen.get("source"),
+            "title": chosen.get("title"),
+            "author": chosen.get("author"),
+            "license": chosen.get("license"),
+            "media_url": chosen.get("media_url"),
+            "duration": duration,
+        }
+
+
 TYPES = {"none": NoVideoProvider, "comfyui_video": ComfyUIVideoProvider, "veo": VeoProvider,
-         "kling": KlingProvider, "runway": RunwayProvider}
+         "kling": KlingProvider, "runway": RunwayProvider, "stock_video": StockVideoProvider, "stock": StockVideoProvider}
 
 
 def get_video_provider(name: str | None = None) -> VideoProvider:
     vc = load_providers().get("video", {})
     name = name or vc.get("provider", "none")
     cls = TYPES.get(name, NoVideoProvider)
-    return cls(vc.get(name, {}) if name != "none" else {})
+    return cls(vc.get(name, {}) if name not in ("none", "stock_video", "stock") else {})

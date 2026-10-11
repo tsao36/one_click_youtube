@@ -807,6 +807,7 @@
             <label>Stage 5: Image Generation</label>
             <select id="model-stage-images" onchange="onStageModelChange()">
               <option value="comfyui" selected>Local GPU: ComfyUI (DirectML RX 9060 XT - Recommended)</option>
+              <option value="stock">🌐 Online Stock Photos & Footage (Free, 0 VRAM)</option>
               <option value="dalle3">Cloud API: OpenAI (Paid Billing Required)</option>
               <option value="imagen3">Cloud API: Google Imagen (Paid Billing Required)</option>
             </select>
@@ -824,6 +825,7 @@
             <label>Stage 7: Animation & AI Video</label>
             <select id="model-stage-animation" onchange="onStageModelChange()">
               <option value="kenburns" selected>Local: Ken Burns 2.5D Motion (0 VRAM)</option>
+              <option value="stock_video">🌐 Online Stock Video Clips (B-Roll Footage)</option>
               <option value="comfyui_video">Local GPU: ComfyUI Video</option>
               <option value="veo">Cloud API: Google Veo Video</option>
               <option value="kling">Cloud API: Kling Video AI</option>
@@ -1236,6 +1238,19 @@
           <input type="password" id="set-runway-key">
           <div id="set-runway-key-status" style="font-size: 12px; margin-top: 3px; color: #94a3b8;"></div>
         </div>
+        <div class="form-group">
+          <label>Pexels API Key (Optional HD Stock Footage)</label>
+          <input type="password" id="set-pexels-key" placeholder="Pexels Key (pexels.com/api)">
+          <div id="set-pexels-key-status" style="font-size: 12px; margin-top: 3px; color: #94a3b8;"></div>
+        </div>
+        <div class="form-group">
+          <label>Pixabay API Key (Optional Stock Clips)</label>
+          <input type="password" id="set-pixabay-key" placeholder="Pixabay Key (pixabay.com/api/docs)">
+          <div id="set-pixabay-key-status" style="font-size: 12px; margin-top: 3px; color: #94a3b8;"></div>
+        </div>
+      </div>
+      <div style="font-size: 12px; color: #34d399; margin-bottom: 12px;">
+        💡 <b>Wikimedia Commons</b> requires <i>no API key</i> and works automatically for stock footage and photos!
       </div>
       <button onclick="saveApiKeys()">Save API Keys</button>
     </div>
@@ -1491,6 +1506,59 @@
       <div style="padding:12px 20px; border-top:1px solid var(--card-border); display:flex; justify-content:space-between; align-items:center; background:#080d16; font-size:12px; color:#94a3b8;">
         <span>💡 All voice takes are permanently stored locally in <code style="color:#60a5fa;">audio/takes/</code>.</span>
         <button class="btn-sec" onclick="closeVoiceTakesGalleryModal()">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ONLINE STOCK FOOTAGE & PHOTO SEARCH MODAL -->
+  <div id="stock-search-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.88); backdrop-filter:blur(4px); z-index:10000; justify-content:center; align-items:center;">
+    <div style="background:var(--card); border:1px solid #10b981; border-radius:12px; max-width:1050px; width:95%; max-height:90vh; display:flex; flex-direction:column; overflow:hidden; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.7);">
+      <div style="padding:16px 20px; border-bottom:1px solid var(--card-border); display:flex; justify-content:space-between; align-items:center; background:#080d16;">
+        <div>
+          <h2 id="stock-modal-title" style="font-size:16px; font-weight:700; color:#6ee7b7; display:flex; align-items:center; gap:8px;">
+            <span>🌐 Online Stock Footage & Photography Search</span>
+          </h2>
+          <div id="stock-modal-subtitle" style="font-size:12px; color:var(--text-muted); margin-top:2px;">
+            Find free real-world stock video clips (B-Roll) and HD photos from Wikimedia Commons, Pexels, and Pixabay to use for this scene.
+          </div>
+        </div>
+        <button class="btn-sec" style="padding:5px 12px;" onclick="closeStockSearchModal()">✕ Close</button>
+      </div>
+
+      <!-- Search Controls Bar -->
+      <div style="padding:12px 20px; background:#050a14; border-bottom:1px solid #1f293d; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+        <div style="flex:1; min-width:240px; display:flex; gap:6px;">
+          <input type="text" id="stock-search-input" placeholder="Search keywords (e.g. ocean waves, drone city sunset, microscope cell)..." style="flex:1; padding:8px 12px; font-size:13px; background:#0a1222; border:1px solid #2a3d5e; border-radius:6px; color:#fff;" onkeydown="if(event.key==='Enter') executeStockSearch()">
+          <button class="btn-primary" style="background:#059669; border-color:#10b981; padding:8px 16px; font-weight:700;" onclick="executeStockSearch()" id="stock-search-btn">🔍 Search</button>
+        </div>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <label style="font-size:12px; color:#94a3b8; font-weight:600;">Type:</label>
+          <select id="stock-filter-type" style="padding:7px 10px; font-size:12px; background:#0a1222; border:1px solid #2a3d5e; border-radius:6px; color:#fff;" onchange="executeStockSearch()">
+            <option value="all">🎬 All (Video & Photos)</option>
+            <option value="video" selected>🎥 Video Clips (B-Roll MP4)</option>
+            <option value="image">🖼️ Photos (16:9 Images)</option>
+          </select>
+          <label style="font-size:12px; color:#94a3b8; font-weight:600; margin-left:6px;">Source:</label>
+          <select id="stock-filter-source" style="padding:7px 10px; font-size:12px; background:#0a1222; border:1px solid #2a3d5e; border-radius:6px; color:#fff;" onchange="executeStockSearch()">
+            <option value="auto">🌐 Auto (Wikimedia + Pexels/Pixabay)</option>
+            <option value="wikimedia">🏛️ Wikimedia Commons (100% Free / No Key)</option>
+            <option value="pexels">📸 Pexels (HD Clips)</option>
+            <option value="pixabay">🎨 Pixabay</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Results Grid Container -->
+      <div id="stock-modal-body" style="padding:20px; overflow-y:auto; flex:1; min-height:350px;">
+        <div style="text-align:center; padding:60px 20px; color:var(--text-muted);">
+          Enter search terms or click "Search" to find online video clips and photos for this scene.
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div style="padding:12px 20px; border-top:1px solid var(--card-border); display:flex; justify-content:space-between; align-items:center; background:#080d16; font-size:12px; color:#94a3b8;">
+        <span>💡 Video clips and images are center-cropped to 16:9 widescreen format automatically.</span>
+        <button class="btn-sec" onclick="closeStockSearchModal()">Cancel</button>
       </div>
     </div>
   </div>
@@ -3484,11 +3552,15 @@
       const elevenlabs = document.getElementById('set-elevenlabs-key').value.trim();
       const kling = document.getElementById('set-kling-key').value.trim();
       const runway = document.getElementById('set-runway-key').value.trim();
+      const pexels = document.getElementById('set-pexels-key') ? document.getElementById('set-pexels-key').value.trim() : '';
+      const pixabay = document.getElementById('set-pixabay-key') ? document.getElementById('set-pixabay-key').value.trim() : '';
       if (gemini) secrets.GEMINI_API_KEY = gemini;
       if (openai) secrets.OPENAI_API_KEY = openai;
       if (elevenlabs) secrets.ELEVENLABS_API_KEY = elevenlabs;
       if (kling) secrets.KLING_API_KEY = kling;
       if (runway) secrets.RUNWAY_API_KEY = runway;
+      if (pexels) secrets.PEXELS_API_KEY = pexels;
+      if (pixabay) secrets.PIXABAY_API_KEY = pixabay;
 
       await fetch('/api/settings', {
         method: 'POST',
@@ -3524,6 +3596,8 @@
         setField('set-elevenlabs-key', 'ELEVENLABS_API_KEY');
         setField('set-kling-key', 'KLING_API_KEY');
         setField('set-runway-key', 'RUNWAY_API_KEY');
+        setField('set-pexels-key', 'PEXELS_API_KEY');
+        setField('set-pixabay-key', 'PIXABAY_API_KEY');
       } catch (e) {
         console.error("Failed to load settings secrets", e);
       }
@@ -3915,8 +3989,9 @@
                 </div>
               </div>
 
-              <div style="margin-top: 2px; display: flex; gap: 4px;">
+              <div style="margin-top: 2px; display: flex; gap: 4px; flex-wrap: wrap;">
                 <button class="btn-sec" style="flex: 1; font-size: 12px; padding:5px 8px; background:#1e3a8a; border-color:#3b82f6; color:#fff; font-weight: 600;" onclick="regenImageWithCustomSettings(${s.scene_id})" id="btn-regen-${s.scene_id}">🔄 Regenerate</button>
+                <button class="btn-sec" style="font-size: 12px; padding: 5px 8px; background: rgba(16, 185, 129, 0.2); border-color: #059669; color: #6ee7b7; font-weight: 600;" onclick="openStockMediaModal(${s.scene_id}, \`${(s.visual_description || s.prompt || '').replace(/[`\\$]/g, ' ')}\`)" title="Search online stock videos & photos for Scene #${s.scene_id}">🌐 Online Footage</button>
                 ${imgUrl ? `<button class="btn-sec" style="padding: 5px 8px; font-size: 12px; background: rgba(239, 68, 68, 0.15); border-color: #b91c1c; color: #fca5a5; font-weight: 600;" onclick="deleteSceneActiveImage(${s.scene_id})" title="Delete image for Scene #${s.scene_id}">🗑️ Delete</button>` : ''}
               </div>
             </div>
@@ -4995,8 +5070,9 @@
                 </div>
               </div>
 
-              <div style="margin-top: 2px; display: flex; gap: 4px;">
+              <div style="margin-top: 2px; display: flex; gap: 4px; flex-wrap: wrap;">
                 <button class="btn-sec" style="flex: 1; font-size: 12px; padding: 6px 12px; background: #1e3a8a; border-color: #3b82f6; color: #fff; font-weight: 600;" onclick="regenStudioImage(${s.scene_id})" id="studio-btn-regen-${s.scene_id}">🔄 Regenerate Scene Image</button>
+                <button class="btn-sec" style="font-size: 12px; padding: 6px 10px; background: rgba(16, 185, 129, 0.2); border-color: #059669; color: #6ee7b7; font-weight: 600;" onclick="openStockMediaModal(${s.scene_id}, \`${(s.visual_description || s.prompt || '').replace(/[`\\$]/g, ' ')}\`)" title="Search online stock footage & photos for Scene #${s.scene_id}">🌐 Online Footage</button>
                 ${imgUrl ? `<button class="btn-sec" style="padding: 6px 10px; font-size: 12px; background: rgba(239, 68, 68, 0.15); border-color: #b91c1c; color: #fca5a5; font-weight: 600;" onclick="deleteSceneActiveImage(${s.scene_id})" title="Delete image for Scene #${s.scene_id}">🗑️ Delete</button>` : ''}
               </div>
             </div>
@@ -6062,6 +6138,219 @@
         }
       } catch (e) {
         alert("Failed to delete voice take: " + e.message);
+      }
+    }
+
+    // ---------------- ONLINE STOCK FOOTAGE & PHOTO MODAL ----------------
+    let currentStockSceneId = null;
+    let currentStockPrompt = '';
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function openStockMediaModal(sceneId, defaultPrompt) {
+      currentStockSceneId = sceneId;
+      currentStockPrompt = defaultPrompt || '';
+
+      const modal = document.getElementById('stock-search-modal');
+      const title = document.getElementById('stock-modal-title');
+      const input = document.getElementById('stock-search-input');
+      const body = document.getElementById('stock-modal-body');
+
+      if (title) title.innerHTML = `<span>🌐 Online Stock Media for Scene #${sceneId}</span>`;
+
+      // Extract search keywords from prompt (skip technical tags or style keywords)
+      let cleanQuery = currentStockPrompt
+        .replace(/[^\w\s\u4e00-\u9fa5]/gi, ' ')
+        .replace(/\b(widescreen|composition|high detail|cinematic|photorealistic|documentary|sharp focus|film)\b/gi, '')
+        .trim();
+      const words = cleanQuery.split(/\s+/).filter(w => w.length > 2);
+      cleanQuery = words.slice(0, 5).join(' ');
+
+      if (input) input.value = cleanQuery;
+      if (modal) modal.style.display = 'flex';
+
+      if (cleanQuery) {
+        executeStockSearch();
+      } else {
+        if (body) {
+          body.innerHTML = `
+            <div style="text-align:center; padding:60px 20px; color:var(--text-muted);">
+              Type search keywords above (e.g. <i>ocean coral reef, busy city street, starry night sky</i>) and click <b>Search</b>.
+            </div>
+          `;
+        }
+      }
+    }
+
+    function closeStockSearchModal() {
+      const modal = document.getElementById('stock-search-modal');
+      if (modal) modal.style.display = 'none';
+      currentStockSceneId = null;
+    }
+
+    async function executeStockSearch() {
+      const input = document.getElementById('stock-search-input');
+      const typeSel = document.getElementById('stock-filter-type');
+      const srcSel = document.getElementById('stock-filter-source');
+      const body = document.getElementById('stock-modal-body');
+      const btn = document.getElementById('stock-search-btn');
+
+      const q = (input ? input.value : '').trim();
+      if (!q) return alert("Please enter search keywords");
+
+      const type = typeSel ? typeSel.value : 'all';
+      const source = srcSel ? srcSel.value : 'auto';
+
+      if (btn) btn.disabled = true;
+      body.innerHTML = `
+        <div style="text-align:center; padding:60px 20px; color:#93c5fd;">
+          <div class="spinner-inline" style="width:24px; height:24px; border-width:3px; margin-bottom:12px;"></div>
+          <div>Searching online for <b>"${escapeHtml(q)}"</b> across stock libraries...</div>
+        </div>
+      `;
+
+      try {
+        const url = `/api/stock/search?q=${encodeURIComponent(q)}&type=${type}&source=${source}&limit=18`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("Search API error: " + (await res.text()));
+        const data = await res.json();
+        const results = data.results || [];
+
+        if (!results.length) {
+          body.innerHTML = `
+            <div style="text-align:center; padding:60px 20px; color:var(--text-muted);">
+              <div style="font-size:24px; margin-bottom:8px;">🔍</div>
+              <div style="font-size:14px; color:#cbd5e1; font-weight:600;">No online stock media found for "${escapeHtml(q)}"</div>
+              <div style="font-size:12px; margin-top:4px;">Try broader keywords (e.g. "nature", "mountains", "technology", "water") or change the Source filter.</div>
+            </div>
+          `;
+          return;
+        }
+
+        let html = `
+          <div style="font-size:12px; color:#94a3b8; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
+            <span>Found <b>${results.length}</b> royalty-free media items:</span>
+            <span style="color:#6ee7b7;">Click "Use This in Scene #${currentStockSceneId}" to apply</span>
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:14px;">
+        `;
+
+        results.forEach((item, idx) => {
+          const isVid = item.type === 'video';
+          const badgeColor = isVid ? '#818cf8' : '#34d399';
+          const badgeBorder = isVid ? '#4f46e5' : '#059669';
+          const typeIcon = isVid ? '🎬 B-Roll Video' : '🖼️ Stock Photo';
+          const srcName = item.source ? item.source.toUpperCase() : 'STOCK';
+          const author = item.author || 'Creative Commons';
+          const title = item.title || `${typeIcon} #${idx + 1}`;
+          const durationStr = item.duration ? ` • ${Math.round(item.duration)}s` : '';
+
+          html += `
+            <div style="background:#060c18; border:1px solid #1e293b; border-radius:8px; overflow:hidden; display:flex; flex-direction:column; gap:8px; padding:10px; transition:border-color 0.2s ease;">
+              <div style="position:relative; width:100%; height:150px; background:#000; border-radius:6px; overflow:hidden;">
+                ${isVid ? `
+                  <video src="${item.media_url}" poster="${item.thumbnail_url || ''}" preload="none" muted loop onmouseover="this.play().catch(()=>{})" onmouseout="this.pause()" style="width:100%; height:100%; object-fit:cover;"></video>
+                  <div style="position:absolute; bottom:6px; left:6px; background:rgba(0,0,0,0.7); font-size:10px; color:#c7d2fe; padding:2px 6px; border-radius:3px; display:flex; align-items:center; gap:4px;">
+                    ▶ Hover to preview
+                  </div>
+                ` : `
+                  <img src="${item.thumbnail_url || item.media_url}" style="width:100%; height:100%; object-fit:cover; cursor:pointer;" onclick="window.open('${item.media_url}')" title="Click to view full image">
+                `}
+                <div style="position:absolute; top:6px; left:6px; background:rgba(0,0,0,0.8); border:1px solid ${badgeBorder}; color:${badgeColor}; font-size:10px; font-weight:700; padding:2px 6px; border-radius:3px;">
+                  ${typeIcon}${durationStr}
+                </div>
+                <div style="position:absolute; top:6px; right:6px; background:rgba(0,0,0,0.8); border:1px solid #334155; color:#94a3b8; font-size:10px; font-weight:600; padding:2px 6px; border-radius:3px;">
+                  ${srcName}
+                </div>
+              </div>
+
+              <div style="font-size:12px; color:#e2e8f0; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtml(title)}">
+                ${escapeHtml(title)}
+              </div>
+
+              <div style="display:flex; justify-content:space-between; font-size:10px; color:#64748b;">
+                <span title="${escapeHtml(author)}">👤 ${escapeHtml(author.slice(0, 22))}</span>
+                <span style="color:#0ea5e9;">${escapeHtml(item.license ? item.license.slice(0, 18) : 'CC License')}</span>
+              </div>
+
+              <button class="btn-primary" style="margin-top:auto; font-size:12px; padding:7px 10px; font-weight:700; background:linear-gradient(135deg, #059669, #047857); border-color:#10b981;" onclick="applyStockMediaToScene(${currentStockSceneId}, ${idx})" id="stock-apply-btn-${idx}">
+                ✓ Use This in Scene #${currentStockSceneId}
+              </button>
+            </div>
+          `;
+        });
+
+        html += `</div>`;
+        body.innerHTML = html;
+        window._currentStockResults = results;
+      } catch (err) {
+        body.innerHTML = `
+          <div style="text-align:center; padding:40px; color:#ef4444;">
+            <div style="font-weight:700; margin-bottom:6px;">Stock Media Search Error</div>
+            <div style="font-size:12px; color:#fca5a5;">${escapeHtml(err.message)}</div>
+          </div>
+        `;
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    async function applyStockMediaToScene(sceneId, resultIdx) {
+      if (!window._currentStockResults || !window._currentStockResults[resultIdx]) return;
+      const item = window._currentStockResults[resultIdx];
+      const btn = document.getElementById(`stock-apply-btn-${resultIdx}`);
+
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<span class="spinner-inline"></span> Downloading & Formatting 16:9...`;
+      }
+
+      try {
+        const payload = {
+          media_url: item.media_url,
+          media_type: item.type,
+          source: item.source || 'stock',
+          title: item.title || '',
+          author: item.author || '',
+          license: item.license || ''
+        };
+
+        const res = await fetch(`/api/projects/${currentProjectId}/scenes/${sceneId}/apply-stock`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({ detail: res.statusText }));
+          throw new Error(errData.detail || 'Failed to apply stock media');
+        }
+
+        const data = await res.json();
+        closeStockSearchModal();
+
+        // Refresh studio / inspector
+        if (typeof openStudioStage === 'function') {
+          openStudioStage('images');
+        } else if (typeof inspectStage === 'function') {
+          inspectStage('images');
+        }
+
+        alert(`✓ Successfully applied stock ${item.type === 'video' ? 'video clip' : 'photo'} to Scene #${sceneId}! Render stage updated.`);
+      } catch (e) {
+        alert("Failed to apply stock media: " + e.message);
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = `✓ Use This in Scene #${sceneId}`;
+        }
       }
     }
 

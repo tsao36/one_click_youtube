@@ -277,6 +277,63 @@ class PlaceholderImageProvider(ImageProvider):
         return {"provider": "placeholder", "seed": req.seed, "prompt": req.prompt, "width": w, "height": h}
 
 
+class StockImageProvider(ImageProvider):
+    """Fetches high-quality stock photography/illustrations online (Wikimedia, Pexels, Pixabay)."""
+    name = "stock"
+    is_cloud = True
+
+    def __init__(self, settings: dict):
+        self.s = settings.get("images", {})
+        self.source = self.s.get("stock_source", "auto")
+
+    def available(self) -> tuple[bool, str]:
+        return True, "Wikimedia Commons (Free, no key) + Pexels & Pixabay (if keys provided)"
+
+    def generate(self, req: ImageRequest, cancel: Callable[[], bool] | None = None) -> dict:
+        import tempfile
+        from providers.stock_client import search_stock_media, download_media_file, format_stock_image
+
+        query = req.extra.get("description") or req.prompt
+        results = search_stock_media(query=query, media_type="image", source=self.source, limit=10)
+        if not results:
+            # Fallback to broad query
+            results = search_stock_media(query="cinematic background scenery", media_type="image", source=self.source, limit=10)
+
+        if not results:
+            raise RuntimeError(f"No stock images found online for query: {query}")
+
+        # Choose deterministically using seed
+        rnd = random.Random(req.seed)
+        chosen = rnd.choice(results)
+
+        with tempfile.NamedTemporaryFile(suffix=".tmp", delete=False) as tmp:
+            tmp_path = Path(tmp.name)
+
+        try:
+            download_media_file(chosen["media_url"], tmp_path)
+            format_stock_image(tmp_path, req.output, target_w=req.width, target_h=req.height)
+            _check_not_blank(req.output)
+        finally:
+            if tmp_path.exists():
+                try:
+                    tmp_path.unlink()
+                except Exception:
+                    pass
+
+        return {
+            "provider": "stock",
+            "source": chosen.get("source"),
+            "title": chosen.get("title"),
+            "author": chosen.get("author"),
+            "license": chosen.get("license"),
+            "media_url": chosen.get("media_url"),
+            "width": req.width,
+            "height": req.height,
+            "prompt": req.prompt,
+            "is_stock": True,
+        }
+
+
 def get_image_provider(name: str, settings: dict) -> ImageProvider:
     if name == "comfyui":
         return ComfyUIImageProvider(settings)
@@ -284,6 +341,8 @@ def get_image_provider(name: str, settings: dict) -> ImageProvider:
         return DallE3ImageProvider(settings)
     if name in ("imagen3", "imagen-3", "gemini_image", "google"):
         return Imagen3ImageProvider(settings)
+    if name in ("stock", "stock_photos", "wikimedia", "pexels", "pixabay"):
+        return StockImageProvider(settings)
     if name == "placeholder":
         return PlaceholderImageProvider(settings)
     raise ValueError(f"Unknown image provider '{name}'")

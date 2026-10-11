@@ -133,6 +133,15 @@ class YouTubeAuthCodeRequest(BaseModel):
     code: str
 
 
+class ApplyStockMediaRequest(BaseModel):
+    media_url: str
+    media_type: str = "image"
+    source: Optional[str] = "stock"
+    title: Optional[str] = ""
+    author: Optional[str] = ""
+    license: Optional[str] = ""
+
+
 def get_available_checkpoints() -> list[str]:
     ckpt_names = set()
     try:
@@ -976,6 +985,105 @@ def regenerate_scene_voice(project_id: str, scene_id: int, req_body: Optional[Re
     p.set_stage("subtitles", Status.PENDING)
     p.set_stage("render", Status.PENDING)
     return {"status": "regenerated", "meta": s.audio.meta, "scene": s.model_dump(mode="json")}
+
+
+# ---------------- Stock Footage & Photos ----------------
+@app.get("/api/stock/search")
+def search_stock_endpoint(
+    q: str,
+    type: str = "all",
+    source: str = "auto",
+    limit: int = 18
+):
+    from providers.stock_client import search_stock_media
+    try:
+        results = search_stock_media(query=q, media_type=type, source=source, limit=limit)
+        return {"query": q, "count": len(results), "results": results}
+    except Exception as e:
+        log.error("Stock media search failed for query '%s': %s", q, e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/projects/{project_id}/scenes/{scene_id}/apply-stock")
+def apply_stock_media(project_id: str, scene_id: int, req: ApplyStockMediaRequest):
+    import tempfile
+    from rendering.ffmpeg_utils import run_ffmpeg
+    from providers.stock_client import download_media_file, format_stock_image, format_stock_video
+
+    p = Project(project_id)
+    s = p.scene(scene_id)
+    if not s:
+        raise HTTPException(status_code=404, detail="Scene not found")
+
+    is_video = (req.media_type == "video")
+    suffix = ".mp4" if is_video else ".tmp"
+
+    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+        tmp_path = Path(tmp.name)
+
+    try:
+        download_media_file(req.media_url, tmp_path)
+        img_path = p.path("images", f"{s.tag}.png")
+
+        if is_video:
+            out_clip = p.path("animation", f"{s.tag}.mp4")
+            format_stock_video(tmp_path, out_clip, fps=30)
+
+            # Extract poster thumbnail frame for scene card UI
+            try:
+                run_ffmpeg(["-i", str(out_clip), "-vframes", "1", "-q:v", "2", "-y", str(img_path)])
+            except Exception as e:
+                log.warning("Could not extract poster frame from stock video: %s", e)
+
+            s.animation.status = Status.COMPLETED
+            s.animation.path = p.rel(out_clip)
+            s.animation.meta = {
+                "provider": "stock_video",
+                "source": req.source,
+                "title": req.title,
+                "author": req.author,
+                "license": req.license,
+                "media_url": req.media_url,
+                "is_stock": True,
+            }
+            s.animation.error = None
+            s.ai_video = True
+
+            if img_path.exists():
+                s.image.status = Status.COMPLETED
+                s.image.path = p.rel(img_path)
+                s.image.error = None
+        else:
+            format_stock_image(tmp_path, img_path, target_w=1920, target_h=1080)
+            s.image.status = Status.COMPLETED
+            s.image.path = p.rel(img_path)
+            s.image.error = None
+            s.image.meta = {
+                "provider": "stock",
+                "source": req.source,
+                "title": req.title,
+                "author": req.author,
+                "license": req.license,
+                "media_url": req.media_url,
+                "is_stock": True,
+            }
+            try:
+                record_scene_image_take(p, scene_id, p.rel(img_path), f"Stock ({req.source})", req.title or s.prompt or "", "stock")
+            except Exception as ex:
+                log.debug("Record image take note: %s", ex)
+
+        p.save_scenes()
+        p.set_stage("render", Status.PENDING)
+        return {"status": "applied", "media_type": req.media_type, "scene": s.model_dump(mode="json")}
+    except Exception as e:
+        log.error("Failed to apply stock media to scene %d: %s", scene_id, e)
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if tmp_path.exists():
+            try:
+                tmp_path.unlink()
+            except Exception:
+                pass
 
 
 # ---------------- Preview & Rendering ----------------
