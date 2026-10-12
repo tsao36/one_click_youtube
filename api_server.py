@@ -73,7 +73,7 @@ active_pipelines: dict[str, Pipeline] = {}
 class CreateProjectRequest(BaseModel):
     topic: str
     duration_minutes: float = 10.0
-    language: str = "English"
+    language: str = "Traditional Chinese"
     voice_profile: str = "default_local"
     visual_style: str = "cinematic_documentary"
     checkpoint: Optional[str] = None

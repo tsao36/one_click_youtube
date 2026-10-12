@@ -278,7 +278,7 @@ class Pipeline:
         stage_models = cfg.get("stage_models", {})
         res_prov = stage_models.get("research")
         enabled = bool(cfg.get("script", {}).get("research_enabled", False)) or (res_prov == "gemini_search")
-        lang = cfg.get("video", {}).get("language", "English")
+        lang = cfg.get("video", {}).get("language", "Traditional Chinese")
         dur_mins = float(cfg.get("video", {}).get("duration_minutes", 5.0))
         try:
             res = research(self.p.data.topic, lang, enabled, self._track_llm_request, duration_minutes=dur_mins, provider_override=res_prov)

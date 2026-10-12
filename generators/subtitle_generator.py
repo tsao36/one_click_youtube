@@ -6,6 +6,7 @@ import textwrap
 from dataclasses import dataclass
 from pathlib import Path
 
+from core.taiwan_mandarin import normalize_to_taiwan_mandarin
 from rendering.transitions import Slot
 
 STYLES = {
@@ -27,6 +28,38 @@ class Cue:
 def split_phrases(text: str, max_chars: int) -> list[str]:
     """Split narration into readable chunks of <= max_chars, preferring sentence and clause boundaries."""
     text = re.sub(r"\s+", " ", text).strip()
+    has_cjk = bool(re.search(r"[\u4e00-\u9fff]", text))
+
+    if has_cjk:
+        text = normalize_to_taiwan_mandarin(text)
+        sentences = [s.strip() for s in re.split(r"(?<=[。！？；!?;])", text) if s.strip()]
+        out: list[str] = []
+        for s in sentences:
+            if len(s) <= max_chars:
+                out.append(s)
+                continue
+            clauses = [c.strip() for c in re.split(r"(?<=[，、,;:—–])", s) if c.strip()]
+            buf = ""
+            for c in clauses:
+                if len(buf) + len(c) <= max_chars:
+                    buf += c
+                else:
+                    if buf:
+                        out.append(buf)
+                    if len(c) <= max_chars:
+                        buf = c
+                    else:
+                        # Chunk long clause
+                        for k in range(0, len(c), max_chars):
+                            chunk = c[k:k + max_chars]
+                            if len(chunk) == max_chars:
+                                out.append(chunk)
+                            else:
+                                buf = chunk
+            if buf:
+                out.append(buf)
+        return [p for p in out if p]
+
     sentences = re.split(r"(?<=[.!?])\s+", text)
     out: list[str] = []
     for s in sentences:
@@ -61,14 +94,24 @@ def split_phrases(text: str, max_chars: int) -> list[str]:
 def build_cues(scene_texts: list[tuple[str, Slot]], max_chars_per_line: int = 42, max_lines: int = 2) -> list[Cue]:
     cues: list[Cue] = []
     for text, slot in scene_texts:
-        phrases = split_phrases(text, max_chars_per_line * max_lines)
+        has_cjk = bool(re.search(r"[\u4e00-\u9fff]", text))
+        cjk_max = min(max_chars_per_line, 22) if has_cjk else max_chars_per_line
+        chunk_budget = cjk_max * max_lines
+        phrases = split_phrases(text, chunk_budget)
         if not phrases:
             continue
         total_chars = sum(len(p) for p in phrases)
         t = slot.audio_start
         for p in phrases:
             dur = slot.audio_length * len(p) / total_chars
-            lines = textwrap.wrap(p, max_chars_per_line)[:max_lines] if len(p) > max_chars_per_line else [p]
+            if has_cjk:
+                p = normalize_to_taiwan_mandarin(p)
+                if len(p) > cjk_max:
+                    lines = [p[:cjk_max], p[cjk_max:cjk_max * 2]]
+                else:
+                    lines = [p]
+            else:
+                lines = textwrap.wrap(p, max_chars_per_line)[:max_lines] if len(p) > max_chars_per_line else [p]
             cues.append(Cue(t, t + dur, "\n".join(lines)))
             t += dur
     # tiny gap between cues avoids flicker overlap in some players

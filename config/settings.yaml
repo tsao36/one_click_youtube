@@ -7,7 +7,7 @@ video:
   height: 1080
   aspect_ratio: "16:9"
   fps: 30
-  language: English
+  language: Traditional Chinese
   visual_style: photorealistic_cinema   # key in visual_styles below
   narration_style: "warm, curious, conversational documentary narrator"
 
