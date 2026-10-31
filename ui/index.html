@@ -4940,6 +4940,34 @@
             </div>
           </div>
 
+          ${isDrama ? '' : `<!-- Quick Stock Analytics & Batch Actions Banner (Studio) -->
+          <div style="background: linear-gradient(135deg, rgba(6, 78, 59, 0.45) 0%, rgba(15, 23, 42, 0.65) 100%); border: 1px solid #059669; border-radius: 8px; padding: 14px 18px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);">
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <span style="font-size: 14px; font-weight: 700; color: #6ee7b7; display: flex; align-items: center; gap: 6px;">
+                  <span>🌐</span> <span>Quick Stock 真實實體圖庫分析</span>
+                </span>
+                <span style="background: rgba(16, 185, 129, 0.25); border: 1px solid #10b981; color: #a7f3d0; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700;">
+                  ${data.stock_available_count || 0} / ${data.total_scenes || scenes.length} 鏡頭命中真實素材標籤
+                </span>
+                <span style="background: rgba(59, 130, 246, 0.25); border: 1px solid #3b82f6; color: #bfdbfe; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700;">
+                  已套用真實圖庫：${data.stock_active_count || 0} / ${data.total_scenes || scenes.length}
+                </span>
+              </div>
+              <div style="font-size: 12px; color: #cbd5e1; line-height: 1.4;">
+                系統已自動識別影片主角、地標與歷史實體。標註 <b style="color:#6ee7b7;">綠色 / 藍色</b> 標籤即表示擁有高畫質真實圖庫素材；點擊按鈕可一鍵套用至全片或僅命中實體的鏡頭：
+              </div>
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+              <button class="btn-sec" style="background: rgba(5, 150, 105, 0.3); border-color: #10b981; color: #6ee7b7; font-weight: 700; font-size: 12px; padding: 8px 14px; cursor: pointer;" onclick="triggerBatchQuickStock('matched_only')" id="studio-btn-batch-stock-matched" title="僅替換命中真實人物、地標或硬體實體的鏡頭">
+                🎯 僅替換真實實體鏡頭 (${data.stock_available_count || 0} 個)
+              </button>
+              <button class="btn-primary" style="background: linear-gradient(135deg, #059669 0%, #047857 100%); border-color: #10b981; font-weight: 700; font-size: 12px; padding: 8px 16px; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3); cursor: pointer;" onclick="triggerBatchQuickStock('all')" id="studio-btn-batch-stock-all" title="將全片所有鏡頭替換為線上圖庫 / Quick Stock 圖片">
+                ⚡ 一鍵全部替換為 Quick Stock 圖片
+              </button>
+            </div>
+          </div>`}
+
           <!-- Per-Scene Gallery & Tuning -->
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
             <div style="font-size: 13px; color: var(--text-muted);">Scene Images Gallery: Tune prompts or change models per scene, then click Regenerate to re-render using ComfyUI DirectML.</div>
@@ -4982,6 +5010,31 @@
                 <span style="font-weight: 700; color: #93c5fd; font-size: 14px;">Scene #${s.scene_id}</span>
                 <span id="studio-scene-badge-${s.scene_id}" style="font-size: 12px; color: ${imgUrl?'#34d399':'#f59e0b'}; font-weight: 600;">${imgUrl ? '✓ Generated' : '⏳ Pending'}</span>
               </div>
+              ${isDrama ? '' : `
+                <!-- Real-world Quick Stock Status Pill -->
+                ${s.is_stock_active ? `
+                  <div style="font-size: 11px; padding: 4px 8px; background: rgba(5, 150, 105, 0.25); border: 1px solid #059669; border-radius: 4px; color: #6ee7b7; font-weight: 600; display: flex; align-items: center; justify-content: space-between; gap: 4px;">
+                    <span style="display: flex; align-items: center; gap: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                      <span>📸 已套用線上圖庫:</span> <b style="color: #fff;">${s.active_stock_source || (s.image && s.image.meta && s.image.meta.source) || 'Stock'}</b>
+                      ${(s.active_stock_title || (s.image && s.image.meta && s.image.meta.title)) ? `<span style="opacity: 0.8; font-weight: normal; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px;">(${s.active_stock_title || s.image.meta.title})</span>` : ''}
+                    </span>
+                    <span style="font-size: 9px; background: #065f46; color: #a7f3d0; padding: 1px 4px; border-radius: 3px; font-weight: 700;">ACTIVE</span>
+                  </div>
+                ` : (s.quick_stock_available ? `
+                  <div style="font-size: 11px; padding: 4px 8px; background: rgba(59, 130, 246, 0.2); border: 1px solid #3b82f6; border-radius: 4px; color: #93c5fd; font-weight: 600; display: flex; align-items: center; justify-content: space-between; gap: 6px;">
+                    <span title="命中素材目標: ${s.quick_stock_target}" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                      🌐 <b>可使用 Quick Stock:</b> ${s.quick_stock_target}
+                    </span>
+                    <span style="font-size: 9px; background: #1e3a8a; color: #bfdbfe; padding: 1px 4px; border-radius: 3px; white-space: nowrap; font-weight: 700;">
+                      ${s.quick_stock_source === 'youtube_snippet' ? 'YouTube 實體片段' : '維基共享資源'}
+                    </span>
+                  </div>
+                ` : `
+                  <div style="font-size: 11px; padding: 3px 6px; background: rgba(148, 163, 184, 0.08); border: 1px solid #334155; border-radius: 4px; color: #94a3b8; display: flex; align-items: center; gap: 4px;">
+                    🎨 <span>AI 生成畫面 (無特定真實實體標籤)</span>
+                  </div>
+                `)}
+              `}
               <div style="width: 100%; height: 160px; background: #000; border-radius: 6px; overflow: hidden; display: flex; align-items: center; justify-content: center; position: relative;">
                 ${imgUrl ? `
                   <img id="studio-scene-img-${s.scene_id}" src="${imgUrlBusted}" style="width: 100%; height: 100%; object-fit: cover; cursor: pointer;" onclick="window.open('${imgUrl}')" title="Click to view full image">
