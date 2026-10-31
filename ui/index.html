@@ -709,7 +709,8 @@
   <div class="nav-tabs">
     <button class="nav-tab active" onclick="switchTab('creator')">🎙️ Documentary Creator</button>
     <button class="nav-tab" onclick="switchTab('drama')">🎭 Short Drama Studio</button>
-    <button class="nav-tab" onclick="switchTab('studio')">🛠️ Stage Studio</button>
+    <button class="nav-tab" onclick="switchTab('studio')">🛠️ Documentary Stage Studio</button>
+    <button class="nav-tab" onclick="switchTab('dramastudio')">🎭 Drama Stage Studio</button>
     <button class="nav-tab" onclick="switchTab('editor')">Scene Editor</button>
     <button class="nav-tab" onclick="switchTab('preview')">📺 Player & YouTube</button>
     <button class="nav-tab" onclick="switchTab('voices')">Voice Profiles</button>
@@ -1538,6 +1539,9 @@
           點擊下方按鈕啟動微短劇 9 階段全自動生成管線（分鏡 ➔ 劇本 ➔ 場景分配 ➔ 立繪影片 ➔ 專屬配音 ➔ Hedra 對嘴 ➔ 母帶渲染）。
         </div>
         <div style="display: flex; gap: 10px; align-items: center;">
+          <button type="button" class="btn-sec" onclick="switchTab('dramastudio')" style="font-size: 13px; padding: 12px 18px; border-color: rgba(124, 58, 237, 0.5); color: #c4b5fd;">
+            🎭 Drama Stage Studio
+          </button>
           <button type="button" class="btn-sec" onclick="switchTab('preview')" style="font-size: 13px; padding: 12px 18px; border-color: rgba(245, 158, 11, 0.4); color: #fde68a;">
             📺 前往 Player 播放器
           </button>
@@ -1556,10 +1560,11 @@
       <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
         <div>
           <div style="display: flex; align-items: center; gap: 8px;">
-            <span style="font-size: 22px;">🛠️</span>
-            <span style="font-size: 18px; font-weight: 800; color: #fff;">Independent Stage Studio & Playground</span>
+            <span style="font-size: 22px;" id="studio-mode-icon">🛠️</span>
+            <span style="font-size: 18px; font-weight: 800; color: #fff;" id="studio-mode-title">Documentary Stage Studio</span>
+            <span id="studio-mode-badge" class="badge badge-blue" style="font-size: 11px;">16:9 Documentary</span>
           </div>
-          <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+          <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;" id="studio-mode-desc">
             Play around with each stage independently without having to go through the entire pipeline. When you're satisfied with your assets, click "String All Stages Together" to create the final video.
           </div>
         </div>
@@ -1580,6 +1585,8 @@
       </div>
 
       <!-- 9-Stage Stepper Bar -->
+      <div id="studio-project-bar" style="margin-top: 14px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 12px; color: var(--text-muted);"></div>
+
       <div id="studio-stepper" style="display: flex; gap: 8px; margin-top: 16px; overflow-x: auto; padding-bottom: 6px;">
         <!-- Populated dynamically with pills for 1..9 -->
       </div>
@@ -4401,12 +4408,18 @@
     function switchTab(name) {
       document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
       document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-      const foundTab = Array.from(document.querySelectorAll('.nav-tab')).find(t => t.textContent.toLowerCase().includes(name) || t.getAttribute('onclick').includes(name));
+      const foundTab = Array.from(document.querySelectorAll('.nav-tab')).find(t => (t.getAttribute('onclick') || '').includes(`switchTab('${name}')`));
       if (foundTab) foundTab.classList.add('active');
-      const targetContent = document.getElementById('tab-' + name);
+      // Both Stage Studios share one workspace DOM; each mode has its own tab, header and project list.
+      const isStudioTab = (name === 'studio' || name === 'dramastudio');
+      const targetContent = document.getElementById('tab-' + (isStudioTab ? 'studio' : name));
       if (targetContent) targetContent.classList.add('active');
 
-      if (name === 'studio') loadStageStudio();
+      if (isStudioTab) {
+        studioMode = (name === 'dramastudio') ? 'short_drama' : 'documentary';
+        applyStudioModeChrome();
+        loadStageStudio();
+      }
       if (name === 'editor') loadScenesForEditor();
       if (name === 'voices') { loadVoiceProfiles(); loadElevenLabsVoices(); }
       if (name === 'music') loadMusicTracks();
@@ -4817,6 +4830,7 @@
       try {
         const res = await fetch('/api/projects');
         const projects = await res.json();
+        allProjectsCache = projects || [];
         const sel = document.getElementById('global-project-select');
         sel.innerHTML = '';
 
@@ -4859,7 +4873,7 @@
           const statusIcon = p.state === 'running' ? '🟢 RUNNING: ' : (p.state === 'completed' ? '✓ ' : '');
           const durText = (p.state === 'completed' && p.total_duration_seconds) ? ` (⏱️ ${formatDuration(p.total_duration_seconds)})` : '';
           const dispTitle = p.title || p.topic || p.id;
-          opt.textContent = `${statusIcon}[${p.id}] ${dispTitle}${durText}`;
+          opt.textContent = `${projectModeOf(p) === 'short_drama' ? '🎭 ' : '🎬 '}${statusIcon}[${p.id}] ${dispTitle}${durText}`;
           if (p.id === currentProjectId) opt.selected = true;
           sel.appendChild(opt);
         });
@@ -11917,6 +11931,64 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       render: { num: 9, name: "最終渲染", icon: "🎥", title: "Stage 9/9: 母帶混音與最終渲染 (Master Rendering)", desc: "以 1.0x 原始唇形速率合成垂直 1080x1920 60/30fps MP4 母帶影片（無章節過場黑屏）。", runBtn: "▶ 渲染 9:16 短劇母帶" }
     };
 
+    // Which Stage Studio is open: 'documentary' | 'short_drama'
+    let studioMode = 'documentary';
+    let allProjectsCache = [];
+
+    function projectModeOf(p) {
+      if (!p) return 'documentary';
+      if (p.project_mode) return p.project_mode;
+      if (p.settings && p.settings.project_mode) return p.settings.project_mode;
+      if (p.data && p.data.settings && p.data.settings.project_mode) return p.data.settings.project_mode;
+      return 'documentary';
+    }
+
+    function applyStudioModeChrome() {
+      const drama = (studioMode === 'short_drama');
+      const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+      set('studio-mode-icon', drama ? '🎭' : '🛠️');
+      set('studio-mode-title', drama ? 'Short Drama Stage Studio' : 'Documentary Stage Studio');
+      set('studio-mode-badge', drama ? '9:16 Short Drama' : '16:9 Documentary');
+      set('studio-mode-desc', drama
+        ? 'Work on each short-drama stage independently: storyboard, character dialogue, scene casting, action prompts, actor video, voices, lip-sync, subtitles and master render.'
+        : 'Play around with each documentary stage independently: research, script, scenes, prompts, images, voice, animation, subtitles and render.');
+      const card = document.getElementById('tab-studio') && document.querySelector('#tab-studio > .card');
+      if (card) card.style.borderColor = drama ? '#7c3aed' : '#2b456b';
+      const badge = document.getElementById('studio-mode-badge');
+      if (badge) badge.className = drama ? 'badge badge-warn' : 'badge badge-blue';
+    }
+
+    function renderStudioProjectBar() {
+      const bar = document.getElementById('studio-project-bar');
+      if (!bar) return;
+      const mine = allProjectsCache.filter(p => projectModeOf(p) === studioMode);
+      const label = studioMode === 'short_drama' ? 'Drama projects' : 'Documentary projects';
+      if (!mine.length) { bar.innerHTML = `<span>No ${label.toLowerCase()} yet.</span>`; return; }
+      bar.innerHTML = `<span>${label}:</span><select style="font-size:12px; padding:4px 8px; max-width:420px;" onchange="selectProject(this.value)">${mine.map(p => `<option value="${p.id}" ${p.id === currentProjectId ? 'selected' : ''}>[${p.id}] ${(p.title || p.topic || p.id).toString().replace(/</g, '&lt;')}</option>`).join('')}</select>`;
+    }
+
+    function renderStudioModeMismatch(project) {
+      const wsEl = document.getElementById('studio-stage-workspace');
+      const stepperEl = document.getElementById('studio-stepper');
+      if (stepperEl) stepperEl.innerHTML = '';
+      if (!wsEl) return;
+      const projMode = projectModeOf(project);
+      const otherTab = projMode === 'short_drama' ? 'dramastudio' : 'studio';
+      const otherName = projMode === 'short_drama' ? 'Drama Stage Studio' : 'Documentary Stage Studio';
+      const mine = allProjectsCache.filter(p => projectModeOf(p) === studioMode);
+      const myName = studioMode === 'short_drama' ? 'short drama' : 'documentary';
+      wsEl.innerHTML = `
+        <div style="text-align:center; padding:50px 20px; color:var(--text-muted);">
+          <div style="font-size:36px; margin-bottom:12px;">${studioMode === 'short_drama' ? '🎭' : '🛠️'}</div>
+          <h3 style="color:#fff; margin-bottom:8px;">Selected project is a ${projMode === 'short_drama' ? 'short drama' : 'documentary'} project</h3>
+          <p style="font-size:13px; max-width:520px; margin:0 auto 18px auto;">This studio only works on ${myName} projects because the stages differ by nature.</p>
+          <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+            <button class="btn-primary" onclick="switchTab('${otherTab}')">Open in ${otherName}</button>
+            ${mine.length ? `<button class="btn-sec" onclick="selectProject('${mine[0].id}')">Switch to latest ${myName} project</button>` : `<button class="btn-sec" onclick="switchTab('${studioMode === 'short_drama' ? 'drama' : 'creator'}')">Create a ${myName} project</button>`}
+          </div>
+        </div>`;
+    }
+
     function isDramaStudioProject(proj = null) {
       const p = proj || studioProject;
       if (p) {
@@ -11924,6 +11996,8 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
         if (p.data && p.data.settings && p.data.settings.project_mode === 'short_drama') return true;
         if (p.project_mode === 'short_drama') return true;
       }
+      const studioActive = document.getElementById('tab-studio') && document.getElementById('tab-studio').classList.contains('active');
+      if (studioActive) return studioMode === 'short_drama';
       return currentCreatorProjectMode === 'short_drama';
     }
 
@@ -11935,7 +12009,8 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
 
     function openStudioStage(stageName) {
       if (stageName) activeStudioStage = stageName;
-      switchTab('studio');
+      const cur = allProjectsCache.find(p => p.id === currentProjectId);
+      switchTab(projectModeOf(cur) === 'short_drama' ? 'dramastudio' : 'studio');
     }
 
     function switchStudioStage(stKey) {
@@ -11969,6 +12044,11 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
         const pData = await pRes.json();
         studioProject = pData.project;
         currentScenes = pData.scenes || [];
+        renderStudioProjectBar();
+        if (projectModeOf(studioProject) !== studioMode) {
+          renderStudioModeMismatch(studioProject);
+          return;
+        }
         renderStudioStepper(studioProject);
       } catch (e) {
         console.error("Failed to load project for studio stepper", e);

@@ -91,10 +91,15 @@ class Project:
             if pj.exists():
                 try:
                     data = read_json(pj)
-                    out.append({k: data.get(k) for k in (
+                    item = {k: data.get(k) for k in (
                         "id", "topic", "title", "created_at", "updated_at", "started_at", "completed_at",
                         "total_duration_seconds", "stage_durations", "state", "activity", "outputs"
-                    )})
+                    )}
+                    # Expose creation mode so each Stage Studio lists only its own projects.
+                    item["project_mode"] = (
+                        (data.get("settings") or {}).get("project_mode") or "documentary"
+                    )
+                    out.append(item)
                 except Exception:  # corrupt file should not break listing
                     continue
         return out
