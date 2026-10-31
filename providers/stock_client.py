@@ -38,7 +38,10 @@ def search_wikimedia(query: str, media_type: str = "all", limit: int = 15) -> li
     }
     headers = {"User-Agent": USER_AGENT}
 
-    results: list[dict[str, Any]] = []
+    query_tokens = [t.lower() for t in re.findall(r"\w+", search_term) if len(t) >= 2]
+    query_years = set(re.findall(r"\b(19\d\d|20\d\d)\b", search_term))
+
+    candidates: list[tuple[float, dict[str, Any]]] = []
     try:
         r = requests.get(url, params=params, headers=headers, timeout=12)
         if r.status_code != 200:
@@ -89,7 +92,32 @@ def search_wikimedia(query: str, media_type: str = "all", limit: int = 15) -> li
             license_name = ext.get("LicenseShortName", {}).get("value", "Public Domain / CC")
             clean_author = re.sub(r"<[^>]+>", "", author)[:40] if author else "Wikimedia Contributor"
 
-            results.append({
+            # Multi-factor relevance scoring & year consistency guard
+            idx = int(page.get("index") or 50)
+            score = 100.0 - idx
+            title_lower = title.lower()
+
+            for tok in query_tokens:
+                if tok in title_lower:
+                    score += 15.0
+
+            title_years = set(re.findall(r"\b(19\d\d|20\d\d)\b", title))
+            if query_years:
+                if title_years & query_years:
+                    score += 40.0
+                elif title_years and not (title_years & query_years):
+                    score -= 60.0  # severely penalize conflicting historical years (e.g. 1921 vs 1943)
+
+            if width >= 1200:
+                score += 10.0
+            if width > height:
+                score += 5.0  # 16:9 / landscape orientation preference
+
+            # Deprioritize philatelic stamps, coins, envelopes for historical scene queries
+            if any(bad in title_lower for bad in ["stamp", "coin", "postage", "banknote", "envelope", "cover"]):
+                score -= 25.0
+
+            item = {
                 "id": f"wikimedia_{pid}",
                 "title": title[:60],
                 "type": "video" if is_vid else "image",
@@ -101,13 +129,15 @@ def search_wikimedia(query: str, media_type: str = "all", limit: int = 15) -> li
                 "duration": None,
                 "author": clean_author,
                 "license": license_name
-            })
-            if len(results) >= limit:
-                break
+            }
+            candidates.append((score, item))
+
+        candidates.sort(key=lambda x: x[0], reverse=True)
+        return [c[1] for c in candidates[:limit]]
     except Exception as e:
         log.warning("Wikimedia search failed for '%s': %s", query, e)
 
-    return results
+    return []
 
 
 # ---------------- Pexels API (Cinematic HD Stock Videos & Photos) ----------------
@@ -264,7 +294,13 @@ def extract_stock_search_keywords(text: str) -> list[str]:
         " ", cleaned, flags=re.IGNORECASE
     )
 
-    stop_words = r"\b(a|an|the|of|with|and|in|on|at|by|for|from|to|is|are|was|were|showing|shown|shows|depicting|features|featuring|view|angle)\b"
+    stop_words = (
+        r"\b(a|an|the|of|with|and|in|on|at|by|for|from|to|is|are|was|were|be|been|being|"
+        r"showing|shown|shows|depicting|features|featuring|view|angle|"
+        r"that|this|those|these|day|days|today|yesterday|time|times|moment|point|beginning|start|end|"
+        r"what|which|who|whom|whose|when|where|why|how|whether|either|neither|"
+        r"true|truly|real|really|actual|actually|another|other|each|every|some|any|all)\b"
+    )
     candidates: list[str] = []
 
     # 1. First clause before punctuation (usually contains the main subject)

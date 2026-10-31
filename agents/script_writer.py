@@ -7,6 +7,7 @@ from agents.prompts_common import NARRATION_RULES
 from core.logging_setup import log
 from core.taiwan_mandarin import (
     TAIWAN_MANDARIN_SYSTEM_PROMPT,
+    enforce_taiwan_mandarin,
     is_taiwan_mandarin,
     normalize_to_taiwan_mandarin,
 )
@@ -70,10 +71,20 @@ def write_script(topic: str, research: dict, settings: dict, on_request,
     raw_structure = [s.get("section", "") for s in research.get("narrative_structure", [])] or \
         ["Hook", "Introduction", "Main", "Conclusion"]
     structure = [normalize_to_taiwan_mandarin(s) if is_tw else s for s in raw_structure]
+    tw_violations: list[dict] = []
+
+    user_res = (research.get("user_research") or "").strip()
+    user_res_prompt = (
+        f"\n=== MANDATORY USER-SUBMITTED RESEARCH DATA & FACTS (PRIMARY DIRECTIVE) ===\n"
+        f"{user_res[:8000]}\n"
+        f"(CRITICAL: The user provided this authoritative research dossier. You MUST weave these specific facts, arguments, figures, and narrative angles directly into the narration.)\n"
+        if user_res else ""
+    )
 
     brief = (f"Topic: {topic}\nMain question: {research.get('main_question')}\nAudience: {research.get('audience')}\n"
              f"Key concepts: {research.get('key_concepts')}\nMisconceptions: {research.get('misconceptions')}\n"
-             f"Interesting facts: {research.get('interesting_facts')}\n")
+             f"Interesting facts: {research.get('interesting_facts')}\n"
+             f"{user_res_prompt}")
 
     if total <= int(sc.get("single_pass_word_limit", 350)):
         n_sections = 3 if total < 150 else 4
@@ -93,12 +104,16 @@ def write_script(topic: str, research: dict, settings: dict, on_request,
                 raise ValueError("sections missing")
             return d
 
-        data = client.json(prompt, system, temperature=0.85, max_tokens=max(1024, total * 3), validate=val)
+        data = client.json(prompt, system, temperature=0.85, max_tokens=max(4096, total * 4), validate=val)
         raw_sections = data["sections"]
         if is_tw:
-            sections = [{"name": normalize_to_taiwan_mandarin(s.get("name", f"Part {i + 1}")),
-                         "text": normalize_to_taiwan_mandarin(_clean(s["text"]))} for i, s in enumerate(raw_sections)]
-            title = normalize_to_taiwan_mandarin(data.get("title") or topic)
+            sections = []
+            for i, s in enumerate(raw_sections):
+                txt, viol = enforce_taiwan_mandarin(_clean(s["text"]), client=client, system_prompt=system)
+                if viol:
+                    tw_violations.extend(viol)
+                sections.append({"name": normalize_to_taiwan_mandarin(s.get("name", f"Part {i + 1}")), "text": txt})
+            title, _v = enforce_taiwan_mandarin(data.get("title") or topic)
         else:
             sections = [{"name": s.get("name", f"Part {i + 1}"), "text": _clean(s["text"])} for i, s in enumerate(raw_sections)]
             title = data.get("title") or topic
@@ -130,8 +145,14 @@ def write_script(topic: str, research: dict, settings: dict, on_request,
                       + ("Open with a vivid, concrete hook in the first sentence.\n" if i == 0 else "")
                       + ("End with a satisfying takeaway, not a summary of every section.\n" if i == len(structure) - 1 else "")
                       + "Output only the narration text.")
-            raw_text = _clean(client.text(prompt, system, temperature=0.8, max_tokens=max(600, budget * 3)))
-            text = normalize_to_taiwan_mandarin(raw_text) if is_tw else raw_text
+            raw_text = _clean(client.text(prompt, system, temperature=0.8, max_tokens=max(4096, budget * 4)))
+            if is_tw:
+                text, viol = enforce_taiwan_mandarin(raw_text, client=client, system_prompt=system)
+                if viol:
+                    tw_violations.extend(viol)
+                    log.warning("Taiwan Mandarin: %d violations remain in section '%s'", len(viol), name)
+            else:
+                text = raw_text
             sec_name = normalize_to_taiwan_mandarin(name) if is_tw else name
             log.info("Script section '%s': %d words (target %d)", sec_name, words(text), budget)
             sections.append({"name": sec_name, "text": text})
@@ -141,7 +162,9 @@ def write_script(topic: str, research: dict, settings: dict, on_request,
     count = sum(words(s["text"]) for s in sections)
     log.info("Script generated: %d words (target %d)", count, total)
     return {"title": title.strip().strip('"'), "topic": topic, "language": language,
-            "target_words": total, "word_count": count, "sections": sections}
+            "target_words": total, "word_count": count, "sections": sections,
+            "taiwan_mandarin_verified": bool(is_tw and not tw_violations),
+            "taiwan_mandarin_violations": tw_violations}
 
 
 def script_markdown(script: dict) -> str:

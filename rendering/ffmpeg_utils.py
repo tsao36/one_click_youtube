@@ -164,8 +164,8 @@ def video_encoder_args(settings: dict, draft: bool = False) -> list[str]:
     if enc == "h264_amf":
         log.warning("h264_amf unavailable; falling back to libx264 CPU encoding")
     if draft:
-        return ["-c:v", "libx264", "-preset", "veryfast", "-crf", "28", "-pix_fmt", "yuv420p"]
-    return ["-c:v", "libx264", "-preset", r.get("preset", "medium"), "-crf", str(r.get("crf", 20)), "-pix_fmt", "yuv420p"]
+        return ["-c:v", "libx264", "-preset", "veryfast", "-crf", "28", "-threads", "4", "-x264-params", "rc-lookahead=10:threads=4", "-pix_fmt", "yuv420p"]
+    return ["-c:v", "libx264", "-preset", r.get("preset", "medium"), "-crf", str(r.get("crf", 20)), "-threads", "4", "-x264-params", "rc-lookahead=10:threads=4", "-pix_fmt", "yuv420p"]
 
 
 def escape_filter_path(p: str) -> str:

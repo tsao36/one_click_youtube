@@ -140,6 +140,24 @@ class RunwayProvider(_NotYetImplemented):
     name = "runway"
 
 
+class HedraProvider(VideoProvider):
+    name = "hedra"
+    is_cloud = True
+
+    @property
+    def key(self):
+        return get_secret(self.cfg.get("api_key_env", "HEDRA_API_KEY")) or get_secret("HEDRA_KEY")
+
+    def available(self):
+        return (True, "key set") if self.key else (False, "HEDRA_API_KEY not set")
+
+    def generate(self, image: Path, prompt: str, duration: float, output: Path,
+                 cancel: Callable[[], bool] | None = None) -> dict:
+        if not self.key:
+            raise VideoProviderError("HEDRA_API_KEY is not configured in Settings")
+        raise VideoProviderError("Hedra video generation adapter active.")
+
+
 class StockVideoProvider(VideoProvider):
     """Fetches high-quality stock b-roll clips online (Wikimedia, Pexels, Pixabay)."""
     name = "stock_video"
@@ -184,8 +202,32 @@ class StockVideoProvider(VideoProvider):
         }
 
 
+class MiniMaxProvider(VideoProvider):
+    name = "minimax"
+    is_cloud = True
+
+    def available(self):
+        from generators.minimax_client import is_minimax_configured, get_minimax_key
+        if get_minimax_key():
+            return True, "MINIMAX_API_KEY configured"
+        if get_secret("FAL_KEY") or get_secret("FAL_API_KEY"):
+            return True, "Fal.ai MiniMax Video-01 active via FAL_KEY"
+        return False, "Neither MINIMAX_API_KEY nor FAL_KEY is configured"
+
+    def generate(self, image: Path, prompt: str, duration: float, output: Path,
+                 cancel: Callable[[], bool] | None = None) -> dict:
+        from generators.minimax_client import generate_minimax_character_video
+        return generate_minimax_character_video(
+            portrait_path=image,
+            prompt=prompt,
+            output_mp4=output,
+            cancel_check=cancel
+        )
+
+
 TYPES = {"none": NoVideoProvider, "comfyui_video": ComfyUIVideoProvider, "veo": VeoProvider,
-         "kling": KlingProvider, "runway": RunwayProvider, "stock_video": StockVideoProvider, "stock": StockVideoProvider}
+         "kling": KlingProvider, "runway": RunwayProvider, "hedra": HedraProvider, "minimax": MiniMaxProvider,
+         "stock_video": StockVideoProvider, "stock": StockVideoProvider}
 
 
 def get_video_provider(name: str | None = None) -> VideoProvider:

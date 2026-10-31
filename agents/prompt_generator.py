@@ -8,12 +8,19 @@ from core.models import Scene
 from providers.llm import LLMClient
 
 SYSTEM = (
-    "You write prompts for the SDXL text-to-image model. "
-    "CRITICAL REQUIREMENT: ALL JSON fields ('subject', 'environment', 'composition', 'lighting', 'mood') "
-    "MUST be written strictly in ENGLISH. SDXL text encoders (CLIP) do not understand Chinese or non-English text. "
-    "If shot descriptions, entities, or script context are in Chinese or another language, translate them into "
-    "vivid, descriptive English keywords. Comma-separated descriptive phrases, concrete and visual, no full sentences about meaning, "
-    "never any readable text or logos. Output only JSON."
+    "You are an expert visual director and prompt engineer for high-end text-to-image models (SDXL, DALL-E 3, FLUX). "
+    "Your mission is to generate visual prompts where EACH scene's imagery is directly and clearly tied to the spoken caption transcript. "
+    "CRITICAL GUIDELINES:\n"
+    "1. TRANSCRIPT INTEGRATION: For EVERY scene, you MUST incorporate the specific core keywords, technical terminology, objects, visual metaphors, or actions from the 'Caption Transcript' directly into the 'subject' and 'environment'.\n"
+    "2. CONTEXTUAL GROUNDING: Always preserve the subject context of the overall video topic. Do not produce generic unrelated imagery. The visual elements must make total sense in the context of the subject (e.g. telecommunications, semiconductor, consumer tech, historical documentary).\n"
+    "3. ERGONOMIC & ANATOMICAL PLAUSIBILITY (CRITICAL FOR HUMANS):\n"
+    "   - When human subjects, hands, or poses appear, enforce natural ergonomics and biologically plausible biomechanics.\n"
+    "   - SINGLE COHERENT ACTION: Describe only ONE primary physical posture or action per person at a time (e.g. 'naturally sitting and looking at screen' OR 'walking forward'). Never blend contradictory simultaneous movements (e.g. avoid twisting head 180 degrees, multi-tasking overlapping limb postures).\n"
+    "   - NATURAL LIMBS & HANDS: Use positive anatomical anchoring like 'relaxed ergonomic posture', 'anatomically correct hands', 'natural relaxed hand grip', 'plausible body biomechanics'.\n"
+    "   - CAMERA FRAMING FOR PEOPLE: Prefer medium shots (Medium Shot, Waist-up, Over-the-shoulder) over awkward micro-finger macro closeups to prevent limb and finger fusion.\n"
+    "4. PURE ENGLISH: All JSON fields ('subject', 'environment', 'composition', 'lighting', 'mood') MUST be written strictly in vivid, descriptive ENGLISH keywords and visual tags. Translate any Chinese or non-English terminology into accurate, picturesque English visual concepts.\n"
+    "5. NO TEXT / NO LOGOS: Never request readable text, words, or watermarks on the image.\n"
+    "6. Output valid JSON only."
 )
 
 
@@ -52,8 +59,26 @@ def compose(parts: dict, style: dict, entity_desc: list[str], visual_type: str) 
     pieces = [parts.get("subject"), parts.get("environment"), *entity_desc, parts.get("composition"),
               parts.get("lighting") or style["lighting"], style["style"], style["lens"] if visual_type != "diagram" else "",
               parts.get("mood") or style["mood"]]
+    
+    style_key = (style.get("key") or "").lower()
+    is_political_explainer = any(k in style_key for k in ["political_explainer", "taiwan_political", "see_world"])
+    is_cartoon_explainer = (not is_political_explainer) and any(k in style_key for k in ["cartoon", "explainer", "doodle", "stickman", "minimalist_explainer"])
+
     if visual_type == "diagram":
         pieces.append("clean illustrated visual metaphor, simple shapes, no text")
+    elif is_political_explainer:
+        pieces.append("2D clean vector flat editorial illustration, Japanese and Taiwanese political caricature art style, solid pitch black background, clean bold outlines, flat solid color fills, dramatic stage lighting, high contrast")
+    elif is_cartoon_explainer:
+        subj_str = (parts.get("subject") or "").lower()
+        if any(w in subj_str for w in ["person", "man", "woman", "engineer", "people", "worker", "human", "character", "soldier", "hand", "hands", "face", "portrait"]):
+            pieces.append("simple minimalist circular-head cartoon figure, two small black dot eyes, single line mouth, no hair, no ears, no nose, simple cylindrical limbs, mitt hands, consistent flat vector cartoon style")
+    else:
+        # Provide positive anatomical baseline for human plausibility across FLUX and SDXL
+        subj_str = (parts.get("subject") or "").lower()
+        if any(w in subj_str for w in ["person", "man", "woman", "engineer", "people", "worker", "human", "hand", "hands", "face", "portrait"]):
+            pieces.append("anatomically correct, natural ergonomic posture, plausible body proportions")
+            if any(w in subj_str for w in ["people", "crowd", "audience", "workers", "team", "soldiers", "men", "women", "group"]):
+                pieces.append("distinct individual faces with diverse varied features and unique facial appearances")
     pieces.append("16:9 widescreen composition, high detail")
     seen, out = set(), []
     for p in pieces:
@@ -68,22 +93,81 @@ def compose(parts: dict, style: dict, entity_desc: list[str], visual_type: str) 
 
 
 def generate_prompts(scenes: list[Scene], style: dict, bible: dict, client: LLMClient, batch: int = 8,
-                     progress=None) -> list[dict]:
+                     progress=None, topic: str = "") -> list[dict]:
     ents = {e["name"]: e["description"] for e in bible.get("entities", [])}
+    style_key = (style.get("key") or "").lower()
+    is_political_explainer = any(k in style_key for k in ["political_explainer", "taiwan_political", "see_world"])
+    is_cartoon_explainer = (not is_political_explainer) and any(k in style_key for k in ["cartoon", "explainer", "doodle", "stickman", "minimalist_explainer"])
+    
+    cartoon_directive = ""
+    if is_cartoon_explainer:
+        cartoon_directive = (
+            "\nSPECIAL STYLE DIRECTIVE (MINIMALIST EXPLAINER CARTOON / 商業大師 風格):\n"
+            "- Human Characters: ALWAYS describe all people as simple circular-head cartoon figures with two black dot eyes and a single line mouth, completely bald (no hair, no nose, no ears), wearing simplified solid-color suits/hoodies with cylindrical limbs and mitt hands.\n"
+            "- Visual Metaphors: Strongly translate abstract economic, social, or military terms into concrete, clever cartoon visual props and situations (e.g. padlocked items in fridges, characters dumping sacks of cash into trash, plunging red arrow graphs, oversized coins, contracts with red X marks).\n"
+            "- Color Accents: Include spot accents like vibrant red warning signs/graphs or golden yellow money stacks against clean, muted backgrounds.\n"
+        )
+    elif is_political_explainer:
+        cartoon_directive = (
+            "\nSPECIAL STYLE DIRECTIVE (TAIWAN POLITICAL EXPLAINER / 一起看世界風格):\n"
+            "- Visual Art Style: 2D clean vector flat editorial illustration, Japanese and Taiwanese political caricature art style, bold clean black outlines, flat solid color fills, subtle cel-shading.\n"
+            "- Background: ALWAYS use a solid pitch black background ('isolated on solid black background, stage spotlight, theatrical dark backdrop') so characters and visual props pop out sharply with dramatic contrast.\n"
+            "- Recognizable Politician Caricatures: When real Taiwanese politicians or public figures appear, ALWAYS describe their iconic caricature traits in 'subject':\n"
+            "  * 盧秀燕 (Lu Shiow-yen): female Taiwanese mayor, short pixie haircut, light blue suit blazer, white open-collar shirt, expressive facial caricature.\n"
+            "  * 江啟臣 (Johnny Chiang): male Taiwanese politician, rectangular black-frame glasses, neat pompadour / side-part haircut, sharp navy suit, light blue necktie, small Taiwan flag lapel pin.\n"
+            "  * 何欣純 (Ho Hsin-chun): female Taiwanese legislator, signature bob haircut with gentle side bangs, confident warm smile, ivory/cream tailored blazer.\n"
+            "  * 顏寬恒 (Yen Kuan-heng): stout Taiwanese male local politician, short black crew cut, round face, dark polo or casual suit jacket.\n"
+            "  * 柯文哲 (Ko Wen-je): Taiwanese male politician, wire glasses, messy grey-flecked hair, short-sleeve button-down shirt with chest pens.\n"
+            "  * 賴清德 (Lai Ching-te): Taiwanese male president, signature middle-part haircut, sharp dark suit, purple necktie.\n"
+            "  * 韓國瑜 (Han Kuo-yu): bald Taiwanese male politician with glasses, rolled-up light blue dress shirt, animated gestures.\n"
+            "  * 蔡英文 (Tsai Ing-wen): female former president, rounded bob haircut, wire-rim glasses, minimalist dark blazer.\n"
+            "  * Party Elders (大老): senior elderly Taiwanese male politician, receding grey hair, formal charcoal suit.\n"
+            "- Concrete Visual Metaphors: ALWAYS translate abstract political jargon or metaphors directly into concrete physical objects and actions matching the spoken sentence:\n"
+            "  * '交棒' -> physically passing a shiny golden relay baton.\n"
+            "  * '保護傘' -> an elder holding an actual black umbrella over the politician.\n"
+            "  * '下戰帖/同意書' -> candidate signing debate agreements on a desk surrounded by press microphones.\n"
+            "  * '躲在背後' -> standing behind miniature city hall building.\n"
+            "  * '民調縮小/緊咬' -> side-by-side bar chart on document with blue and red bars nearly tied.\n"
+            "  * '派系分權/組織動員' -> elders sitting around a traditional tea table with zoning maps.\n"
+        )
+
     results: dict[int, dict] = {}
     for b in range(0, len(scenes), batch):
         chunk = scenes[b:b + batch]
-        lines = "\n".join(f"{s.scene_id}. {s.visual_description}" + (f" (entities: {', '.join(s.entities)})" if s.entities else "")
-                          for s in chunk)
-        prompt = (f"Global visual style: {style['style']}; lighting: {style['lighting']}; mood: {style['mood']}.\n"
-                  f"Entity reference (keep consistent): {ents}\n\nShots:\n{lines}\n\n"
-                  'Return JSON {"prompts": [{"id": 1, "subject": "...", "environment": "...", '
-                  '"composition": "shot size + camera angle", "lighting": "...", "mood": "..."}]} with one item per shot. '
-                  "Each field 3-15 words.")
+        shot_lines = []
+        for s in chunk:
+            narration_clean = (s.narration or "").replace("\n", " ").strip()
+            desc_clean = (s.visual_description or "").replace("\n", " ").strip()
+            s_ents = getattr(s, "entities", None) or []
+            ents_str = f" (recurring entities: {', '.join(s_ents)})" if s_ents else ""
+            shot_lines.append(
+                f"Scene {s.scene_id}:\n"
+                f"  - Caption Transcript (spoken words): \"{narration_clean}\"\n"
+                f"  - Visual Shot Direction: \"{desc_clean}\"{ents_str}"
+            )
+        shots_block = "\n\n".join(shot_lines)
 
-        def val(d, ids=[s.scene_id for s in chunk]):
-            got = {int(x.get("id", -1)): x for x in d.get("prompts", []) if isinstance(x, dict)}
-            if not any(i in got for i in ids):
+        prompt = (
+            f"Overarching Video Topic / Subject Context: {topic or 'Educational Documentary'}\n"
+            f"Global visual style: {style['style']}; lighting: {style['lighting']}; mood: {style['mood']}.\n"
+            f"Entity reference (keep consistent): {ents}\n\n"
+            f"Shots to prompt:\n{shots_block}\n\n"
+            f"{cartoon_directive}"
+            'Return JSON {"prompts": [\n'
+            '  {"id": 1, "subject": "visual subject integrating key transcript keywords in subject context", '
+            '"environment": "setting and background details directly reflecting the transcript scenario", '
+            '"composition": "shot size + camera angle", "lighting": "...", "mood": "..."}\n'
+            ']} with one item per shot. Each field 5-20 words.\n'
+            "CRITICAL: 'subject' and 'environment' MUST directly embody the key words, specific terms, or visual metaphors "
+            "from that scene's Caption Transcript while keeping the overarching context of the subject firmly intact."
+        )
+
+        chunk_ids = {s.scene_id for s in chunk}
+
+        def val(d):
+            items = d.get("prompts", []) if isinstance(d, dict) else (d if isinstance(d, list) else [])
+            got = {int(x.get("id", -1)): x for x in items if isinstance(x, dict)}
+            if not any(i in got for i in chunk_ids):
                 raise ValueError("no matching ids")
             return got
 
@@ -97,9 +181,15 @@ def generate_prompts(scenes: list[Scene], style: dict, bible: dict, client: LLMC
     out = []
     for s in scenes:
         parts = results.get(s.scene_id) or {"subject": s.visual_description}
-        entity_desc = [ents[e] for e in s.entities if e in ents]
+        s_ents = getattr(s, "entities", None) or []
+        entity_desc = [ents[e] for e in s_ents if e in ents]
         s.prompt = compose(parts, style, entity_desc, s.visual_type)
-        s.negative_prompt = style["negative"]
+        base_neg = (style.get("negative") or "").strip()
+        anti_clone_tokens = "multiple people with the same face, cloned faces, identical faces, duplicate faces, identical twins, clone army, copy-paste faces, repeated facial features across different people"
+        if "cloned faces" not in base_neg.lower():
+            s.negative_prompt = f"{base_neg}, {anti_clone_tokens}".strip(", ")
+        else:
+            s.negative_prompt = base_neg
         s.seed = int(style["consistency_seed"]) + s.scene_id * 101
         out.append({"scene_id": s.scene_id, "prompt": s.prompt, "negative": s.negative_prompt, "seed": s.seed,
                     "parts": parts})

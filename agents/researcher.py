@@ -48,11 +48,26 @@ def _normalize_obj_taiwan(obj):
     return obj
 
 
-def research(topic: str, language: str, enabled: bool, on_request, duration_minutes: float = 5.0, provider_override: str | None = None) -> dict:
+def research(
+    topic: str,
+    language: str,
+    enabled: bool,
+    on_request,
+    duration_minutes: float = 5.0,
+    provider_override: str | None = None,
+    user_research: str | None = None,
+    research_mode: str = "auto",
+) -> dict:
     notes = ""
     mode = "llm_only"
     is_tw = is_taiwan_mandarin(language, topic)
-    if provider_override == "gemini_search" or (enabled and load_providers().get("research", {}).get("provider") == "gemini_search"):
+
+    has_user_research = bool(user_research and user_research.strip())
+    if has_user_research and research_mode == "user_only":
+        enabled = False
+        mode = "user_submitted"
+
+    if enabled and (provider_override == "gemini_search" or load_providers().get("research", {}).get("provider") == "gemini_search"):
         try:
             g = build_provider("gemini")
             ok, msg = g.available()
@@ -63,12 +78,19 @@ def research(topic: str, language: str, enabled: bool, on_request, duration_minu
             if is_tw:
                 search_query += " (Focus on Taiwan Traditional Chinese terminology and context where applicable)"
             notes = g.generate_with_search(search_query)
-            mode = "gemini_search"
+            mode = "hybrid" if has_user_research else "gemini_search"
         except Exception as e:
             log.warning("Research provider failed (%s); continuing with LLM knowledge only", e)
     elif enabled:
         log.info("Research mode ON but no research provider configured; using LLM knowledge only")
-    llm_prov = None if provider_override == "gemini_search" else provider_override
+        if has_user_research:
+            mode = "hybrid"
+    elif has_user_research:
+        mode = "user_submitted"
+
+    # When gemini_search is chosen for research, use gemini cloud LLM for structured JSON analysis
+    # instead of falling back to local Ollama.
+    llm_prov = "gemini" if (provider_override == "gemini_search" or (mode in ("gemini_search", "hybrid") and has_user_research)) else provider_override
     client = LLMClient("research", on_request, provider_override=llm_prov)
 
     if duration_minutes >= 8.0:
@@ -81,14 +103,33 @@ def research(topic: str, language: str, enabled: bool, on_request, duration_minu
     lang_desc = "Taiwan Traditional Chinese (臺灣正體中文 / 國語慣用詞彙，嚴禁大陸用語與簡體字)" if is_tw else language
     tw_extra = "\nIMPORTANT: All output text (main_question, audience, concepts, facts, narrative_structure section names and purposes) MUST be written in standard Taiwan Traditional Chinese (臺灣正體中文，符合臺灣在地慣用詞彙).\n" if is_tw else ""
 
+    research_context = ""
+    if has_user_research:
+        research_context += (
+            f"\n=== MANDATORY USER-SUBMITTED RESEARCH DOSSIER & FACTS (AUTHORITATIVE - HIGHEST PRIORITY) ===\n"
+            f"{user_research.strip()[:15000]}\n"
+            f"(CRITICAL: The user submitted this specific research data and expects the video script and structure to strictly revolve around and feature these facts, figures, outline, and findings.)\n"
+        )
+    if notes:
+        research_context += f"\n=== SUPPLEMENTARY WEB SEARCH GROUNDING NOTES ===\n{notes[:10000]}\n"
+
+    user_guidance = (
+        "\nIMPORTANT INSTRUCTION: The user has provided their own authentic research data above. "
+        "Your 'main_question', 'key_concepts', 'interesting_facts', and 'narrative_structure' MUST directly synthesize, organize, and highlight the user's provided research facts.\n"
+        if has_user_research else ""
+    )
+
     prompt = (f"Video topic: {topic}\nNarration language: {lang_desc}\n{struct_instruction}\n{tw_extra}"
-              + (f"\nResearch notes (use these, they are more current than your memory):\n{notes[:12000]}\n" if notes else "")
-              + f"\nAnalyse the topic and return JSON exactly in this shape:\n{SCHEMA}\n"
-                "Provide 4-8 items for each list. Section titles must be specific to the topic.")
+              f"{research_context}{user_guidance}"
+              f"\nAnalyse the topic and return JSON exactly in this shape:\n{SCHEMA}\n"
+              "Provide 4-8 items for each list. Section titles must be specific to the topic.")
     data = client.json(prompt, SYSTEM, temperature=0.5, validate=_validate)
     if is_tw:
         data = _normalize_obj_taiwan(data)
     data["mode"] = mode
-    if notes:
-        data["raw_notes"] = notes
+    if has_user_research:
+        data["user_research"] = user_research.strip()
+    raw_combined = [part for part in [(user_research.strip() if has_user_research else ""), notes] if part]
+    if raw_combined:
+        data["raw_notes"] = "\n\n".join(raw_combined)
     return data

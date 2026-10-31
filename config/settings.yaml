@@ -1,188 +1,307 @@
-# AI Video Creator - main settings (human readable, safe to edit)
-# Project-level overrides from the UI are stored inside each project's project.json.
-
 video:
   duration_minutes: 10
   width: 1920
   height: 1080
-  aspect_ratio: "16:9"
+  aspect_ratio: '16:9'
   fps: 30
   language: Traditional Chinese
-  visual_style: photorealistic_cinema   # key in visual_styles below
-  narration_style: "warm, curious, conversational documentary narrator"
-
+  visual_style: photorealistic_cinema
+  narration_style: warm, curious, conversational documentary narrator
 script:
   speech_rate_wpm: 150
-  research_enabled: false        # true = use the research provider (web grounding) if configured
-  single_pass_word_limit: 350    # scripts shorter than this are written in one LLM call
-
+  research_enabled: false
+  single_pass_word_limit: 350
 scenes:
   average_duration: 8
   minimum_duration: 4
   maximum_duration: 14
-  llm_batch_size: 8              # scenes per LLM call when writing visual descriptions
-
+  llm_batch_size: 8
 images:
-  provider: comfyui              # comfyui | placeholder
-  fallback_provider: placeholder # used when the primary provider is unavailable (set "" to disable)
+  provider: nano-banana-2.1
+  fallback_provider: placeholder
+  auto_stock_mode: balanced
   workflow: workflows/default_image.json
   checkpoint: juggernautXL_v8Rundiffusion.safetensors
   width: 1024
   height: 576
-  steps: 25
+  steps: 4
   cfg: 6.5
   sampler: dpmpp_2m
   scheduler: karras
   retries: 2
-  timeout_seconds: 900           # per image (first image includes model load on DirectML)
+  timeout_seconds: 900
   free_vram_after_stage: true
-
 animation:
-  ai_video_percentage: 10        # 0 | 5 | 10 | 20
+  ai_video_percentage: 10
   min_motion_zoom: 1.06
   max_motion_zoom: 1.14
-  oversample: 2                  # Ken Burns internal supersampling (reduces jitter)
-
+  oversample: 2
 voice:
-  profile: default_local         # folder name in data/voices
-  pause_after_scene: 0.35        # seconds of silence after each scene's narration
-  lead_in: 0.25                  # seconds of silence at very start
+  profile: mytsaovoice
+  pause_after_scene: 0.35
+  lead_in: 0.25
   target_lufs: -16
   sample_rate: 48000
-
 subtitles:
   enabled: true
   burn_in: true
-  style: youtube_standard        # youtube_standard | minimal | large_centered | short_form
+  style: youtube_standard
+  font: Microsoft JhengHei UI
+  motion_graphics_callouts: true
+  callouts_enabled: true
   max_chars_per_line: 42
   max_lines: 2
-
 music:
   enabled: true
   directory: data/music
-  volume_db: -24                 # music level relative to voice
+  volume_db: -16
   ducking: true
-  fade_in: 2.0
-  fade_out: 3.0
-
+  fade_in: 1.5
+  fade_out: 2.5
 rendering:
-  encoder: libx264               # libx264 | h264_amf | auto  (always falls back to libx264)
+  encoder: libx264
   crf: 20
   preset: medium
   audio_bitrate: 192k
-  transition: crossfade          # default transition
+  transition: crossfade
   transition_duration: 0.5
+  phase_turn_duration: 3.0
   final_lufs: -14
   draft_width: 854
   draft_height: 480
   render_draft_first: false
-
 cloud:
-  enabled: false                 # master switch for ANY paid cloud generation
+  enabled: false
   max_video_clips: 8
   max_cost_usd: 5
-
 llm:
   json_retries: 3
-
 youtube:
-  channel_url: "https://www.youtube.com/@tsao36"
-  channel_handle: "@tsao36"
-  default_privacy: "public"          # unlisted | private | public
-  default_category_id: "28"          # 28 = Science & Technology, 27 = Education, 22 = People & Blogs
+  channel_url: https://www.youtube.com/@tsao36
+  channel_handle: '@tsao36'
+  default_privacy: public
+  default_category_id: '28'
   auto_generate_chapters: true
+  min_chapter_duration_seconds: 15.0
+  max_chapter_duration_seconds: 180.0
   auto_generate_tags: true
-
 visual_styles:
+  tech_schematic:
+    label: 3D Tech Schematic & Explainer (fOx Style)
+    style: 3D technical schematic, isometric mechanical cross-section diagram, clean
+      CGI render, Octane render, scientific industrial visualization, precision engineering
+      cutaway, high contrast dark studio background, 8k resolution, Unreal Engine
+      5 technical visualization
+    lighting: precision studio rim lighting, clean technical illumination, high contrast
+      specular highlights
+    lens: 50mm orthographic perspective, razor sharp engineering focus, clean depth
+      separation
+    mood: precise, high-tech, informative, sophisticated, cutting-edge
+    negative: text, watermark, logo, cartoon, anime, blurry, lowres, deformed, hand,
+      face, messy background, oversaturated colors
   photorealistic_cinema:
-    label: "Photorealistic Cinema"
-    style: "ultra-realistic cinematic 35mm photograph, authentic skin texture, natural pores, subtle imperfections, photorealistic, 8k UHD, masterpiece photography"
-    lighting: "cinematic natural lighting, soft directional window light, rich tonal depth"
-    lens: "50mm prime lens, f/1.8, shallow depth of field, natural background blur"
-    mood: "authentic, hyper-realistic, emotionally grounded, atmospheric"
-    negative: "ugly, deformed, disfigured, poor details, bad anatomy, cartoon, 3d, anime, airbrushed, plastic skin, render, drawing, watermark, signature, blur"
-    recommended_model: "juggernautXL_v8Rundiffusion.safetensors"
+    label: Photorealistic Cinema
+    style: ultra-realistic cinematic 35mm photograph, authentic skin texture, natural
+      pores, subtle imperfections, photorealistic, 8k UHD, masterpiece photography
+    lighting: cinematic natural lighting, soft directional window light, rich tonal
+      depth
+    lens: 50mm prime lens, f/1.8, shallow depth of field, natural background blur
+    mood: authentic, hyper-realistic, emotionally grounded, atmospheric
+    negative: ugly, deformed, disfigured, poor details, bad anatomy, bad posture,
+      unnatural body twist, twisted limbs, broken neck, extra fingers, fused fingers,
+      missing fingers, malformed hands, awkward grip, impossible ergonomics, multiple
+      people with the same face, cloned faces, identical faces, duplicate faces, identical
+      twins, clone army, copy-paste faces, cartoon, 3d, anime, airbrushed, plastic
+      skin, render, drawing, watermark, signature, blur
+    recommended_model: juggernautXL_v8Rundiffusion.safetensors
   cinematic_documentary:
     label: Cinematic Documentary
-    style: "cinematic documentary photography, photorealistic, highly detailed"
-    lighting: "natural cinematic lighting"
-    lens: "35mm lens, shallow depth of field"
-    mood: "thoughtful, informative"
-    negative: "text, watermark, logo, signature, blurry, lowres, deformed, extra fingers, bad anatomy, jpeg artifacts, cartoon"
+    style: cinematic documentary photography, photorealistic, highly detailed
+    lighting: natural cinematic lighting
+    lens: 35mm lens, shallow depth of field
+    mood: thoughtful, informative
+    negative: text, watermark, logo, signature, blurry, lowres, deformed, bad anatomy,
+      unnatural body twist, twisted limbs, extra fingers, fused fingers, malformed
+      hands, impossible ergonomics, bad posture, multiple people with the same face,
+      cloned faces, identical faces, duplicate faces, identical twins, clone army,
+      copy-paste faces, jpeg artifacts, cartoon
   photorealistic_editorial:
     label: Photorealistic Editorial (NatGeo)
-    style: "National Geographic editorial documentary photograph, 8k resolution, raw lifelike textures, master photographer composition"
-    lighting: "natural cinematic side lighting, rich micro-contrast"
-    lens: "85mm f/1.4 portrait prime lens, razor sharp center"
-    mood: "authentic, compelling, journalistic"
-    negative: "text, watermark, logo, CGI, 3D render, digital painting, airbrushed, cartoon, smooth plastic"
+    style: National Geographic editorial documentary photograph, 8k resolution, raw
+      lifelike textures, master photographer composition
+    lighting: natural cinematic side lighting, rich micro-contrast
+    lens: 85mm f/1.4 portrait prime lens, razor sharp center
+    mood: authentic, compelling, journalistic
+    negative: text, watermark, logo, deformed, bad anatomy, unnatural body twist,
+      extra fingers, fused fingers, malformed hands, impossible ergonomics, bad posture,
+      multiple people with the same face, cloned faces, identical faces, duplicate
+      faces, identical twins, clone army, copy-paste faces, CGI, 3D render, digital
+      painting, airbrushed, cartoon, smooth plastic
   clean_explainer:
     label: Clean 3D Explainer
-    style: "clean 3D render, isometric explainer illustration, soft materials, minimal"
-    lighting: "soft studio lighting"
-    lens: "orthographic view"
-    mood: "clear, friendly, educational"
-    negative: "text, watermark, logo, photo noise, clutter, blurry, deformed"
+    style: clean 3D render, isometric explainer illustration, soft materials, minimal
+    lighting: soft studio lighting
+    lens: orthographic view
+    mood: clear, friendly, educational
+    negative: text, watermark, logo, photo noise, clutter, blurry, deformed
   vintage_archive:
     label: Vintage Archive
-    style: "vintage archival photograph, film grain, 1970s color film"
-    lighting: "available light"
-    lens: "50mm lens"
-    mood: "nostalgic"
-    negative: "text, watermark, logo, modern digital look, blurry, deformed"
+    style: vintage archival photograph, film grain, 1970s color film
+    lighting: available light
+    lens: 50mm lens
+    mood: nostalgic
+    negative: text, watermark, logo, modern digital look, blurry, deformed
   digital_painting:
     label: Digital Painting
-    style: "detailed digital painting, concept art, painterly brush strokes"
-    lighting: "dramatic volumetric lighting"
-    lens: "wide angle composition"
-    mood: "epic, atmospheric"
-    negative: "text, watermark, logo, photo, blurry, deformed"
+    style: detailed digital painting, concept art, painterly brush strokes
+    lighting: dramatic volumetric lighting
+    lens: wide angle composition
+    mood: epic, atmospheric
+    negative: text, watermark, logo, photo, blurry, deformed
   anime_ghibli:
     label: Anime / Studio Ghibli
-    style: "Studio Ghibli aesthetic, vibrant hand-painted anime art, painterly anime illustration, rich cel animation style"
-    lighting: "warm golden hour sunlight"
-    lens: "cinematic anime composition"
-    mood: "whimsical, enchanting, nostalgic"
-    negative: "text, watermark, logo, 3D CGI, photo, photorealistic, blurry, distorted"
+    style: Studio Ghibli aesthetic, vibrant hand-painted anime art, painterly anime
+      illustration, rich cel animation style
+    lighting: warm golden hour sunlight
+    lens: cinematic anime composition
+    mood: whimsical, enchanting, nostalgic
+    negative: text, watermark, logo, 3D CGI, photo, photorealistic, blurry, distorted
+  anime_shinkai:
+    label: Anime / Makoto Shinkai (新海誠極致光影風)
+    style: Makoto Shinkai anime aesthetic, CoMix Wave Films visual masterpiece, Your
+      Name and Weathering with You atmosphere, crystalline anime realism, breathtaking
+      hyper-detailed sky and cloudscapes, vivid saturated azure and cerulean hues,
+      sparkling sunlight glints, pristine urban streets and tranquil nature, immaculate
+      background art, 8k resolution, masterpiece anime key visual
+    lighting: radiant golden hour sunlight, ethereal prism twilight godrays, dazzling
+      lens flare, glowing cloud rim lighting, sparkling water and glass reflections,
+      vibrant sunset gradient
+    lens: cinematic wide-angle panoramic vista, dramatic expansive sky perspective,
+      hyper-detailed environmental depth, crystal-clear focus
+    mood: awe-inspiring, emotionally resonant, ethereal, romantic, nostalgic, sublime,
+      magical realism
+    negative: text, watermark, logo, photo, photorealistic, 3D CGI render, dull colors,
+      blurry, deformed, lowres, sketch, muddy, dark dingy, multiple people with the
+      same face, cloned faces, identical faces, duplicate faces, identical twins,
+      clone army, jpeg artifacts
+    recommended_model: sd_xl_base_1.0.safetensors
+  shinkai_makoto:
+    label: Makoto Shinkai Aesthetic (新海誠風格)
+    style: Makoto Shinkai anime aesthetic, CoMix Wave Films visual masterpiece, Your
+      Name and Weathering with You atmosphere, crystalline anime realism, breathtaking
+      hyper-detailed sky and cloudscapes, vivid saturated azure and cerulean hues,
+      sparkling sunlight glints, pristine urban streets and tranquil nature, immaculate
+      background art, 8k resolution, masterpiece anime key visual
+    lighting: radiant golden hour sunlight, ethereal prism twilight godrays, dazzling
+      lens flare, glowing cloud rim lighting, sparkling water and glass reflections,
+      vibrant sunset gradient
+    lens: cinematic wide-angle panoramic vista, dramatic expansive sky perspective,
+      hyper-detailed environmental depth, crystal-clear focus
+    mood: awe-inspiring, emotionally resonant, ethereal, romantic, nostalgic, sublime,
+      magical realism
+    negative: text, watermark, logo, photo, photorealistic, 3D CGI render, dull colors,
+      blurry, deformed, lowres, sketch, muddy, dark dingy, multiple people with the
+      same face, cloned faces, identical faces, duplicate faces, identical twins,
+      clone army, jpeg artifacts
+    recommended_model: sd_xl_base_1.0.safetensors
   cyberpunk_neon:
     label: Cyberpunk Sci-Fi
-    style: "futuristic cyberpunk metropolis, glowing neon reflections, holographic displays, high-tech intricate machinery"
-    lighting: "vibrant neon cyan and magenta illumination, atmospheric rain mist"
-    lens: "cinematic anamorphic lens with subtle chromatic aberration"
-    mood: "dystopian, electrifying, moody"
-    negative: "text, watermark, logo, daytime, vintage, sunny, blurry, oversaturated"
+    style: futuristic cyberpunk metropolis, glowing neon reflections, holographic
+      displays, high-tech intricate machinery
+    lighting: vibrant neon cyan and magenta illumination, atmospheric rain mist
+    lens: cinematic anamorphic lens with subtle chromatic aberration
+    mood: dystopian, electrifying, moody
+    negative: text, watermark, logo, daytime, vintage, sunny, blurry, oversaturated
   watercolor_art:
     label: Watercolor Illustration
-    style: "delicate watercolor painting, fluid pigment washes, soft wet-on-wet gradients, textured paper grain, fine ink accents"
-    lighting: "gentle diffused morning daylight"
-    lens: "artistic soft vignette composition"
-    mood: "serene, poetic, elegant"
-    negative: "text, watermark, logo, 3D render, photo, photorealistic, harsh stark shadows"
+    style: delicate watercolor painting, fluid pigment washes, soft wet-on-wet gradients,
+      textured paper grain, fine ink accents
+    lighting: gentle diffused morning daylight
+    lens: artistic soft vignette composition
+    mood: serene, poetic, elegant
+    negative: text, watermark, logo, 3D render, photo, photorealistic, harsh stark
+      shadows
   hyperreal_3d:
     label: Hyperreal 3D Unreal Engine 5
-    style: "Unreal Engine 5 architectural cinematic render, Octane render, raytraced global illumination, photorealistic materials"
-    lighting: "volumetric sun godrays, realistic subsurface scattering"
-    lens: "cinematic IMAX composition, sharp depth of field"
-    mood: "breathtaking, polished, majestic"
-    negative: "text, watermark, logo, low-poly, pixelated, flat lighting, blurry"
+    style: Unreal Engine 5 architectural cinematic render, Octane render, raytraced
+      global illumination, photorealistic materials
+    lighting: volumetric sun godrays, realistic subsurface scattering
+    lens: cinematic IMAX composition, sharp depth of field
+    mood: breathtaking, polished, majestic
+    negative: text, watermark, logo, low-poly, pixelated, flat lighting, blurry
   retro_comic:
     label: Retro Comic Book / Pop Art
-    style: "vintage American comic book art, bold black ink linework, stylized halftone ben-day dots, classic pop art palette"
-    lighting: "high contrast dramatic comic cell lighting"
-    lens: "dynamic low-angle heroic perspective"
-    mood: "bold, punchy, retro"
-    negative: "text, speech bubbles, watermark, logo, photorealistic, 3D CGI, blurry"
+    style: vintage American comic book art, bold black ink linework, stylized halftone
+      ben-day dots, classic pop art palette
+    lighting: high contrast dramatic comic cell lighting
+    lens: dynamic low-angle heroic perspective
+    mood: bold, punchy, retro
+    negative: text, speech bubbles, watermark, logo, photorealistic, 3D CGI, blurry
   minimalist_vector:
     label: Minimalist Vector Art
-    style: "clean minimalist modern vector illustration, elegant geometric shapes, refined flat design, harmonious color palette"
-    lighting: "even ambient lighting, flat shading"
-    lens: "flat 2D isometric or front perspective"
-    mood: "sophisticated, modern, clear"
-    negative: "text, watermark, logo, photorealistic, 3D render, noise, complex clutter, gradients"
+    style: clean minimalist modern vector illustration, elegant geometric shapes,
+      refined flat design, harmonious color palette
+    lighting: even ambient lighting, flat shading
+    lens: flat 2D isometric or front perspective
+    mood: sophisticated, modern, clear
+    negative: text, watermark, logo, photorealistic, 3D render, noise, complex clutter,
+      gradients
   dark_fantasy:
     label: Dark Fantasy Gothic
-    style: "dark gothic fantasy artwork, brooding atmospheric concept art, Elden Ring aesthetic, weathered ancient stone and fog"
-    lighting: "dim eerie moonlight, torchlight glow in shadows"
-    lens: "dramatic wide environmental perspective"
-    mood: "mysterious, haunting, epic"
-    negative: "text, watermark, logo, bright sunny, cartoon, anime, modern technology"
+    style: dark gothic fantasy artwork, brooding atmospheric concept art, Elden Ring
+      aesthetic, weathered ancient stone and fog
+    lighting: dim eerie moonlight, torchlight glow in shadows
+    lens: dramatic wide environmental perspective
+    mood: mysterious, haunting, epic
+    negative: text, watermark, logo, bright sunny, cartoon, anime, modern technology
+  ink_wash_history:
+    label: Traditional Ink Wash & Historical Epic (水墨史詩歷史風)
+    style: traditional Chinese ink wash painting meets cinematic epic concept art,
+      Xuan paper texture, elegant black ink calligraphy brushstrokes, atmospheric
+      mist, historical dynasty armor and imperial architecture, dramatic composition,
+      8k resolution
+    lighting: dramatic atmospheric lantern glow, misty dawn volumetric lighting
+    lens: cinematic wide anamorphic lens, epic depth of field
+    mood: poetic, ancient, mysterious, grand, historically solemn
+    negative: modern buildings, text, watermark, logo, neon, sci-fi, cartoon, plastic
+      3D, blurry
+  minimalist_explainer_cartoon:
+    label: Minimalist Vector Explainer (商業大師 / Doodle Cartoon)
+    style: minimalist 2D vector explainer illustration, clean uniform black line-art
+      outlines, flat solid color fills, zero gradients, no 3D shading, editorial infographic
+      style, simple circular-head cartoon human figure with small black dot eyes and
+      a single line mouth, no nose, no ears, no hair, simple cylindrical limbs, mitt
+      hands
+    lighting: flat diffuse ambient lighting, shadowless, clean white or muted paper
+      background
+    lens: flat 2D isometric or front-on editorial graphic composition
+    mood: informative, clean, conceptual, clever visual metaphor, satirical editorial
+    negative: photorealistic, 3D, CGI, realistic skin, realistic eyes, realistic face,
+      nose, ears, hair, fingers, gradients, harsh shadows, volumetric lighting, anime,
+      messy sketch
+  taiwan_political_explainer:
+    label: "Taiwan Political Explainer (一起看世界 / 台灣政論插畫風)"
+    style: "2D clean vector flat editorial illustration, Japanese and Taiwanese political caricature art style, bold clean black outlines, flat solid color fills, subtle cel-shading, distinct caricature portraits of real Taiwanese political figures with recognizable iconic facial features, hairstyles, and formal business attire, satirical and concrete visual metaphors directly visualizing the spoken narration, dramatic high-contrast pure solid black background, 8k resolution editorial art"
+    lighting: "high-contrast dramatic stage lighting, crisp highlights, isolated subjects against pitch black background"
+    lens: "flat 2D front-on or three-quarter editorial graphic composition, clean theatrical framing"
+    mood: "satirical, insightful, compelling, political explainer, sharp, analytical"
+    negative: "photorealistic, 3D, CGI, realistic skin pores, photorealistic human photo, messy cluttered background, realistic background, blurry, lowres, distorted anatomy, extra fingers, watermark, logo, text"
+remotion:
+  default_style: CinemaImpactCard
+thumbnail:
+  template: editorial_chill
+  color_preset: dr_beauty_gold
+  primary_color: '#FFD000'
+  secondary_color: '#FFFFFF'
+  kicker_color: '#FFD000'
+  font_family: iansui
+  font_weight: heavy
+  bg_source: auto
+  subject_overlap: true
+  overlap_strength: 0.78
+  title_scale: 1
+  darken: 0.2
+  grain: 0.032
+  show_avatar_badge: true
+  use_llm_copy: true
+  default_top_kicker: ''

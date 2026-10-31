@@ -13,7 +13,7 @@ log = logging.getLogger(__name__)
 API = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 
 # Recommended models in preferential order if primary model is unavailable
-FALLBACK_CANDIDATES = ["gemini-3.8-flash", "gemini-3.5-flash", "gemini-flash-latest"]
+FALLBACK_CANDIDATES = ["gemini-flash-latest", "gemini-flash-lite-latest"]
 
 
 class GeminiProvider(LLMProvider):
@@ -31,25 +31,26 @@ class GeminiProvider(LLMProvider):
         if not self.key:
             raise LLMError("GEMINI_API_KEY missing")
 
-        primary = self.model or "gemini-3.8-flash"
-        # Transparently upgrade deprecated models
-        if primary in ("gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"):
-            primary = "gemini-3.8-flash"
-
+        primary = self.model or "gemini-flash-latest"
         candidates = [primary]
         for fb in FALLBACK_CANDIDATES:
             if fb not in candidates:
                 candidates.append(fb)
 
+        has_tools = bool(body.get("tools"))
+        timeout = 65 if has_tools else 35
+
         last_err = None
         for cand in candidates:
-            for attempt in range(2):
+            # If search grounding is used, 1 attempt is sufficient to prevent long duplicate freezes
+            max_attempts = 1 if has_tools else 2
+            for attempt in range(max_attempts):
                 try:
                     r = requests.post(
                         API.format(model=cand),
                         json=body,
                         headers={"x-goog-api-key": self.key},
-                        timeout=300
+                        timeout=timeout
                     )
                 except requests.RequestException as e:
                     last_err = LLMError(f"Gemini request failed: {e.__class__.__name__}")
@@ -73,15 +74,21 @@ class GeminiProvider(LLMProvider):
     @staticmethod
     def _text(data: dict) -> str:
         try:
-            parts = data["candidates"][0]["content"]["parts"]
+            cand = data["candidates"][0]
+            if cand.get("finishReason") == "MAX_TOKENS":
+                log.warning("Gemini output reached MAX_TOKENS and may be truncated")
+            parts = cand["content"]["parts"]
             return "".join(p.get("text", "") for p in parts)
         except (KeyError, IndexError) as e:
             raise LLMError(f"Unexpected Gemini response: {str(data)[:300]}") from e
 
     def generate(self, prompt, system="", json_mode=False, temperature=0.7, max_tokens=8192) -> str:
+        # Thinking models (e.g. Gemini 2.0+ Flash) count internal reasoning tokens toward maxOutputTokens.
+        # Ensure a generous output budget (minimum 8192 tokens) so reasoning never starves JSON output.
+        effective_tokens = max(max_tokens, 8192)
         body: dict = {
             "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-            "generationConfig": {"temperature": temperature, "maxOutputTokens": max_tokens},
+            "generationConfig": {"temperature": temperature, "maxOutputTokens": effective_tokens},
         }
         if system:
             body["systemInstruction"] = {"parts": [{"text": system}]}
@@ -93,6 +100,7 @@ class GeminiProvider(LLMProvider):
         body: dict = {
             "contents": [{"role": "user", "parts": [{"text": prompt}]}],
             "tools": [{"google_search": {}}],
+            "generationConfig": {"maxOutputTokens": 8192},
         }
         if system:
             body["systemInstruction"] = {"parts": [{"text": system}]}

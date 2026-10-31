@@ -5,7 +5,7 @@ import math
 import random
 from pathlib import Path
 
-from rendering.ffmpeg_utils import run_ffmpeg
+from rendering.ffmpeg_utils import duration, run_ffmpeg
 
 MOTIONS = ["slow_zoom_in", "slow_zoom_out", "pan_left", "pan_right", "pan_up", "pan_down", "push_in", "pull_out", "static"]
 _WEIGHTS = {"slow_zoom_in": 3, "slow_zoom_out": 2.5, "pan_left": 2, "pan_right": 2, "pan_up": 1,
@@ -66,9 +66,9 @@ def render_ken_burns(image: Path, output: Path, seconds: float, motion: str, wid
     vf = (f"scale={ow}:{oh}:force_original_aspect_ratio=increase:flags=lanczos,crop={ow}:{oh},"
           f"zoompan=z='{z}':x='{x}':y='{y}':d={frames}:s={width}x{height}:fps={fps},"
           f"setsar=1,format=yuv420p")
-    enc = encoder_args or ["-c:v", "libx264", "-preset", "veryfast", "-crf", "17", "-pix_fmt", "yuv420p"]
+    enc = encoder_args or ["-c:v", "libx264", "-preset", "veryfast", "-crf", "17", "-threads", "2", "-x264-params", "rc-lookahead=6:threads=2:sync-lookahead=2", "-pix_fmt", "yuv420p"]
     output.parent.mkdir(parents=True, exist_ok=True)
-    run_ffmpeg(["-i", str(image), "-vf", vf, "-frames:v", str(frames), "-r", str(fps), *enc, "-an", str(output)])
+    run_ffmpeg(["-threads", "2", "-filter_threads", "2", "-i", str(image), "-vf", vf, "-frames:v", str(frames), "-r", str(fps), *enc, "-an", str(output)])
 
 
 def render_video_clip(src: Path, output: Path, seconds: float, width: int, height: int, fps: int,
@@ -85,11 +85,57 @@ def render_video_clip(src: Path, output: Path, seconds: float, width: int, heigh
     run_ffmpeg(["-i", str(src), "-vf", vf, "-frames:v", str(frames), "-r", str(fps), *enc, "-an", str(output)])
 
 
+def render_talking_avatar_clip(
+    src: Path,
+    output: Path,
+    seconds: float,
+    lead_in: float,
+    width: int,
+    height: int,
+    fps: int,
+    encoder_args: list[str] | None = None,
+) -> None:
+    """Conform a lip-synced talking avatar clip: EXACT 1.0x playback speed, lead_in start padding, hold on tail.
+
+    Talking avatar clips are generated to strictly synchronize with narration audio.
+    They must NEVER be time-stretched (slowed down). Any lead-in offset is padded at the start
+    so the lips begin moving at the exact millisecond the audio narration starts.
+    """
+    frames = max(2, math.ceil(seconds * fps) + 1)
+    vid_dur = duration(src)
+    lead_s = max(0.0, float(lead_in))
+    hold_s = max(0.0, seconds - (lead_s + vid_dur))
+
+    pad_filters = []
+    if lead_s > 0.005:
+        pad_filters.append(f"tpad=start_mode=clone:start_duration={lead_s:.4f}")
+    if hold_s > 0.005:
+        pad_filters.append(f"tpad=stop_mode=clone:stop_duration={hold_s:.4f}")
+    pad_str = ("," + ",".join(pad_filters)) if pad_filters else ""
+
+    vf = (
+        f"settb=AVTB,setpts=PTS-STARTPTS,fps={fps},"
+        f"scale={width}:{height}:force_original_aspect_ratio=increase,"
+        f"crop={width}:{height}"
+        f"{pad_str},setsar=1,format=yuv420p"
+    )
+    enc = encoder_args or ["-c:v", "libx264", "-preset", "veryfast", "-crf", "17", "-pix_fmt", "yuv420p"]
+    run_ffmpeg(["-threads", "2", "-i", str(src), "-vf", vf, "-frames:v", str(frames), "-r", str(fps), *enc, "-an", str(output)])
+
+
+def _best_chinese_font_file() -> str:
+    """Pick best font supporting Chinese and English on Windows for FFmpeg drawtext."""
+    for cand in ["C:/Windows/Fonts/msjhbd.ttc", "C:/Windows/Fonts/msjh.ttc", "C:/Windows/Fonts/simhei.ttf", "C:/Windows/Fonts/segoeuib.ttf"]:
+        if Path(cand).exists():
+            return cand.replace("\\", "/").replace(":", "\\:").replace(" ", "\\ ")
+    return "C\\:/Windows/Fonts/segoeuib.ttf"
+
+
 def render_title_card(text_file: Path, output: Path, seconds: float, width: int, height: int, fps: int,
                       background: Path | None = None, encoder_args: list[str] | None = None) -> None:
     """Title card: optional darkened background image + centered text (text read from a file)."""
     frames = max(2, math.ceil(seconds * fps) + 1)
-    font = "C\\:/Windows/Fonts/segoeuib.ttf"
+    font = _best_chinese_font_file()
     tf = str(text_file).replace("\\", "/").replace(":", "\\:")
     draw = (f"drawtext=fontfile='{font}':textfile='{tf}':fontcolor=white:fontsize={height // 12}:"
             f"x=(w-text_w)/2:y=(h-text_h)/2:shadowcolor=black@0.6:shadowx=3:shadowy=3,"
@@ -102,3 +148,45 @@ def render_title_card(text_file: Path, output: Path, seconds: float, width: int,
     else:
         run_ffmpeg(["-f", "lavfi", "-i", f"color=c=0x101820:s={width}x{height}:r={fps}", "-vf", f"{draw},format=yuv420p",
                     "-frames:v", str(frames), *enc, "-an", str(output)])
+
+
+def render_phase_turn_card(text: str, output: Path, seconds: float, width: int, height: int, fps: int,
+                           encoder_args: list[str] | None = None) -> None:
+    """Render a dramatic interstitial card: pure black background with centered critical text."""
+    frames = max(2, math.ceil(seconds * fps) + 1)
+    font = _best_chinese_font_file()
+        
+    # Format text: wrap nicely if long
+    text = text.strip()
+    if len(text) > 14 and "\n" not in text:
+        for sep in ["：", ":", "？", "?", "，", ",", " "]:
+            if sep in text:
+                parts = text.split(sep, 1)
+                text = f"{parts[0]}{sep}\n{parts[1].strip()}"
+                break
+        else:
+            mid = len(text) // 2
+            text = f"{text[:mid]}\n{text[mid:]}"
+
+    tf = output.parent / f"{output.stem}_text.txt"
+    tf.write_text(text, encoding="utf-8")
+    tf_str = str(tf.resolve()).replace("\\", "/").replace(":", "\\:").replace(" ", "\\ ")
+    
+    fs = max(24, height // 14)
+    fade_d = 0.35
+    alpha_expr = f"if(lt(t,{fade_d}),t/{fade_d},if(gt(t,{seconds - fade_d}),({seconds}-t)/{fade_d},1))"
+    
+    draw = (f"drawtext=fontfile='{font}':textfile='{tf_str}':fontcolor=white:fontsize={fs}:"
+            f"line_spacing=24:x=(w-text_w)/2:y=(h-text_h)/2:alpha='{alpha_expr}'")
+            
+    enc = encoder_args or ["-c:v", "libx264", "-preset", "veryfast", "-crf", "17", "-pix_fmt", "yuv420p"]
+    output.parent.mkdir(parents=True, exist_ok=True)
+    
+    run_ffmpeg([
+        "-f", "lavfi", "-i", f"color=c=black:s={width}x{height}:r={fps}",
+        "-vf", f"{draw},format=yuv420p",
+        "-frames:v", str(frames),
+        "-r", str(fps),
+        *enc, "-an", str(output)
+    ])
+

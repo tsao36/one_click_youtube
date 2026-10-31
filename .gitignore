@@ -13,6 +13,8 @@ data/voices/*/
 data/voices/*.wav
 data/music/*
 !data/music/README.txt
+!data/music/catalog.json
+!data/music/*/*.mp3
 !data/music/*.mp3
 .pytest_cache/
 data/youtube/

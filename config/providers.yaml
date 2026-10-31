@@ -10,7 +10,7 @@ llm:
       num_ctx: 8192
     gemini:
       type: gemini
-      model: gemini-3.8-flash
+      model: gemini-flash-latest
       api_key_env: GEMINI_API_KEY
     openai_compat:
       type: openai_compat
@@ -30,8 +30,18 @@ research:
   provider: none             # none | gemini_search (Gemini + Google Search grounding)
 
 images:
+  nano_banana_21:
+    model: gemini-nano-banana-2.1
+    rate_batch_usd: 0.0168
+    rate_online_usd: 0.0336
+    api_key_env: GEMINI_API_KEY
   comfyui:
     base_url: http://127.0.0.1:8188
+  fal_flux_schnell:
+    model: fal-ai/flux-1/schnell
+    image_size: landscape_16_9
+    num_inference_steps: 4
+    api_key_env: FAL_KEY
 
 tts:
   # Profiles in data/voices/<name>/voice.json select one of these providers.
@@ -60,12 +70,30 @@ tts:
     type: bluemagpie         # OpenFormosa/BlueMagpie-TTS zero-shot voice cloning server
     endpoint: http://127.0.0.1:8008/tts
     timeout_seconds: 300
+  cosyvoice:
+    type: cosyvoice          # FunAudioLLM CosyVoice 2 (0.5B) zero-shot cloning; installed by setup_cosyvoice.ps1
+    endpoint: http://127.0.0.1:50000/tts
+    timeout_seconds: 600
+    startup_wait_seconds: 240  # first start loads ~3 GB of weights
+  cozyvoice:
+    type: cosyvoice
+    endpoint: http://127.0.0.1:50000/tts
+    timeout_seconds: 600
+    startup_wait_seconds: 240
   elevenlabs:
     type: elevenlabs         # ElevenLabs Cloud TTS & Voice Cloning API
     api_key_env: ELEVENLABS_API_KEY
     base_url: https://api.elevenlabs.io/v1
     model: eleven_multilingual_v2
     timeout_seconds: 180
+  voai:
+    type: voai               # VoAI Connect API (絕好聲創 Taiwan Mandarin Cloud TTS)
+    api_key_env: VOAI_API_KEY
+    base_url: https://connect.voai.ai
+    version: Sota+
+    speaker: 佑希
+    style: 預設
+    timeout_seconds: 120
 
 video:
   provider: none             # none | comfyui_video | veo | kling | runway
@@ -83,9 +111,13 @@ video:
   runway:
     api_key_env: RUNWAY_API_KEY
     is_cloud: true
+  hedra:
+    api_key_env: HEDRA_API_KEY
+    is_cloud: true
 
 # Optional prices used for cost estimates (USD). Leave 0 if unknown.
 pricing:
   llm_request_usd: 0.0
   video_clip_usd: 0.50
+  presenter_clip_usd: 0.05
   tts_cloud_per_1k_chars_usd: 0.0
