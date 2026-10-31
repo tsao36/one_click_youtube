@@ -4,6 +4,7 @@ before stringing everything together into the final video.
 """
 from __future__ import annotations
 
+import filecmp
 import json
 import re
 import shutil
@@ -88,6 +89,8 @@ def record_stage_version(project: Project, stage_name: str, summary: str = "") -
         shutil.copy2(src, dst)
         copied.append(f)
 
+    st_dur = float(project.stage(stage_name).duration_seconds or 0.0)
+
     # Generate quick summary if not provided
     if not summary:
         if stage_name == "script":
@@ -101,10 +104,13 @@ def record_stage_version(project: Project, stage_name: str, summary: str = "") -
             summary = f"{len(prompts)} prompts"
         else:
             summary = f"Version {next_ver}"
+        if st_dur > 0:
+            summary += f" ({st_dur:.1f}s)"
 
     ver_record = {
         "version": next_ver,
         "created_at": now(),
+        "duration_seconds": st_dur,
         "summary": summary,
         "files": copied,
     }
@@ -113,8 +119,8 @@ def record_stage_version(project: Project, stage_name: str, summary: str = "") -
     meta["active_version"] = next_ver
     _save_meta(project, stage_name, meta)
 
-    log.info("Recorded %s stage version v%d for project %s", stage_name, next_ver, project.id)
-    return {"status": "recorded", "version": next_ver, "summary": summary}
+    log.info("Recorded %s stage version v%d (%.1fs) for project %s", stage_name, next_ver, st_dur, project.id)
+    return {"status": "recorded", "version": next_ver, "summary": summary, "duration_seconds": st_dur}
 
 
 def switch_stage_version(project: Project, stage_name: str, target_version: int) -> dict[str, Any]:
@@ -191,18 +197,35 @@ def ensure_initial_image_take(project: Project, scene_id: int) -> None:
             t_num = int(m.group(1))
             disk_takes[t_num] = df
 
-    # Map existing takes in meta by take number
+    updated = False
+    # Auto-cleanup: remove identical duplicate take 2 if bitwise identical to take 1
+    if 1 in disk_takes and 2 in disk_takes and len(disk_takes) == 2:
+        try:
+            if filecmp.cmp(str(disk_takes[1]), str(disk_takes[2]), shallow=False):
+                log.info("Cleaning up duplicate take 2 for scene %d (identical to take 1)", scene_id)
+                disk_takes[2].unlink(missing_ok=True)
+                del disk_takes[2]
+                takes = [t for t in takes if int(t.get("take", 1)) != 2]
+                if meta.get("active_take") == 2:
+                    meta["active_take"] = 1
+                updated = True
+        except Exception as dup_err:
+            log.debug("Duplicate image take cleanup note: %s", dup_err)
+
+    # Map existing takes in meta by take number, keeping only those that exist on disk if disk_takes is present
     existing_by_num: dict[int, dict[str, Any]] = {}
     for t in takes:
         if isinstance(t, dict) and "take" in t:
             try:
                 t_n = int(t["take"])
-                existing_by_num[t_n] = t
+                if not disk_takes or t_n in disk_takes:
+                    existing_by_num[t_n] = t
+                else:
+                    updated = True
             except (ValueError, TypeError):
                 pass
 
     # Ensure every disk file has a take record
-    updated = False
     for t_num, df in disk_takes.items():
         if t_num not in existing_by_num:
             mtime_str = datetime.fromtimestamp(df.stat().st_mtime).strftime("%Y-%m-%d %H:%M:%S")
@@ -238,9 +261,6 @@ def record_scene_image_take(project: Project, scene_id: int, active_rel_path: st
     except KeyError:
         return {"status": "scene_not_found"}
 
-    # Sync first to ensure we have the up-to-date state of all takes
-    ensure_initial_image_take(project, scene_id)
-
     meta = s.image.meta or {}
     takes = meta.get("takes", [])
     if not isinstance(takes, list):
@@ -253,12 +273,24 @@ def record_scene_image_take(project: Project, scene_id: int, active_rel_path: st
     meta_nums = [int(t["take"]) for t in takes if isinstance(t, dict) and "take" in t]
 
     highest = max(disk_nums + meta_nums + [0])
+    src = project.path(active_rel_path)
+
+    # Idempotency check: if highest take already exists and is bitwise identical to src, avoid creating a duplicate take
+    if highest >= 1 and src.exists():
+        highest_path = takes_dir / f"scene_{scene_id:03d}_take{highest}.png"
+        if highest_path.exists():
+            try:
+                if filecmp.cmp(str(highest_path), str(src), shallow=False):
+                    log.info("Scene %d take %d already matches image on disk; skipping duplicate take recording", scene_id, highest)
+                    return {"status": "already_recorded", "active_take": highest, "total_takes": len(takes)}
+            except Exception:
+                pass
+
     next_take_num = highest + 1
 
     archive_name = f"scene_{scene_id:03d}_take{next_take_num}.png"
     archive_path = takes_dir / archive_name
 
-    src = project.path(active_rel_path)
     if src.exists():
         shutil.copy2(src, archive_path)
         take_rel = project.rel(archive_path)
@@ -421,6 +453,7 @@ def ensure_initial_voice_take(project: Project, scene_id: int) -> None:
     if active_path.exists() and not take1_path.exists():
         shutil.copy2(active_path, take1_path)
 
+    # 2. Inspect all take files on disk for this scene
     pattern = re.compile(rf"^scene_{scene_id:03d}_take(\d+)\.wav$")
     disk_takes: dict[int, Path] = {}
     for df in sorted(takes_dir.glob(f"scene_{scene_id:03d}_take*.wav")):
@@ -429,16 +462,34 @@ def ensure_initial_voice_take(project: Project, scene_id: int) -> None:
             t_num = int(m.group(1))
             disk_takes[t_num] = df
 
+    updated = False
+    # Auto-cleanup: remove identical duplicate take 2 if bitwise identical to take 1
+    if 1 in disk_takes and 2 in disk_takes and len(disk_takes) == 2:
+        try:
+            if filecmp.cmp(str(disk_takes[1]), str(disk_takes[2]), shallow=False):
+                log.info("Cleaning up duplicate voice take 2 for scene %d (identical to take 1)", scene_id)
+                disk_takes[2].unlink(missing_ok=True)
+                del disk_takes[2]
+                takes = [t for t in takes if int(t.get("take", 1)) != 2]
+                if meta.get("active_take") == 2:
+                    meta["active_take"] = 1
+                updated = True
+        except Exception as dup_err:
+            log.debug("Duplicate voice take cleanup note: %s", dup_err)
+
+    # Map existing takes in meta by take number, keeping only those that exist on disk if disk_takes is present
     existing_by_num: dict[int, dict[str, Any]] = {}
     for t in takes:
         if isinstance(t, dict) and "take" in t:
             try:
                 t_n = int(t["take"])
-                existing_by_num[t_n] = t
+                if not disk_takes or t_n in disk_takes:
+                    existing_by_num[t_n] = t
+                else:
+                    updated = True
             except (ValueError, TypeError):
                 pass
 
-    updated = False
     for t_num, df in disk_takes.items():
         if t_num not in existing_by_num:
             mtime_str = datetime.fromtimestamp(df.stat().st_mtime).strftime("%Y-%m-%d %H:%M:%S")
@@ -473,8 +524,6 @@ def record_scene_voice_take(project: Project, scene_id: int, active_rel_path: st
     except KeyError:
         return {"status": "scene_not_found"}
 
-    ensure_initial_voice_take(project, scene_id)
-
     meta = s.audio.meta or {}
     takes = meta.get("takes", [])
     if not isinstance(takes, list):
@@ -487,12 +536,24 @@ def record_scene_voice_take(project: Project, scene_id: int, active_rel_path: st
     meta_nums = [int(t["take"]) for t in takes if isinstance(t, dict) and "take" in t]
 
     highest = max(disk_nums + meta_nums + [0])
+    src = project.path(active_rel_path)
+
+    # Idempotency check: if highest take already exists and is bitwise identical to src, avoid creating a duplicate take
+    if highest >= 1 and src.exists():
+        highest_path = takes_dir / f"scene_{scene_id:03d}_take{highest}.wav"
+        if highest_path.exists():
+            try:
+                if filecmp.cmp(str(highest_path), str(src), shallow=False):
+                    log.info("Scene %d voice take %d already matches audio on disk; skipping duplicate take recording", scene_id, highest)
+                    return {"status": "already_recorded", "active_take": highest, "total_takes": len(takes)}
+            except Exception:
+                pass
+
     next_take_num = highest + 1
 
     archive_name = f"scene_{scene_id:03d}_take{next_take_num}.wav"
     archive_path = takes_dir / archive_name
 
-    src = project.path(active_rel_path)
     if src.exists():
         shutil.copy2(src, archive_path)
         take_rel = project.rel(archive_path)

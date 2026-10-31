@@ -2,17 +2,21 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import os
 import random
 import re
 import shutil
+import subprocess
+import sys
 import time
 from pathlib import Path
 from typing import Any, Optional
 
-from fastapi import BackgroundTasks, FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import BackgroundTasks, FastAPI, File, Form, HTTPException, Query, UploadFile
+from typing import List
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -52,6 +56,9 @@ from core.youtube_uploader import (
     start_video_upload,
     get_upload_status,
 )
+from agents.trend_researcher import discover_trending_topic, load_topic_queue, save_topic_queue
+from agents.history_researcher import discover_dynasty_topic
+from agents.ai_researcher import discover_ai_topic
 
 setup_logging()
 
@@ -82,7 +89,22 @@ class CreateProjectRequest(BaseModel):
     start_now: bool = True
     stage_models: Optional[dict[str, str]] = None
     music_track: Optional[str] = "auto"
+    music_category: Optional[str] = "auto"
+    music_progression: Optional[str] = "narrative_evolving"
     music_volume_db: Optional[float] = -24.0
+    auto_presenter: bool = False
+    presenter_placement: Optional[str] = "none"
+    default_avatar: Optional[str] = None
+    user_research: Optional[str] = None
+    research_mode: Optional[str] = "auto"
+    pause_after_research: bool = False
+    auto_stock_mode: Optional[str] = "balanced"
+    project_mode: Optional[str] = "documentary"
+    aspect_ratio: Optional[str] = "16:9"
+    drama_formula: Optional[str] = "workplace_revenge"
+    drama_duration_seconds: Optional[int] = 50
+    drama_characters: Optional[list[dict[str, Any]]] = None
+    drama_script: Optional[str] = None
 
 
 class UpdateSettingsRequest(BaseModel):
@@ -99,6 +121,7 @@ class VoiceTestRequest(BaseModel):
 
 class RegenVoiceRequest(BaseModel):
     voice_profile: Optional[str] = None
+    narration: Optional[str] = None
 
 
 class RegenImageRequest(BaseModel):
@@ -119,6 +142,12 @@ class ProjectImageSettingsRequest(BaseModel):
     apply_to_prompts: Optional[bool] = False
 
 
+class ProjectSubtitleSettingsRequest(BaseModel):
+    motion_graphics_callouts: Optional[bool] = None
+    style: Optional[str] = None
+    font: Optional[str] = None
+
+
 class YouTubeUploadRequest(BaseModel):
     title: str
     description: str
@@ -133,6 +162,14 @@ class YouTubeAuthCodeRequest(BaseModel):
     code: str
 
 
+class TextReplaceRequest(BaseModel):
+    find: str
+    replace: str
+    match_case: bool = False
+    stages: Optional[list[str]] = None  # None or empty = all stages (research, script, scenes, prompts, subtitles, project)
+    auto_invalidate_voice: bool = True
+
+
 class ApplyStockMediaRequest(BaseModel):
     media_url: str
     media_type: str = "image"
@@ -140,6 +177,19 @@ class ApplyStockMediaRequest(BaseModel):
     title: Optional[str] = ""
     author: Optional[str] = ""
     license: Optional[str] = ""
+
+
+class TogglePresenterRequest(BaseModel):
+    is_presenter: Optional[bool] = None
+    avatar_profile: Optional[str] = None
+
+
+class RemotionRenderRequest(BaseModel):
+    composition: str = "TechCard"
+    props: dict[str, Any] = {}
+    duration_frames: Optional[int] = 120
+    fps: Optional[int] = 30
+    scene_id: Optional[int] = None
 
 
 def get_available_checkpoints() -> list[str]:
@@ -198,9 +248,21 @@ def unload_gpu_memory():
 
 
 # ---------------- Project Endpoints ----------------
+@app.get("/api/drama/formulas")
+def get_drama_formulas():
+    from agents.drama_agent import DRAMA_FORMULAS
+    return {"formulas": list(DRAMA_FORMULAS.values())}
+
+
 @app.get("/api/projects")
 def list_projects():
-    return Project.list_all()
+    items = Project.list_all()
+    for item in items:
+        pid = item.get("id")
+        if item.get("state") == "running" and pid not in active_pipelines:
+            item["state"] = "paused"
+            item["activity"] = "Interrupted (click Resume to continue)"
+    return items
 
 
 @app.post("/api/projects")
@@ -220,10 +282,41 @@ def create_project(req: CreateProjectRequest, background_tasks: BackgroundTasks)
         },
     }
     if req.stage_models:
-        overrides["stage_models"] = req.stage_models
+        overrides["stage_models"] = dict(req.stage_models)
         if req.stage_models.get("images") == "stock":
             overrides.setdefault("images", {})["provider"] = "stock"
-    if req.checkpoint and req.checkpoint not in ("dalle3", "imagen3", "stock") and (not req.stage_models or req.stage_models.get("images") != "stock"):
+
+    # Automatically align voice_profile and Stage 6 TTS selection
+    selected_voice = req.voice_profile
+    stage_voice_prov = req.stage_models.get("voice") if req.stage_models else None
+    KNOWN_PROVIDERS = ("bluemagpie", "cosyvoice", "cozyvoice", "http_clone", "elevenlabs", "voai", "edge", "sapi", "openai_tts")
+
+    if selected_voice in KNOWN_PROVIDERS or (stage_voice_prov and (not selected_voice or selected_voice in KNOWN_PROVIDERS)):
+        target_prov = stage_voice_prov or selected_voice
+        if target_prov == "cozyvoice":
+            target_prov = "cosyvoice"
+        matched = None
+        for vp in list_profiles():
+            if vp.get("provider") == target_prov:
+                matched = vp["name"]
+                break
+        if matched:
+            overrides["voice_profile"] = matched
+            overrides.setdefault("stage_models", {})["voice"] = target_prov
+    elif selected_voice:
+        try:
+            vp = load_profile(selected_voice)
+            vp_prov = vp.get("provider")
+            overrides["voice_profile"] = vp["name"]
+            if vp_prov:
+                overrides.setdefault("stage_models", {})["voice"] = vp_prov
+        except Exception:
+            pass
+
+    auto_stock = req.auto_stock_mode or "balanced"
+    overrides.setdefault("images", {})["auto_stock_mode"] = auto_stock
+
+    if req.checkpoint and req.checkpoint not in ("nano-banana-2.1", "dalle3", "imagen3", "gpt-image-1", "imagen-3.0-generate-002", "imagen-30.0-generate-002", "fal-ai/flux-1/schnell", "fal-ai/flux/schnell", "stock") and (not req.stage_models or req.stage_models.get("images") != "stock"):
         overrides.setdefault("images", {})["checkpoint"] = req.checkpoint
     if req.music_track:
         m_enabled = req.music_track.lower() not in ("none", "off", "disabled", "false", "no_music")
@@ -231,8 +324,161 @@ def create_project(req: CreateProjectRequest, background_tasks: BackgroundTasks)
         overrides["music"]["enabled"] = m_enabled
         if req.music_volume_db is not None:
             overrides["music"]["volume_db"] = req.music_volume_db
+    if req.music_category:
+        overrides.setdefault("music", {})["category"] = req.music_category
+    if req.music_progression:
+        overrides.setdefault("music", {})["progression"] = req.music_progression
+        overrides.setdefault("music", {})["dynamic_music"] = (req.music_progression == "narrative_evolving")
+
+    if req.user_research:
+        overrides["user_research"] = req.user_research.strip()
+    if req.research_mode:
+        overrides["research_mode"] = req.research_mode
+    if req.pause_after_research:
+        overrides["pause_after_research"] = True
+
+    p_mode = req.project_mode or "documentary"
+    aspect = req.aspect_ratio or ("9:16" if p_mode == "short_drama" else "16:9")
+    formula = req.drama_formula or "workplace_revenge"
+    dur_sec = int(req.drama_duration_seconds or 50)
+
+    overrides["project_mode"] = p_mode
+    overrides["aspect_ratio"] = aspect
+    overrides["drama_formula"] = formula
+    if req.drama_characters:
+        from generators.character_manager import slugify_character
+        used_ids = set()
+        for idx, c in enumerate(req.drama_characters):
+            raw_id = (c.get("id") or "").strip()
+            if raw_id and raw_id != "None" and not raw_id.startswith("char_None"):
+                cid = slugify_character(raw_id)
+            else:
+                cid = slugify_character(c.get("name") or f"actor_{idx+1}")
+            if cid in used_ids:
+                cid = f"{cid}_{idx+1}"
+            used_ids.add(cid)
+            c["id"] = cid
+        overrides["drama_characters"] = req.drama_characters
+    if req.drama_script:
+        overrides["drama_script"] = req.drama_script
+        overrides["user_research"] = req.drama_script
+
+    if p_mode == "short_drama":
+        overrides.setdefault("video", {})["duration_minutes"] = round(dur_sec / 60.0, 2)
+        overrides["video"]["duration_seconds"] = dur_sec
+        overrides["video"]["aspect_ratio"] = aspect
+        if aspect == "9:16":
+            overrides["video"]["width"] = 1080
+            overrides["video"]["height"] = 1920
+            overrides.setdefault("images", {})["width"] = 1080
+            overrides.setdefault("images", {})["height"] = 1920
+        else:
+            overrides["video"]["width"] = 1920
+            overrides["video"]["height"] = 1080
+            overrides.setdefault("images", {})["width"] = 1920
+            overrides.setdefault("images", {})["height"] = 1080
+        overrides.setdefault("subtitles", {})["ai_watermark"] = True
 
     p = Project.create(topic=req.topic, overrides=overrides)
+    p.data.settings.setdefault("images", {})["auto_stock_mode"] = auto_stock
+    p.data.settings["project_mode"] = p_mode
+    p.data.settings["aspect_ratio"] = aspect
+    p.data.settings["drama_formula"] = formula
+    if p_mode == "short_drama":
+        p.data.settings.setdefault("video", {})["aspect_ratio"] = aspect
+        p.data.settings["video"]["duration_seconds"] = dur_sec
+        p.data.settings.setdefault("subtitles", {})["motion_graphics_callouts"] = False
+        p.data.settings["subtitles"]["callouts_enabled"] = False
+        if req.drama_characters:
+            p.data.settings["drama_characters"] = req.drama_characters
+            from generators.character_manager import CHARACTERS_DIR
+            import base64
+            p_cdir = p.path("characters")
+            p_cdir.mkdir(parents=True, exist_ok=True)
+            for c in req.drama_characters:
+                cid = c.get("id") or "actor"
+                uri = c.get("image_data_uri") or ""
+                img_bytes = None
+                if uri and uri.startswith("data:image"):
+                    try:
+                        _, b64 = uri.split(",", 1)
+                        img_bytes = base64.b64decode(b64)
+                    except Exception as ex:
+                        log.warning("Could not decode base64 for %s: %s", cid, ex)
+
+                cdir = CHARACTERS_DIR / cid
+                cdir.mkdir(parents=True, exist_ok=True)
+                p_file = p_cdir / f"{cid}.png"
+
+                if img_bytes:
+                    (cdir / "portrait.png").write_bytes(img_bytes)
+                    p_file.write_bytes(img_bytes)
+                    c["image_filename"] = f"{cid}.png"
+                    c["image_url"] = f"/api/characters/image/{cid}"
+                    log.info("Persisted uploaded portrait for %s (%d bytes)", cid, len(img_bytes))
+                elif not p_file.exists():
+                    cand = cdir / "portrait.png"
+                    if cand.exists():
+                        import shutil
+                        shutil.copy2(str(cand), str(p_file))
+                        c["image_filename"] = f"{cid}.png"
+                        c["image_url"] = f"/api/characters/image/{cid}"
+
+                try:
+                    c_json = cdir / "character.json"
+                    c_data = {
+                        "id": cid,
+                        "name": c.get("name") or cid,
+                        "role": c.get("role", "角色"),
+                        "gender": c.get("gender", "female"),
+                        "age": c.get("age", 28),
+                        "appearance": c.get("appearance", ""),
+                        "voice_persona": c.get("voice_persona", ""),
+                        "voice_profile": c.get("voice_profile", "ichiehchieh"),
+                        "has_portrait": (cdir / "portrait.png").exists()
+                    }
+                    c_json.write_text(json.dumps(c_data, ensure_ascii=False, indent=2), encoding="utf-8")
+                except Exception:
+                    pass
+
+            try:
+                p.write_json("research/character_roster.json", req.drama_characters)
+            except Exception:
+                pass
+        if req.drama_script:
+            p.data.settings["drama_script"] = req.drama_script
+
+    if req.user_research:
+        user_res_text = req.user_research.strip()
+        p.data.settings["user_research"] = user_res_text
+        try:
+            user_res_file = p.path("research", "user_research.md")
+            user_res_file.parent.mkdir(parents=True, exist_ok=True)
+            user_res_file.write_text(user_res_text, encoding="utf-8")
+            raw_notes_file = p.path("research", "research_notes.txt")
+            if not raw_notes_file.exists():
+                raw_notes_file.write_text(user_res_text, encoding="utf-8")
+        except Exception as err:
+            log.warning("Could not pre-write user research files: %s", err)
+
+    if req.research_mode:
+        p.data.settings["research_mode"] = req.research_mode
+    if req.pause_after_research:
+        p.data.settings["pause_after_research"] = True
+
+    if req.presenter_placement and req.presenter_placement != "none":
+        p.data.settings["presenter_placement"] = req.presenter_placement
+        p.data.settings["auto_presenter"] = True
+    elif req.auto_presenter:
+        p.data.settings["presenter_placement"] = "intro"
+        p.data.settings["auto_presenter"] = True
+    else:
+        p.data.settings["presenter_placement"] = "none"
+        p.data.settings["auto_presenter"] = False
+
+    if req.default_avatar:
+        p.data.settings["default_avatar"] = req.default_avatar
+    p.save()
 
     if req.start_now:
         pipeline = Pipeline(p)
@@ -240,6 +486,85 @@ def create_project(req: CreateProjectRequest, background_tasks: BackgroundTasks)
         background_tasks.add_task(pipeline.run)
 
     return {"project_id": p.id, "status": "created"}
+
+
+@app.post("/api/projects/parse_research_file")
+async def parse_research_file(file: UploadFile = File(...)):
+    """Parse an uploaded document (.txt, .md, .pdf, .json, .csv) and return extracted research text."""
+    filename = file.filename or "unknown.txt"
+    ext = Path(filename).suffix.lower()
+    raw_bytes = await file.read()
+    if not raw_bytes:
+        raise HTTPException(status_code=400, detail="Uploaded file is empty.")
+
+    text = ""
+    if ext in (".txt", ".md", ".markdown"):
+        for enc in ("utf-8", "utf-8-sig", "big5", "gbk", "cp950", "latin1"):
+            try:
+                text = raw_bytes.decode(enc)
+                break
+            except UnicodeDecodeError:
+                continue
+    elif ext == ".pdf":
+        try:
+            import io
+            from pypdf import PdfReader
+            reader = PdfReader(io.BytesIO(raw_bytes))
+            pages_text = []
+            for i, page in enumerate(reader.pages):
+                pt = page.extract_text()
+                if pt and pt.strip():
+                    pages_text.append(f"--- Page {i+1} ---\n{pt.strip()}")
+            text = "\n\n".join(pages_text)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"PDF parsing error: {str(e)}")
+    elif ext == ".json":
+        for enc in ("utf-8", "utf-8-sig", "big5", "gbk", "latin1"):
+            try:
+                decoded = raw_bytes.decode(enc)
+                import json
+                obj = json.loads(decoded)
+                text = json.dumps(obj, ensure_ascii=False, indent=2)
+                break
+            except Exception:
+                continue
+    elif ext == ".csv":
+        for enc in ("utf-8", "utf-8-sig", "big5", "gbk", "latin1"):
+            try:
+                import io, csv
+                decoded = raw_bytes.decode(enc)
+                reader = csv.reader(io.StringIO(decoded))
+                rows = list(reader)
+                if rows:
+                    lines = []
+                    header = " | ".join(rows[0])
+                    lines.append(f"| {header} |")
+                    lines.append("| " + " | ".join(["---"] * len(rows[0])) + " |")
+                    for row in rows[1:100]:
+                        lines.append("| " + " | ".join(row) + " |")
+                    text = "\n".join(lines)
+                break
+            except Exception:
+                continue
+    else:
+        # Fallback text decoder
+        for enc in ("utf-8", "utf-8-sig", "big5", "gbk", "cp950", "latin1"):
+            try:
+                text = raw_bytes.decode(enc)
+                break
+            except UnicodeDecodeError:
+                continue
+
+    cleaned = text.strip()
+    if not cleaned:
+        raise HTTPException(status_code=400, detail="Could not extract readable text from the uploaded file.")
+
+    return {
+        "filename": filename,
+        "text": cleaned,
+        "char_count": len(cleaned),
+        "word_count": len(cleaned.split()),
+    }
 
 
 class UpdateStageModelsRequest(BaseModel):
@@ -251,9 +576,13 @@ def get_stage_models_catalogue():
     from core.config import get_secret
     has_gemini = bool(get_secret("GEMINI_API_KEY"))
     has_openai = bool(get_secret("OPENAI_API_KEY"))
+    has_fal = bool(get_secret("FAL_KEY") or get_secret("FAL_API_KEY"))
     has_elevenlabs = bool(get_secret("ELEVENLABS_API_KEY"))
+    has_voai = bool(get_secret("VOAI_API_KEY") or get_secret("VOAI_KEY"))
     has_kling = bool(get_secret("KLING_API_KEY"))
     has_runway = bool(get_secret("RUNWAY_API_KEY"))
+    has_hedra = bool(get_secret("HEDRA_API_KEY") or get_secret("HEDRA_KEY"))
+    has_minimax = bool(get_secret("MINIMAX_API_KEY") or get_secret("MINIMAX_KEY"))
 
     try:
         url = load_providers().get("images", {}).get("comfyui", {}).get("base_url", "http://127.0.0.1:8188")
@@ -284,23 +613,32 @@ def get_stage_models_catalogue():
                 {"id": "openai_compat", "name": "OpenAI GPT-4o-mini", "type": "cloud", "available": has_openai, "desc": "Detailed photographic lighting & lens prompts"},
             ],
             "images": [
-                {"id": "comfyui", "name": "ComfyUI (Local AMD GPU - SDXL)", "type": "local", "available": comfy_ok, "desc": "DirectML Juggernaut XL / SDXL on your RX 9060 XT"},
-                {"id": "stock", "name": "Online Stock Photos & Footage (Free, 0 VRAM)", "type": "free", "available": True, "desc": "Royalty-free online stock footage & photos from Wikimedia & Pexels"},
-                {"id": "dalle3", "name": "OpenAI DALL-E 3 (Cloud API)", "type": "cloud", "available": has_openai, "desc": "1792x1024 widescreen photorealism in seconds"},
-                {"id": "imagen3", "name": "Google Imagen 3 (Gemini Cloud API)", "type": "cloud", "available": has_gemini, "desc": "State-of-the-art cinematic image generation via Google Cloud"},
+                {"id": "comfyui", "name": "ComfyUI (Local AMD GPU - SDXL) — $0.00", "type": "local", "available": comfy_ok, "desc": "DirectML Juggernaut XL / SDXL on your RX 9060 XT (Free)"},
+                {"id": "stock", "name": "Online Stock Photos & Footage — $0.00", "type": "free", "available": True, "desc": "Royalty-free online stock footage & photos from Wikimedia & Pexels (Free)"},
+                {"id": "fal-ai/flux-1/schnell", "name": "Fal.ai fal-ai/flux-1/schnell (Cloud API) — $0.003/img", "type": "cloud", "available": has_fal, "desc": "Ultra-fast 4-step FLUX.1 [schnell] 16:9 generation (~$0.003/img, ~$0.12 per 40 scenes)"},
+                {"id": "nano-banana-2.1", "name": "Google Nano Banana 2.1 (Cloud API) — $0.0168/img", "type": "cloud", "available": has_gemini, "desc": "Native high-efficiency Google Nano Banana 2.1 Batch ($0.0168/img, ~$0.67 per 40 scenes)"},
+                {"id": "gpt-image-1", "name": "OpenAI gpt-image-1 (Cloud API) — $0.08/img", "type": "cloud", "available": has_openai, "desc": "1536x1024 High-Detail Multimodal Image Generation (~$0.08/img, ~$3.20 per 40 scenes)"},
+                {"id": "imagen-3.0-generate-002", "name": "Google imagen-3.0-generate-002 (Cloud API) — $0.04/img", "type": "cloud", "available": has_gemini, "desc": "Native 16:9 Google Imagen 3.0 Generate 002 (~$0.04/img, ~$1.60 per 40 scenes)"},
+                {"id": "dalle3", "name": "OpenAI DALL-E 3 (Cloud API) — $0.04/img", "type": "cloud", "available": has_openai, "desc": "1792x1024 widescreen photorealism (~$0.04/img, ~$1.60 per 40 scenes)"},
+                {"id": "imagen3", "name": "Google Gemini Flash Image (Cloud API) — $0.03/img", "type": "cloud", "available": has_gemini, "desc": "Fast cinematic image generation via Gemini Cloud (~$0.03/img, ~$1.20 per 40 scenes)"},
             ],
             "voice": [
                 {"id": "bluemagpie", "name": "BlueMagpie-TTS (Local Voice Clone)", "type": "local", "available": True, "desc": "Zero-shot local voice cloning"},
+                {"id": "cosyvoice", "name": "CosyVoice 2 (Local Voice Clone)", "type": "local", "available": (ROOT / ".venv_cosyvoice" / "Scripts" / "python.exe").exists(), "desc": "FunAudioLLM CosyVoice2-0.5B zero-shot cloning from your uploaded clip (AMD GPU via ROCm)"},
+                {"id": "voai", "name": "VoAI 絕好聲創 (Taiwan Mandarin Cloud TTS)", "type": "cloud", "available": has_voai, "desc": "Natural Taiwanese Mandarin voices (Sota+ / Neo / Classic)"},
                 {"id": "elevenlabs", "name": "ElevenLabs (Cloud API)", "type": "cloud", "available": has_elevenlabs, "desc": "Expressive multilingual studio voice models"},
                 {"id": "edge", "name": "Microsoft Edge TTS (Free Cloud)", "type": "cloud", "available": True, "desc": "Free cloud neural voices"},
                 {"id": "sapi", "name": "Windows SAPI (Local Built-in)", "type": "local", "available": True, "desc": "Built-in offline Windows speech"},
             ],
             "animation": [
+                {"id": "remotion", "name": "Remotion Motion-Graphic Cards (Local)", "type": "local", "available": (ROOT / "remotion-video").exists(), "desc": "Cards over the dimmed scene image, critical scenes only; other scenes use Ken Burns"},
                 {"id": "kenburns", "name": "Ken Burns 2.5D Motion (Local Fast)", "type": "local", "available": True, "desc": "Smooth cinematic 2.5D camera moves (0 VRAM)"},
                 {"id": "comfyui_video", "name": "ComfyUI Video (Local GPU)", "type": "local", "available": comfy_ok, "desc": "Local video diffusion workflow"},
                 {"id": "veo", "name": "Google Veo (Cloud API)", "type": "cloud", "available": has_gemini, "desc": "Google generative video clips"},
                 {"id": "kling", "name": "Kling Video AI (Cloud API)", "type": "cloud", "available": has_kling, "desc": "High dynamic video generation"},
                 {"id": "runway", "name": "Runway Gen-3 (Cloud API)", "type": "cloud", "available": has_runway, "desc": "Hollywood-grade video diffusion"},
+                {"id": "minimax", "name": "MiniMax Video-01 / H3 (Cloud API)", "type": "cloud", "available": has_minimax or has_fal, "desc": "MiniMax (海螺 AI) dynamic physical actions & new scene generation"},
+                {"id": "hedra", "name": "Hedra Character Video (Cloud API)", "type": "cloud", "available": has_hedra, "desc": "Hedra AI talking character animation and expression generation"},
             ],
             "subtitles": [
                 {"id": "local", "name": "Built-in Subtitle Engine (Local)", "type": "local", "available": True, "desc": "Burn-in styled captions"},
@@ -317,12 +655,63 @@ def get_stage_models_catalogue():
 def update_project_stage_models(project_id: str, req: UpdateStageModelsRequest):
     if not (PROJECTS_DIR / project_id).exists():
         raise HTTPException(status_code=404, detail="Project not found")
-    p = Project(project_id)
-    p.reload()
-    p.settings.setdefault("stage_models", {}).update(req.stage_models)
-    p.data.settings.setdefault("stage_models", {}).update(req.stage_models)
-    p.save()
-    return {"status": "updated", "stage_models": p.settings.get("stage_models", {})}
+    if project_id in active_pipelines:
+        active_pipelines[project_id].update_stage_models(req.stage_models)
+        p = active_pipelines[project_id].p
+    else:
+        p = Project(project_id)
+        p.reload()
+        p.settings.setdefault("stage_models", {}).update(req.stage_models)
+        p.data.settings.setdefault("stage_models", {}).update(req.stage_models)
+        if "images" in req.stage_models:
+            model_val = req.stage_models["images"]
+            if model_val not in ("stock", "stock_photos", "placeholder"):
+                p.settings.setdefault("images", {})["checkpoint"] = model_val
+                p.data.settings.setdefault("images", {})["checkpoint"] = model_val
+            else:
+                p.settings.setdefault("images", {})["provider"] = model_val
+                p.data.settings.setdefault("images", {})["provider"] = model_val
+        if "voice" in req.stage_models:
+            v_val = req.stage_models["voice"]
+            if v_val not in ("bluemagpie", "cosyvoice", "elevenlabs", "voai", "edge", "sapi", "openai_tts", "http_clone"):
+                p.settings["voice_profile"] = v_val
+                p.data.settings["voice_profile"] = v_val
+                p.settings.setdefault("voice", {})["profile"] = v_val
+                p.data.settings.setdefault("voice", {})["profile"] = v_val
+                try:
+                    prof_obj = load_profile(v_val)
+                    prof_prov = prof_obj.get("provider")
+                    if prof_prov:
+                        p.settings.setdefault("stage_models", {})["voice"] = prof_prov
+                        p.data.settings.setdefault("stage_models", {})["voice"] = prof_prov
+                except Exception:
+                    pass
+                for sc in p.scenes:
+                    sc.voice_profile = v_val
+                p.save_scenes()
+            else:
+                p.settings.setdefault("stage_models", {})["voice"] = v_val
+                p.data.settings.setdefault("stage_models", {})["voice"] = v_val
+                cur_prof = p.data.settings.get("voice_profile")
+                cur_prov = None
+                if cur_prof:
+                    try:
+                        cur_prov = load_profile(cur_prof).get("provider")
+                    except Exception:
+                        pass
+                if cur_prov != v_val:
+                    for vp in list_profiles():
+                        if vp.get("provider") == v_val:
+                            p.settings["voice_profile"] = vp["name"]
+                            p.data.settings["voice_profile"] = vp["name"]
+                            for sc in p.scenes:
+                                sc.voice_profile = vp["name"]
+                            p.save_scenes()
+                            break
+        if "render" in req.stage_models:
+            p.settings.setdefault("rendering", {})["encoder"] = req.stage_models["render"]
+        p.save()
+    return {"status": "updated", "stage_models": p.settings.get("stage_models", {}), "voice_profile": p.settings.get("voice_profile")}
 
 
 @app.get("/api/projects/{project_id}")
@@ -331,18 +720,72 @@ def get_project_details(project_id: str):
         raise HTTPException(status_code=404, detail="Project not found")
     p = Project(project_id)
     p.reload()
+    if p.data.state == "running" and project_id not in active_pipelines:
+        p.data.state = "paused"
+        if not p.data.activity or "interrupted" not in p.data.activity.lower():
+            p.data.activity = "Interrupted (click Resume to continue)"
+        p.save()
     if not p.data.usage.stage_costs:
         try:
             from core.pricing import calculate_and_update_project_costs
             calculate_and_update_project_costs(p)
         except Exception:
             pass
+    final_file = None
+    final_rel = (p.data.outputs.get("final") if p.data.outputs else None) or f"final/{project_id}.mp4"
+    final_abs = p.path(final_rel)
+    if final_abs.exists():
+        try:
+            st = final_abs.stat()
+            from datetime import datetime
+            final_file = {
+                "exists": True,
+                "filename": final_abs.name,
+                "rel_path": f"projects/{project_id}/{final_rel}".replace("\\", "/"),
+                "abs_path": str(final_abs.resolve()),
+                "size_bytes": st.st_size,
+                "size_mb": round(st.st_size / (1024 * 1024), 2),
+                "mtime": datetime.fromtimestamp(st.st_mtime).strftime("%Y-%m-%d %H:%M:%S"),
+            }
+        except Exception:
+            pass
+
     return {
         "project": p.data.model_dump(mode="json"),
         "scenes": [s.model_dump(mode="json") for s in p.scenes],
         "script": p.read_json("script/script.json"),
         "research": p.read_json("research/research.json"),
+        "final_file": final_file,
     }
+
+
+@app.post("/api/projects/{project_id}/open_folder")
+def open_project_video_folder(project_id: str):
+    if not (PROJECTS_DIR / project_id).exists():
+        raise HTTPException(status_code=404, detail="Project not found")
+    p = Project(project_id)
+    final_rel = (p.data.outputs.get("final") if p.data.outputs else None) or f"final/{project_id}.mp4"
+    final_abs = p.path(final_rel).resolve()
+    final_dir = final_abs.parent if final_abs.exists() else p.path("final").resolve()
+    if not final_dir.exists():
+        final_dir = p.dir.resolve()
+
+    try:
+        if sys.platform == "win32":
+            if final_abs.exists():
+                subprocess.Popen(["explorer.exe", f"/select,{str(final_abs)}"])
+            else:
+                subprocess.Popen(["explorer.exe", str(final_dir)])
+        elif sys.platform == "darwin":
+            if final_abs.exists():
+                subprocess.Popen(["open", "-R", str(final_abs)])
+            else:
+                subprocess.Popen(["open", str(final_dir)])
+        else:
+            subprocess.Popen(["xdg-open", str(final_dir)])
+        return {"status": "ok", "folder_path": str(final_dir), "file_path": str(final_abs)}
+    except Exception as e:
+        return {"status": "error", "detail": str(e), "folder_path": str(final_dir)}
 
 
 @app.get("/api/projects/{project_id}/costs")
@@ -360,49 +803,153 @@ def get_project_costs(project_id: str):
 def get_music_tracks():
     music_dir = DATA_DIR / "music"
     if not music_dir.exists():
-        return {"tracks": []}
-    tracks = []
+        return {"tracks": [], "categories": {}, "total": 0}
+
+    # Load catalog if present
+    catalog_path = music_dir / "catalog.json"
+    catalog_data = {}
+    if catalog_path.exists():
+        try:
+            catalog_data = json.loads(catalog_path.read_text(encoding="utf-8"))
+        except Exception as e:
+            log.warning("Could not read music catalog: %s", e)
+
+    categories = catalog_data.get("categories", {})
+    cataloged_tracks = {t.get("filename"): t for t in catalog_data.get("tracks", [])}
+    cataloged_by_basename = {t.get("basename"): t for t in catalog_data.get("tracks", [])}
+
     audio_exts = {".mp3", ".wav", ".m4a", ".ogg", ".flac", ".aac"}
-    for p in sorted(music_dir.iterdir()):
-        if p.suffix.lower() in audio_exts and p.is_file():
-            clean_name = p.stem.replace("_", " ").title()
-            tracks.append({
-                "id": p.name,
-                "name": clean_name,
-                "filename": p.name,
-                "size_mb": round(p.stat().st_size / (1024 * 1024), 2),
-                "url": f"/api/music/audio/{p.name}"
-            })
-    return {"tracks": tracks}
+    tracks = []
+
+    # Walk all audio files recursively
+    for p in sorted(music_dir.rglob("*")):
+        if p.is_file() and p.suffix.lower() in audio_exts:
+            rel = p.relative_to(music_dir).as_posix()
+            
+            # Check if this track is in the catalog
+            cat_entry = cataloged_tracks.get(rel) or cataloged_by_basename.get(p.name)
+            if cat_entry:
+                entry = dict(cat_entry)
+                entry["filename"] = rel
+                entry["id"] = rel
+                entry["size_mb"] = round(p.stat().st_size / (1024 * 1024), 2)
+                entry["url"] = f"/api/music/audio/{rel}"
+                tracks.append(entry)
+            else:
+                cat_key = p.parent.name if p.parent != music_dir else "custom"
+                cat_label = categories.get(cat_key, {}).get("label", cat_key.replace("_", " ").title())
+                clean_name = p.stem.replace("_", " ").title()
+                tracks.append({
+                    "id": rel,
+                    "name": clean_name,
+                    "category": cat_key,
+                    "category_label": cat_label,
+                    "filename": rel,
+                    "basename": p.name,
+                    "size_mb": round(p.stat().st_size / (1024 * 1024), 2),
+                    "mood": "Ambient",
+                    "description": "User uploaded or custom ambient music.",
+                    "tags": [cat_key],
+                    "url": f"/api/music/audio/{rel}"
+                })
+
+    return {
+        "categories": categories,
+        "tracks": tracks,
+        "total": len(tracks)
+    }
 
 
-@app.get("/api/music/audio/{filename}")
-def stream_music_audio(filename: str):
-    music_path = (DATA_DIR / "music" / filename).resolve()
-    if not music_path.exists() or not music_path.is_file():
-        raise HTTPException(status_code=404, detail="Music track not found")
-    media_type = "audio/mpeg" if music_path.suffix.lower() == ".mp3" else "audio/wav"
-    return FileResponse(music_path, media_type=media_type)
+@app.get("/api/music/audio/{filepath:path}")
+def stream_music_audio(filepath: str):
+    music_dir = (DATA_DIR / "music").resolve()
+    target = (music_dir / filepath).resolve()
+
+    # Prevent directory traversal attacks
+    if not (target == music_dir or music_dir in target.parents):
+        raise HTTPException(status_code=403, detail="Forbidden path")
+
+    # If direct relative path doesn't exist, search recursively by filename
+    if not target.exists() or not target.is_file():
+        fname = Path(filepath).name.lower()
+        found = None
+        for p in music_dir.rglob("*"):
+            if p.is_file() and p.name.lower() == fname:
+                found = p
+                break
+        if found:
+            target = found
+        else:
+            raise HTTPException(status_code=404, detail="Music track not found")
+
+    media_type = "audio/mpeg" if target.suffix.lower() == ".mp3" else "audio/wav"
+    return FileResponse(target, media_type=media_type)
 
 
 @app.post("/api/music/upload")
-async def upload_music_track(file: UploadFile = File(...)):
+async def upload_music_track(
+    file: UploadFile = File(...),
+    category: Optional[str] = Form(None)
+):
     music_dir = DATA_DIR / "music"
-    music_dir.mkdir(parents=True, exist_ok=True)
+    if category and re.match(r"^[a-zA-Z0-9_\-]+$", category):
+        target_dir = music_dir / category
+    else:
+        target_dir = music_dir
+    target_dir.mkdir(parents=True, exist_ok=True)
+
     raw_name = file.filename or "ambient_track.mp3"
     clean_name = re.sub(r"[^a-zA-Z0-9_\-\.]", "_", raw_name)
-    target = music_dir / clean_name
+    target = target_dir / clean_name
     content = await file.read()
     target.write_bytes(content)
-    return {"status": "uploaded", "filename": clean_name}
+
+    rel_path = target.relative_to(music_dir).as_posix()
+    return {"status": "uploaded", "filename": rel_path}
+
+@app.post("/api/music/upload-multiple")
+async def upload_multiple_music_tracks(
+    files: List[UploadFile] = File(...),
+    category: Optional[str] = Form(None)
+):
+    """Upload one or more music tracks (audio files)."""
+    music_dir = DATA_DIR / "music"
+    if category and re.match(r"^[a-zA-Z0-9_\-]+$", category):
+        target_dir = music_dir / category
+    else:
+        target_dir = music_dir
+    target_dir.mkdir(parents=True, exist_ok=True)
+
+    uploaded = []
+    for file in files:
+        raw_name = file.filename or "ambient_track.mp3"
+        clean_name = re.sub(r"[^a-zA-Z0-9_\-\.]", "_", raw_name)
+        target = target_dir / clean_name
+        content = await file.read()
+        target.write_bytes(content)
+        rel_path = target.relative_to(music_dir).as_posix()
+        uploaded.append({"filename": rel_path})
+    return {"status": "uploaded", "files": uploaded}
 
 
-@app.delete("/api/music/tracks/{filename}")
-def delete_music_track(filename: str):
-    music_path = (DATA_DIR / "music" / filename).resolve()
-    if music_path.exists() and music_path.is_file():
-        music_path.unlink()
-        return {"status": "deleted", "filename": filename}
+@app.delete("/api/music/tracks/{filepath:path}")
+def delete_music_track(filepath: str):
+    music_dir = (DATA_DIR / "music").resolve()
+    target = (music_dir / filepath).resolve()
+
+    if not (target == music_dir or music_dir in target.parents):
+        raise HTTPException(status_code=403, detail="Forbidden path")
+
+    if not target.exists() or not target.is_file():
+        fname = Path(filepath).name.lower()
+        for p in music_dir.rglob("*"):
+            if p.is_file() and p.name.lower() == fname:
+                target = p
+                break
+
+    if target.exists() and target.is_file():
+        target.unlink()
+        return {"status": "deleted", "filename": filepath}
     raise HTTPException(status_code=404, detail="Music track not found")
 
 
@@ -410,6 +957,29 @@ class UpdateProjectMusicRequest(BaseModel):
     track: Optional[str] = None
     volume_db: Optional[float] = None
     enabled: Optional[bool] = None
+
+
+@app.get("/api/tts/bluemagpie_status")
+def get_bluemagpie_status(auto_start: bool = True):
+    from providers.tts import ensure_bluemagpie_server
+    import requests as _req
+    try:
+        r = _req.get("http://127.0.0.1:8008/health", timeout=2.5)
+        if r.status_code == 200:
+            d = r.json()
+            return {"online": True, **d}
+    except Exception:
+        pass
+    if auto_start:
+        ensure_bluemagpie_server("http://127.0.0.1:8008", wait_seconds=4.0)
+        try:
+            r = _req.get("http://127.0.0.1:8008/health", timeout=2.0)
+            if r.status_code == 200:
+                d = r.json()
+                return {"online": True, **d}
+        except Exception:
+            pass
+    return {"online": False, "device": "offline", "gpu_name": None}
 
 
 @app.post("/api/projects/{project_id}/music")
@@ -513,10 +1083,43 @@ def get_stage_data_endpoint(project_id: str, stage_name: str):
         except Exception:
             pass
         models_list = get_available_checkpoints()
-        if "stock" not in models_list:
-            models_list = ["stock"] + models_list
+        for extra_m in ("nano-banana-2.1", "imagen3", "dalle3", "imagen-3.0-generate-002", "gpt-image-1", "fal-ai/flux-1/schnell", "stock"):
+            if extra_m not in models_list:
+                models_list = [extra_m] + models_list
+        scenes_data = []
+        auto_mode = p.settings.get("images", {}).get("auto_stock_mode", "balanced")
+        try:
+            from agents.scene_planner import detect_real_world_footage_target
+        except Exception:
+            detect_real_world_footage_target = None
+
+        for sc in p.scenes:
+            sd = sc.model_dump(mode="json")
+            target_kw = sc.search_keyword
+            target_src = sc.media_source
+            if not target_kw and detect_real_world_footage_target:
+                auto_kw, auto_src = detect_real_world_footage_target(sc.narration, sc.visual_description, mode=auto_mode, topic=p.data.topic or "")
+                if auto_kw:
+                    target_kw = auto_kw
+                    target_src = auto_src
+            is_stock = bool(sc.image and sc.image.meta and (sc.image.meta.get("is_stock") or sc.image.meta.get("provider") == "stock"))
+            sd["quick_stock_available"] = bool(target_kw)
+            sd["quick_stock_target"] = target_kw
+            sd["quick_stock_source"] = target_src if target_kw else None
+            sd["is_stock_active"] = is_stock
+            sd["active_stock_source"] = sc.image.meta.get("source") if is_stock else None
+            sd["active_stock_title"] = sc.image.meta.get("title") if is_stock else None
+            scenes_data.append(sd)
+
+        total_sc = len(scenes_data)
+        stock_avail = sum(1 for sc in scenes_data if sc.get("quick_stock_available"))
+        stock_active = sum(1 for sc in scenes_data if sc.get("is_stock_active"))
+
         ret = {
-            "scenes": [s.model_dump(mode="json") for s in p.scenes],
+            "scenes": scenes_data,
+            "total_scenes": total_sc,
+            "stock_available_count": stock_avail,
+            "stock_active_count": stock_active,
             "prompts": p.read_json("prompts/image_prompts.json", []),
             "voice_profile": prof,
             "voice_name": voice_prof_name,
@@ -529,7 +1132,23 @@ def get_stage_data_endpoint(project_id: str, stage_name: str):
             "current_cfg": p.data.settings.get("images", {}).get("cfg") or p.settings.get("images", {}).get("cfg", 6.5),
         }
     elif stage_name == "subtitles":
-        ret = {"srt": p.read_text("subtitles/subtitles.srt", "")}
+        callouts_preview = []
+        try:
+            from rendering.ffmpeg_renderer import project_timeline
+            from generators.motion_callout_generator import extract_motion_callouts
+            scenes, slots = project_timeline(p)
+            callouts_preview = extract_motion_callouts(scenes, slots)
+        except Exception:
+            pass
+        sub_s = p.data.settings.get("subtitles") or p.settings.get("subtitles", {})
+        ret = {
+            "srt": p.read_text("subtitles/subtitles.srt", ""),
+            "ass": p.read_text("subtitles/subtitles.ass", ""),
+            "motion_graphics_callouts": bool(sub_s.get("motion_graphics_callouts", sub_s.get("callouts_enabled", True))),
+            "callouts_preview": callouts_preview,
+            "style": sub_s.get("style", "youtube_standard"),
+            "font": sub_s.get("font", "Microsoft JhengHei UI"),
+        }
     elif stage_name == "render":
         ret = {"outputs": p.data.outputs}
 
@@ -611,55 +1230,581 @@ def delete_voice_take_endpoint(project_id: str, scene_id: int, target_take: int)
     return delete_scene_voice_take(p, scene_id, target_take=target_take)
 
 
+def join_lines_smart(lines: list[str]) -> str:
+    """Join script lines cleanly, avoiding unnatural spaces between Chinese characters."""
+    if not lines:
+        return ""
+    res = lines[0]
+    for nxt in lines[1:]:
+        if res and nxt and ('\u4e00' <= res[-1] <= '\u9fff' or '\u4e00' <= nxt[0] <= '\u9fff'):
+            res += nxt
+        else:
+            res += " " + nxt
+    return res.strip()
+
+
+def parse_script_markdown_to_sections(md_text: str) -> tuple[str, list[dict], int]:
+    """Parse Markdown script into (title, sections, word_count) respecting section headers."""
+    title = ""
+    sections = []
+    cur_name = "Hook"
+    cur_lines = []
+    for line in md_text.splitlines():
+        line_s = line.strip()
+        if line.startswith("# "):
+            title = line[2:].strip()
+        elif line.startswith("## "):
+            if cur_lines:
+                sections.append({"name": cur_name, "text": join_lines_smart(cur_lines)})
+                cur_lines = []
+            cur_name = line[3:].strip()
+        elif not line_s.startswith("*Topic:*") and not line_s.startswith("*Words:*") and line_s:
+            cur_lines.append(line_s)
+    if cur_lines:
+        sections.append({"name": cur_name, "text": join_lines_smart(cur_lines)})
+    if not sections and md_text.strip():
+        sections = [{"name": "Narration", "text": md_text.strip()}]
+    from agents.script_writer import words
+    word_count = sum(words(s["text"]) for s in sections)
+    return title, sections, word_count
+
+
 @app.put("/api/projects/{project_id}/stage_data/{stage_name}")
 def update_stage_data_endpoint(project_id: str, stage_name: str, payload: dict[str, Any]):
     p = Project(project_id)
     p.reload()
+    p.sync_avatar_disabled_state()
     if stage_name == "research":
         if "research" in payload:
             p.write_json("research/research.json", payload["research"])
             p.invalidate("script")
     elif stage_name == "script":
+        is_drama = bool(p.settings.get("project_mode") == "short_drama" or p.data.settings.get("project_mode") == "short_drama")
         if "script_json" in payload:
             p.write_json("script/script.json", payload["script_json"])
         if "script_md" in payload:
             md_text = payload["script_md"]
             p.write_text("script/script.md", md_text)
-            sections = []
-            cur_name = "Introduction"
-            cur_lines = []
-            for line in md_text.splitlines():
-                if line.startswith("# "):
-                    p.data.title = line[2:].strip()
-                elif line.startswith("## "):
-                    if cur_lines:
-                        sections.append({"name": cur_name, "text": " ".join(cur_lines).strip()})
-                        cur_lines = []
-                    cur_name = line[3:].strip()
-                elif not line.startswith("*") and line.strip():
-                    cur_lines.append(line.strip())
-            if cur_lines:
-                sections.append({"name": cur_name, "text": " ".join(cur_lines).strip()})
-            if not sections and md_text.strip():
-                sections = [{"name": "Narration", "text": md_text.strip()}]
+            if is_drama:
+                from core.drama_pipeline import parse_drama_script_markdown
+                title, sections = parse_drama_script_markdown(md_text)
+                word_count = sum(len(s.get("dialogue", "")) for s in sections)
+            else:
+                title, sections, word_count = parse_script_markdown_to_sections(md_text)
+            if title:
+                p.data.title = title
             existing_scr = p.read_json("script/script.json", {})
-            existing_scr["title"] = p.data.title or existing_scr.get("title", p.data.topic)
+            existing_scr["title"] = title or existing_scr.get("title", p.data.title or p.data.topic)
             existing_scr["sections"] = sections
-            existing_scr["word_count"] = sum(len(s["text"].split()) for s in sections)
+            existing_scr["word_count"] = word_count
             p.write_json("script/script.json", existing_scr)
+            p.save()
         p.invalidate("scenes")
     elif stage_name in ("scenes", "prompts", "images", "animation"):
         if "scenes" in payload:
-            p.set_scenes([Scene(**s) for s in payload["scenes"]])
+            existing_scenes_map = {s.scene_id: s for s in p.scenes}
+            modified_text_scenes = []
+            incoming_scenes = []
+            for raw_s in payload["scenes"]:
+                sc = Scene(**raw_s)
+                old_sc = existing_scenes_map.get(sc.scene_id)
+                if old_sc and old_sc.narration.strip() != sc.narration.strip():
+                    modified_text_scenes.append(sc.scene_id)
+                    # Narration text changed! Invalidate old audio and mark for TTS regeneration
+                    sc.audio.status = Status.PENDING
+                    sc.audio.error = None
+                    if sc.audio.meta is None:
+                        sc.audio.meta = {}
+                    sc.audio.meta["text_outdated"] = True
+                    sc.audio.meta["previous_narration"] = old_sc.narration
+                incoming_scenes.append(sc)
+            p.set_scenes(incoming_scenes)
             if stage_name == "scenes":
                 p.invalidate("prompts")
+                if modified_text_scenes:
+                    log.info("Scenes %s narration text modified; invalidating voice, subtitles, and render stages", modified_text_scenes)
+                    p.invalidate("voice")
+                    p.set_stage("voice", Status.PENDING)
+                    p.set_stage("subtitles", Status.PENDING)
+                    p.set_stage("render", Status.PENDING)
             elif stage_name == "prompts":
                 p.invalidate("images")
     elif stage_name == "subtitles":
         if "srt" in payload:
             p.write_text("subtitles/subtitles.srt", payload["srt"])
+        if "motion_graphics_callouts" in payload:
+            val = bool(payload["motion_graphics_callouts"])
+            p.settings.setdefault("subtitles", {})["motion_graphics_callouts"] = val
+            p.settings.setdefault("subtitles", {})["callouts_enabled"] = val
+            p.data.settings.setdefault("subtitles", {})["motion_graphics_callouts"] = val
+            p.data.settings.setdefault("subtitles", {})["callouts_enabled"] = val
+            p.save()
         p.invalidate("render")
+    p.clear_clips_cache()
+    p.set_stage("render", Status.PENDING)
+    if not p.is_avatar_enabled():
+        p.data.outputs.pop("final", None)
+    p.save()
     return {"status": "saved", "stage": stage_name}
+
+
+@app.get("/api/projects/{project_id}/export_script")
+def export_project_script_endpoint(project_id: str, format: str = "md"):
+    """Export Stage 2 script in Markdown (.md), clean proofreading text (.txt), or structured JSON (.json)."""
+    p = Project(project_id)
+    p.reload()
+    fmt = format.lower().strip()
+    script_data = p.read_json("script/script.json", {})
+    script_md = p.read_text("script/script.md", "")
+    title = p.data.title or script_data.get("title") or p.data.topic or project_id
+
+    # If script_md is empty but script_json exists, format into markdown
+    if not script_md and script_data.get("sections"):
+        from agents.script_writer import script_markdown
+        script_md = script_markdown(script_data)
+
+    if fmt == "json":
+        content = json.dumps(script_data, indent=2, ensure_ascii=False)
+        media_type = "application/json; charset=utf-8"
+        filename = f"{project_id}_script.json"
+    elif fmt == "txt":
+        # Reader-friendly clean text with section headings and word counts (ideal for Word/Docs proofreading)
+        lines = [f"【腳本校對稿】{title}", "=" * 50, f"主題 (Topic): {p.data.topic}", f"字數統計: {script_data.get('word_count', len(script_md))} words/chars", ""]
+        sections = script_data.get("sections", [])
+        if not sections and script_md:
+            _, sections, _ = parse_script_markdown_to_sections(script_md)
+        for s in sections:
+            lines.append(f"▶ [{s.get('name', 'Section')}]")
+            lines.append(s.get("text", "").strip())
+            lines.append("")
+        content = "\n".join(lines).strip()
+        media_type = "text/plain; charset=utf-8"
+        filename = f"{project_id}_script.txt"
+    else:  # md (default)
+        content = script_md
+        media_type = "text/markdown; charset=utf-8"
+        filename = f"{project_id}_script.md"
+
+    from urllib.parse import quote
+    encoded_fn = quote(filename)
+    headers = {
+        "Content-Disposition": f"attachment; filename*=UTF-8''{encoded_fn}",
+        "Access-Control-Expose-Headers": "Content-Disposition",
+    }
+    return Response(content=content.encode("utf-8"), media_type=media_type, headers=headers)
+
+
+@app.post("/api/projects/{project_id}/import_script")
+async def import_project_script_endpoint(
+    project_id: str,
+    file: Optional[UploadFile] = File(None),
+    content: Optional[str] = Form(None),
+    format: Optional[str] = Form("md")
+):
+    """Import an edited/proofread script (.md, .txt, .json, or raw text) into Stage 2."""
+    p = Project(project_id)
+    p.reload()
+
+    raw_text = ""
+    filename = ""
+    if file:
+        filename = file.filename or ""
+        bytes_data = await file.read()
+        try:
+            raw_text = bytes_data.decode("utf-8")
+        except UnicodeDecodeError:
+            raw_text = bytes_data.decode("utf-8-sig", errors="replace")
+    elif content is not None:
+        raw_text = content
+
+    if not raw_text.strip():
+        raise HTTPException(status_code=400, detail="No script content provided")
+
+    detected_format = "json" if (filename.endswith(".json") or (raw_text.strip().startswith("{") and raw_text.strip().endswith("}"))) else "md"
+    if format:
+        detected_format = format.lower()
+
+    if detected_format == "json":
+        try:
+            parsed_json = json.loads(raw_text)
+            if "sections" in parsed_json:
+                from agents.script_writer import script_markdown
+                md_text = script_markdown(parsed_json)
+                title = parsed_json.get("title", p.data.title or p.data.topic)
+                sections = parsed_json["sections"]
+            elif "script_md" in parsed_json:
+                md_text = parsed_json["script_md"]
+                title, sections, _ = parse_script_markdown_to_sections(md_text)
+            else:
+                title, sections, _ = parse_script_markdown_to_sections(raw_text)
+                md_text = raw_text
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Invalid JSON script: {e}")
+    else:
+        md_text = raw_text
+        title, sections, _ = parse_script_markdown_to_sections(md_text)
+
+    from agents.script_writer import words
+    word_count = sum(words(s.get("text", "")) for s in sections)
+
+    if title:
+        p.data.title = title
+    p.write_text("script/script.md", md_text)
+    script_obj = {
+        "title": title or p.data.title or p.data.topic,
+        "topic": p.data.topic,
+        "language": p.settings.get("video", {}).get("language", "Traditional Chinese"),
+        "word_count": word_count,
+        "sections": sections,
+    }
+    p.write_json("script/script.json", script_obj)
+    p.invalidate("scenes")
+    p.save()
+
+    return {
+        "status": "ok",
+        "title": p.data.title,
+        "sections_count": len(sections),
+        "word_count": word_count,
+        "script_md": md_text,
+    }
+
+
+@app.post("/api/projects/{project_id}/regenerate_from_script")
+def regenerate_from_script_endpoint(
+    project_id: str,
+    background_tasks: BackgroundTasks,
+    payload: Optional[dict[str, Any]] = None
+):
+    """Save the proofread/edited script and automatically re-run the pipeline from Stage 3 (Scenes -> Video)."""
+    p = Project(project_id)
+    p.reload()
+
+    if p.id in active_pipelines and p.data.state == "running":
+        return {"status": "already_running"}
+
+    # If payload provided, save script first
+    if payload and "script_md" in payload:
+        md_text = payload["script_md"]
+        p.write_text("script/script.md", md_text)
+        title, sections, word_count = parse_script_markdown_to_sections(md_text)
+        if title:
+            p.data.title = title
+        existing_scr = p.read_json("script/script.json", {})
+        existing_scr["title"] = title or existing_scr.get("title", p.data.title or p.data.topic)
+        existing_scr["sections"] = sections
+        existing_scr["word_count"] = word_count
+        p.write_json("script/script.json", existing_scr)
+
+    # Invalidate Stage 3 onwards
+    p.invalidate("scenes")
+    p.data.state = "running"
+    p.activity("Stage 3/9: Re-segmenting storyboard scenes from proofread script...")
+    p.save()
+
+    pipeline = Pipeline(p)
+    active_pipelines[p.id] = pipeline
+    background_tasks.add_task(pipeline.run)
+
+    return {"status": "started", "from_stage": "scenes"}
+
+
+def replace_in_obj(obj: Any, pattern: re.Pattern, repl: str) -> tuple[Any, int]:
+    """Recursively search and replace strings in nested dict/list/string structures."""
+    count = 0
+    if isinstance(obj, str):
+        new_val, c = pattern.subn(repl, obj)
+        return new_val, c
+    elif isinstance(obj, dict):
+        new_dict = {}
+        for k, v in obj.items():
+            new_k, c_k = pattern.subn(repl, k) if isinstance(k, str) else (k, 0)
+            new_v, c_v = replace_in_obj(v, pattern, repl)
+            new_dict[new_k] = new_v
+            count += c_k + c_v
+        return new_dict, count
+    elif isinstance(obj, list):
+        new_list = []
+        for item in obj:
+            new_item, c = replace_in_obj(item, pattern, repl)
+            new_list.append(new_item)
+            count += c
+        return new_list, count
+    else:
+        return obj, 0
+
+
+def perform_project_text_replace(
+    p: Project,
+    find_str: str,
+    replace_str: str,
+    match_case: bool = False,
+    stages: Optional[list[str]] = None,
+    auto_invalidate_voice: bool = True,
+    dry_run: bool = False,
+) -> dict[str, Any]:
+    if not find_str:
+        return {
+            "status": "error",
+            "message": "Search keyword cannot be empty.",
+            "total_occurrences": 0,
+            "stages_affected": {},
+            "affected_scene_ids": [],
+            "voice_invalidated": False,
+        }
+
+    flags = 0 if match_case else re.IGNORECASE
+    pattern = re.compile(re.escape(find_str), flags)
+    stages_to_check = set(stages) if stages else {"research", "script", "scenes", "prompts", "subtitles", "project"}
+
+    counts_by_stage: dict[str, int] = {
+        "research": 0,
+        "script": 0,
+        "scenes": 0,
+        "prompts": 0,
+        "subtitles": 0,
+        "project": 0,
+    }
+    affected_scene_ids: list[int] = []
+
+    # 1. Stage 1: Research
+    if "research" in stages_to_check:
+        res_json_path = p.path("research", "research.json")
+        if res_json_path.exists():
+            res_obj = p.read_json("research/research.json", {})
+            new_res_obj, c = replace_in_obj(res_obj, pattern, replace_str)
+            counts_by_stage["research"] = c
+            if c > 0 and not dry_run:
+                p.write_json("research/research.json", new_res_obj)
+
+    # 2. Stage 2: Script
+    if "script" in stages_to_check:
+        script_md_path = p.path("script", "script.md")
+        if script_md_path.exists():
+            old_md = p.read_text("script/script.md", "")
+            new_md, c_md = pattern.subn(replace_str, old_md)
+            counts_by_stage["script"] += c_md
+            if c_md > 0 and not dry_run:
+                p.write_text("script/script.md", new_md)
+
+        script_json_path = p.path("script", "script.json")
+        if script_json_path.exists():
+            old_json = p.read_json("script/script.json", {})
+            new_json, c_json = replace_in_obj(old_json, pattern, replace_str)
+            counts_by_stage["script"] += c_json
+            if c_json > 0 and not dry_run:
+                if "sections" in new_json and isinstance(new_json["sections"], list):
+                    new_json["word_count"] = sum(len(s.get("text", "").split()) for s in new_json["sections"] if isinstance(s, dict))
+                p.write_json("script/script.json", new_json)
+
+    # 3. Stage 3: Scenes
+    if "scenes" in stages_to_check:
+        scenes_changed = False
+        for sc in p.scenes:
+            sc_changed = False
+            # Check narration
+            if sc.narration:
+                new_nar, c_nar = pattern.subn(replace_str, sc.narration)
+                if c_nar > 0:
+                    counts_by_stage["scenes"] += c_nar
+                    sc_changed = True
+                    if not dry_run:
+                        old_narration = sc.narration
+                        sc.narration = new_nar
+                        sc.audio.status = Status.PENDING
+                        sc.audio.error = None
+                        if sc.audio.meta is None:
+                            sc.audio.meta = {}
+                        sc.audio.meta["text_outdated"] = True
+                        sc.audio.meta["previous_narration"] = old_narration
+                    if sc.scene_id not in affected_scene_ids:
+                        affected_scene_ids.append(sc.scene_id)
+
+            # Check phase_turn_text
+            if getattr(sc, "phase_turn_text", None):
+                new_pt, c_pt = pattern.subn(replace_str, sc.phase_turn_text)
+                if c_pt > 0:
+                    counts_by_stage["scenes"] += c_pt
+                    sc_changed = True
+                    if not dry_run:
+                        sc.phase_turn_text = new_pt
+
+            # Check callout_text
+            if getattr(sc, "callout_text", None):
+                new_co, c_co = pattern.subn(replace_str, sc.callout_text)
+                if c_co > 0:
+                    counts_by_stage["scenes"] += c_co
+                    sc_changed = True
+                    if not dry_run:
+                        sc.callout_text = new_co
+
+            # Check visual_description
+            if getattr(sc, "visual_description", None):
+                new_vd, c_vd = pattern.subn(replace_str, sc.visual_description)
+                if c_vd > 0:
+                    counts_by_stage["scenes"] += c_vd
+                    sc_changed = True
+                    if not dry_run:
+                        sc.visual_description = new_vd
+
+            # Check prompt
+            if getattr(sc, "prompt", None):
+                new_pr, c_pr = pattern.subn(replace_str, sc.prompt)
+                if c_pr > 0:
+                    counts_by_stage["scenes"] += c_pr
+                    sc_changed = True
+                    if not dry_run:
+                        sc.prompt = new_pr
+
+            if sc_changed:
+                scenes_changed = True
+
+        if scenes_changed and not dry_run:
+            p.save_scenes()
+
+    # 4. Stage 4: Prompts
+    if "prompts" in stages_to_check:
+        prompts_json_path = p.path("prompts", "image_prompts.json")
+        if prompts_json_path.exists():
+            old_pr = p.read_json("prompts/image_prompts.json", [])
+            new_pr, c_pr = replace_in_obj(old_pr, pattern, replace_str)
+            counts_by_stage["prompts"] = c_pr
+            if c_pr > 0 and not dry_run:
+                p.write_json("prompts/image_prompts.json", new_pr)
+
+    # 5. Subtitles
+    if "subtitles" in stages_to_check:
+        srt_path = p.path("subtitles", "subtitles.srt")
+        if srt_path.exists():
+            old_srt = p.read_text("subtitles/subtitles.srt", "")
+            new_srt, c_srt = pattern.subn(replace_str, old_srt)
+            counts_by_stage["subtitles"] += c_srt
+            if c_srt > 0 and not dry_run:
+                p.write_text("subtitles/subtitles.srt", new_srt)
+
+        ass_path = p.path("subtitles", "subtitles.ass")
+        if ass_path.exists():
+            old_ass = p.read_text("subtitles/subtitles.ass", "")
+            new_ass, c_ass = pattern.subn(replace_str, old_ass)
+            counts_by_stage["subtitles"] += c_ass
+            if c_ass > 0 and not dry_run:
+                p.write_text("subtitles/subtitles.ass", new_ass)
+
+    # 6. Project metadata (title, topic, thumbnail config)
+    if "project" in stages_to_check or "scenes" in stages_to_check:
+        proj_changed = False
+        if p.data.title:
+            new_t, c_t = pattern.subn(replace_str, p.data.title)
+            if c_t > 0:
+                counts_by_stage["project"] += c_t
+                if not dry_run:
+                    p.data.title = new_t
+                    proj_changed = True
+
+        if p.data.topic:
+            new_top, c_top = pattern.subn(replace_str, p.data.topic)
+            if c_top > 0:
+                counts_by_stage["project"] += c_top
+                if not dry_run:
+                    p.data.topic = new_top
+                    proj_changed = True
+
+        thumb_cfg = p.data.settings.get("thumbnail_config")
+        if isinstance(thumb_cfg, dict):
+            new_th, c_th = replace_in_obj(thumb_cfg, pattern, replace_str)
+            if c_th > 0:
+                counts_by_stage["project"] += c_th
+                if not dry_run:
+                    p.data.settings["thumbnail_config"] = new_th
+                    proj_changed = True
+
+        if affected_scene_ids and auto_invalidate_voice and not dry_run:
+            log.info("Text replaced in scenes %s; invalidating voice, subtitles, and render stages", affected_scene_ids)
+            p.invalidate("voice")
+            p.set_stage("voice", Status.PENDING)
+            p.set_stage("subtitles", Status.PENDING)
+            p.set_stage("render", Status.PENDING)
+            proj_changed = True
+
+        if proj_changed and not dry_run:
+            p.save()
+
+    total_occurrences = sum(counts_by_stage.values())
+    return {
+        "status": "success",
+        "find": find_str,
+        "replace": replace_str,
+        "dry_run": dry_run,
+        "total_occurrences": total_occurrences,
+        "stages_affected": counts_by_stage,
+        "affected_scene_ids": sorted(affected_scene_ids),
+        "voice_invalidated": bool(affected_scene_ids and auto_invalidate_voice and not dry_run),
+        "message": f"Replaced {total_occurrences} occurrence(s) across stages." if not dry_run else f"Found {total_occurrences} occurrence(s) across stages."
+    }
+
+
+@app.post("/api/projects/{project_id}/text_replace/preview")
+def preview_text_replace_endpoint(project_id: str, req: TextReplaceRequest):
+    """Preview occurrences of text across project stages (Stage 1, 2, 3, Prompts, Subtitles) without modifying files."""
+    p = Project(project_id)
+    p.reload()
+    return perform_project_text_replace(
+        p=p,
+        find_str=req.find,
+        replace_str=req.replace,
+        match_case=req.match_case,
+        stages=req.stages,
+        auto_invalidate_voice=req.auto_invalidate_voice,
+        dry_run=True,
+    )
+
+
+@app.post("/api/projects/{project_id}/text_replace")
+def execute_text_replace_endpoint(project_id: str, req: TextReplaceRequest):
+    """Atomically search and replace text across Stage 1 (Research), Stage 2 (Script), Stage 3 (Scenes),
+    Stage 4 (Prompts), Subtitles, and Project metadata. Automatically marks affected scenes for voice re-synthesis.
+    """
+    p = Project(project_id)
+    p.reload()
+    result = perform_project_text_replace(
+        p=p,
+        find_str=req.find,
+        replace_str=req.replace,
+        match_case=req.match_case,
+        stages=req.stages,
+        auto_invalidate_voice=req.auto_invalidate_voice,
+        dry_run=False,
+    )
+    # If project is active in memory, reload its internal project state
+    if project_id in active_pipelines:
+        try:
+            active_pipelines[project_id].p.reload()
+        except Exception:
+            pass
+    return result
+
+
+@app.put("/api/projects/{project_id}/subtitle_settings")
+def update_project_subtitle_settings(project_id: str, req: ProjectSubtitleSettingsRequest):
+    p = Project(project_id)
+    p.reload()
+    sub_s = p.data.settings.setdefault("subtitles", {})
+    sub_cfg = p.settings.setdefault("subtitles", {})
+    if req.motion_graphics_callouts is not None:
+        sub_s["motion_graphics_callouts"] = req.motion_graphics_callouts
+        sub_s["callouts_enabled"] = req.motion_graphics_callouts
+        sub_cfg["motion_graphics_callouts"] = req.motion_graphics_callouts
+        sub_cfg["callouts_enabled"] = req.motion_graphics_callouts
+    if req.style is not None:
+        sub_s["style"] = req.style
+        sub_cfg["style"] = req.style
+    if req.font is not None:
+        sub_s["font"] = req.font
+        sub_cfg["font"] = req.font
+    p.save()
+    p.set_stage("subtitles", Status.PENDING)
+    p.invalidate("render")
+    return {"status": "updated", "subtitles": sub_s}
 
 
 @app.post("/api/projects/{project_id}/cancel")
@@ -699,6 +1844,17 @@ def stop_render_endpoint(project_id: str):
     return {"status": "stopped", "killed_ffmpeg": killed_ffmpeg, "project_id": project_id}
 
 
+@app.post("/api/projects/{project_id}/clear_cache")
+def clear_project_cache_endpoint(project_id: str):
+    """Purge intermediate rendered video clips and temp files for a project without deleting assets."""
+    pdir = PROJECTS_DIR / project_id
+    if not pdir.exists():
+        raise HTTPException(status_code=404, detail="Project not found")
+    p = Project(project_id)
+    cleared = p.clear_video_cache()
+    return {"status": "cleared", "project_id": project_id, "cleared_bytes": cleared, "cleared_mb": round(cleared / (1024 * 1024), 2)}
+
+
 @app.delete("/api/projects/{project_id}")
 def delete_project_endpoint(project_id: str):
     if project_id in active_pipelines:
@@ -708,6 +1864,12 @@ def delete_project_endpoint(project_id: str):
             pass
         active_pipelines.pop(project_id, None)
 
+    # Stop any ffmpeg processes that may hold open file handles to clips
+    try:
+        kill_all_ffmpeg_processes()
+    except Exception:
+        pass
+
     pdir = PROJECTS_DIR / project_id
     if not pdir.exists():
         raise HTTPException(status_code=404, detail="Project not found")
@@ -716,7 +1878,7 @@ def delete_project_endpoint(project_id: str):
     if not success and pdir.exists():
         raise HTTPException(status_code=500, detail="Failed to delete project directory")
 
-    log.info("Project '%s' deleted successfully", project_id)
+    log.info("Project '%s' deleted successfully (including all cached video clips)", project_id)
     return {"status": "deleted", "project_id": project_id}
 
 
@@ -725,9 +1887,13 @@ def delete_project_endpoint(project_id: str):
 def update_scenes(project_id: str, scenes: list[Scene]):
     p = Project(project_id)
     p.set_scenes(scenes)
-    # If scenes are updated, invalidate subtitle and render stages so they update on next run
+    p.sync_avatar_disabled_state()
+    p.clear_clips_cache()
     p.set_stage("subtitles", Status.PENDING)
     p.set_stage("render", Status.PENDING)
+    if not p.is_avatar_enabled():
+        p.data.outputs.pop("final", None)
+    p.save()
     return {"status": "updated", "count": len(scenes)}
 
 
@@ -739,8 +1905,9 @@ def get_image_styles():
 @app.get("/api/images/models")
 def get_image_models():
     ckpts = get_available_checkpoints()
-    if "stock" not in ckpts:
-        ckpts = ["stock"] + ckpts
+    for extra_m in ("nano-banana-2.1", "imagen3", "dalle3", "imagen-3.0-generate-002", "gpt-image-1", "fal-ai/flux-1/schnell", "stock"):
+        if extra_m not in ckpts:
+            ckpts = [extra_m] + ckpts
     return {"models": ckpts}
 
 
@@ -836,6 +2003,10 @@ def update_project_image_settings(project_id: str, req: ProjectImageSettingsRequ
             images_s["provider"] = "stock"
             images_s["checkpoint"] = "stock"
             stage_models["images"] = "stock"
+        elif req.checkpoint in ("fal-ai/flux-1/schnell", "fal-ai/flux/schnell", "nano-banana-2.1", "gpt-image-1", "imagen-3.0-generate-002", "dalle3", "imagen3"):
+            images_s["provider"] = req.checkpoint
+            images_s["checkpoint"] = req.checkpoint
+            stage_models["images"] = req.checkpoint
         else:
             images_s["provider"] = "comfyui"
             images_s["checkpoint"] = req.checkpoint
@@ -884,10 +2055,18 @@ def regenerate_scene_image(project_id: str, scene_id: int, req_body: Optional[Re
 
     if chosen_model in ("stock", "stock_photos", "wikimedia", "pexels", "pixabay"):
         prov_name = "stock"
+    elif chosen_model in ("fal-ai/flux-1/schnell", "fal-ai/flux/schnell", "flux-schnell", "fal-flux-schnell", "flux-1-schnell"):
+        prov_name = "fal-ai/flux-1/schnell"
+    elif chosen_model in ("gpt-image-1", "gpt_image_1"):
+        prov_name = "gpt-image-1"
+    elif chosen_model in ("imagen-3.0-generate-002", "imagen-30.0-generate-002", "imagen_3_0_generate_002"):
+        prov_name = "imagen-3.0-generate-002"
     elif chosen_model in ("dalle3", "dall-e-3"):
         prov_name = "dalle3"
     elif chosen_model in ("imagen3", "gemini_image"):
         prov_name = "imagen3"
+    elif chosen_model in ("nano-banana-2.1", "nano_banana_21", "gemini-nano-banana-2.1", "banana"):
+        prov_name = "nano-banana-2.1"
     elif chosen_model == "placeholder":
         prov_name = "placeholder"
     else:
@@ -921,7 +2100,7 @@ def regenerate_scene_image(project_id: str, scene_id: int, req_body: Optional[Re
 
     if prov_name == "stock":
         update_image_progress(project_id, scene_id, 0, 1, "Sourcing online stock photo...")
-    elif prov_name in ("dalle3", "imagen3"):
+    elif prov_name in ("fal-ai/flux-1/schnell", "dalle3", "imagen3", "gpt-image-1", "imagen-3.0-generate-002"):
         update_image_progress(project_id, scene_id, 0, 1, f"Calling {prov_name} cloud API...")
     else:
         update_image_progress(project_id, scene_id, 0, chosen_steps, "Queued in ComfyUI DirectML...")
@@ -937,10 +2116,37 @@ def regenerate_scene_image(project_id: str, scene_id: int, req_body: Optional[Re
         except Exception as ex:
             log.warning("Failed to translate prompt to English: %s", ex)
 
+    target_kw = s.search_keyword
+    target_src = s.media_source
+    if not target_kw:
+        try:
+            from agents.scene_planner import detect_real_world_footage_target
+            auto_mode = img_cfg.get("auto_stock_mode", "balanced")
+            auto_kw, auto_src = detect_real_world_footage_target(s.narration, s.visual_description, mode=auto_mode, topic=p.data.topic or "")
+            if auto_kw:
+                target_kw = auto_kw
+                target_src = auto_src
+        except Exception:
+            pass
+
+    anti_clone_tokens = "multiple people with the same face, cloned faces, identical faces, duplicate faces, identical twins, clone army, copy-paste faces, repeated facial features"
+    curr_neg = (s.negative_prompt or "").strip()
+    if "cloned faces" not in curr_neg.lower():
+        curr_neg = f"{curr_neg}, {anti_clone_tokens}".strip(", ")
+
+    used_stock_keys = set()
+    for other_s in p.scenes:
+        if other_s.scene_id != scene_id and other_s.image and other_s.image.meta:
+            m = other_s.image.meta
+            if m.get("is_stock") or m.get("provider") == "stock":
+                if m.get("media_url"): used_stock_keys.add(m["media_url"])
+                if m.get("title"): used_stock_keys.add(m["title"])
+                if m.get("video_id"): used_stock_keys.add(m["video_id"])
+
     img_path = p.path("images", f"{s.tag}.png")
     req = ImageRequest(
         prompt=raw_prompt,
-        negative=s.negative_prompt,
+        negative=curr_neg,
         seed=chosen_seed,
         width=int(img_cfg.get("width", 1024)),
         height=int(img_cfg.get("height", 576)),
@@ -951,6 +2157,10 @@ def regenerate_scene_image(project_id: str, scene_id: int, req_body: Optional[Re
             "description": s.visual_description,
             "checkpoint": chosen_model,
             "progress_callback": on_image_prog,
+            "search_keyword": target_kw,
+            "media_source": target_src,
+            "used_stock_keys": list(used_stock_keys),
+            "fallback_ai_model": stage_models.get("images") or img_cfg.get("provider") or "nano-banana-2.1",
         }
     )
 
@@ -990,7 +2200,13 @@ def regenerate_scene_image(project_id: str, scene_id: int, req_body: Optional[Re
 def regenerate_scene_voice(project_id: str, scene_id: int, req_body: Optional[RegenVoiceRequest] = None):
     p = Project(project_id)
     s = p.scene(scene_id)
+    if not s:
+        raise HTTPException(status_code=404, detail=f"Scene {scene_id} not found")
     cfg = p.settings
+
+    # If new narration text is supplied, update it first so new speech matches!
+    if req_body and req_body.narration is not None and req_body.narration.strip():
+        s.narration = req_body.narration.strip()
     chosen_profile = (req_body.voice_profile if req_body and req_body.voice_profile else None) or s.voice_profile or p.data.settings.get("voice_profile") or cfg.get("voice", {}).get("profile", "default_local")
     s.voice_profile = chosen_profile
     profile = load_profile(chosen_profile)
@@ -1004,7 +2220,11 @@ def regenerate_scene_voice(project_id: str, scene_id: int, req_body: Optional[Re
     existing_audio_meta = dict(s.audio.meta or {})
     prev_audio_takes = list(existing_audio_meta.get("takes", []))
 
-    meta = synthesize(s.narration, profile, audio_path, cfg)
+    prof_prov = profile.get("provider")
+    stage_voice_prov = p.data.settings.get("stage_models", {}).get("voice") or cfg.get("stage_models", {}).get("voice")
+    prov_override = prof_prov if prof_prov in ("bluemagpie", "cosyvoice", "elevenlabs", "voai", "edge", "sapi", "http_clone") else (stage_voice_prov or prof_prov)
+
+    meta = synthesize(s.narration, profile, audio_path, cfg, provider_override=prov_override)
     merged_audio_meta = dict(existing_audio_meta)
     merged_audio_meta.update(meta)
     merged_audio_meta["voice"] = chosen_profile
@@ -1013,14 +2233,253 @@ def regenerate_scene_voice(project_id: str, scene_id: int, req_body: Optional[Re
     s.audio.path = p.rel(audio_path)
     s.audio.meta = merged_audio_meta
     s.audio_duration = meta.get("duration", 0.0)
+    if s.audio.meta:
+        s.audio.meta.pop("text_outdated", None)
     p.save_scenes()
     try:
         record_scene_voice_take(p, scene_id, p.rel(audio_path), chosen_profile)
     except Exception as ex:
         log.warning("Could not record scene voice take: %s", ex)
-    p.set_stage("subtitles", Status.PENDING)
+
+    # Immediately refresh project subtitles with new words and audio timings
+    try:
+        from core.pipeline import Pipeline
+        Pipeline(p)._run_subtitles()
+    except Exception as ex:
+        log.warning("Could not auto-refresh subtitles after voice regen: %s", ex)
+
     p.set_stage("render", Status.PENDING)
-    return {"status": "regenerated", "meta": s.audio.meta, "scene": s.model_dump(mode="json")}
+    return {
+        "status": "regenerated",
+        "scene_id": scene_id,
+        "narration": s.narration,
+        "audio_duration": s.audio_duration,
+        "audio_url": f"/media/{project_id}/{s.audio.path}",
+        "meta": s.audio.meta,
+        "scene": s.model_dump(mode="json")
+    }
+
+
+class RerenderVoiceAndVideoRequest(BaseModel):
+    voice_profile: Optional[str] = None
+    tts_provider: Optional[str] = None
+    scope: str = "all"  # "all", "mismatched", or "custom"
+    scene_ids: Optional[list[int]] = None
+
+
+@app.post("/api/projects/{project_id}/rerender_voice_and_video")
+def rerender_voice_and_video_endpoint(
+    project_id: str,
+    req: RerenderVoiceAndVideoRequest,
+    background_tasks: BackgroundTasks,
+):
+    if not (PROJECTS_DIR / project_id).exists():
+        raise HTTPException(status_code=404, detail="Project not found")
+    p = Project(project_id)
+    p.reload()
+
+    if p.id in active_pipelines and p.data.state == "running":
+        return {"status": "already_running"}
+
+    pipeline = Pipeline(p)
+    active_pipelines[p.id] = pipeline
+
+    def do_work():
+        try:
+            pipeline.rerender_voice_and_video(
+                voice_profile=req.voice_profile,
+                tts_provider=req.tts_provider,
+                scope=req.scope,
+                scene_ids=req.scene_ids,
+            )
+        finally:
+            active_pipelines.pop(p.id, None)
+
+    background_tasks.add_task(do_work)
+    return {
+        "status": "started",
+        "project_id": p.id,
+        "voice_profile": req.voice_profile,
+        "tts_provider": req.tts_provider,
+        "scope": req.scope,
+    }
+
+
+# ---------------- Human Avatar Replacement & Video Update Endpoints ----------------
+class RerenderAvatarClipsRequest(BaseModel):
+    avatar_profile: Optional[str] = None
+    engine: Optional[str] = None
+    scene_ids: Optional[list[int]] = None
+    voice_profile: Optional[str] = None
+    voice_scope: Optional[str] = "all" 
+
+
+@app.post("/api/projects/{project_id}/rerender_avatar_clips")
+def rerender_avatar_clips_endpoint(
+    project_id: str,
+    req: RerenderAvatarClipsRequest,
+    background_tasks: BackgroundTasks,
+):
+    if not (PROJECTS_DIR / project_id).exists():
+        raise HTTPException(status_code=404, detail="Project not found")
+    p = Project(project_id)
+    p.reload()
+
+    if p.id in active_pipelines and p.data.state == "running":
+        return {"status": "already_running"}
+
+    pipeline = Pipeline(p)
+    active_pipelines[p.id] = pipeline
+
+    def do_work():
+        try:
+            pipeline.rerender_avatar_clips_and_video(
+                avatar_profile=req.avatar_profile,
+                scene_ids=req.scene_ids,
+                engine=req.engine,
+                voice_profile=req.voice_profile,
+                voice_scope=req.voice_scope or "all",
+            )
+        finally:
+            active_pipelines.pop(p.id, None)
+
+    background_tasks.add_task(do_work)
+    return {
+        "status": "started",
+        "project_id": p.id,
+        "avatar_profile": req.avatar_profile,
+        "engine": req.engine,
+        "scene_ids": req.scene_ids,
+        "voice_profile": req.voice_profile,
+        "voice_scope": req.voice_scope,
+    }
+
+
+@app.post("/api/projects/{project_id}/scenes/{scene_id}/upload_avatar_clip")
+async def upload_scene_avatar_clip(
+    project_id: str,
+    scene_id: int,
+    file: UploadFile = File(...),
+    update_video: bool = Form(True),
+    background_tasks: BackgroundTasks = None,
+):
+    p = Project(project_id)
+    s = p.scene(scene_id)
+    if not s:
+        raise HTTPException(status_code=404, detail="Scene not found")
+
+    from providers.stock_client import format_stock_image, format_stock_video
+    from rendering.ffmpeg_utils import run_ffmpeg
+
+    tmp_upload = p.path("temp", f"upload_{s.tag}_{int(time.time())}.mp4")
+    tmp_upload.parent.mkdir(parents=True, exist_ok=True)
+    with open(tmp_upload, "wb") as f:
+        content_bytes = await file.read()
+        f.write(content_bytes)
+
+    out_clip = p.path("animation", f"{s.tag}.mp4")
+    format_stock_video(tmp_upload, out_clip, target_w=1920, target_h=1080, fps=30)
+    try:
+        tmp_upload.unlink()
+    except Exception:
+        pass
+
+    out_img = p.path("images", f"{s.tag}.png")
+    tmp_png = p.path("temp", f"{s.tag}_poster_tmp.png")
+    try:
+        run_ffmpeg(["-ss", "0.5", "-i", str(out_clip), "-vframes", "1", "-q:v", "2", "-y", str(tmp_png)])
+        format_stock_image(tmp_png, out_img, target_w=1920, target_h=1080)
+        s.image.status = Status.COMPLETED
+        s.image.path = p.rel(out_img)
+    except Exception as ex:
+        log.warning("Poster frame extraction note: %s", ex)
+    finally:
+        if tmp_png.exists():
+            try:
+                tmp_png.unlink()
+            except Exception:
+                pass
+
+    s.is_presenter = True
+    s.visual_type = "talking_head"
+    s.animation.status = Status.COMPLETED
+    s.animation.path = p.rel(out_clip)
+    s.animation.meta = {"provider": "custom_upload", "filename": file.filename}
+    s.animation.error = None
+    s.ai_video = True
+    p.save_scenes()
+    p.set_stage("render", Status.PENDING)
+
+    if update_video:
+        pipeline = Pipeline(p)
+        active_pipelines[p.id] = pipeline
+
+        def do_render():
+            try:
+                pipeline.ensure_consistent_project_voice()
+                pipeline._run_render()
+                with p.lock:
+                    p.data.state = "completed"
+                    p.data.activity = f"Scene {scene_id} avatar clip updated & 1080p video refreshed!"
+                    p.save()
+            finally:
+                active_pipelines.pop(p.id, None)
+
+        if background_tasks:
+            background_tasks.add_task(do_render)
+        else:
+            import threading
+            threading.Thread(target=do_render, daemon=True).start()
+
+    return {
+        "status": "ok",
+        "scene_id": scene_id,
+        "clip_url": f"/media/{project_id}/{s.animation.path}",
+        "image_url": f"/media/{project_id}/{s.image.path}",
+        "video_updating": update_video
+    }
+
+
+@app.post("/api/projects/{project_id}/scenes/{scene_id}/rerender_avatar_clip")
+def rerender_single_scene_avatar_clip(
+    project_id: str,
+    scene_id: int,
+    avatar_profile: Optional[str] = None,
+    engine: Optional[str] = None,
+    voice_profile: Optional[str] = None,
+    update_video: bool = True,
+    background_tasks: BackgroundTasks = None,
+):
+    p = Project(project_id)
+    s = p.scene(scene_id)
+    if not s:
+        raise HTTPException(status_code=404, detail="Scene not found")
+
+    if p.id in active_pipelines and p.data.state == "running":
+        return {"status": "already_running"}
+
+    pipeline = Pipeline(p)
+    active_pipelines[p.id] = pipeline
+
+    def do_work():
+        try:
+            pipeline.rerender_avatar_clips_and_video(
+                avatar_profile=avatar_profile,
+                scene_ids=[scene_id],
+                engine=engine,
+                voice_profile=voice_profile,
+                voice_scope="presenter",
+            )
+        finally:
+            active_pipelines.pop(p.id, None)
+
+    if background_tasks:
+        background_tasks.add_task(do_work)
+    else:
+        import threading
+        threading.Thread(target=do_work, daemon=True).start()
+
+    return {"status": "started", "scene_id": scene_id, "avatar_profile": avatar_profile}
 
 
 # ---------------- Stock Footage & Photos ----------------
@@ -1122,6 +2581,482 @@ def apply_stock_media(project_id: str, scene_id: int, req: ApplyStockMediaReques
                 pass
 
 
+# ---------------- Batch Quick Stock Replacement ----------------
+class BatchQuickStockRequest(BaseModel):
+    scope: str = "all"  # "all" | "matched_only"
+    source: str = "auto"  # "auto" | "wikimedia" | "youtube"
+
+
+batch_quick_stock_state: dict[str, Any] = {
+    "is_running": False,
+    "project_id": None,
+    "scope": "all",
+    "current_index": 0,
+    "total_scenes": 0,
+    "current_scene_id": None,
+    "current_target": "",
+    "current_source": "",
+    "replaced_count": 0,
+    "percent": 0,
+    "status": "idle",  # "idle" | "running" | "completed" | "error"
+    "message": "",
+    "errors": [],
+    "updated_at": 0.0,
+}
+
+
+def run_batch_quick_stock_job(project_id: str, scope: str = "all", source: str = "auto"):
+    """Background worker for batch Quick Stock replacement."""
+    global batch_quick_stock_state
+    import tempfile
+    from agents.scene_planner import detect_real_world_footage_target
+    from providers.stock_client import search_stock_media, download_media_file, format_stock_image, extract_stock_search_keywords
+    from providers.youtube_snippet_client import search_youtube_videos, download_youtube_thumbnail
+    from core.models import Status
+
+    p = Project(project_id)
+    cfg = p.settings
+    auto_mode = cfg.get("images", {}).get("auto_stock_mode", "balanced")
+    w = int(cfg.get("video", {}).get("width") or cfg.get("images", {}).get("width") or 1920)
+    h = int(cfg.get("video", {}).get("height") or cfg.get("images", {}).get("height") or 1080)
+
+    scenes = p.active_scenes()
+    total = len(scenes)
+
+    batch_quick_stock_state.update({
+        "is_running": True,
+        "project_id": project_id,
+        "scope": scope,
+        "current_index": 0,
+        "total_scenes": total,
+        "current_scene_id": None,
+        "current_target": "",
+        "current_source": "",
+        "replaced_count": 0,
+        "percent": 0,
+        "status": "running",
+        "message": f"準備分析全片 {total} 個鏡頭...",
+        "errors": [],
+        "updated_at": time.time(),
+    })
+
+    replaced_count = 0
+    errors: list[str] = []
+    query_cache: dict[str, Any] = {}
+    used_stock_keys: set[str] = set()
+
+    # Pre-populate with stock media from scenes that will not be touched in this run
+    for existing_s in scenes:
+        meta = (existing_s.image and existing_s.image.meta) or {}
+        if meta.get("is_stock") or meta.get("provider") == "stock":
+            auto_kw, _ = detect_real_world_footage_target(existing_s.narration, existing_s.visual_description, mode=auto_mode)
+            if not existing_s.search_keyword and not auto_kw:
+                if meta.get("media_url"): used_stock_keys.add(meta["media_url"])
+                if meta.get("title"): used_stock_keys.add(meta["title"])
+                if meta.get("video_id"): used_stock_keys.add(meta["video_id"])
+
+    try:
+        for i, s in enumerate(scenes):
+            target_kw = s.search_keyword
+            pref_src = s.media_source or "wikimedia"
+            if not target_kw:
+                auto_kw, auto_src = detect_real_world_footage_target(s.narration, s.visual_description, mode=auto_mode, topic=p.data.topic or "")
+                if auto_kw:
+                    target_kw = auto_kw
+                    pref_src = auto_src
+
+            # Only replace scenes with verified real-world entities, tech hardware, or user keywords.
+            # Never force stock searches on narrative scenes, character portraits, or abstract hooks!
+            if not target_kw:
+                batch_quick_stock_state["current_index"] = i + 1
+                batch_quick_stock_state["percent"] = round(((i + 1) / total) * 100)
+                continue
+
+            batch_quick_stock_state.update({
+                "current_index": i + 1,
+                "current_scene_id": s.scene_id,
+                "current_target": target_kw,
+                "current_source": pref_src,
+                "percent": round(((i + 1) / total) * 100),
+                "message": f"鏡頭 #{s.scene_id} ({i+1}/{total})：正在抓取「{target_kw}」...",
+                "updated_at": time.time(),
+            })
+            p.activity(f"Quick Stock [{i+1}/{total}]: Sourcing '{target_kw}'...")
+            img_path = p.path("images", f"{s.tag}.png")
+            downloaded = False
+            meta_info: dict[str, Any] = {}
+
+            # 1. If preferred source is youtube_snippet, try YouTube first
+            if (pref_src == "youtube_snippet" or source == "youtube") and target_kw:
+                try:
+                    cache_key = f"yt:{target_kw}"
+                    vids = query_cache.get(cache_key)
+                    if vids is None:
+                        vids = search_youtube_videos(target_kw, limit=5)
+                        query_cache[cache_key] = vids
+                    if vids:
+                        unused_vids = [
+                            v for v in vids
+                            if v.get("id") not in used_stock_keys and v.get("title") not in used_stock_keys and v.get("url") not in used_stock_keys
+                        ]
+                        if unused_vids:
+                            vid = unused_vids[0]
+                            download_youtube_thumbnail(vid["id"], img_path, target_w=w, target_h=h)
+                            meta_info = {
+                                "provider": "stock",
+                                "source": "YouTube Snippet",
+                                "title": vid.get("title"),
+                                "video_id": vid.get("id"),
+                                "channel": vid.get("channel"),
+                                "url": vid.get("url"),
+                                "is_stock": True,
+                            }
+                            if vid.get("id"): used_stock_keys.add(vid["id"])
+                            if vid.get("title"): used_stock_keys.add(vid["title"])
+                            if vid.get("url"): used_stock_keys.add(vid["url"])
+                            downloaded = True
+                except Exception as ey:
+                    log.warning("Batch quick stock: YouTube thumbnail failed for '%s': %s", target_kw, ey)
+
+            # 2. If not downloaded yet, search Wikimedia / Pexels / Pixabay
+            if not downloaded:
+                try:
+                    stock_src = source if source in ("wikimedia", "pexels", "pixabay") else "auto"
+                    cache_key = f"stock:{stock_src}:{target_kw}"
+                    results = query_cache.get(cache_key)
+                    if results is None:
+                        results = search_stock_media(query=target_kw, media_type="image", source=stock_src, limit=15)
+                        if not results and s.visual_description:
+                            results = search_stock_media(query=s.visual_description[:80], media_type="image", source=stock_src, limit=15)
+                        if not results:
+                            results = search_stock_media(query="technology infrastructure modern", media_type="image", source="wikimedia", limit=5)
+                        query_cache[cache_key] = results
+
+                    if results:
+                        # DEDUPLICATION: filter out stock photos already assigned to other scenes
+                        unused_results = [
+                            r for r in results
+                            if r.get("media_url") not in used_stock_keys and r.get("title") not in used_stock_keys
+                        ]
+                        if unused_results:
+                            chosen = unused_results[0]
+                            with tempfile.NamedTemporaryFile(suffix=".tmp", delete=False) as tmp:
+                                tmp_p = Path(tmp.name)
+                            try:
+                                download_media_file(chosen["media_url"], tmp_p)
+                                format_stock_image(tmp_p, img_path, target_w=w, target_h=h)
+                                meta_info = {
+                                    "provider": "stock",
+                                    "source": chosen.get("source", "Wikimedia"),
+                                    "title": chosen.get("title"),
+                                    "author": chosen.get("author"),
+                                    "license": chosen.get("license"),
+                                    "media_url": chosen.get("media_url"),
+                                    "is_stock": True,
+                                }
+                                if chosen.get("media_url"): used_stock_keys.add(chosen["media_url"])
+                                if chosen.get("title"): used_stock_keys.add(chosen["title"])
+                                downloaded = True
+                            finally:
+                                if tmp_p.exists():
+                                    try:
+                                        tmp_p.unlink()
+                                    except Exception:
+                                        pass
+                        else:
+                            # All stock candidates for this query are already used! Fall back to AI generation
+                            log.info("Batch quick stock: All stock candidates for '%s' already used. Preserving / generating AI visual for Scene #%d.", target_kw, s.scene_id)
+                            takes = (s.image and s.image.meta and s.image.meta.get("takes")) or []
+                            ai_takes = [t for t in takes if t.get("style") != "stock" and not str(t.get("model", "")).startswith("Quick Stock")]
+                            if ai_takes:
+                                switch_scene_image_take(p, s.scene_id, ai_takes[0]["take"])
+                                log.info("Batch quick stock: Switched Scene #%d back to AI Take #%d.", s.scene_id, ai_takes[0]["take"])
+                            else:
+                                try:
+                                    ai_model_name = p.settings.get("stage_models", {}).get("images") or "nano-banana-2.1"
+                                    ai_prov = get_image_provider(ai_model_name, p.settings)
+                                    if ai_prov.available()[0]:
+                                        ai_req = ImageRequest(
+                                            prompt=s.prompt or s.visual_description,
+                                            negative=s.negative_prompt or "",
+                                            seed=s.seed or random.randint(1, 999999),
+                                            width=w, height=h,
+                                            output=img_path,
+                                            extra={"description": s.visual_description}
+                                        )
+                                        ai_meta = ai_prov.generate(ai_req)
+                                        s.image.status = Status.COMPLETED
+                                        s.image.path = p.rel(img_path)
+                                        merged = dict(s.image.meta or {})
+                                        merged.update(ai_meta)
+                                        merged["is_stock"] = False
+                                        s.image.meta = merged
+                                        record_scene_image_take(p, s.scene_id, p.rel(img_path), ai_model_name, s.prompt or "", "ai")
+                                        p.save_scenes()
+                                except Exception as e_gen:
+                                    log.warning("Batch quick stock: Fallback AI generation failed for Scene #%d: %s", s.scene_id, e_gen)
+                except Exception as es:
+                    log.warning("Batch quick stock: Stock search failed for '%s': %s", target_kw, es)
+                    errors.append(f"Scene #{s.scene_id}: {es}")
+
+            if downloaded:
+                s.image.status = Status.COMPLETED
+                s.image.path = p.rel(img_path)
+                s.image.error = None
+                merged_meta = dict(s.image.meta or {})
+                merged_meta.update(meta_info)
+                s.image.meta = merged_meta
+                try:
+                    record_scene_image_take(
+                        p, s.scene_id, p.rel(img_path),
+                        f"Quick Stock ({meta_info.get('source', 'Stock')})",
+                        target_kw, "stock"
+                    )
+                except Exception as ex:
+                    log.debug("record_scene_image_take note: %s", ex)
+                replaced_count += 1
+                batch_quick_stock_state["replaced_count"] = replaced_count
+                p.save_scenes()
+
+        p.save_scenes()
+        p.set_stage("render", Status.PENDING)
+        p.activity(f"Quick Stock complete: Replaced {replaced_count}/{total} images.")
+        batch_quick_stock_state.update({
+            "is_running": False,
+            "status": "completed",
+            "percent": 100,
+            "replaced_count": replaced_count,
+            "message": f"Quick Stock 完成！共替換 {replaced_count}/{total} 個鏡頭圖片。",
+            "errors": errors,
+            "updated_at": time.time(),
+        })
+    except Exception as exc:
+        log.exception("Fatal error in run_batch_quick_stock_job: %s", exc)
+        batch_quick_stock_state.update({
+            "is_running": False,
+            "status": "error",
+            "message": f"Quick Stock 執行中斷: {str(exc)}",
+            "updated_at": time.time(),
+        })
+
+
+@app.post("/api/projects/{project_id}/batch_quick_stock")
+def batch_quick_stock_endpoint(project_id: str, req: BatchQuickStockRequest, background_tasks: BackgroundTasks):
+    """Batch replace images with real-world Quick Stock footage & photos asynchronously in background."""
+    global batch_quick_stock_state
+    if batch_quick_stock_state.get("is_running") and batch_quick_stock_state.get("project_id") == project_id:
+        return {
+            "status": "already_running",
+            "message": "Quick Stock 批次處理已在進行中，請稍候...",
+            "state": batch_quick_stock_state
+        }
+
+    p = Project(project_id)
+    scenes = p.active_scenes()
+    total = len(scenes)
+
+    background_tasks.add_task(run_batch_quick_stock_job, project_id, req.scope, req.source)
+
+    return {
+        "status": "started",
+        "message": "Quick Stock 批次處理已在背景啟動！",
+        "project_id": project_id,
+        "total": total,
+        "scope": req.scope
+    }
+
+
+@app.get("/api/projects/{project_id}/batch_quick_stock/status")
+def get_batch_quick_stock_status(project_id: str):
+    """Get live progress of the batch quick stock background worker."""
+    global batch_quick_stock_state
+    return batch_quick_stock_state
+
+
+# ---------------- YouTube Footage & Snippet Extraction ----------------
+class YouTubeFootageRequest(BaseModel):
+    query_or_url: str
+    mode: str = "clip"  # "clip" (short 2-3s clip + screenshot) or "screenshot"
+    start_sec: Optional[float] = None
+    duration_sec: float = 3.0
+
+
+@app.get("/api/youtube/search")
+def search_youtube_endpoint(q: str = Query(..., description="Search query"), limit: int = Query(5, ge=1, le=10)):
+    from providers.youtube_snippet_client import search_youtube_videos
+    try:
+        results = search_youtube_videos(query=q, limit=limit)
+        return {"query": q, "results": results}
+    except Exception as e:
+        log.error("YouTube search endpoint failed for query '%s': %s", q, e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/projects/{project_id}/scenes/{scene_id}/youtube_footage")
+def apply_youtube_footage(project_id: str, scene_id: int, req: YouTubeFootageRequest):
+    p = Project(project_id)
+    s = p.scene(scene_id)
+    if not s:
+        raise HTTPException(status_code=404, detail=f"Scene {scene_id} not found")
+
+    from providers.youtube_snippet_client import extract_youtube_snippet
+    from core.versioning import record_scene_image_take
+
+    as_clip = (req.mode == "clip")
+    img_path = p.path("images", f"{s.tag}.png")
+    clip_path = p.path("animation", f"{s.tag}.mp4") if as_clip else None
+    dur = float(req.duration_sec or 3.0)
+
+    try:
+        res = extract_youtube_snippet(
+            query_or_url=req.query_or_url,
+            output_video_path=clip_path,
+            output_image_path=img_path,
+            duration_sec=dur,
+            start_sec=req.start_sec,
+            as_clip=as_clip
+        )
+
+        s.search_keyword = req.query_or_url
+        s.media_source = res.get("media_source", "youtube_snippet" if as_clip else "youtube_screenshot")
+
+        if img_path.exists():
+            s.image.status = Status.COMPLETED
+            s.image.path = p.rel(img_path)
+            s.image.meta = {
+                "provider": "youtube",
+                "search_keyword": req.query_or_url,
+                "video_id": res.get("video_id"),
+                "title": res.get("title"),
+                "url": res.get("url"),
+                "media_source": s.media_source,
+                "start_sec": res.get("start_sec"),
+            }
+            s.image.error = None
+            try:
+                record_scene_image_take(p, scene_id, p.rel(img_path), "YouTube Footage", res.get("title") or req.query_or_url, "youtube")
+            except Exception as tk_err:
+                log.debug("Record take note: %s", tk_err)
+
+        if as_clip and clip_path and clip_path.exists():
+            s.animation.status = Status.COMPLETED
+            s.animation.path = p.rel(clip_path)
+            s.animation.meta = {
+                "provider": "youtube",
+                "video_id": res.get("video_id"),
+                "title": res.get("title"),
+                "source_url": res.get("url"),
+                "duration": dur,
+                "start_sec": res.get("start_sec"),
+            }
+            s.animation.error = None
+            s.ai_video = True
+
+        p.save_scenes()
+        p.set_stage("render", Status.PENDING)
+        return {"status": "applied", "scene": s.model_dump(mode="json"), "footage": res}
+    except Exception as e:
+        log.error("Failed to extract YouTube footage for scene %d: %s", scene_id, e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ---------------- Remotion Motion Graphics ----------------
+@app.post("/api/remotion/render")
+def render_remotion_clip(req: RemotionRenderRequest):
+    """Render a standalone Remotion clip (no project). Output lives in remotion-video/out/renders."""
+    from generators.remotion_cards import RENDERS_DIR, render_card
+    out_id = f"remotion_{int(time.time())}_{random.randint(100, 999)}"
+    mp4_out = RENDERS_DIR / f"{out_id}.mp4"
+    fps = int(req.fps or 30)
+    seconds = (req.duration_frames or 120) / fps
+    try:
+        render_card(req.props, mp4_out, seconds, bg_image=None, fps=fps, composition=req.composition)
+    except Exception as e:
+        log.error("Remotion render error: %s", e)
+        raise HTTPException(status_code=500, detail=str(e))
+    return {"status": "success", "composition": req.composition, "mp4_path": str(mp4_out),
+            "mp4_url": f"/remotion-out/renders/{mp4_out.name}", "filename": mp4_out.name}
+
+
+@app.get("/api/remotion/styles")
+def get_remotion_styles():
+    """List available Remotion visual card styles."""
+    from generators.remotion_cards import REMOTION_STYLES
+    return REMOTION_STYLES
+
+
+@app.post("/api/projects/{project_id}/remotion/apply")
+def apply_remotion_to_scene(project_id: str, req: RemotionRenderRequest):
+    """Render a card over the scene's own (dimmed) image and use it as that scene's clip.
+
+    Empty props fields are filled from the scene's key information.
+    """
+    from generators.remotion_cards import extract_card_props, render_scene_card
+    if req.scene_id is None:
+        raise HTTPException(status_code=400, detail="scene_id is required")
+    p = Project(project_id)
+    p.reload()
+    s = p.get_scene(req.scene_id)
+    if not s:
+        raise HTTPException(status_code=404, detail=f"Scene {req.scene_id} not found")
+
+    auto = extract_card_props(s)
+    props = {**auto, **{k: v for k, v in (req.props or {}).items() if v not in (None, "")}}
+    comp = req.composition or "TechCard"
+    try:
+        render_scene_card(p, s, props=props, fps=int(req.fps or 30), composition=comp)
+    except Exception as e:
+        log.error("Remotion apply failed for scene %d: %s", req.scene_id, e)
+        raise HTTPException(status_code=500, detail=str(e))
+    s.ai_video = False
+    p.save_scenes()
+    p.set_stage("render", Status.PENDING)
+    return {"status": "applied", "scene_id": req.scene_id, "scene": s.model_dump(mode="json"),
+            "clip": {"mp4_url": f"/media/{project_id}/{s.animation.path}", "props": props, "composition": comp}}
+
+
+@app.get("/api/projects/{project_id}/remotion/props/{scene_id}")
+def get_remotion_scene_props(project_id: str, scene_id: int):
+    """Auto-extracted card text for one scene."""
+    from generators.remotion_cards import extract_card_props
+    p = Project(project_id)
+    p.reload()
+    s = p.get_scene(scene_id)
+    if not s:
+        raise HTTPException(status_code=404, detail=f"Scene {scene_id} not found")
+    return {"scene_id": scene_id, "props": extract_card_props(s)}
+
+
+@app.get("/api/projects/{project_id}/remotion/critical")
+def preview_remotion_critical_scenes(project_id: str):
+    """Which scenes would get a card, and with what text (no rendering)."""
+    from generators.remotion_cards import extract_card_props, select_critical_scenes
+    p = Project(project_id)
+    p.reload()
+    return {"scenes": [{"scene_id": s.scene_id, "props": extract_card_props(s)}
+                       for s in select_critical_scenes(p.active_scenes())]}
+
+
+@app.post("/api/projects/{project_id}/remotion/auto")
+def auto_remotion_critical_scenes(project_id: str, background_tasks: BackgroundTasks,
+                                  composition: str = "TechCard"):
+    """Render cards for all critical scenes in the background."""
+    from generators.remotion_cards import render_critical_scene_cards, select_critical_scenes
+    p = Project(project_id)
+    p.reload()
+    picked = select_critical_scenes(p.active_scenes())
+
+    def work():
+        p.activity(f"Rendering {len(picked)} Remotion {composition} card(s) for critical scenes...")
+        ids = render_critical_scene_cards(p, picked, select=False, composition=composition)
+        p.save_scenes()
+        p.set_stage("render", Status.PENDING)
+        p.activity(f"Remotion {composition} cards ready for scenes {ids}")
+
+    background_tasks.add_task(work)
+    return {"status": "started", "scene_ids": [s.scene_id for s in picked], "composition": composition}
+
+
 # ---------------- Preview & Rendering ----------------
 @app.post("/api/projects/{project_id}/render_draft")
 def render_draft(project_id: str, background_tasks: BackgroundTasks):
@@ -1156,6 +3091,47 @@ def render_draft(project_id: str, background_tasks: BackgroundTasks):
 
     background_tasks.add_task(do_render)
     return {"status": "rendering_draft"}
+
+
+@app.post("/api/projects/{project_id}/fast_rerender_video")
+def fast_rerender_video_endpoint(project_id: str, background_tasks: BackgroundTasks):
+    """Fast re-render: re-conforms ONLY modified/uploaded scene clips, reuses all cached scenes, and updates final 1080p MP4."""
+    p = Project(project_id)
+    p.reload()
+    if p.id in active_pipelines and p.data.state == "running":
+        return {"status": "already_running"}
+
+    pipeline = Pipeline(p)
+    active_pipelines[p.id] = pipeline
+    p.data.state = "running"
+    p.activity("Fast re-render: Updating modified scenes & re-stitching 1080p video...")
+    p.save()
+
+    def do_render():
+        try:
+            pipeline.ensure_consistent_project_voice()
+            pipeline._run_subtitles()
+            pipeline._run_render()
+            p.data.state = "completed"
+            p.activity("Final 1080p video successfully updated! Replaced modified scenes.")
+            p.save()
+        except PipelineCancelled:
+            p.data.state = "paused"
+            p.activity("Rendering stopped by user")
+            p.save()
+        except Exception as e:
+            if pipeline.is_cancelled() or "cancelled" in str(e).lower():
+                p.data.state = "paused"
+                p.activity("Rendering stopped by user")
+            else:
+                p.data.state = "failed"
+                p.activity(f"Render failed: {e}")
+            p.save()
+        finally:
+            active_pipelines.pop(p.id, None)
+
+    background_tasks.add_task(do_render)
+    return {"status": "started", "project_id": project_id}
 
 
 @app.post("/api/projects/{project_id}/render_final")
@@ -1214,7 +3190,11 @@ def serve_project_file(project_id: str, file_path: str):
     if not str(target_path).startswith(str(base_dir)):
         raise HTTPException(status_code=403, detail="Forbidden")
     if not target_path.exists() or not target_path.is_file():
-        raise HTTPException(status_code=404, detail="File not found")
+        ext_alt = Path(r"D:\youtube channel video") / target_path.name
+        if ext_alt.exists() and ext_alt.is_file():
+            target_path = ext_alt
+        else:
+            raise HTTPException(status_code=404, detail="File not found")
 
     ext = target_path.suffix.lower()
     if ext == ".mp4":
@@ -1226,13 +3206,45 @@ def serve_project_file(project_id: str, file_path: str):
     else:
         media_type = "application/octet-stream"
 
-    return FileResponse(target_path, media_type=media_type)
+    no_cache = {"Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache", "Expires": "0"}
+    return FileResponse(target_path, media_type=media_type, headers=no_cache)
 
 
 # ---------------- Voice Management ----------------
 @app.get("/api/voices")
 def get_voices():
     return list_profiles()
+
+
+def _extract_bluemagpie_centroid_if_needed(voice_name: str) -> None:
+    """Extract 192-dim ECAPA speaker centroid for BlueMagpie-TTS voice profile to prevent gibberish."""
+    try:
+        clean_name = re.sub(r"[^a-zA-Z0-9_\-]", "_", voice_name.strip())
+        voice_dir = DATA_DIR / "voices" / clean_name
+        ref_wav_p = voice_dir / "reference.wav"
+        centroid_p = voice_dir / "speaker_centroid.pt"
+        if ref_wav_p.exists():
+            bm_py = ROOT / ".venv_bluemagpie" / "Scripts" / "python.exe"
+            runner = bm_py if bm_py.exists() else Path(sys.executable)
+            extract_script = ROOT / "scripts" / "extract_speaker_centroid.py"
+            if extract_script.exists():
+                res = subprocess.run(
+                    [str(runner), str(extract_script), "--audio", str(ref_wav_p), "--out", str(centroid_p)],
+                    capture_output=True,
+                    text=True,
+                    timeout=45,
+                )
+                if res.returncode == 0:
+                    v_json_p = voice_dir / "voice.json"
+                    if v_json_p.exists():
+                        prof_data = json.loads(v_json_p.read_text(encoding="utf-8"))
+                        prof_data["speaker_centroid"] = centroid_p.relative_to(ROOT).as_posix()
+                        v_json_p.write_text(json.dumps(prof_data, indent=2), encoding="utf-8")
+                    log.info("Centroid successfully extracted & linked for BlueMagpie profile '%s'", voice_name)
+                else:
+                    log.warning("Centroid extraction exit code %s for '%s': %s", res.returncode, voice_name, res.stderr)
+    except Exception as e:
+        log.warning("Centroid extraction exception for '%s': %s", voice_name, e)
 
 
 @app.post("/api/voices")
@@ -1243,12 +3255,19 @@ async def create_voice(
     voice: str = Form(""),
     voice_id: str = Form(""),
     model_id: str = Form("eleven_multilingual_v2"),
+    voai_style: str = Form("預設"),
+    pitch_shift: float = Form(0.0),
+    breath_pause: float = Form(0.0),
     stability: float = Form(0.5),
     similarity_boost: float = Form(0.75),
     language: str = Form("English"),
     speech_rate: float = Form(1.0),
     is_default: bool = Form(False),
+    reference_text: str = Form(""),
     reference_file: Optional[UploadFile] = File(None),
+    cfg_value: Optional[float] = Form(2.8),
+    inference_timesteps: Optional[int] = Form(18),
+    chunk_sentences: Optional[bool] = Form(True),
 ):
     ref_bytes = await reference_file.read() if reference_file else None
     data = {
@@ -1263,28 +3282,82 @@ async def create_voice(
         "speech_rate": speech_rate,
         "is_default": is_default,
     }
+    if reference_text.strip():
+        data["reference_text"] = reference_text.strip()
+    if provider == "bluemagpie":
+        data["cfg_value"] = float(cfg_value) if cfg_value is not None else 2.8
+        data["inference_timesteps"] = int(inference_timesteps) if inference_timesteps is not None else 18
+        data["chunk_sentences"] = bool(chunk_sentences) if chunk_sentences is not None else True
+    if provider == "voai":
+        data["speaker"] = voice_id or voice or "佑希"
+        data["version"] = model_id or "Sota+"
+        data["voai_style"] = voai_style or "預設"
+        data["pitch_shift"] = pitch_shift
+        data["breath_pause"] = breath_pause
+    if provider == "cosyvoice" and not ref_bytes:
+        existing = DATA_DIR / "voices" / re.sub(r"[^a-zA-Z0-9_\-]", "_", name.strip()) / "reference.wav"
+        if not existing.exists():
+            raise HTTPException(status_code=400, detail=f"{provider} needs a reference voice clip (3–15 s of clean speech)")
     prof = save_profile(name, data, reference_wav=ref_bytes, ref_filename=reference_file.filename if reference_file else "ref.wav")
     return prof
 
 
-@app.delete("/api/voices/{name}")
-def remove_voice(name: str):
-    delete_profile(name)
-    return {"status": "deleted"}
+@app.post("/api/voices/{name}/reference")
+async def replace_voice_reference(
+    name: str,
+    reference_file: UploadFile = File(...),
+    reference_text: str = Form(""),
+    auto_transcribe: bool = Form(False),
+):
+    """Upload a new voice clip for an existing profile (customise the cloned voice)."""
+    target_dir = DATA_DIR / "voices" / name
+    if not (target_dir / "voice.json").exists():
+        found = False
+        for p in (DATA_DIR / "voices").iterdir():
+            if p.is_dir() and p.name.lower() == name.lower() and (p / "voice.json").exists():
+                name = p.name
+                found = True
+                break
+        if not found:
+            raise HTTPException(status_code=404, detail=f"Voice profile '{name}' not found")
+    data: dict[str, Any] = {}
+    if reference_text.strip():
+        data["reference_text"] = reference_text.strip()
+    prof = save_profile(name, data, reference_wav=await reference_file.read(), ref_filename=reference_file.filename or "ref.wav")
+    if auto_transcribe and not reference_text.strip():
+        try:
+            prof = save_profile(name, {"reference_text": _transcribe_reference(prof)})
+        except Exception as e:
+            prof["transcribe_error"] = str(e)
+    return prof
 
 
-@app.get("/api/voices/{voice_name}/test_sample")
-def get_voice_test_sample(voice_name: str):
-    test_out = DATA_DIR / "voices" / voice_name / "test_sample.wav"
-    if not test_out.exists() or test_out.stat().st_size == 0:
-        raise HTTPException(status_code=404, detail="Test sample not found")
-    return FileResponse(test_out, media_type="audio/wav")
+class VoiceProfileUpdate(BaseModel):
+    display_name: Optional[str] = None
+    provider: Optional[str] = None
+    reference_text: Optional[str] = None
+    speech_rate: Optional[float] = None
+    language: Optional[str] = None
+    is_default: Optional[bool] = None
+    cosyvoice_mode: Optional[str] = None  # auto | zero_shot | cross_lingual
+    cfg_value: Optional[float] = None
+    inference_timesteps: Optional[int] = None
+    chunk_sentences: Optional[bool] = None
+    crossfade_ms: Optional[float] = None
 
 
 @app.post("/api/voices/test")
 def test_voice(req: VoiceTestRequest):
-    prof = load_profile(req.voice_name)
-    voice_dir = DATA_DIR / "voices" / req.voice_name
+    vname = req.voice_name
+    target_dir = DATA_DIR / "voices" / vname
+    if not (target_dir / "voice.json").exists():
+        for p in (DATA_DIR / "voices").iterdir():
+            if p.is_dir() and p.name.lower() == vname.lower() and (p / "voice.json").exists():
+                vname = p.name
+                target_dir = p
+                break
+    prof = load_profile(vname)
+    voice_dir = target_dir
     voice_dir.mkdir(parents=True, exist_ok=True)
     test_out = voice_dir / "test_sample.wav"
 
@@ -1305,6 +3378,150 @@ def test_voice(req: VoiceTestRequest):
     )
 
 
+@app.get("/api/voices/{voice_name}/test_sample")
+def get_voice_test_sample(voice_name: str):
+    target_dir = DATA_DIR / "voices" / voice_name
+    if not (target_dir / "voice.json").exists():
+        for p in (DATA_DIR / "voices").iterdir():
+            if p.is_dir() and p.name.lower() == voice_name.lower():
+                voice_name = p.name
+                target_dir = p
+                break
+    test_out = target_dir / "test_sample.wav"
+    if not test_out.exists() or test_out.stat().st_size == 0:
+        raise HTTPException(status_code=404, detail="Test sample not found")
+    return FileResponse(test_out, media_type="audio/wav")
+
+
+@app.get("/api/voices/{name}")
+def get_voice_profile_detail(name: str):
+    """Retrieve full detail for a single voice profile."""
+    try:
+        return load_profile(name)
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@app.post("/api/voices/{name}")
+@app.put("/api/voices/{name}")
+@app.patch("/api/voices/{name}")
+def update_voice_profile(name: str, req: VoiceProfileUpdate):
+    """Edit profile fields in place (keeps the provider and clip unless changed)."""
+    # Case-insensitive directory lookup fallback
+    target_dir = DATA_DIR / "voices" / name
+    if not (target_dir / "voice.json").exists():
+        found = False
+        for p in (DATA_DIR / "voices").iterdir():
+            if p.is_dir() and p.name.lower() == name.lower() and (p / "voice.json").exists():
+                name = p.name
+                found = True
+                break
+        if not found:
+            raise HTTPException(status_code=404, detail=f"Voice profile '{name}' not found")
+    changes = {k: v for k, v in req.model_dump().items() if v is not None}
+    prof = save_profile(name, changes)
+    if {"reference_text", "speech_rate", "provider", "cosyvoice_mode", "cfg_value", "inference_timesteps"} & changes.keys():
+        (DATA_DIR / "voices" / name / "test_sample.wav").unlink(missing_ok=True)
+    return prof
+
+
+def _transcribe_reference(prof: dict) -> str:
+    from providers.tts import CosyVoiceTTS
+    ref = prof.get("reference_wav") or ""
+    path = (ROOT / ref).resolve() if ref else None
+    if not path or not path.exists():
+        raise HTTPException(status_code=400, detail="Profile has no reference clip")
+    lang = "zh" if "chinese" in (prof.get("language") or "").lower() or "中文" in (prof.get("language") or "") else \
+        ("en" if (prof.get("language") or "").lower().startswith("en") else "zh")
+    return CosyVoiceTTS.transcribe(str(path), language=lang)
+
+
+@app.get("/api/voices/{name}/transcribe")
+@app.post("/api/voices/{name}/transcribe")
+def transcribe_voice_reference(name: str, save: bool = True):
+    """Whisper-transcribe the profile's clip (runs inside the CosyVoice server)."""
+    target_dir = DATA_DIR / "voices" / name
+    if not (target_dir / "voice.json").exists():
+        for p in (DATA_DIR / "voices").iterdir():
+            if p.is_dir() and p.name.lower() == name.lower() and (p / "voice.json").exists():
+                name = p.name
+                break
+    prof = load_profile(name)
+    try:
+        text = _transcribe_reference(prof)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    if save:
+        save_profile(name, {"reference_text": text})
+        (DATA_DIR / "voices" / name / "test_sample.wav").unlink(missing_ok=True)
+    return {"name": name, "reference_text": text}
+
+
+@app.get("/api/tts/cosyvoice/status")
+def cosyvoice_status():
+    from providers.tts import _cosyvoice_health
+    installed = (ROOT / ".venv_cosyvoice" / "Scripts" / "python.exe").exists()
+    model = (ROOT / "tools" / "CosyVoice" / "pretrained_models" / "CosyVoice2-0.5B" / "cosyvoice2.yaml").exists()
+    return {"installed": installed, "model_downloaded": model, "server": _cosyvoice_health("http://127.0.0.1:50000")}
+
+
+@app.get("/api/tts/bluemagpie/status")
+def bluemagpie_status():
+    from providers.tts import BlueMagpieTTS
+    installed = (ROOT / ".venv_bluemagpie" / "Scripts" / "python.exe").exists()
+    hf_cache = Path.home() / ".cache" / "huggingface" / "hub" / "models--OpenFormosa--BlueMagpie-TTS" / "snapshots"
+    snapshot_path = None
+    if hf_cache.exists():
+        snapshots = list(hf_cache.glob("*"))
+        if snapshots:
+            snapshot_path = str(snapshots[0])
+
+    bm_cfg = load_providers().get("tts", {}).get("bluemagpie", {})
+    p = BlueMagpieTTS(bm_cfg)
+    avail, desc = p.available()
+    return {
+        "installed": installed,
+        "available": avail,
+        "desc": desc,
+        "checkpoint": "step_0006000+ (2026-07 Verified)",
+        "snapshot_path": snapshot_path,
+        "reference_wav_supported": True,
+        "speaker_centroid_supported": True,
+        "official_guidance": "聲音複製需提供 3 秒以上乾淨人聲（背景無噪音）。請確認使用的是 step_0006000 之後的 checkpoint。https://github.com/OpenFormosa/BlueMagpie-TTS",
+    }
+
+
+class VoiceRenameRequest(BaseModel):
+    new_name: Optional[str] = None
+    new_display_name: Optional[str] = None
+
+
+@app.post("/api/voices/{name}/rename")
+def rename_voice_profile_endpoint(name: str, req: VoiceRenameRequest):
+    from generators.voice_generator import rename_profile
+    try:
+        prof = rename_profile(
+            old_name=name,
+            new_name=req.new_name or name,
+            new_display_name=req.new_display_name,
+        )
+        return {"status": "ok", "profile": prof}
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/api/voices/{name}")
+def remove_voice(name: str):
+    delete_profile(name)
+    return {"status": "deleted"}
+
+
 # ---------------- Settings & Providers ----------------
 @app.get("/api/settings")
 def get_all_settings():
@@ -1316,9 +3533,15 @@ def get_all_settings():
         "secrets_configured": {
             "GEMINI_API_KEY": bool(get_secret("GEMINI_API_KEY")),
             "OPENAI_API_KEY": bool(get_secret("OPENAI_API_KEY")),
+            "FAL_KEY": bool(get_secret("FAL_KEY") or get_secret("FAL_API_KEY")),
             "KLING_API_KEY": bool(get_secret("KLING_API_KEY")),
             "RUNWAY_API_KEY": bool(get_secret("RUNWAY_API_KEY")),
             "ELEVENLABS_API_KEY": bool(get_secret("ELEVENLABS_API_KEY")),
+            "VOAI_API_KEY": bool(get_secret("VOAI_API_KEY") or get_secret("VOAI_KEY")),
+            "PEXELS_API_KEY": bool(get_secret("PEXELS_API_KEY")),
+            "PIXABAY_API_KEY": bool(get_secret("PIXABAY_API_KEY")),
+            "HEDRA_API_KEY": bool(get_secret("HEDRA_API_KEY") or get_secret("HEDRA_KEY")),
+            "MINIMAX_API_KEY": bool(get_secret("MINIMAX_API_KEY") or get_secret("MINIMAX_KEY")),
         }
     }
 
@@ -1342,6 +3565,19 @@ def get_elevenlabs_models():
     }
 
 
+@app.get("/api/voai/speakers")
+def get_voai_speakers():
+    from providers.tts import VoAITTS
+    key = get_secret("VOAI_API_KEY") or get_secret("VOAI_KEY") or ""
+    info = VoAITTS.fetch_speakers(key)
+    return {
+        "configured": bool(key),
+        "models": info["models"],
+        "speakers": info["speakers"],
+        "live": info.get("live", False),
+    }
+
+
 @app.post("/api/settings")
 def update_all_settings(req: UpdateSettingsRequest):
     if req.settings:
@@ -1354,6 +3590,22 @@ def update_all_settings(req: UpdateSettingsRequest):
         for k, v in req.secrets.items():
             if v is not None:
                 set_secret(k, v)
+                if k == "FAL_KEY":
+                    set_secret("FAL_API_KEY", v)
+                elif k == "FAL_API_KEY":
+                    set_secret("FAL_KEY", v)
+                elif k == "VOAI_API_KEY":
+                    set_secret("VOAI_KEY", v)
+                elif k == "VOAI_KEY":
+                    set_secret("VOAI_API_KEY", v)
+                elif k == "HEDRA_API_KEY":
+                    set_secret("HEDRA_KEY", v)
+                elif k == "HEDRA_KEY":
+                    set_secret("HEDRA_API_KEY", v)
+                elif k == "MINIMAX_API_KEY":
+                    set_secret("MINIMAX_KEY", v)
+                elif k == "MINIMAX_KEY":
+                    set_secret("MINIMAX_API_KEY", v)
     return {"status": "saved"}
 
 
@@ -1438,7 +3690,793 @@ def youtube_upload_status(project_id: str):
     return get_upload_status(project_id)
 
 
+# ---------------- YouTube Thumbnail (縮圖) Studio ----------------
+class ThumbnailRenderRequest(BaseModel):
+    template: Optional[str] = None
+    color_preset: Optional[str] = None
+    primary_color: Optional[str] = None
+    secondary_color: Optional[str] = None
+    kicker_color: Optional[str] = None
+    random_color: Optional[bool] = None
+    font_family: Optional[str] = None
+    font_weight: Optional[str] = None
+    top_kicker: Optional[str] = None
+    main_title: Optional[str] = None
+    left_line1: Optional[str] = None
+    left_line2: Optional[str] = None
+    right_line1: Optional[str] = None
+    right_line2: Optional[str] = None
+    bg_source: Optional[str] = None
+    subject_overlap: Optional[bool] = None
+    overlap_strength: Optional[float] = None
+    title_scale: Optional[float] = None
+    darken: Optional[float] = None
+    grain: Optional[float] = None
+    duration_badge: Optional[str] = None
+    auto_copy: Optional[bool] = False
+    billing_credits: Optional[Any] = None
+    stamp_text: Optional[str] = None
+    show_avatar_badge: Optional[bool] = None
+    default_top_kicker: Optional[str] = None
+    use_llm_copy: Optional[bool] = None
+
+
+@app.get("/api/settings/thumbnail-defaults")
+def get_thumbnail_default_settings():
+    from generators.thumbnail_generator import (
+        COLOR_PRESETS,
+        FONT_PRESETS,
+        TEMPLATES,
+        get_default_thumbnail_config,
+    )
+    return {
+        "config": get_default_thumbnail_config(),
+        "templates": TEMPLATES,
+        "color_presets": COLOR_PRESETS,
+        "font_presets": FONT_PRESETS,
+    }
+
+
+@app.post("/api/settings/thumbnail-preview")
+def preview_default_thumbnail(req: ThumbnailRenderRequest):
+    from generators.thumbnail_generator import COLOR_PRESETS, render_sample_thumbnail
+    opts = req.model_dump(exclude_none=True)
+    if req.random_color or req.color_preset == "random":
+        opts["primary_color"] = None
+        opts["secondary_color"] = None
+        opts["kicker_color"] = None
+        opts["color_preset"] = "random"
+        opts["random_color"] = True
+    elif req.color_preset == "custom" or (req.primary_color and req.color_preset not in COLOR_PRESETS):
+        opts["color_preset"] = "custom"
+        opts["random_color"] = False
+        opts["primary_color"] = req.primary_color
+        opts["secondary_color"] = req.secondary_color or req.primary_color
+        opts["kicker_color"] = req.kicker_color or req.primary_color
+    elif req.color_preset in COLOR_PRESETS:
+        preset = COLOR_PRESETS[req.color_preset]
+        opts["random_color"] = False
+        opts["primary_color"] = preset["primary"]
+        opts["secondary_color"] = preset["secondary"]
+        opts["kicker_color"] = preset["kicker"]
+    return render_sample_thumbnail(options=opts)
+
+
+@app.get("/api/settings/thumbnail-preview-image")
+def get_default_thumbnail_preview_image():
+    from generators.thumbnail_generator import render_sample_thumbnail
+    preview_path = DATA_DIR / "default_thumbnail_preview.png"
+    if not preview_path.exists():
+        render_sample_thumbnail()
+    return FileResponse(str(preview_path), media_type="image/png")
+
+
+@app.get("/api/projects/{project_id}/thumbnail")
+def get_project_thumbnail(project_id: str):
+    from generators.thumbnail_generator import (
+        COLOR_PRESETS,
+        FONT_PRESETS,
+        TEMPLATES,
+        get_default_thumbnail_config,
+        render_project_thumbnail,
+    )
+    p = Project(project_id)
+    thumb_file = p.path("output", "thumbnail.png")
+    if not thumb_file.exists():
+        render_project_thumbnail(p)
+    cfg = dict(get_default_thumbnail_config())
+    proj_cfg = p.data.settings.get("thumbnail_config") or {}
+    if isinstance(proj_cfg, dict):
+        cfg.update({k: v for k, v in proj_cfg.items() if v is not None})
+    scenes_list = []
+    for s in p.scenes:
+        if s.image and s.image.path and p.abs(s.image.path).exists():
+            scenes_list.append({
+                "scene_id": s.scene_id,
+                "label": f"Scene {s.scene_id}: {(s.narration or s.visual_description or '')[:32]}",
+                "image_url": f"/media/{project_id}/{s.image.path}",
+            })
+    has_custom_bg = p.path("output", "thumbnail_bg_custom.png").exists()
+    return {
+        "project_id": project_id,
+        "thumbnail_url": f"/media/{project_id}/output/thumbnail.png?t={int(time.time() * 1000)}",
+        "thumbnail_path": str(thumb_file),
+        "config": cfg,
+        "default_config": get_default_thumbnail_config(),
+        "templates": TEMPLATES,
+        "color_presets": COLOR_PRESETS,
+        "font_presets": FONT_PRESETS,
+        "scenes": scenes_list,
+        "has_custom_bg": has_custom_bg,
+    }
+
+
+
+@app.post("/api/projects/{project_id}/thumbnail/auto-copy")
+def generate_project_thumbnail_copy(project_id: str):
+    from generators.thumbnail_generator import generate_thumbnail_copy_zh_tw
+    p = Project(project_id)
+    copy_zh = generate_thumbnail_copy_zh_tw(p, use_llm=True)
+    return {"status": "ok", "copy": copy_zh}
+
+
+@app.post("/api/projects/{project_id}/thumbnail/render")
+def render_custom_project_thumbnail(project_id: str, req: ThumbnailRenderRequest):
+    from generators.thumbnail_generator import COLOR_PRESETS, render_project_thumbnail
+    p = Project(project_id)
+    opts = req.model_dump(exclude_none=True)
+    if req.random_color or req.color_preset == "random":
+        opts["primary_color"] = None
+        opts["secondary_color"] = None
+        opts["kicker_color"] = None
+        opts["color_preset"] = "random"
+        opts["random_color"] = True
+    elif req.color_preset == "custom" or (req.primary_color and req.color_preset not in COLOR_PRESETS):
+        opts["color_preset"] = "custom"
+        opts["random_color"] = False
+        opts["primary_color"] = req.primary_color
+        opts["secondary_color"] = req.secondary_color or req.primary_color
+        opts["kicker_color"] = req.kicker_color or req.primary_color
+    else:
+        preset_key = opts.get("color_preset", "neon_green")
+        opts["random_color"] = False
+        if preset_key in COLOR_PRESETS and preset_key != "custom":
+            preset = COLOR_PRESETS[preset_key]
+            opts["primary_color"] = req.primary_color or preset["primary"]
+            opts["secondary_color"] = preset["secondary"]
+            opts["kicker_color"] = preset["kicker"]
+    res = render_project_thumbnail(p, options=opts)
+    thumb_file = p.path("output", "thumbnail.png")
+    return {
+        "status": "ok",
+        "thumbnail_url": f"/media/{project_id}/output/thumbnail.png?t={int(time.time() * 1000)}",
+        "thumbnail_path": str(thumb_file),
+        "config": res["config"],
+    }
+
+
+@app.post("/api/projects/{project_id}/thumbnail/upload-bg")
+async def upload_project_thumbnail_bg(project_id: str, file: UploadFile = File(...)):
+    from PIL import Image
+    import io
+    p = Project(project_id)
+    raw = await file.read()
+    out_dir = p.path("output")
+    out_dir.mkdir(parents=True, exist_ok=True)
+    bg_path = out_dir / "thumbnail_bg_custom.png"
+    with Image.open(io.BytesIO(raw)) as im:
+        im.convert("RGB").save(bg_path, format="PNG")
+    return {"status": "ok", "bg_source": "custom"}
+
+
+
+# ---------------- Trending Topics & Queue ----------------
+@app.get("/api/topics/queue")
+def get_topic_queue():
+    return {"queue": load_topic_queue()}
+
+
+class DiscoverTopicRequest(BaseModel):
+    type: str = "trend"  # "trend" | "dynasty" | "history" | "ai" | "ai_news" | "ai_tech"
+
+
+@app.post("/api/topics/discover")
+async def discover_popular_topic(req: Optional[DiscoverTopicRequest] = None, type: Optional[str] = None):
+    query_type = type.lower() if type else None
+    body_type = req.type.lower() if (req and req.type and req.type != "trend") else (req.type.lower() if req and req.type else None)
+    chosen_type = query_type or body_type or "trend"
+    queue = load_topic_queue()
+    existing_topics = [t.get("topic", "") for t in queue]
+    if chosen_type in ("ai", "ai_news", "ai_tech", "ai_technology"):
+        new_topic = await asyncio.to_thread(discover_ai_topic, existing_topics)
+    elif chosen_type in ("dynasty", "history", "dynasty_trivia", "chinese_dynasty"):
+        new_topic = await asyncio.to_thread(discover_dynasty_topic, existing_topics)
+    else:
+        new_topic = await asyncio.to_thread(discover_trending_topic, existing_topics)
+    queue.insert(0, new_topic)
+    save_topic_queue(queue)
+    return {"topic": new_topic, "queue": queue}
+
+
+@app.post("/api/topics/discover/ai")
+async def discover_ai_technology_topic():
+    queue = load_topic_queue()
+    existing_topics = [t.get("topic", "") for t in queue]
+    new_topic = await asyncio.to_thread(discover_ai_topic, existing_topics)
+    queue.insert(0, new_topic)
+    save_topic_queue(queue)
+    return {"topic": new_topic, "queue": queue}
+
+
+@app.post("/api/topics/discover/history")
+async def discover_dynasty_history_topic():
+    queue = load_topic_queue()
+    existing_topics = [t.get("topic", "") for t in queue]
+    new_topic = await asyncio.to_thread(discover_dynasty_topic, existing_topics)
+    queue.insert(0, new_topic)
+    save_topic_queue(queue)
+    return {"topic": new_topic, "queue": queue}
+
+
+@app.delete("/api/topics/queue/{topic_id}")
+def delete_queued_topic(topic_id: str):
+    queue = load_topic_queue()
+    queue = [t for t in queue if t.get("id") != topic_id]
+    save_topic_queue(queue)
+    return {"queue": queue}
+
+
+@app.delete("/api/topics/queue")
+def clear_topic_queue():
+    save_topic_queue([])
+    return {"queue": []}
+
+
+
+# ---------------- AI Talking Avatar Endpoints ----------------
+@app.get("/api/avatars")
+def get_avatars():
+    from generators.avatar_generator import list_avatars
+    return {"avatars": list_avatars()}
+
+
+class UpdateAvatarVoiceRequest(BaseModel):
+    voice_profile: Optional[str] = None
+
+
+@app.post("/api/avatars/{name}/voice_profile")
+def set_avatar_voice_profile(name: str, req: UpdateAvatarVoiceRequest):
+    import json as _json
+    from generators.avatar_generator import AVATARS_DIR
+    aj = AVATARS_DIR / name / "avatar.json"
+    if not aj.exists():
+        raise HTTPException(status_code=404, detail="Avatar not found")
+    prof = _json.loads(aj.read_text(encoding="utf-8"))
+    prof["voice_profile"] = req.voice_profile or None
+    aj.write_text(_json.dumps(prof, indent=2, ensure_ascii=False), encoding="utf-8")
+    for sp in (AVATARS_DIR / name).glob("test_sample*.mp4"):
+        try:
+            sp.unlink(missing_ok=True)
+        except OSError:
+            pass
+    return {"status": "ok", "name": name, "voice_profile": prof.get("voice_profile")}
+
+
+@app.post("/api/avatars")
+async def create_or_update_avatar(
+    name: str = Form(...),
+    display_name: Optional[str] = Form(None),
+    provider: Optional[str] = Form("fal-ai/latentsync"),
+    layout: Optional[str] = Form("fullscreen"),
+    voice_profile: Optional[str] = Form(None),
+    is_default: Optional[bool] = Form(False),
+    is_masked: Optional[bool] = Form(False),
+    file: Optional[UploadFile] = File(None),
+    video_file: Optional[UploadFile] = File(None),
+):
+    import asyncio
+    from generators.avatar_generator import save_avatar, save_base_video, load_avatar, AVATARS_DIR
+    img_bytes = await file.read() if file else None
+    video_bytes = await video_file.read() if video_file else None
+
+    # Determine if this is a masked speaker avatar
+    masked = bool(is_masked) or provider == "masked_speaker"
+    eff_provider = "masked_speaker" if masked else (provider or "fal-ai/latentsync")
+
+    # If avatar doesn't exist yet, ensure either photo or video was supplied
+    av_dir = AVATARS_DIR / name
+    has_existing = av_dir.exists() and (av_dir / "avatar.json").exists()
+    if not has_existing and (not img_bytes or len(img_bytes) == 0) and (not video_bytes or len(video_bytes) == 0):
+        raise HTTPException(
+            status_code=400,
+            detail="請上傳肖像照片或戴口罩真人自錄影片 (Please upload a portrait photo or recorded video)"
+        )
+
+    data = {
+        "display_name": display_name or name,
+        "provider": eff_provider,
+        "layout": layout or "fullscreen",
+        "voice_profile": (voice_profile.strip() if voice_profile else None) or None,
+        "is_default": bool(is_default),
+        "is_masked": masked,
+    }
+    saved = save_avatar(name, data, image_bytes=img_bytes)
+
+    if video_bytes and len(video_bytes) > 0:
+        if len(video_bytes) > 300 * 1024 * 1024:
+            raise HTTPException(status_code=413, detail="Base video too large (max 300MB)")
+        await asyncio.to_thread(save_base_video, name, video_bytes, video_file.filename or "upload.mp4")
+        saved = load_avatar(name)
+
+    return {"status": "ok", "avatar": saved}
+
+
+@app.delete("/api/avatars/{name}")
+def remove_avatar(name: str):
+    from generators.avatar_generator import delete_avatar
+    delete_avatar(name)
+    return {"status": "deleted", "name": name}
+
+
+@app.get("/api/avatars/image/{name}")
+def get_avatar_image(name: str):
+    from generators.avatar_generator import AVATARS_DIR
+    target = AVATARS_DIR / name / "portrait.png"
+    if not target.exists():
+        raise HTTPException(status_code=404, detail="Avatar portrait not found")
+    return FileResponse(target, media_type="image/png")
+
+
+@app.get("/api/avatars/sample/{name}")
+def get_avatar_sample(name: str, engine: Optional[str] = None):
+    from generators.avatar_generator import AVATARS_DIR, ENGINES
+    if engine and engine in ENGINES:
+        target = AVATARS_DIR / name / f"test_sample__{engine}.mp4"
+    else:
+        target = AVATARS_DIR / name / "test_sample.mp4"
+    if not target.exists():
+        raise HTTPException(status_code=404, detail="Avatar test sample video not found")
+    return FileResponse(target, media_type="video/mp4")
+
+
+@app.get("/api/avatars/engines")
+def get_avatar_engines():
+    from generators.avatar_generator import ENGINES
+    return {"engines": [{"key": k, **v} for k, v in ENGINES.items()]}
+
+
+@app.post("/api/avatars/{name}/base_video")
+async def upload_avatar_base_video(name: str, file: UploadFile = File(...)):
+    """Upload a 10-30s silent clip of yourself talking/gesturing; used by LatentSync."""
+    from generators.avatar_generator import save_base_video
+    data = await file.read()
+    if len(data) > 300 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="Base video too large (max 300MB)")
+    try:
+        return await asyncio.to_thread(save_base_video, name, data, file.filename or "upload.mp4")
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Base video processing failed: {e}")
+
+
+@app.get("/api/avatars/base_video/{name}")
+def get_avatar_base_video(name: str):
+    from generators.avatar_generator import AVATARS_DIR
+    target = AVATARS_DIR / name / "base_video.mp4"
+    if not target.exists():
+        raise HTTPException(status_code=404, detail="Base video not found")
+    return FileResponse(target, media_type="video/mp4")
+
+
+@app.post("/api/avatars/{name}/provider")
+def set_avatar_provider(name: str, engine: str):
+    """Adopt a compared engine as this avatar's production lip-sync engine."""
+    import json as _json
+    from generators.avatar_generator import AVATARS_DIR, ENGINES
+    if engine not in ENGINES:
+        raise HTTPException(status_code=400, detail=f"Unknown engine {engine}")
+    aj = AVATARS_DIR / name / "avatar.json"
+    if not aj.exists():
+        raise HTTPException(status_code=404, detail="Avatar not found")
+    if ENGINES[engine]["needs"] == "video" and not (AVATARS_DIR / name / "base_video.mp4").exists():
+        raise HTTPException(status_code=400, detail="請先上傳真人底片影片才能使用此引擎")
+    prof = _json.loads(aj.read_text(encoding="utf-8"))
+    prof["provider"] = ENGINES[engine]["provider"]
+    if engine == "masked_speaker":
+        prof["is_masked"] = True
+    aj.write_text(_json.dumps(prof, indent=2, ensure_ascii=False), encoding="utf-8")
+    return {"status": "ok", "provider": prof["provider"]}
+
+
+@app.post("/api/avatars/{name}/rotate")
+def rotate_avatar_endpoint(name: str, degrees: int = 90):
+    from generators.avatar_generator import rotate_avatar_image
+    try:
+        return rotate_avatar_image(name, degrees=degrees)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Avatar portrait not found")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/avatars/{name}/test")
+async def test_avatar_generation(name: str, engine: Optional[str] = None):
+    """Render a short lip-sync test clip. With ?engine=<key>, renders with that engine for side-by-side comparison."""
+    from generators.avatar_generator import (
+        load_avatar, generate_talking_avatar, AVATARS_DIR, ENGINES, get_avatar_test_speech_audio,
+    )
+
+    av = load_avatar(name)
+    if not av:
+        raise HTTPException(status_code=404, detail="Avatar not found")
+
+    out_dir = AVATARS_DIR / name
+    portrait = out_dir / "portrait.png"
+    base_vid = out_dir / "base_video.mp4"
+    if not portrait.exists() and base_vid.exists():
+        from rendering.ffmpeg_utils import run_ffmpeg
+        try:
+            run_ffmpeg(["-ss", "0.5", "-i", str(base_vid), "-vframes", "1", "-q:v", "2", "-y", str(portrait)])
+        except Exception:
+            pass
+
+    if not portrait.exists() and not base_vid.exists():
+        raise HTTPException(status_code=400, detail="Avatar profile requires a portrait photo or base video")
+    if engine and engine not in ENGINES:
+        raise HTTPException(status_code=400, detail=f"Unknown engine {engine}")
+
+    out_dir = AVATARS_DIR / name
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out_sample = out_dir / (f"test_sample__{engine}.mp4" if engine else "test_sample.mp4")
+
+    # Use real speech audio for realistic lip-sync phoneme detection (preferring avatar's bound voice)
+    speech_wav = get_avatar_test_speech_audio(av.get("voice_profile"))
+    if not speech_wav.exists():
+        raise HTTPException(status_code=500, detail="Could not obtain speech audio for lip-sync test")
+
+    try:
+        meta = await asyncio.to_thread(
+            generate_talking_avatar, speech_wav, av, out_sample, engine=engine, strict=bool(engine)
+        )
+    except Exception as e:
+        out_sample.unlink(missing_ok=True)
+        raise HTTPException(status_code=500, detail=str(e))
+    url = f"/api/avatars/sample/{name}" + (f"?engine={engine}" if engine else "")
+    return {"status": "ok", "sample_url": url, "meta": meta}
+
+
+@app.post("/api/projects/{project_id}/scenes/{scene_id}/toggle_presenter")
+def toggle_scene_presenter(project_id: str, scene_id: int, req: Optional[TogglePresenterRequest] = None):
+    p = Project(project_id)
+    s = p.scene(scene_id)
+    if not s:
+        raise HTTPException(status_code=404, detail="Scene not found")
+
+    if req and req.is_presenter is not None:
+        s.is_presenter = req.is_presenter
+    else:
+        s.is_presenter = not getattr(s, "is_presenter", False)
+
+    if req and req.avatar_profile:
+        s.avatar_profile = req.avatar_profile
+
+    if s.is_presenter:
+        s.visual_type = "talking_head"
+    elif s.visual_type == "talking_head":
+        s.visual_type = "image"
+
+    p.save_scenes()
+    p.set_stage("animation", Status.PENDING)
+    p.set_stage("render", Status.PENDING)
+    return {
+        "scene_id": s.scene_id,
+        "is_presenter": s.is_presenter,
+        "visual_type": s.visual_type,
+        "avatar_profile": s.avatar_profile
+    }
+
+
+class ApplyPresenterPlacementRequest(BaseModel):
+    placement: str = "intro_middle_outro"
+    avatar_profile: Optional[str] = None
+
+
+@app.post("/api/projects/{project_id}/apply_presenter_placement")
+def apply_project_presenter_placement(project_id: str, req: ApplyPresenterPlacementRequest):
+    from core.pipeline import apply_presenter_placement
+    p = Project(project_id)
+    scenes = p.scenes
+    if not scenes:
+        raise HTTPException(status_code=400, detail="No scenes found for this project")
+
+    p.data.settings["presenter_placement"] = req.placement
+    p.data.settings["auto_presenter"] = (req.placement != "none")
+    if req.avatar_profile:
+        p.data.settings["default_avatar"] = req.avatar_profile
+
+    updated_scenes = apply_presenter_placement(
+        scenes,
+        req.placement,
+        req.avatar_profile or p.data.settings.get("default_avatar")
+    )
+    p.set_scenes(updated_scenes)
+    p.set_stage("animation", Status.PENDING)
+    p.set_stage("render", Status.PENDING)
+    p.save()
+
+    presenter_ids = [s.scene_id for s in updated_scenes if getattr(s, "is_presenter", False)]
+    return {
+        "status": "ok",
+        "placement": req.placement,
+        "avatar_profile": req.avatar_profile or p.data.settings.get("default_avatar"),
+        "presenter_scenes_count": len(presenter_ids),
+        "presenter_scene_ids": presenter_ids,
+    }
+
+
+# ---------------- Drama Character Endpoints ----------------
+@app.get("/api/characters")
+def get_characters():
+    from generators.character_manager import list_characters
+    return {"characters": list_characters()}
+
+
+@app.get("/api/characters/{char_id}")
+def get_character_endpoint(char_id: str):
+    from generators.character_manager import load_character
+    c = load_character(char_id)
+    if not c:
+        raise HTTPException(status_code=404, detail="Character not found")
+    return c
+
+
+@app.get("/api/characters/image/{char_id}")
+def get_character_image_endpoint(char_id: str):
+    from generators.character_manager import CHARACTERS_DIR
+    target = CHARACTERS_DIR / char_id / "portrait.png"
+    if not target.exists():
+        raise HTTPException(status_code=404, detail="Character portrait not found")
+    return FileResponse(target, media_type="image/png")
+
+
+@app.post("/api/characters")
+async def create_or_update_character_endpoint(
+    id: str = Form(...),
+    name: str = Form(...),
+    role: str = Form("關鍵人物"),
+    gender: str = Form("male"),
+    age: int = Form(30),
+    appearance: str = Form(""),
+    voice_persona: str = Form(""),
+    voice_profile: str = Form("default_local"),
+    file: Optional[UploadFile] = File(None)
+):
+    from generators.character_manager import save_character
+    data = {
+        "name": name,
+        "role": role,
+        "gender": gender,
+        "age": age,
+        "appearance": appearance,
+        "voice_persona": voice_persona,
+        "voice_profile": voice_profile,
+    }
+    img_bytes = await file.read() if file else None
+    saved = save_character(id, data, img_bytes)
+    return {"status": "ok", "character": saved}
+
+
+@app.delete("/api/characters/{char_id}")
+def delete_character_endpoint(char_id: str):
+    from generators.character_manager import delete_character
+    ok = delete_character(char_id)
+    return {"status": "ok" if ok else "not_found", "id": char_id}
+
+
+class GeneratePortraitRequest(BaseModel):
+    prompt: str
+    aspect_ratio: Optional[str] = "1:1"
+
+
+@app.post("/api/characters/{char_id}/generate_portrait")
+def generate_character_portrait_endpoint(char_id: str, req: GeneratePortraitRequest):
+    from generators.character_manager import generate_character_portrait_ai
+    res = generate_character_portrait_ai(char_id, req.prompt, req.aspect_ratio or "1:1")
+    return res
+
+
+# ---------------- Action & Gesture Registry API ----------------
+@app.get("/api/actions/gestures")
+def get_action_gestures():
+    """List available dramatic action postures and gesture specifications."""
+    from core.action_registry import list_all_gestures
+    return list_all_gestures()
+
+
+class SceneActionAssignRequest(BaseModel):
+    gesture_tag: str
+
+
+@app.post("/api/projects/{project_id}/scenes/{scene_id}/gesture")
+def assign_scene_gesture(project_id: str, scene_id: int, req: SceneActionAssignRequest):
+    """Assign or override specific gesture tag to a scene."""
+    from core.action_registry import get_gesture_by_tag
+    p = Project(project_id)
+    p.reload()
+    s = p.get_scene(scene_id)
+    if not s:
+        raise HTTPException(status_code=404, detail=f"Scene {scene_id} not found")
+    g = get_gesture_by_tag(req.gesture_tag)
+    if not g:
+        raise HTTPException(status_code=400, detail=f"Gesture {req.gesture_tag} not found")
+    s.action_gesture = g.tag
+    s.action = f"[gesture: {g.tag}]"
+    s.action_prompt = g.visual_prompt
+    s.motion_prompt = g.motion_prompt
+    p.save_scenes()
+    return {"status": "ok", "scene_id": scene_id, "gesture": g}
+
+
+class SceneVideoGenerateRequest(BaseModel):
+    engine: Optional[str] = "minimax"
+    motion_prompt: Optional[str] = None
+
+
+@app.post("/api/projects/{project_id}/scenes/{scene_id}/generate_video")
+def generate_scene_video_endpoint(project_id: str, scene_id: int, req: SceneVideoGenerateRequest):
+    """Generate dynamic video clip for a scene using MiniMax Video-01 or Hedra."""
+    p = Project(project_id)
+    p.reload()
+    s = p.get_scene(scene_id)
+    if not s:
+        raise HTTPException(status_code=404, detail=f"Scene {scene_id} not found")
+
+    img_cand = p.abs(s.image.path) if s.image and s.image.path else p.path("images", f"{s.tag}.png")
+    if not img_cand or not img_cand.exists():
+        raise HTTPException(status_code=400, detail="Scene does not have an image yet. Run Stage 5 first.")
+
+    aud_cand = p.abs(s.audio.path) if s.audio and s.audio.path else p.path("audio", f"{s.tag}.wav")
+    out_clip = p.path("animation", f"{s.tag}.mp4")
+
+    engine = (req.engine or "minimax").lower()
+    if engine in ("minimax", "video-01", "hailuo"):
+        from generators.minimax_client import generate_minimax_character_video
+        m_prompt = req.motion_prompt or s.motion_prompt or (s.action_prompt and f"{s.action_prompt}, expressive facial acting and head turn") or "Natural expressive eye contact and hand gestures, vertical 9:16 video"
+        meta = generate_minimax_character_video(portrait_path=img_cand, prompt=m_prompt, output_mp4=out_clip, audio_path=aud_cand)
+        s.animation.status = Status.COMPLETED
+        s.animation.path = p.rel(out_clip)
+        s.animation.meta = meta
+        p.save_scenes()
+        return {"status": "ok", "provider": "minimax", "clip_url": f"/media/{project_id}/{s.animation.path}", "scene": s.model_dump(mode="json")}
+    elif engine == "hedra":
+        from generators.hedra_client import generate_hedra_character_video, get_hedra_key
+        h_key = get_hedra_key()
+        if not h_key:
+            raise HTTPException(status_code=400, detail="HEDRA_API_KEY is not configured")
+        meta = generate_hedra_character_video(img_cand, aud_cand, out_clip, h_key, text_prompt=s.narration)
+        s.animation.status = Status.COMPLETED
+        s.animation.path = p.rel(out_clip)
+        s.animation.meta = meta
+        p.save_scenes()
+        return {"status": "ok", "provider": "hedra", "clip_url": f"/media/{project_id}/{s.animation.path}", "scene": s.model_dump(mode="json")}
+    else:
+        raise HTTPException(status_code=400, detail=f"Unsupported video engine: {engine}")
+
+
+class GenerateDramaScriptRequest(BaseModel):
+    topic: str
+    formula: Optional[str] = "workplace_revenge"
+    formula_key: Optional[str] = None
+    duration_seconds: Optional[int] = 50
+    duration_sec: Optional[int] = None
+    characters: Optional[list[dict[str, Any]]] = None
+
+
+@app.post("/api/drama/generate_script")
+def api_generate_drama_script(req: GenerateDramaScriptRequest):
+    """Generate structured screenplay script tailored to target duration (e.g. 50s or 90s)."""
+    from agents.drama_agent import generate_drama_script_for_duration
+    from providers.llm import LLMClient
+    client = LLMClient("research")
+    fk = req.formula_key or req.formula or "workplace_revenge"
+    dur = int(req.duration_sec or req.duration_seconds or 50)
+    res = generate_drama_script_for_duration(
+        topic=req.topic,
+        formula_key=fk,
+        duration_sec=dur,
+        characters=req.characters,
+        client=client
+    )
+    return res
+
+
+class ExtractCharactersRequest(BaseModel):
+    script: str
+    topic: Optional[str] = None
+
+
+@app.post("/api/drama/extract_characters")
+def extract_characters_from_script(req: ExtractCharactersRequest):
+    """Analyze script and extract character roster with suggested vocal personas."""
+    from providers.llm import LLMClient
+    client = LLMClient("research")
+    prompt = f"""請分析以下微短劇劇本，精確提取出場角色清單（約 2~4 位）。
+劇本主題: {req.topic or '短劇劇本'}
+劇本內容:
+{req.script}
+
+請為每位角色指派適合的設定，以嚴格的 JSON 陣列格式回傳：
+[
+  {{
+    "id": "英文字母簡稱 (如 manager_wang, shen_director)",
+    "name": "劇中名字 (如 王經理, 沈總監)",
+    "role": "身份與人設 (如 反派主管 / 傲慢業務主管)",
+    "gender": "male 或 female",
+    "age": 45,
+    "appearance": "高品質英文人像攝影 Prompt (包括性別、年齡、髮型、穿著、眼神神態、8k, photorealistic portrait)",
+    "voice_persona": "中文聲音特色說明",
+    "voice_profile": "建議音色 (如 mytsaovoicemagpie, ichiehchieh, aurora_mandarin 或 default_local)"
+  }}
+]
+只回傳 JSON 陣列，不加任何 Markdown 標籤或無關文字。"""
+    try:
+        raw = client.text(prompt, temperature=0.3)
+        match = re.search(r'\[.*\]', raw, re.DOTALL)
+        if match:
+            chars = json.loads(match.group(0))
+            from generators.character_manager import slugify_character
+            from generators.voice_generator import list_profiles
+            avail_voice_names = {v["name"] for v in list_profiles()}
+            used_ids = set()
+            for idx, ch in enumerate(chars):
+                cid = (ch.get("id") or "").strip()
+                if not cid or cid == "None" or not str(cid).strip():
+                    cid = slugify_character(ch.get("name") or f"actor_{idx+1}")
+                else:
+                    cid = slugify_character(cid)
+                if cid in used_ids:
+                    cid = f"{cid}_{idx+1}"
+                used_ids.add(cid)
+                ch["id"] = cid
+
+                # Ensure valid and distinct voice profile assignment
+                v_pref = ch.get("voice_profile", "").strip()
+                g = ch.get("gender", "female").lower()
+                age = int(ch.get("age", 30))
+                if not v_pref or v_pref not in avail_voice_names:
+                    if g == "female":
+                        ch["voice_profile"] = "ichiehchieh" if "ichiehchieh" in avail_voice_names else "aurora_mandarin"
+                    elif age >= 55:
+                        ch["voice_profile"] = "aurora_mandarin" if "aurora_mandarin" in avail_voice_names else "mytsaovoicemagpie"
+                    else:
+                        ch["voice_profile"] = "mytsaovoicemagpie" if "mytsaovoicemagpie" in avail_voice_names else "hung_yi_lee"
+            return {"status": "ok", "characters": chars}
+    except Exception as e:
+        log.warning("Extract characters failed: %s", e)
+    from generators.character_manager import DEFAULT_STARTER_CHARACTERS
+    return {"status": "fallback", "characters": DEFAULT_STARTER_CHARACTERS[:3]}
+
+
+# Serve standalone Remotion renders (kept outside public/, which Remotion copies into every bundle)
+REMOTION_OUT_DIR = ROOT / "remotion-video" / "out"
+REMOTION_OUT_DIR.mkdir(parents=True, exist_ok=True)
+app.mount("/remotion-out", StaticFiles(directory=str(REMOTION_OUT_DIR)), name="remotion_out")
+
 # Serve static web interface
 UI_DIR = ROOT / "ui"
 if UI_DIR.exists():
+    @app.get("/")
+    def serve_index_page():
+        index_file = UI_DIR / "index.html"
+        return FileResponse(
+            str(index_file),
+            media_type="text/html",
+            headers={
+                "Cache-Control": "no-cache, no-store, must-revalidate",
+                "Pragma": "no-cache",
+                "Expires": "0",
+            }
+        )
+
     app.mount("/", StaticFiles(directory=str(UI_DIR), html=True), name="ui")

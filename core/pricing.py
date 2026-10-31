@@ -17,6 +17,7 @@ STAGE_META = {
     "images": {"title": "Stage 5: Image Generation", "icon": "🖼️", "category": "Image Diffusion"},
     "voice": {"title": "Stage 6: Voice Synthesis (TTS)", "icon": "🎙️", "category": "Audio & Speech"},
     "animation": {"title": "Stage 7: Animation & Clips", "icon": "✨", "category": "Motion & Video"},
+    "presenter": {"title": "Stage 7 (Avatar): Virtual Presenter", "icon": "🎭", "category": "Talking Avatar (Lip-Sync)"},
     "subtitles": {"title": "Stage 8: Subtitle Generation", "icon": "📝", "category": "Transcription"},
     "render": {"title": "Stage 9: Video Rendering", "icon": "⚡", "category": "FFmpeg Encoding"},
 }
@@ -44,18 +45,34 @@ PRICING = {
     },
     # Image providers (per image generated)
     "images": {
-        "dalle3": 0.040,         # DALL-E 3 Standard 1024x1024 / 1792x1024 ($0.040)
+        "nano-banana-2.1": 0.0168,          # Google Nano Banana 2.1 ($0.0168 batch / $0.0336 online)
+        "gemini-nano-banana-2.1": 0.0168,
+        "nano-banana": 0.0168,
+        "banana": 0.0168,
+        "gpt-image-1": 0.080,               # OpenAI gpt-image-1 1536x1024 ($0.080)
+        "gpt_image_1": 0.080,
+        "imagen-3.0-generate-002": 0.040,   # Google Imagen 3.0 Generate 002 ($0.040)
+        "imagen-30.0-generate-002": 0.040,
+        "imagen_3_0_generate_002": 0.040,
+        "dalle3": 0.040,                    # DALL-E 3 Standard ($0.040)
         "dall-e-3": 0.040,
         "openai": 0.040,
-        "imagen3": 0.030,        # Google Imagen 3 ($0.030)
+        "imagen3": 0.030,                   # Google Imagen 3 / Gemini Flash Image ($0.030)
         "imagen-3": 0.030,
         "gemini_image": 0.030,
-        "comfyui": 0.0,          # Local AMD GPU DirectML (Free)
+        "fal-ai/flux-1/schnell": 0.003,     # Fal.ai FLUX.1 [schnell] ($0.003)
+        "fal-ai/flux/schnell": 0.003,
+        "flux-schnell": 0.003,
+        "fal-flux-schnell": 0.003,
+        "flux-1-schnell": 0.003,
+        "stock": 0.0,                       # Online Stock Photos (Free)
+        "comfyui": 0.0,                     # Local AMD GPU DirectML (Free)
         "placeholder": 0.0,
     },
     # TTS providers (per 1,000 characters)
     "tts": {
         "elevenlabs": 0.30,      # $0.30 per 1,000 characters
+        "voai": 0.030,           # ~$0.03 per 1,000 characters (1 char = 1 point)
         "openai": 0.015,         # $0.015 per 1,000 characters (tts-1)
         "edge": 0.0,             # Microsoft Edge TTS (Free cloud)
         "edge_tts": 0.0,
@@ -70,6 +87,20 @@ PRICING = {
         "luma": 0.20,
         "kenburns": 0.0,         # Hardware AMF / CPU Ken Burns (Free)
         "comfyui_video": 0.0,    # Local GPU (Free)
+    },
+    # Virtual Presenter / Talking Avatar providers (per clip)
+    "presenter": {
+        "fal-ai/latentsync": 0.050,                       # Fal.ai LatentSync ($0.05/clip)
+        "latentsync": 0.050,
+        "fal-ai/kling-video/v1/standard/ai-avatar": 0.100,# Kling AI Avatar Standard ($0.10/clip)
+        "kling_std": 0.100,
+        "kling-video": 0.100,
+        "fal-ai/kling-video/v1/pro/ai-avatar": 0.150,     # Kling AI Avatar Pro ($0.15/clip)
+        "kling_pro": 0.150,
+        "fal-ai/sadtalker": 0.020,                        # SadTalker ($0.02/clip)
+        "sadtalker": 0.020,
+        "local_fallback": 0.0,                            # Local FFmpeg / Ken Burns (Free)
+        "local": 0.0,
     },
     # Subtitles
     "subtitles": {
@@ -256,16 +287,29 @@ def calculate_project_costs(project: Any) -> dict[str, Any]:
         chars = len(getattr(s, "narration", "") or "")
         total_chars += chars
 
+        disp_voice = "BlueMagpie (Local)"
         if "eleven" in p_key:
             voice_cost += (chars / 1000.0) * PRICING["tts"]["elevenlabs"]
-            if "ElevenLabs" not in voice_prov_summary: voice_prov_summary.append("ElevenLabs")
+            disp_voice = "ElevenLabs"
+        elif "voai" in p_key:
+            voice_cost += (chars / 1000.0) * PRICING["tts"]["voai"]
+            disp_voice = "VoAI (絕好聲創)"
         elif "openai" in p_key:
             voice_cost += (chars / 1000.0) * PRICING["tts"]["openai"]
-            if "OpenAI TTS" not in voice_prov_summary: voice_prov_summary.append("OpenAI TTS")
+            disp_voice = "OpenAI TTS"
         elif "edge" in p_key:
-            if "Edge TTS (Free Cloud)" not in voice_prov_summary: voice_prov_summary.append("Edge TTS (Free Cloud)")
+            disp_voice = "Edge TTS (Free Cloud)"
+        elif "cosy" in p_key or "cozy" in p_key:
+            disp_voice = "CosyVoice (Local)"
+        elif "sapi" in p_key:
+            disp_voice = "Windows SAPI (Local)"
+        elif "bluemagpie" in p_key or "magpie" in p_key:
+            disp_voice = "BlueMagpie (Local)"
         else:
-            if "BlueMagpie (Local Voice Clone)" not in voice_prov_summary: voice_prov_summary.append("BlueMagpie (Local)")
+            disp_voice = f"{p_name} (Local)"
+
+        if disp_voice not in voice_prov_summary:
+            voice_prov_summary.append(disp_voice)
 
     v_str = ", ".join(voice_prov_summary) if voice_prov_summary else tts_prov_default
     stage_costs["voice"] = round(voice_cost, 4)
@@ -276,14 +320,16 @@ def calculate_project_costs(project: Any) -> dict[str, Any]:
         "units": f"{total_chars:,} chars ({len(scenes)} clips)"
     }
 
-    # 7. ANIMATION
+    # 7. ANIMATION (Non-presenter AI Video & Motion Graphics)
     anim_prov = stage_models.get("animation") or "kenburns"
     anim_cost = 0.0
     cloud_clips = 0
-    for s in scenes:
+    non_presenter_scenes = [s for s in scenes if not (getattr(s, "is_presenter", False) or getattr(s, "visual_type", "") == "talking_head")]
+    presenter_scenes = [s for s in scenes if (getattr(s, "is_presenter", False) or getattr(s, "visual_type", "") == "talking_head")]
+
+    for s in non_presenter_scenes:
         anim_st = getattr(s, "animation", None)
-        # Only count if animation was actually generated and completed
-        if not anim_st or getattr(anim_st, "status", None) not in ("COMPLETED", Status.COMPLETED if "Status" in globals() else "COMPLETED") or not getattr(anim_st, "path", None):
+        if not anim_st or getattr(anim_st, "status", None) not in ("COMPLETED", "completed") or not getattr(anim_st, "path", None):
             continue
         meta = getattr(anim_st, "meta", {}) or {}
         p_name = meta.get("provider") or anim_prov
@@ -297,7 +343,74 @@ def calculate_project_costs(project: Any) -> dict[str, Any]:
         "cost": round(anim_cost, 4),
         "provider": anim_prov,
         "description": f"{cloud_clips} AI Video clips" if cloud_clips else "Ken Burns 2.5D Motion (Hardware AMF - Free)",
-        "units": f"{cloud_clips} cloud clips" if cloud_clips else f"{scene_count} motion scenes"
+        "units": f"{cloud_clips} cloud clips" if cloud_clips else f"{len(non_presenter_scenes)} motion scenes"
+    }
+
+    # 7b. VIRTUAL PRESENTER (Talking Avatar Lipsync)
+    custom_presenter_rate = float((settings.get("pricing") or {}).get("presenter_clip_usd", 0.0))
+    presenter_cost = 0.0
+    cloud_presenter_clips = 0
+    local_presenter_clips = 0
+    presenter_prov_summary = []
+    total_presenter_seconds = 0.0
+
+    for s in presenter_scenes:
+        anim_st = getattr(s, "animation", None)
+        if not anim_st or getattr(anim_st, "status", None) not in ("COMPLETED", "completed") or not getattr(anim_st, "path", None):
+            continue
+        meta = getattr(anim_st, "meta", {}) or {}
+        p_name = meta.get("provider") or "fal-ai/latentsync"
+        p_key = p_name.lower().strip()
+        dur = float(meta.get("duration") or getattr(s, "audio_duration", 0.0) or 0.0)
+        total_presenter_seconds += dur
+
+        rate = custom_presenter_rate
+        if rate <= 0.0:
+            if p_key in PRICING["presenter"]:
+                rate = PRICING["presenter"][p_key]
+            else:
+                for k, v in PRICING["presenter"].items():
+                    if k in p_key:
+                        rate = v
+                        break
+            if rate == 0.0 and meta.get("is_cloud", False):
+                rate = 0.050
+
+        if meta.get("is_cloud", False) or rate > 0:
+            presenter_cost += rate
+            cloud_presenter_clips += 1
+            disp_name = p_name
+            if "latentsync" in p_key: disp_name = "LatentSync (fal.ai)"
+            elif "kling" in p_key: disp_name = "Kling AI Avatar (fal.ai)"
+            elif "sadtalker" in p_key: disp_name = "SadTalker (fal.ai)"
+            if disp_name not in presenter_prov_summary:
+                presenter_prov_summary.append(disp_name)
+        else:
+            local_presenter_clips += 1
+            if "Local FFmpeg (Free)" not in presenter_prov_summary:
+                presenter_prov_summary.append("Local FFmpeg (Free)")
+
+    pres_prov_str = ", ".join(presenter_prov_summary) if presenter_prov_summary else ("None (No avatar)" if not presenter_scenes else "fal-ai/latentsync")
+
+    stage_costs["presenter"] = round(presenter_cost, 4)
+    if cloud_presenter_clips > 0:
+        pres_desc = f"{cloud_presenter_clips} Cloud lipsync clips ({total_presenter_seconds:.1f}s)"
+        pres_units = f"{cloud_presenter_clips} cloud clips ({total_presenter_seconds:.1f}s)"
+    elif local_presenter_clips > 0:
+        pres_desc = f"{local_presenter_clips} Local lipsync clips ({total_presenter_seconds:.1f}s, Free)"
+        pres_units = f"{local_presenter_clips} local clips"
+    elif len(presenter_scenes) > 0:
+        pres_desc = f"{len(presenter_scenes)} presenter scenes configured (Pending generation)"
+        pres_units = f"{len(presenter_scenes)} scenes pending"
+    else:
+        pres_desc = "No virtual presenter in this project (Free)"
+        pres_units = "0 presenter clips"
+
+    stage_details["presenter"] = {
+        "cost": round(presenter_cost, 4),
+        "provider": pres_prov_str,
+        "description": pres_desc,
+        "units": pres_units
     }
 
     # 8. SUBTITLES

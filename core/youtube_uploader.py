@@ -27,6 +27,8 @@ from googleapiclient.http import MediaFileUpload
 from core.config import DATA_DIR, YOUTUBE_DIR, load_settings
 from core.logging_setup import log
 from core.project_manager import Project
+from core.taiwan_mandarin import normalize_to_taiwan_mandarin
+import re
 
 # Standard scopes for uploading videos, setting thumbnails, and reading channel info
 SCOPES = [
@@ -470,6 +472,17 @@ def submit_auth_code(code_or_url: str) -> dict[str, Any]:
     return {"status": "success", "channel": ch_info}
 
 
+def build_youtube_chapters(
+    scenes: list[Any],
+    min_chunk_seconds: float = 15.0,
+    max_chunk_seconds: float = 180.0,
+) -> list[str]:
+    """Combine many smaller scene segments into bigger, coherent narrative chapter chunks for YouTube."""
+    from core.chapter_framework import plan_chapter_chunks
+    chunks = plan_chapter_chunks(scenes, min_chunk_seconds=min_chunk_seconds, max_chunk_seconds=max_chunk_seconds)
+    return [c.youtube_line for c in chunks]
+
+
 def generate_youtube_metadata(project: Project) -> dict[str, Any]:
     """Generate professional, ready-to-upload YouTube metadata from project scenes and script."""
     settings = load_settings().get("youtube", {})
@@ -483,31 +496,25 @@ def generate_youtube_metadata(project: Project) -> dict[str, Any]:
         title = raw_title[:92] + "..."
     else:
         title = raw_title or f"Video: {project.id}"
+    title = normalize_to_taiwan_mandarin(title)
 
-    # 2. Build Chapter Markers
-    # YouTube requires chapters to start at 00:00 and have at least 3 chapters
-    chapters = []
-    current_time_sec = 0.0
-
+    # 2. Build Chapter Markers aligned with Video Black Frames (Universal Framework)
+    # YouTube requires chapters to start at 00:00 and have at least 3 chapters.
+    # Group smaller scene segments into bigger coherent narrative chunks synchronized to black frames and drum hits.
     scenes = project.active_scenes()
-    for idx, sc in enumerate(scenes):
-        m = int(current_time_sec // 60)
-        s = int(current_time_sec % 60)
-        timestamp = f"{m:02d}:{s:02d}"
-
-        # Clean title for chapter
-        ch_label = sc.visual_description[:45].strip() if sc.visual_description else ""
-        if not ch_label and sc.prompt:
-            ch_label = sc.prompt[:45].strip()
-        if not ch_label:
-            ch_label = f"Part {sc.scene_id}"
-
-        # Remove line breaks
-        ch_label = ch_label.replace("\n", " ").strip()
-        chapters.append(f"{timestamp} - Scene {sc.scene_id}: {ch_label}")
-
-        duration = sc.audio_duration or sc.estimated_duration or 8.0
-        current_time_sec += duration
+    from core.chapter_framework import build_chapter_timeline
+    try:
+        _, slots, chapter_chunks = build_chapter_timeline(project, scenes=scenes)
+        chapters = [c.youtube_line for c in chapter_chunks]
+        current_time_sec = (slots[-1].start + slots[-1].length) if slots else sum(
+            float(getattr(sc, "audio_duration", None) or getattr(sc, "estimated_duration", None) or 8.0) for sc in scenes
+        )
+    except Exception as ex:
+        log.warning("Could not calculate chapter timeline for project %s (%s); falling back", project.id, ex)
+        min_chunk = float(settings.get("min_chapter_duration_seconds", 15.0))
+        max_chunk = float(settings.get("max_chapter_duration_seconds", 180.0))
+        chapters = build_youtube_chapters(scenes, min_chunk_seconds=min_chunk, max_chunk_seconds=max_chunk)
+        current_time_sec = sum(float(getattr(sc, "audio_duration", None) or getattr(sc, "estimated_duration", None) or 8.0) for sc in scenes)
 
     # 3. Read Script Content if available
     script_text = ""
@@ -518,51 +525,52 @@ def generate_youtube_metadata(project: Project) -> dict[str, Any]:
         except Exception:
             pass
 
-    # 4. Generate Tags
+    # 4. Generate Tags in Traditional Chinese
     tags = []
     # Add keywords from topic
     topic_words = [w for w in pdata.topic.replace(",", " ").split() if len(w) > 2]
     tags.extend(topic_words[:6])
-    tags.extend(["AI Video", "Tutorial", "Tech", "Documentary"])
+    tags.extend(["AI影片", "深度解說", "科普探索", "知識紀錄片"])
     # De-duplicate
     seen = set()
     cleaned_tags = []
     for t in tags:
-        t_clean = t.strip("#.,!").strip()
+        t_clean = normalize_to_taiwan_mandarin(t.strip("#.,!").strip())
         if t_clean.lower() not in seen and len(t_clean) > 1:
             seen.add(t_clean.lower())
             cleaned_tags.append(t_clean)
 
-    # 5. Build Comprehensive Description
+    # 5. Build Comprehensive Description in Traditional Chinese
     desc_lines = []
-    desc_lines.append(f"{raw_title}")
+    desc_lines.append(f"{title}")
     desc_lines.append("")
-    desc_lines.append("📌 Overview:")
+    desc_lines.append("📌 影片摘要：")
     if script_text:
-        # First 300 characters of script as summary
+        # First 350 characters of script as summary
         summary = script_text[:350].replace("\n", " ").strip()
-        desc_lines.append(f"{summary}...")
+        desc_lines.append(f"{normalize_to_taiwan_mandarin(summary)}...")
     else:
-        desc_lines.append(f"In this video, we explore {pdata.topic}.")
+        topic_tc = normalize_to_taiwan_mandarin(pdata.topic)
+        desc_lines.append(f"本影片深入解析「{topic_tc}」的核心脈絡與重點細節。")
 
     desc_lines.append("")
     if len(chapters) >= 3 and settings.get("auto_generate_chapters", True):
-        desc_lines.append("⏱️ Timestamps & Chapters:")
+        desc_lines.append("⏱️ 時間軸與章節導覽（Chapters）：")
         desc_lines.extend(chapters)
         desc_lines.append("")
 
     channel_handle = settings.get("channel_handle", "@tsao36")
     channel_url = settings.get("channel_url", "https://www.youtube.com/@tsao36")
-    desc_lines.append(f"🔔 Subscribe to the channel: {channel_url}")
-    desc_lines.append(f"Created for {channel_handle}")
+    desc_lines.append(f"🔔 歡迎訂閱頻道掌握最新深度影片：{channel_url}")
+    desc_lines.append(f"頻道專屬製作：{channel_handle}")
     desc_lines.append("")
 
     # Add hashtags
-    hashtags = " ".join([f"#{t.replace(' ', '')}" for t in cleaned_tags[:5]])
+    hashtags = " ".join([f"#{t.replace(' ', '')}" for t in cleaned_tags[:6]])
     if hashtags:
         desc_lines.append(hashtags)
 
-    full_description = "\n".join(desc_lines)
+    full_description = normalize_to_taiwan_mandarin("\n".join(desc_lines))
 
     # 6. Locate Final MP4 Video
     final_rel = pdata.outputs.get("final") or f"final/{project.id}.mp4"
@@ -572,15 +580,27 @@ def generate_youtube_metadata(project: Project) -> dict[str, Any]:
     if has_video:
         file_size_mb = round(final_abs.stat().st_size / (1024 * 1024), 2)
 
-    # 7. Locate Potential Thumbnail
+    # 7. Locate or Auto-Generate Styled YouTube Thumbnail (縮圖)
     thumbnail_path = None
-    # Check scene 1 image
-    if scenes:
+    thumbnail_rel = "output/thumbnail.png"
+    styled_thumb = project.path("output", "thumbnail.png")
+    if not styled_thumb.exists():
+        try:
+            from generators.thumbnail_generator import render_project_thumbnail
+            render_project_thumbnail(project)
+        except Exception as th_err:
+            log.warning("Auto thumbnail render during youtube_metadata failed: %s", th_err)
+
+    if styled_thumb.exists():
+        thumbnail_path = str(styled_thumb)
+        thumbnail_rel = project.rel(styled_thumb)
+    elif scenes:
         sc1 = scenes[0]
         if sc1.image and sc1.image.path:
             p_img = project.abs(sc1.image.path)
             if p_img and p_img.exists():
                 thumbnail_path = str(p_img)
+                thumbnail_rel = sc1.image.path
 
     return {
         "project_id": project.id,
@@ -594,6 +614,8 @@ def generate_youtube_metadata(project: Project) -> dict[str, Any]:
         "file_size_mb": file_size_mb,
         "total_duration_seconds": round(current_time_sec, 1),
         "thumbnail_path": thumbnail_path,
+        "thumbnail_rel": thumbnail_rel,
+        "thumbnail_config": project.data.settings.get("thumbnail_config") or {},
         "target_channel": channel_handle,
         "target_channel_url": channel_url,
         "chapters_count": len(chapters),
@@ -612,6 +634,11 @@ def _upload_video_worker(
 ) -> None:
     """Background worker that performs the resumable video upload to YouTube."""
     global active_uploads
+    # Ensure title, description (with chapters), and tags are converted to Taiwan Traditional Chinese
+    title = normalize_to_taiwan_mandarin(title)
+    description = normalize_to_taiwan_mandarin(description)
+    tags = [normalize_to_taiwan_mandarin(t) for t in (tags or [])]
+
     service = get_youtube_service()
     if not service:
         with _upload_lock:
@@ -623,7 +650,18 @@ def _upload_video_worker(
             }
         return
 
-    project = Project(project_id)
+    try:
+        project = Project(project_id)
+    except Exception as pe:
+        with _upload_lock:
+            active_uploads[project_id] = {
+                "status": "failed",
+                "progress_percent": 0,
+                "error": f"Failed to load project '{project_id}': {pe}",
+                "completed_at": datetime.now().isoformat(),
+            }
+        return
+
     final_rel = project.data.outputs.get("final") or f"final/{project_id}.mp4"
     video_abs = project.abs(final_rel)
 
@@ -722,6 +760,23 @@ def _upload_video_worker(
         project.data.outputs["youtube_uploaded_at"] = datetime.now().isoformat()
         project.save()
 
+        # Move final video to external drive (D:\youtube channel video) to save C: drive space
+        try:
+            ext_dir = Path(r"D:\youtube channel video")
+            ext_dir.mkdir(parents=True, exist_ok=True)
+            if video_abs and video_abs.exists():
+                dest_video = ext_dir / video_abs.name
+                if dest_video.exists():
+                    dest_video = ext_dir / f"{video_abs.stem}_{int(time.time())}{video_abs.suffix}"
+                import shutil
+                shutil.move(str(video_abs), str(dest_video))
+                log.info("Moved uploaded final video %s to external drive: %s", video_abs, dest_video)
+                project.data.outputs["external_archive_path"] = str(dest_video)
+                project.data.outputs["archived_to_external"] = True
+                project.save()
+        except Exception as me:
+            log.warning("Could not move final video to external drive: %s", me)
+
         with _upload_lock:
             active_uploads[project_id] = {
                 "status": "completed",
@@ -769,7 +824,13 @@ def start_video_upload(
     thumbnail_path: Optional[str] = None,
 ) -> dict[str, Any]:
     """Start asynchronous upload of final video to YouTube."""
+    # Ensure title, description (with chapters), and tags are converted to Taiwan Traditional Chinese
+    title = normalize_to_taiwan_mandarin(title)
+    description = normalize_to_taiwan_mandarin(description)
+    tags = [normalize_to_taiwan_mandarin(t) for t in (tags or [])]
+
     with _upload_lock:
+
         current = active_uploads.get(project_id)
         if current and current.get("status") == "uploading":
             return {"status": "already_uploading", "details": current}

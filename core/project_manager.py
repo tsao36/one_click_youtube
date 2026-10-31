@@ -10,7 +10,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from core.config import PROJECTS_DIR, deep_merge, load_settings
+from core.config import PROJECTS_DIR, ROOT, deep_merge, load_settings
 from core.logging_setup import log
 from core.models import STAGES, ProjectData, Scene, StageState, Status
 
@@ -105,6 +105,10 @@ class Project:
         return deep_merge(load_settings(), self.data.settings)
 
     # ---------- paths ----------
+    @property
+    def root(self) -> Path:
+        return self.dir
+
     def path(self, *parts: str) -> Path:
         return self.dir.joinpath(*parts)
 
@@ -133,6 +137,94 @@ class Project:
                 self._scenes = [Scene(**s) for s in raw]
             return self._scenes
 
+    def is_avatar_enabled(self) -> bool:
+        """Return True if avatar/presenter is enabled at project level."""
+        s1 = self.settings.get("avatar_enabled")
+        p1 = self.settings.get("presenter_placement")
+        data_s = getattr(self.data, "settings", {}) or {}
+        s2 = data_s.get("avatar_enabled")
+        p2 = data_s.get("presenter_placement")
+
+        if s1 is False or s2 is False:
+            return False
+        if p1 in ("none", "off", "disabled", False) or p2 in ("none", "off", "disabled", False):
+            return False
+        return True
+
+    def clear_clips_cache(self, scene_id: int | None = None) -> int:
+        """Clear cached rendered clips in temp/clips_* so that re-renders are completely fresh.
+        If scene_id is provided, only clears clips for that scene.
+        """
+        temp_dir = self.path("temp")
+        if not temp_dir.exists():
+            return 0
+        pattern = f"scene_{scene_id:03d}_*.mp4" if scene_id is not None else "*.mp4"
+        count = 0
+        for clip_dir in temp_dir.glob("clips_*"):
+            if clip_dir.is_dir():
+                for clip in clip_dir.glob(pattern):
+                    try:
+                        clip.unlink(missing_ok=True)
+                        count += 1
+                    except Exception:
+                        pass
+        return count
+
+    def sync_avatar_disabled_state(self) -> bool:
+        """If avatar is disabled project-wide, enforce is_presenter=False on all scenes and clear avatar cache."""
+        if self.is_avatar_enabled():
+            return False
+
+        changed = False
+        with self.lock:
+            if isinstance(self.settings, dict):
+                if self.settings.get("presenter_placement") != "none" or self.settings.get("avatar_enabled") is not False:
+                    self.settings["presenter_placement"] = "none"
+                    self.settings["auto_presenter"] = False
+                    self.settings["avatar_enabled"] = False
+                    changed = True
+            if hasattr(self, "data") and isinstance(self.data.settings, dict):
+                if self.data.settings.get("presenter_placement") != "none" or self.data.settings.get("avatar_enabled") is not False:
+                    self.data.settings["presenter_placement"] = "none"
+                    self.data.settings["auto_presenter"] = False
+                    self.data.settings["avatar_enabled"] = False
+                    changed = True
+
+            scenes = self.scenes
+            for sc in scenes:
+                was_presenter = getattr(sc, "is_presenter", False) or sc.visual_type in ("talking_head", "talking_actor")
+                if was_presenter:
+                    sc.is_presenter = False
+                    sc.visual_type = "image"
+                    changed = True
+                    if sc.animation:
+                        anim_meta = sc.animation.meta or {}
+                        prov = str(anim_meta.get("provider", ""))
+                        if sc.animation.error or prov in (
+                            "fal-ai/latentsync", "fal-ai/sadtalker",
+                            "fal-ai/kling-video/v1/standard/ai-avatar",
+                            "fal-ai/kling-video/v1/pro/ai-avatar",
+                            "local_fallback", "masked_speaker"
+                        ):
+                            if sc.animation.path:
+                                old_vid = self.abs(sc.animation.path)
+                                if old_vid and old_vid.exists():
+                                    try:
+                                        old_vid.unlink(missing_ok=True)
+                                    except Exception:
+                                        pass
+                            sc.animation.status = Status.PENDING
+                            sc.animation.path = None
+                            sc.animation.meta = {}
+                            sc.animation.error = None
+                            sc.ai_video = False
+
+            if changed:
+                self.clear_clips_cache()
+                atomic_write_json(self.path("scenes", "scenes.json"), [s.model_dump(mode="json") for s in scenes])
+                self.save()
+        return changed
+
     def set_scenes(self, scenes: list[Scene]) -> None:
         with self.lock:
             self._scenes = scenes
@@ -140,6 +232,22 @@ class Project:
 
     def save_scenes(self) -> None:
         with self.lock:
+            if not self.is_avatar_enabled():
+                for s in self.scenes:
+                    if getattr(s, "is_presenter", False) or s.visual_type in ("talking_head", "talking_actor"):
+                        s.is_presenter = False
+                        s.visual_type = "image"
+                        if s.animation and (s.animation.meta or {}).get("provider") in (
+                            "fal-ai/latentsync", "fal-ai/sadtalker",
+                            "fal-ai/kling-video/v1/standard/ai-avatar",
+                            "fal-ai/kling-video/v1/pro/ai-avatar",
+                            "local_fallback", "masked_speaker"
+                        ):
+                            s.animation.status = Status.PENDING
+                            s.animation.path = None
+                            s.animation.meta = {}
+                            s.animation.error = None
+                            s.ai_video = False
             atomic_write_json(self.path("scenes", "scenes.json"), [s.model_dump(mode="json") for s in self.scenes])
 
     def scene(self, scene_id: int) -> Scene:
@@ -155,22 +263,43 @@ class Project:
     def stage(self, name: str) -> StageState:
         return self.data.stages.setdefault(name, StageState())
 
-    def set_stage(self, name: str, status: Status, error: str | None = None, done: int | None = None, total: int | None = None) -> None:
+    def set_stage(
+        self,
+        name: str,
+        status: Status,
+        error: str | None = None,
+        done: int | None = None,
+        total: int | None = None,
+        duration_override: float | None = None,
+    ) -> None:
         with self.lock:
             st = self.stage(name)
-            current_time = now()
-            if status == Status.RUNNING and not st.started_at:
-                st.started_at = current_time
+            current_dt = datetime.now()
+            current_time = current_dt.isoformat(timespec="seconds")
+            if status == Status.RUNNING:
+                # Always reset started_at when transitioning into RUNNING from another state
+                if st.status != Status.RUNNING or not st.started_at:
+                    st.started_at = current_dt.isoformat(timespec="milliseconds")
             elif status == Status.COMPLETED:
                 st.completed_at = current_time
-                if st.started_at:
+                if duration_override is not None:
+                    st.duration_seconds = max(0.1, round(float(duration_override), 1))
+                elif st.started_at:
                     try:
                         t_start = datetime.fromisoformat(st.started_at)
-                        t_end = datetime.fromisoformat(current_time)
-                        st.duration_seconds = max(0.0, round((t_end - t_start).total_seconds(), 1))
+                        elapsed = (current_dt - t_start).total_seconds()
+                        # If started_at was from an earlier session (>6h gap) and stage was re-run without RUNNING reset, avoid bogus multi-hour wall-clock jump
+                        if elapsed >= 0:
+                            st.duration_seconds = max(0.1, round(elapsed, 1))
                     except Exception:
                         pass
                 self.data.stage_durations[name] = st.duration_seconds
+                # Keep stage_durations ordered by canonical STAGES sequence
+                ordered = {s: self.data.stage_durations[s] for s in STAGES if s in self.data.stage_durations}
+                for k, v in self.data.stage_durations.items():
+                    if k not in ordered:
+                        ordered[k] = v
+                self.data.stage_durations = ordered
                 self.data.total_duration_seconds = round(sum(self.data.stage_durations.values()), 1)
 
             st.status = status
@@ -225,24 +354,87 @@ class Project:
         if not self.dir.exists():
             return
 
-        def _remove_readonly(func, path, exc_info):
-            import stat
+        import gc
+        import stat
+        import time
+
+        gc.collect()
+
+        def _force_remove_path(path: Path):
             try:
-                os.chmod(path, stat.S_IWRITE)
-                func(path)
+                if path.is_file() or path.is_symlink():
+                    try:
+                        os.chmod(path, stat.S_IWRITE)
+                    except Exception:
+                        pass
+                    path.unlink(missing_ok=True)
+                elif path.is_dir():
+                    for sub in list(path.iterdir()):
+                        _force_remove_path(sub)
+                    try:
+                        path.rmdir()
+                    except Exception:
+                        pass
             except Exception:
                 pass
 
-        for _ in range(3):
-            try:
-                shutil.rmtree(self.dir, onerror=_remove_readonly)
+        # Step 1: Specifically wipe all cached video clips and temp video files first
+        self.clear_video_cache()
+
+        # Step 2: Recursive force wipe
+        for attempt in range(5):
+            gc.collect()
+            _force_remove_path(self.dir)
+            if not self.dir.exists():
                 break
-            except Exception:
-                import time
-                time.sleep(0.2)
+            time.sleep(0.2)
+
+        # Step 3: If Windows still holds a lingering lock on some file, move to temp trash
         if self.dir.exists():
             shutil.rmtree(self.dir, ignore_errors=True)
+        if self.dir.exists():
+            try:
+                trash_name = f".deleted_{int(time.time())}_{self.id}"
+                trash_dir = self.dir.parent / trash_name
+                self.dir.rename(trash_dir)
+                shutil.rmtree(trash_dir, ignore_errors=True)
+            except Exception:
+                pass
+
         log.info("Project deleted: %s", self.id)
+
+    def clear_video_cache(self) -> int:
+        """Purge all intermediate rendered video clips and temporary video tracks to free disk space."""
+        import gc
+        import stat
+        gc.collect()
+        cleared_bytes = 0
+
+        # Target temp clips, intermediate video tracks, and partial renders
+        targets = [
+            self.dir / "temp",
+            self.dir / "animation",
+        ]
+        for tdir in targets:
+            if not tdir.exists():
+                continue
+            for f in list(tdir.rglob("*")):
+                if f.is_file() and (f.suffix.lower() in [".mp4", ".ts", ".mkv", ".mov", ".avi", ".tmp"] or "_clips_" in f.parent.name or "clips_" in f.parent.name):
+                    try:
+                        cleared_bytes += f.stat().st_size
+                        os.chmod(f, stat.S_IWRITE)
+                        f.unlink(missing_ok=True)
+                    except Exception:
+                        pass
+            # Clean up empty subdirectories in temp
+            for sub in sorted(list(tdir.glob("clips_*")), reverse=True):
+                try:
+                    shutil.rmtree(sub, ignore_errors=True)
+                except Exception:
+                    pass
+
+        log.info("Cleared %d bytes of video cache for project %s", cleared_bytes, self.id)
+        return cleared_bytes
 
     @classmethod
     def delete_project(cls, project_id: str) -> bool:
@@ -251,18 +443,48 @@ class Project:
         if not pdir.exists():
             return False
         cls._locks.pop(project_id, None)
+
+        # Also purge any Remotion renders associated with this project
+        try:
+            remotion_renders = ROOT / "remotion-video" / "out" / "renders"
+            if remotion_renders.exists():
+                for rf in remotion_renders.glob(f"*{project_id}*"):
+                    try:
+                        rf.unlink(missing_ok=True)
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+
         try:
             p = cls(project_id)
             p.delete()
-        except Exception:
+        except Exception as e:
+            log.warning("Project delete exception for %s: %s; falling back to direct removal", project_id, e)
+            import gc
+            import stat
+            import time
+            gc.collect()
+
             def _remove_readonly(func, path, exc_info):
-                import stat
                 try:
                     os.chmod(path, stat.S_IWRITE)
                     func(path)
                 except Exception:
                     pass
-            shutil.rmtree(pdir, onerror=_remove_readonly)
+            for _ in range(3):
+                shutil.rmtree(pdir, onerror=_remove_readonly)
+                if not pdir.exists():
+                    break
+                time.sleep(0.2)
             if pdir.exists():
                 shutil.rmtree(pdir, ignore_errors=True)
+            if pdir.exists():
+                try:
+                    trash_dir = pdir.parent / f".deleted_{int(time.time())}_{project_id}"
+                    pdir.rename(trash_dir)
+                    shutil.rmtree(trash_dir, ignore_errors=True)
+                except Exception:
+                    pass
+
         return not pdir.exists()
