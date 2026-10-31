@@ -1,0 +1,12 @@
+{
+  "id": "ai_eva",
+  "name": "艾娃",
+  "role": "系統中樞語音 / 觀察者",
+  "gender": "female",
+  "age": 25,
+  "appearance": "Ethereal translucent holographic female avatar, glowing cyan luminescence, geometric floating particle aura, sleek clean futuristic portrait",
+  "voice_persona": "空靈、標準且微帶機械感的空調女聲",
+  "voice_profile": "ichiehchieh",
+  "created_at": "2026-10-26 20:15:55",
+  "image_filename": "portrait.png"
+}

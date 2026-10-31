@@ -1,0 +1,334 @@
+[
+  {
+    "id": "tq_1792502643281",
+    "topic": "選舉 引爆全網關注！事件始末與背後關鍵深度解析",
+    "logline": "深度梳理「選舉」引發熱烈討論的關鍵核心，從背景脈絡到各界反應完整解密。",
+    "category": "時事焦點與深度剖析",
+    "recommended_duration": 5.0,
+    "recommended_style": "tech_schematic",
+    "proof": {
+      "platform": "Google Trends (台灣即時熱搜)",
+      "metrics": "搜尋量 200+ / 即時話題前列",
+      "headline": "選舉 最新發展與即時焦點",
+      "url": "https://www.google.com/search?q=%E9%81%B8%E8%88%89",
+      "source_name": "Google Trends",
+      "why_popular": "登上 Google 即時搜尋熱門趨勢，短時間內累積大量搜尋與新聞報導，深具大眾討論度。"
+    },
+    "created_at": "2026-10-20T21:24:03.282544"
+  },
+  {
+    "topic": "清朝後宮影視劇全演錯了？御膳房真實伙食、綠頭牌運作與皇帝凌晨四點起床的社畜一日",
+    "logline": "根據內務府清單與起居注真實還原，乾隆皇帝每天只能吃兩頓正餐、妃嬪月例銀子少得驚人，皇帝的一天竟然比現代打工人還要崩潰。",
+    "category": "清代宮廷真相與日常生活",
+    "recommended_duration": 5.0,
+    "recommended_style": "photorealistic_cinema",
+    "proof": {
+      "platform": "清廷第一手官檔案（《清宮內務府奏銷檔》/《清代起居注冊》）",
+      "metrics": "內務府原始採買膳單實物記錄 / 故宮博物院院藏檔案",
+      "headline": "乾隆朝御膳底檔載明每日兩頓正餐、妃嬪依品級分發肉斤蔬菜嚴格配額",
+      "url": "https://www.dpm.org.cn/",
+      "source_name": "北京故宮博物院所藏《御膳底檔》 / 《清宮內務府檔案》",
+      "why_popular": "宮鬥劇與古裝劇風靡華人圈，但劇中奢華隨意的宮廷日常與真實嚴苛戒律形成強烈反差，闢謠內容百看不厭。"
+    },
+    "type": "dynasty_trivia",
+    "id": "tq_1792412958870",
+    "created_at": "2026-10-19T20:29:18.870638"
+  },
+  {
+    "id": "tq_1792305789865",
+    "topic": "貨幣 引爆全網關注！事件始末與背後關鍵深度解析",
+    "logline": "深度梳理「貨幣」引發熱烈討論的關鍵核心，從背景脈絡到各界反應完整解密。",
+    "category": "時事焦點與深度剖析",
+    "recommended_duration": 5.0,
+    "recommended_style": "tech_schematic",
+    "proof": {
+      "platform": "Google Trends (台灣即時熱搜)",
+      "metrics": "搜尋量 100+ / 即時話題前列",
+      "headline": "韩美财政部门和央行首次举行“2+2”会谈",
+      "url": "https://m-cn.yna.co.kr/view/ACK20261016003600881",
+      "source_name": "韩联社",
+      "why_popular": "登上 Google 即時搜尋熱門趨勢，短時間內累積大量搜尋與新聞報導，深具大眾討論度。"
+    },
+    "created_at": "2026-10-18T14:43:09.866062"
+  },
+  {
+    "topic": "AI 真正接管電腦！Anthropic Computer Use 實機操作螢幕、點擊滑鼠，軟體工程師真的要失業了嗎？",
+    "logline": "詳解 Claude 3.5 Sonnet 如何藉由視覺畫面辨識、座標轉換與鍵盤滑鼠 API，化身能像人類一樣自主操作瀏覽器與軟體環境的端到端 Agent。",
+    "category": "自主 AI 智慧體與操作系統",
+    "recommended_duration": 10.0,
+    "recommended_style": "tech_schematic",
+    "proof": {
+      "platform": "Anthropic 官方技術白皮書與 GitHub 實測基準",
+      "metrics": "OSWorld 基準測試領先現有模型近兩倍 / 支援完整 GUI 介面閉環操作",
+      "headline": "Developing Computer Use: Claude 3.5 Sonnet can now interact directly with computer interfaces",
+      "url": "https://www.anthropic.com/news/3-5-models-and-computer-use",
+      "source_name": "Anthropic Engineering / OSWorld Benchmark",
+      "why_popular": "跳脫聊天對話框，AI 第一次可以直接握起滑鼠在作業系統中填表格、寫程式碼並執行除錯，象徵通用人機介面轉移的歷史時刻。"
+    },
+    "type": "ai_technology",
+    "id": "tq_1792252990735",
+    "created_at": "2026-10-18T00:03:10.735641"
+  },
+  {
+    "topic": "秦始皇的兵馬俑竟然是「流水線量產」？揭密兩千年前大秦軍團的精密公差與黑科技武器",
+    "logline": "透過出土秦弩機與三稜銅鏃的毫釐誤差，拆解秦帝國如何建立世界上最早的國家軍工標準化與「物勒工名」責任制度。",
+    "category": "秦漢黑科技與制度",
+    "recommended_duration": 10.0,
+    "recommended_style": "cinematic_documentary",
+    "proof": {
+      "platform": "考古出土文物考證（陝西省考古研究院報告）",
+      "metrics": "出土逾四萬件金屬兵器精密數據 / 科技史學界公認奇蹟",
+      "headline": "兵馬俑坑出土秦弩機零件互換率與三稜箭鏃極致公差考證",
+      "url": "https://www.bmy.com.cn/",
+      "source_name": "秦始皇帝陵博物院 / 《史記·秦始皇本紀》",
+      "why_popular": "大眾常以為古代兵器全靠鐵匠手工敲打，秦軍兩千年前即實現流水線互換零件與極致品質控管，反差感極強且極具話題爆發力。"
+    },
+    "type": "dynasty_trivia",
+    "id": "tq_1792242473946",
+    "created_at": "2026-10-17T21:07:53.946269"
+  },
+  {
+    "id": "tq_1792242456767",
+    "topic": "歌手 引爆全網關注！事件始末與背後關鍵深度解析",
+    "logline": "深度梳理「歌手」引發熱烈討論的關鍵核心，從背景脈絡到各界反應完整解密。",
+    "category": "時事焦點與深度剖析",
+    "recommended_duration": 5.0,
+    "recommended_style": "tech_schematic",
+    "proof": {
+      "platform": "Google Trends (台灣即時熱搜)",
+      "metrics": "搜尋量 100+ / 即時話題前列",
+      "headline": "YouTube Music adds new labels for AI music",
+      "url": "https://blog.youtube/news-and-events/youtube-music-ai-labels/",
+      "source_name": "YouTube Official Blog",
+      "why_popular": "登上 Google 即時搜尋熱門趨勢，短時間內累積大量搜尋與新聞報導，深具大眾討論度。"
+    },
+    "created_at": "2026-10-17T21:07:36.768225"
+  },
+  {
+    "topic": "長安十二時辰的致命宵禁！在唐朝長安半夜逛街，真的會被金吾衛亂箭射死？",
+    "logline": "揭露大唐長安坊市制度嚴酷的夜禁律令、敲擊三千下的暮鼓晨鐘，以及平民與文人如何在「鬼市」尋求生存縫隙。",
+    "category": "盛唐市井與法律奇觀",
+    "recommended_duration": 5.0,
+    "recommended_style": "cinematic_documentary",
+    "proof": {
+      "platform": "法典典章考證（《唐律疏議》）",
+      "metrics": "唐代刑法典籍明確律條 / 影視劇《長安十二時辰》熱播引發全網考據",
+      "headline": "《唐律疏議·衛禁律》：夜正街行走者笞四十，抗拒逮捕者格殺勿論",
+      "url": "https://ctext.org/wiki.pl?if=gb&chapter=327685",
+      "source_name": "唐代法典《唐律疏議》卷八 / 《新唐書·百官志》",
+      "why_popular": "顛覆影視劇中大唐長安通宵笙歌的浪漫幻想，還原古代都市軍事化管理的真實殘酷與市井博弈。"
+    },
+    "type": "dynasty_trivia",
+    "id": "tq_1792242444960",
+    "created_at": "2026-10-17T21:07:24.960283"
+  },
+  {
+    "topic": "上帝視角解鎖！AlphaFold 3 顛覆分子生物學：從蛋白質到 DNA，AI 如何終結絕症與改寫生命底層程式碼？",
+    "logline": "深度拆解 Google DeepMind 最新一代 AlphaFold 3 的底層擴散架構與化學空間感知機制。揭秘 AI 如何從單純預測蛋白質摺疊，躍升為能同時模擬 DNA、RNA、小分子藥物與所有生命分子的動態互動作用，徹底改寫人類百年製藥史與生物科技版圖。",
+    "category": "科學 AI 突破與生命革命",
+    "recommended_duration": 10.0,
+    "recommended_style": "tech_schematic",
+    "proof": {
+      "platform": "Nature 自然期刊 / Google DeepMind 官方研究發表",
+      "metrics": "預測準確度超越傳統物理模擬工具 50% 以上，涵蓋全生命分子相互作用結構，全球頂尖生醫機構競相採用",
+      "headline": "Accurate structure prediction of biomolecular interactions with AlphaFold 3",
+      "url": "https://www.nature.com/articles/s41586-024-07487-w",
+      "source_name": "Google DeepMind & Isomorphic Labs",
+      "why_popular": "將人類對微觀生物世界的理解從『盲人摸象』直接推向『全息數位顯微鏡』。這不只是一次演算法的演進，更是人工智慧首次全面接管分子生物學的核心建模，讓設計全新靶向抗癌藥物、人工酶合成與解鎖基因奧秘的時間從數十年縮短至幾分鐘，掀起科技界與普羅大眾對『AI 戰勝衰老與疾病』的巨大狂潮。"
+    },
+    "type": "ai_technology",
+    "id": "tq_1792242428692",
+    "created_at": "2026-10-17T21:07:08.692010"
+  },
+  {
+    "topic": "OpenAI o3 思考推理模型顛覆 AI 競賽！為什麼「思考時間越長越聰明」能打破十年縮放定律？",
+    "logline": "深度剖析 Test-Time Compute（推論期運算）革命，拆解 o1 與 o3 模型如何透過強化學習自我反思、糾錯與深層蒙地卡羅樹搜尋，改寫人工智慧發展公式。",
+    "category": "前沿大模型與推理架構",
+    "recommended_duration": 10.0,
+    "recommended_style": "tech_schematic",
+    "proof": {
+      "platform": "OpenAI 官方技術發布與 NeurIPS 2024 前沿論文",
+      "metrics": "Codeforces 評分破 2727 分達特級大師水準 / 博士級科學測試超越人類專家",
+      "headline": "OpenAI o-series reasoning models introduce test-time search compute scaling paradigm",
+      "url": "https://openai.com/index/learning-to-reason-with-llms/",
+      "source_name": "OpenAI Research / arXiv:2409.12183",
+      "why_popular": "大眾常以為預訓練模型參數已撞牆，OpenAI 開闢『推論期思考縮放』全新維度，讓 AI 具備真正解決複雜奧數與軟體架構能力，震撼全球科技界。"
+    },
+    "type": "ai_technology",
+    "id": "tq_1792074392280",
+    "created_at": "2026-10-15T22:26:32.280195"
+  },
+  {
+    "id": "tq_1792074353177",
+    "topic": "美股 引爆全網關注！事件始末與背後關鍵深度解析",
+    "logline": "深度梳理「美股」引發熱烈討論的關鍵核心，從背景脈絡到各界反應完整解密。",
+    "category": "時事焦點與深度剖析",
+    "recommended_duration": 5.0,
+    "recommended_style": "tech_schematic",
+    "proof": {
+      "platform": "Google Trends (台灣即時熱搜)",
+      "metrics": "搜尋量 10000+ / 即時話題前列",
+      "headline": "美國9月 PPI 增幅遠超預期 寫四年來最高 公債殖利率不升反降",
+      "url": "https://money.udn.com/money/story/5599/9817654",
+      "source_name": "經濟日報",
+      "why_popular": "登上 Google 即時搜尋熱門趨勢，短時間內累積大量搜尋與新聞報導，深具大眾討論度。"
+    },
+    "created_at": "2026-10-15T22:25:53.180124"
+  },
+  {
+    "topic": "具身智慧大爆發！Tesla Optimus 與 Figure 02 人形機器人，走進工廠流水線的終極大腦秘密",
+    "logline": "從神經網路端到端視覺移動（End-to-End Visuomotor Policies）到多模態具身模型，探討人形機器人如何學會看懂物理空間、靈巧操縱手指組裝零件。",
+    "category": "具身智慧與實體機器人",
+    "recommended_duration": 10.0,
+    "recommended_style": "photorealistic_cinema",
+    "proof": {
+      "platform": "BMW 斯巴達堡工廠實測報告與 Tesla AI Day 技術展示",
+      "metrics": "Figure 02 成功進駐汽車工廠實習組裝 / 自由度高達 16 個靈巧手部關節",
+      "headline": "Humanoid robot Figure 02 successfully deployed inside BMW manufacturing plant",
+      "url": "https://www.figure.ai/",
+      "source_name": "Figure AI / Tesla AI Robotics Division / IEEE Spectrum",
+      "why_popular": "科幻電影中的仿生機器人正在真實走入人類工廠，大模型賦予實體身體後所展現的學習速度超乎預期，全球引頸期盼。"
+    },
+    "type": "ai_technology",
+    "id": "tq_1792074040555",
+    "created_at": "2026-10-15T22:20:40.555051"
+  },
+  {
+    "topic": "不只是生成影片！Sora 與世界模型（World Models）如何讓 AI 理解真實物理世界的運作規律？",
+    "logline": "從文字擴散變換器（DiT）到三維物理時空區塊（Spacetime Patches），解析次世代生成式 AI 如何從被動模仿像素進化到預測重力、光影與流體動力學。",
+    "category": "世界模型與前沿視覺生成",
+    "recommended_duration": 10.0,
+    "recommended_style": "tech_schematic",
+    "proof": {
+      "platform": "OpenAI Sora 官方技術報告與 NeurIPS 世界模型前沿研究",
+      "metrics": "支援高達 1080p 60fps 物理逼真影像時空生成 / 具備 3D 空間一致性記憶",
+      "headline": "Video generation models as world simulators: technical report on spacetime latent diffusion",
+      "url": "https://openai.com/index/video-generation-models-as-world-simulators/",
+      "source_name": "OpenAI Research / DeepMind Genie Project",
+      "why_popular": "視訊生成被視為通往 AGI 世界模型的必經之路，讓大眾看懂 AI 是如何從單純作畫走向理解宇宙物理法則的震撼演化。"
+    },
+    "type": "ai_technology",
+    "id": "tq_1792074036543",
+    "created_at": "2026-10-15T22:20:36.543217"
+  },
+  {
+    "topic": "古代科舉防作弊到底有多變態？搜身進場、糊名謄錄，連考生帶進去的白煮蛋都要切開！",
+    "logline": "剖析古代國家大考從「糊名」、「易書謄錄」到雙重搜檢制度，還原微雕墨卷與考場禁令的千年間諜攻防戰。",
+    "category": "古代制度奇觀與科舉",
+    "recommended_duration": 10.0,
+    "recommended_style": "cinematic_documentary",
+    "proof": {
+      "platform": "典章科舉史料考據（《文獻通考》/《清朝文獻通考》）",
+      "metrics": "各地孔廟與科舉博物館藏夾帶微雕物證 / 清代鄉試欽差條規",
+      "headline": "清代順天府鄉試號舍防弊條例：糕餅切開、筆管中空、衣服單層無夾層",
+      "url": "https://ctext.org/wiki.pl?if=gb&chapter=908488",
+      "source_name": "馬端臨《文獻通考·選舉考》 / 清代《欽定科場條例》",
+      "why_popular": "現代人對大考防弊深有共鳴，古人腦洞大開的作弊黑科技與朝廷步步緊逼的奇葩檢查手段極具娛樂性與啟發性。"
+    },
+    "type": "dynasty_trivia",
+    "id": "tq_1791993336656",
+    "created_at": "2026-10-14T23:55:36.656253"
+  },
+  {
+    "id": "tq_1791981721379",
+    "topic": "臺新新光金融控股 引爆全網關注！事件始末與背後關鍵深度解析",
+    "logline": "深度梳理「臺新新光金融控股」引發熱烈討論的關鍵核心，從背景脈絡到各界反應完整解密。",
+    "category": "時事焦點與深度剖析",
+    "recommended_duration": 5.0,
+    "recommended_style": "tech_schematic",
+    "proof": {
+      "platform": "Google Trends (台灣即時熱搜)",
+      "metrics": "搜尋量 200+ / 即時話題前列",
+      "headline": "台新新光金前三季大賺641.7億元 EPS續創高、達2.47元",
+      "url": "https://www.ctee.com.tw/news/20261014702062-430304",
+      "source_name": "工商時報",
+      "why_popular": "登上 Google 即時搜尋熱門趨勢，短時間內累積大量搜尋與新聞報導，深具大眾討論度。"
+    },
+    "created_at": "2026-10-14T20:42:01.382790"
+  },
+  {
+    "id": "tq_1791902469881",
+    "topic": "apple tv 4k 引爆全網關注！事件始末與背後關鍵深度解析",
+    "logline": "深度梳理「apple tv 4k」引發熱烈討論的關鍵核心，從背景脈絡到各界反應完整解密。",
+    "category": "時事焦點與深度剖析",
+    "recommended_duration": 5.0,
+    "recommended_style": "tech_schematic",
+    "proof": {
+      "platform": "Google Trends (台灣即時熱搜)",
+      "metrics": "搜尋量 500+ / 即時話題前列",
+      "headline": "Apple unveils the new Apple TV 4K, supercharged by Siri AI",
+      "url": "https://www.apple.com/newsroom/2026/10/apple-unveils-the-new-apple-tv-4k/",
+      "source_name": "Apple",
+      "why_popular": "登上 Google 即時搜尋熱門趨勢，短時間內累積大量搜尋與新聞報導，深具大眾討論度。"
+    },
+    "created_at": "2026-10-13T22:41:09.892526"
+  },
+  {
+    "id": "tq_1791820743418",
+    "topic": "陳之漢 引爆全網關注！事件始末與背後關鍵深度解析",
+    "logline": "深度梳理「陳之漢」引發熱烈討論的關鍵核心，從背景脈絡到各界反應完整解密。",
+    "category": "時事焦點與深度剖析",
+    "recommended_duration": 5.0,
+    "recommended_style": "tech_schematic",
+    "proof": {
+      "platform": "Google Trends (台灣即時熱搜)",
+      "metrics": "搜尋量 200+ / 即時話題前列",
+      "headline": "陳之漢 最新發展與即時焦點",
+      "url": "https://www.google.com/search?q=%E9%99%B3%E4%B9%8B%E6%BC%A2",
+      "source_name": "Google Trends",
+      "why_popular": "登上 Google 即時搜尋熱門趨勢，短時間內累積大量搜尋與新聞報導，深具大眾討論度。"
+    },
+    "created_at": "2026-10-12T23:59:03.421319"
+  },
+  {
+    "id": "tq_1791813565900",
+    "topic": "a20 lite 引爆全網關注！事件始末與背後關鍵深度解析",
+    "logline": "深度梳理「a20 lite」引發熱烈討論的關鍵核心，從背景脈絡到各界反應完整解密。",
+    "category": "時事焦點與深度剖析",
+    "recommended_duration": 5.0,
+    "recommended_style": "tech_schematic",
+    "proof": {
+      "platform": "Google Trends (台灣即時熱搜)",
+      "metrics": "搜尋量 100+ / 即時話題前列",
+      "headline": "K-pop pioneer Lee Soo-man bets on 4D future",
+      "url": "https://www.koreaherald.com/article/10900163",
+      "source_name": "The Korea Herald",
+      "why_popular": "登上 Google 即時搜尋熱門趨勢，短時間內累積大量搜尋與新聞報導，深具大眾討論度。"
+    },
+    "created_at": "2026-10-12T21:59:25.900931"
+  },
+  {
+    "id": "tq_1791813558639",
+    "topic": "何如芸 引爆全網關注！事件始末與背後關鍵深度解析",
+    "logline": "深度梳理「何如芸」引發熱烈討論的關鍵核心，從背景脈絡到各界反應完整解密。",
+    "category": "時事焦點與深度剖析",
+    "recommended_duration": 5.0,
+    "recommended_style": "tech_schematic",
+    "proof": {
+      "platform": "Google Trends (台灣即時熱搜)",
+      "metrics": "搜尋量 100+ / 即時話題前列",
+      "headline": "何如芸發文證實母親病逝！買好芋頭蛋糕卻來不及慶生",
+      "url": "https://tw.news.yahoo.com/%E4%BD%95%E5%A6%82%E8%8A%B8%E7%99%BC%E6%96%87%E8%AD%89%E5%AF%A6%E6%AF%8D%E8%A6%AA%E7%97%85%E9%80%9D-%E8%B2%B7%E5%A5%BD%E8%8A%8B%E9%A0%AD%E8%9B%8B%E7%B3%95%E5%8D%BB%E4%BE%86%E4%B8%8D%E5%8F%8A%E6%85%B6%E7%94%9F-111714619.html",
+      "source_name": "Yahoo新聞",
+      "why_popular": "登上 Google 即時搜尋熱門趨勢，短時間內累積大量搜尋與新聞報導，深具大眾討論度。"
+    },
+    "created_at": "2026-10-12T21:59:18.639495"
+  },
+  {
+    "id": "tq_1791813551037",
+    "topic": "交易 引爆全網關注！事件始末與背後關鍵深度解析",
+    "logline": "深度梳理「交易」引發熱烈討論的關鍵核心，從背景脈絡到各界反應完整解密。",
+    "category": "時事焦點與深度剖析",
+    "recommended_duration": 5.0,
+    "recommended_style": "tech_schematic",
+    "proof": {
+      "platform": "Google Trends (台灣即時熱搜)",
+      "metrics": "搜尋量 100+ / 即時話題前列",
+      "headline": "Kraken 正式過關 VARA！杜拜 58 家持牌商、AED 交易對即將上線",
+      "url": "https://www.blocktempo.com/kraken-payward-vara-approval-uae-aed-trading-launch/",
+      "source_name": "動區動趨",
+      "why_popular": "登上 Google 即時搜尋熱門趨勢，短時間內累積大量搜尋與新聞報導，深具大眾討論度。"
+    },
+    "created_at": "2026-10-12T21:59:11.037657"
+  }
+]

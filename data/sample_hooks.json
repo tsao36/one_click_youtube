@@ -1,0 +1,38 @@
+[
+  {
+    "id": "apple_tv_hook",
+    "category": "Tech / Apple",
+    "type": "Opening Hook",
+    "text": "一臺要價接近萬元的電視盒，憑什麼在網路上掀起巨大討論？很多人以為這只是例行硬體升級，但事實並非如此。"
+  },
+  {
+    "id": "apple_tv_title",
+    "category": "Tech / Apple",
+    "type": "Video Title",
+    "text": "一臺電視盒逼近萬元？Apple TV 4K 引爆熱議背後的關鍵真相"
+  },
+  {
+    "id": "wifi_security_hook",
+    "category": "Cybersecurity",
+    "type": "Opening Hook",
+    "text": "如果你在咖啡廳連過公共 Wi-Fi，這 30 秒的內容可能會讓你冒出一身冷汗。黑客只需要這張 100 元的網卡，就能攔截你所有的連線封包。"
+  },
+  {
+    "id": "generic_tutorial_title",
+    "category": "Education",
+    "type": "Video Title",
+    "text": "Python 基礎教學：第 5 課 函數與迴圈使用指南"
+  },
+  {
+    "id": "finance_drama_title",
+    "category": "Finance / Economy",
+    "type": "Video Title",
+    "text": "這家曾估值 470 億美元的超級獨角獸，如何在短短 6 週內徹底崩盤？創辦人到底瞞了所有人什麼？"
+  },
+  {
+    "id": "clickbait_urgent_hook",
+    "category": "Gaming",
+    "type": "Opening Hook",
+    "text": "緊急！官方剛剛無預警修復了這個刷金幣 BUG，還沒領取補償的玩家在今天午夜前必須看完這個步驟！"
+  }
+]

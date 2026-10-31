@@ -1,0 +1,12 @@
+{
+  "id": "manager_wang",
+  "name": "王經理",
+  "role": "反派主管 / 自負傲慢的中年業務主管",
+  "gender": "male",
+  "age": 48,
+  "appearance": "48-year-old arrogant middle-aged East Asian man, receding hairline, rimless gold glasses, navy corporate suit, smug condescending expression, photorealistic portrait",
+  "voice_persona": "語速偏快、帶嘲諷冷笑與不耐煩的中年男聲",
+  "voice_profile": "mytsaovoicemagpie",
+  "created_at": "2026-10-26 20:15:55",
+  "image_filename": "portrait.png"
+}

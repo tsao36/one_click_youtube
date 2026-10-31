@@ -1,0 +1,2 @@
+T1_CROSS_LINGUAL: 你好,HAPPY 是我福克西的修英大演的本作系。
+T2_ZERO_SHOT: 你好,也是我福庫斯的聲音,滿招式。

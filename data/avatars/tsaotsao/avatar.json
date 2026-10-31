@@ -1,0 +1,10 @@
+{
+  "name": "tsaotsao",
+  "display_name": "小曹",
+  "provider": "fal-ai/latentsync",
+  "layout": "fullscreen",
+  "is_default": false,
+  "created_at": "2026-10-21 22:59:37",
+  "image_filename": "portrait.png",
+  "voice_profile": "mytsaovoicemagpie"
+}

@@ -1,0 +1,12 @@
+{
+  "id": "inspector_lu",
+  "name": "陸督察",
+  "role": "男主角 / 偽裝成嫌犯的特勤高階督察",
+  "gender": "male",
+  "age": 32,
+  "appearance": "32-year-old ruggedly handsome East Asian investigator, calm penetrating eyes, black leather jacket, faint scar on eyebrow, dramatic high-contrast lighting, photorealistic portrait",
+  "voice_persona": "冷冽、低沉、掌控全域的青年男聲",
+  "voice_profile": "mytsaovoicemagpie",
+  "created_at": "2026-10-26 20:15:55",
+  "image_filename": "portrait.png"
+}

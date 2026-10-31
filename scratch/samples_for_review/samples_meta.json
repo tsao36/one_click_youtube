@@ -1,0 +1,34 @@
+[
+  {
+    "id": "sample_A_conversational_cfg16",
+    "title": "設定 A：自然對話風 (Prompted, CFG=1.6, Steps=10)",
+    "desc": "最大音高起伏與自然人聲抑揚頓挫，換氣自然、語速明快，接近真實對話感",
+    "file": "scratch\\samples_for_review\\sample_A_conversational_cfg16.wav",
+    "size_bytes": 1680248,
+    "elapsed_sec": 41.9
+  },
+  {
+    "id": "sample_B_documentary_cfg20",
+    "title": "設定 B：科技紀錄片風 (Prompted, CFG=2.0, Steps=12)",
+    "desc": "咬字嚴謹沉穩，語調微幅起伏，具科技旁白說服力，適合正式技術解說",
+    "file": "scratch\\samples_for_review\\sample_B_documentary_cfg20.wav",
+    "size_bytes": 1591312,
+    "elapsed_sec": 33.5
+  },
+  {
+    "id": "sample_C_relaxed_cfg13",
+    "title": "設定 C：放鬆柔和風 (Prompted, CFG=1.3, Steps=14)",
+    "desc": "超低導引拘束，氣息與微動態細節豐富，語調柔和流暢，節奏從容舒緩",
+    "file": "scratch\\samples_for_review\\sample_C_relaxed_cfg13.wav",
+    "size_bytes": 1705360,
+    "elapsed_sec": 48.2
+  },
+  {
+    "id": "sample_D_unprompted_baseline_cfg22",
+    "title": "設定 D：無 Prompt 對照組 (Unprompted, CFG=2.2, Steps=12)",
+    "desc": "無 In-Context 語調錨點，傳統 TTS 純文本先驗，語調偏平穩播報式，作為對比基準",
+    "file": "scratch\\samples_for_review\\sample_D_unprompted_baseline_cfg22.wav",
+    "size_bytes": 1563146,
+    "elapsed_sec": 33.7
+  }
+]

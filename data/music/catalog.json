@@ -1,0 +1,702 @@
+{
+  "categories": {
+    "tech_futuristic": {
+      "key": "tech_futuristic",
+      "label": "Tech & Sci-Fi",
+      "description": "Electronic synths, cybernetic pulses & futuristic tech explainers",
+      "tags": [
+        "tech",
+        "ai",
+        "science",
+        "future",
+        "cyber",
+        "robot",
+        "crypto",
+        "digital"
+      ]
+    },
+    "cinematic_documentary": {
+      "key": "cinematic_documentary",
+      "label": "Cinematic Documentary",
+      "description": "Rich acoustic strings, emotive piano & historical storytelling",
+      "tags": [
+        "history",
+        "documentary",
+        "story",
+        "nature",
+        "biography",
+        "culture",
+        "war"
+      ]
+    },
+    "mystery_cosmic": {
+      "key": "mystery_cosmic",
+      "label": "Dark Mystery & Space",
+      "description": "Eerie cosmic drones, deep space atmospheres & unexplained enigmas",
+      "tags": [
+        "space",
+        "cosmic",
+        "mystery",
+        "alien",
+        "universe",
+        "blackhole",
+        "unexplained",
+        "ocean"
+      ]
+    },
+    "calm_focus": {
+      "key": "calm_focus",
+      "label": "Calm & Focus",
+      "description": "Soft ambient pads, warm gentle chords & meditative study vibes",
+      "tags": [
+        "calm",
+        "relax",
+        "study",
+        "meditation",
+        "gentle",
+        "minimal",
+        "tutorial",
+        "psychology"
+      ]
+    },
+    "dramatic_tension": {
+      "key": "dramatic_tension",
+      "label": "Dramatic Tension",
+      "description": "Low bass drones, steady investigative pulses & high-stakes crises",
+      "tags": [
+        "drama",
+        "tension",
+        "crisis",
+        "investigation",
+        "crime",
+        "finance",
+        "danger",
+        "politics"
+      ]
+    },
+    "uplifting_inspirational": {
+      "key": "uplifting_inspirational",
+      "label": "Uplifting & Wonder",
+      "description": "Inspiring harmonies, sense of wonder & breakthrough discoveries",
+      "tags": [
+        "uplifting",
+        "hope",
+        "inspire",
+        "wonder",
+        "breakthrough",
+        "discovery",
+        "positive"
+      ]
+    }
+  },
+  "tracks": [
+    {
+      "id": "tech_futuristic/Deliberate_Thought.mp3",
+      "name": "Deliberate Thought",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "tech_futuristic/Deliberate_Thought.mp3",
+      "basename": "Deliberate_Thought.mp3",
+      "size_mb": 6.89,
+      "mood": "Calm Electronic, Digital Delay",
+      "description": "Calming round electronic music with gentle delay and digital pulse.",
+      "tags": [
+        "tech",
+        "ai",
+        "science",
+        "future",
+        "cyber",
+        "robot",
+        "crypto",
+        "digital"
+      ],
+      "url": "/api/music/audio/tech_futuristic/Deliberate_Thought.mp3"
+    },
+    {
+      "id": "tech_futuristic/Crypto.mp3",
+      "name": "Crypto",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "tech_futuristic/Crypto.mp3",
+      "basename": "Crypto.mp3",
+      "size_mb": 6.23,
+      "mood": "Moody Synth, Tech Curiosity",
+      "description": "Moody electronic tension, modern rhythmic curiosity and digital flow.",
+      "tags": [
+        "tech",
+        "ai",
+        "science",
+        "future",
+        "cyber",
+        "robot",
+        "crypto",
+        "digital"
+      ],
+      "url": "/api/music/audio/tech_futuristic/Crypto.mp3"
+    },
+    {
+      "id": "tech_futuristic/Floating_Cities.mp3",
+      "name": "Floating Cities",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "tech_futuristic/Floating_Cities.mp3",
+      "basename": "Floating_Cities.mp3",
+      "size_mb": 5.62,
+      "mood": "Futuristic Ambient, Synth Waves",
+      "description": "Futuristic ambient electronic landscape, floating synths and clean progression.",
+      "tags": [
+        "tech",
+        "ai",
+        "science",
+        "future",
+        "cyber",
+        "robot",
+        "crypto",
+        "digital"
+      ],
+      "url": "/api/music/audio/tech_futuristic/Floating_Cities.mp3"
+    },
+    {
+      "id": "tech_futuristic/Digital_Bark.mp3",
+      "name": "Digital Bark",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "tech_futuristic/Digital_Bark.mp3",
+      "basename": "Digital_Bark.mp3",
+      "size_mb": 10.08,
+      "mood": "Atmospheric Electronic, Cyber Edge",
+      "description": "Atmospheric modern electronic soundscape with tech and cyber undertones.",
+      "tags": [
+        "tech",
+        "ai",
+        "science",
+        "future",
+        "cyber",
+        "robot",
+        "crypto",
+        "digital"
+      ],
+      "url": "/api/music/audio/tech_futuristic/Digital_Bark.mp3"
+    },
+    {
+      "id": "tech_futuristic/Airship_Serenity.mp3",
+      "name": "Airship Serenity",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "tech_futuristic/Airship_Serenity.mp3",
+      "basename": "Airship_Serenity.mp3",
+      "size_mb": 7.33,
+      "mood": "Gentle Melodic Synth, Ambient Space",
+      "description": "Gentle futuristic synthesizer atmosphere and calm electronic flow.",
+      "tags": [
+        "tech",
+        "ai",
+        "science",
+        "future",
+        "cyber",
+        "robot",
+        "crypto",
+        "digital"
+      ],
+      "url": "/api/music/audio/tech_futuristic/Airship_Serenity.mp3"
+    },
+    {
+      "id": "cinematic_documentary/Dreamer.mp3",
+      "name": "Dreamer",
+      "category": "cinematic_documentary",
+      "category_label": "Cinematic Documentary",
+      "filename": "cinematic_documentary/Dreamer.mp3",
+      "basename": "Dreamer.mp3",
+      "size_mb": 6.23,
+      "mood": "Reflective Piano, Rich Chords",
+      "description": "Gorgeous rich piano chords and subtle percussion, thoughtful contemplation.",
+      "tags": [
+        "history",
+        "documentary",
+        "story",
+        "nature",
+        "biography",
+        "culture",
+        "war"
+      ],
+      "url": "/api/music/audio/cinematic_documentary/Dreamer.mp3"
+    },
+    {
+      "id": "cinematic_documentary/Autumn_Day.mp3",
+      "name": "Autumn Day",
+      "category": "cinematic_documentary",
+      "category_label": "Cinematic Documentary",
+      "filename": "cinematic_documentary/Autumn_Day.mp3",
+      "basename": "Autumn_Day.mp3",
+      "size_mb": 7.05,
+      "mood": "Acoustic Reflection, Warm Melodic",
+      "description": "Reflective acoustic guitar, piano, and understated cinematic mood.",
+      "tags": [
+        "history",
+        "documentary",
+        "story",
+        "nature",
+        "biography",
+        "culture",
+        "war"
+      ],
+      "url": "/api/music/audio/cinematic_documentary/Autumn_Day.mp3"
+    },
+    {
+      "id": "cinematic_documentary/Heartbreaking.mp3",
+      "name": "Heartbreaking",
+      "category": "cinematic_documentary",
+      "category_label": "Cinematic Documentary",
+      "filename": "cinematic_documentary/Heartbreaking.mp3",
+      "basename": "Heartbreaking.mp3",
+      "size_mb": 3.76,
+      "mood": "Emotive Strings, Poignant Gravitas",
+      "description": "Deep emotive strings, poignant atmosphere, historical weight and gravitas.",
+      "tags": [
+        "history",
+        "documentary",
+        "story",
+        "nature",
+        "biography",
+        "culture",
+        "war"
+      ],
+      "url": "/api/music/audio/cinematic_documentary/Heartbreaking.mp3"
+    },
+    {
+      "id": "cinematic_documentary/Frost_Waltz.mp3",
+      "name": "Frost Waltz",
+      "category": "cinematic_documentary",
+      "category_label": "Cinematic Documentary",
+      "filename": "cinematic_documentary/Frost_Waltz.mp3",
+      "basename": "Frost_Waltz.mp3",
+      "size_mb": 5.27,
+      "mood": "Calm Bells, Mysterious Unfolding",
+      "description": "Calm, mysterious Glockenspiel and bells for unfolding stories and history.",
+      "tags": [
+        "history",
+        "documentary",
+        "story",
+        "nature",
+        "biography",
+        "culture",
+        "war"
+      ],
+      "url": "/api/music/audio/cinematic_documentary/Frost_Waltz.mp3"
+    },
+    {
+      "id": "cinematic_documentary/Deep_Haze.mp3",
+      "name": "Deep Haze",
+      "category": "cinematic_documentary",
+      "category_label": "Cinematic Documentary",
+      "filename": "cinematic_documentary/Deep_Haze.mp3",
+      "basename": "Deep_Haze.mp3",
+      "size_mb": 4.66,
+      "mood": "Subtle Film Score, Narrative Atmosphere",
+      "description": "Reflective, subtle film score texture for documentary narration.",
+      "tags": [
+        "history",
+        "documentary",
+        "story",
+        "nature",
+        "biography",
+        "culture",
+        "war"
+      ],
+      "url": "/api/music/audio/cinematic_documentary/Deep_Haze.mp3"
+    },
+    {
+      "id": "mystery_cosmic/Phantom_from_Space.mp3",
+      "name": "Phantom from Space",
+      "category": "mystery_cosmic",
+      "category_label": "Dark Mystery & Space",
+      "filename": "mystery_cosmic/Phantom_from_Space.mp3",
+      "basename": "Phantom_from_Space.mp3",
+      "size_mb": 4.77,
+      "mood": "Neo-Retro Cosmic, Space Theremin",
+      "description": "Neo-retro cosmic mystery atmosphere, deep space fascination and wonder.",
+      "tags": [
+        "space",
+        "cosmic",
+        "mystery",
+        "alien",
+        "universe",
+        "blackhole",
+        "unexplained",
+        "ocean"
+      ],
+      "url": "/api/music/audio/mystery_cosmic/Phantom_from_Space.mp3"
+    },
+    {
+      "id": "mystery_cosmic/Mesmerize.mp3",
+      "name": "Mesmerize",
+      "category": "mystery_cosmic",
+      "category_label": "Dark Mystery & Space",
+      "filename": "mystery_cosmic/Mesmerize.mp3",
+      "basename": "Mesmerize.mp3",
+      "size_mb": 12.94,
+      "mood": "Hypnotic Drone, Atmospheric Depth",
+      "description": "Hypnotic, deep atmospheric tension and cosmic mystery.",
+      "tags": [
+        "space",
+        "cosmic",
+        "mystery",
+        "alien",
+        "universe",
+        "blackhole",
+        "unexplained",
+        "ocean"
+      ],
+      "url": "/api/music/audio/mystery_cosmic/Mesmerize.mp3"
+    },
+    {
+      "id": "mystery_cosmic/Static_Motion.mp3",
+      "name": "Static Motion",
+      "category": "mystery_cosmic",
+      "category_label": "Dark Mystery & Space",
+      "filename": "mystery_cosmic/Static_Motion.mp3",
+      "basename": "Static_Motion.mp3",
+      "size_mb": 7.2,
+      "mood": "Subtle Clicks, Otherworldly Texture",
+      "description": "Sharp subtle clicks with otherworldly drones and deep atmosphere.",
+      "tags": [
+        "space",
+        "cosmic",
+        "mystery",
+        "alien",
+        "universe",
+        "blackhole",
+        "unexplained",
+        "ocean"
+      ],
+      "url": "/api/music/audio/mystery_cosmic/Static_Motion.mp3"
+    },
+    {
+      "id": "mystery_cosmic/Blue_Sizzle.mp3",
+      "name": "Blue Sizzle",
+      "category": "mystery_cosmic",
+      "category_label": "Dark Mystery & Space",
+      "filename": "mystery_cosmic/Blue_Sizzle.mp3",
+      "basename": "Blue_Sizzle.mp3",
+      "size_mb": 5.69,
+      "mood": "Expansive Pads, Cosmic Swells",
+      "description": "Expansive synthesizer pads with gentle, eerie swells across space.",
+      "tags": [
+        "space",
+        "cosmic",
+        "mystery",
+        "alien",
+        "universe",
+        "blackhole",
+        "unexplained",
+        "ocean"
+      ],
+      "url": "/api/music/audio/mystery_cosmic/Blue_Sizzle.mp3"
+    },
+    {
+      "id": "mystery_cosmic/Darkest_Child.mp3",
+      "name": "Darkest Child",
+      "category": "mystery_cosmic",
+      "category_label": "Dark Mystery & Space",
+      "filename": "mystery_cosmic/Darkest_Child.mp3",
+      "basename": "Darkest_Child.mp3",
+      "size_mb": 9.11,
+      "mood": "Eerie Celeste, Psychological Ambience",
+      "description": "Eerie, quiet celeste over dark atmospheric pads, psychological mystery.",
+      "tags": [
+        "space",
+        "cosmic",
+        "mystery",
+        "alien",
+        "universe",
+        "blackhole",
+        "unexplained",
+        "ocean"
+      ],
+      "url": "/api/music/audio/mystery_cosmic/Darkest_Child.mp3"
+    },
+    {
+      "id": "calm_focus/Meditation_Impromptu_01.mp3",
+      "name": "Meditation Impromptu 01",
+      "category": "calm_focus",
+      "category_label": "Calm & Focus",
+      "filename": "calm_focus/Meditation_Impromptu_01.mp3",
+      "basename": "Meditation_Impromptu_01.mp3",
+      "size_mb": 6.72,
+      "mood": "Peaceful Piano, D-Flat Major",
+      "description": "Flowing, peaceful solo piano in D-flat major, warm and calming.",
+      "tags": [
+        "calm",
+        "relax",
+        "study",
+        "meditation",
+        "gentle",
+        "minimal",
+        "tutorial",
+        "psychology"
+      ],
+      "url": "/api/music/audio/calm_focus/Meditation_Impromptu_01.mp3"
+    },
+    {
+      "id": "calm_focus/Meditation_Impromptu_02.mp3",
+      "name": "Meditation Impromptu 02",
+      "category": "calm_focus",
+      "category_label": "Calm & Focus",
+      "filename": "calm_focus/Meditation_Impromptu_02.mp3",
+      "basename": "Meditation_Impromptu_02.mp3",
+      "size_mb": 7.88,
+      "mood": "Soothing Piano, Reflective Study",
+      "description": "Soothing, reflective piano backdrop for focused educational narration.",
+      "tags": [
+        "calm",
+        "relax",
+        "study",
+        "meditation",
+        "gentle",
+        "minimal",
+        "tutorial",
+        "psychology"
+      ],
+      "url": "/api/music/audio/calm_focus/Meditation_Impromptu_02.mp3"
+    },
+    {
+      "id": "calm_focus/Clean_Soul.mp3",
+      "name": "Clean Soul",
+      "category": "calm_focus",
+      "category_label": "Calm & Focus",
+      "filename": "calm_focus/Clean_Soul.mp3",
+      "basename": "Clean_Soul.mp3",
+      "size_mb": 11.7,
+      "mood": "Spacious Texture, Ultra-Gentle",
+      "description": "Clean, spacious, ultra-gentle background with plenty of room for voice.",
+      "tags": [
+        "calm",
+        "relax",
+        "study",
+        "meditation",
+        "gentle",
+        "minimal",
+        "tutorial",
+        "psychology"
+      ],
+      "url": "/api/music/audio/calm_focus/Clean_Soul.mp3"
+    },
+    {
+      "id": "calm_focus/Dream_Culture.mp3",
+      "name": "Dream Culture",
+      "category": "calm_focus",
+      "category_label": "Calm & Focus",
+      "filename": "calm_focus/Dream_Culture.mp3",
+      "basename": "Dream_Culture.mp3",
+      "size_mb": 8.18,
+      "mood": "Watery Piano, Subtle Chill Rhythm",
+      "description": "Dreamy watery piano over subtle rhythm, relaxing educational feel.",
+      "tags": [
+        "calm",
+        "relax",
+        "study",
+        "meditation",
+        "gentle",
+        "minimal",
+        "tutorial",
+        "psychology"
+      ],
+      "url": "/api/music/audio/calm_focus/Dream_Culture.mp3"
+    },
+    {
+      "id": "calm_focus/Fresh_Air.mp3",
+      "name": "Fresh Air",
+      "category": "calm_focus",
+      "category_label": "Calm & Focus",
+      "filename": "calm_focus/Fresh_Air.mp3",
+      "basename": "Fresh_Air.mp3",
+      "size_mb": 8.98,
+      "mood": "Refreshing Piano, Smooth Ambient",
+      "description": "Light, smooth, refreshing ambient piano improvisation.",
+      "tags": [
+        "calm",
+        "relax",
+        "study",
+        "meditation",
+        "gentle",
+        "minimal",
+        "tutorial",
+        "psychology"
+      ],
+      "url": "/api/music/audio/calm_focus/Fresh_Air.mp3"
+    },
+    {
+      "id": "dramatic_tension/Hitman.mp3",
+      "name": "Hitman",
+      "category": "dramatic_tension",
+      "category_label": "Dramatic Tension",
+      "filename": "dramatic_tension/Hitman.mp3",
+      "basename": "Hitman.mp3",
+      "size_mb": 7.66,
+      "mood": "Stealthy Pulse, Investigative Tension",
+      "description": "Stealthy, suspenseful investigative pulse, ideal for true crime and exposés.",
+      "tags": [
+        "drama",
+        "tension",
+        "crisis",
+        "investigation",
+        "crime",
+        "finance",
+        "danger",
+        "politics"
+      ],
+      "url": "/api/music/audio/dramatic_tension/Hitman.mp3"
+    },
+    {
+      "id": "dramatic_tension/Redletter.mp3",
+      "name": "Redletter",
+      "category": "dramatic_tension",
+      "category_label": "Dramatic Tension",
+      "filename": "dramatic_tension/Redletter.mp3",
+      "basename": "Redletter.mp3",
+      "size_mb": 10.23,
+      "mood": "High Strings, Low Bass Grit",
+      "description": "High-pitched strings over low drone with textural grit and mounting suspense.",
+      "tags": [
+        "drama",
+        "tension",
+        "crisis",
+        "investigation",
+        "crime",
+        "finance",
+        "danger",
+        "politics"
+      ],
+      "url": "/api/music/audio/dramatic_tension/Redletter.mp3"
+    },
+    {
+      "id": "dramatic_tension/Echoes_of_Time.mp3",
+      "name": "Echoes of Time",
+      "category": "dramatic_tension",
+      "category_label": "Dramatic Tension",
+      "filename": "dramatic_tension/Echoes_of_Time.mp3",
+      "basename": "Echoes_of_Time.mp3",
+      "size_mb": 10.88,
+      "mood": "Semi-Tonal Bells, Ancient Gravitas",
+      "description": "Deep, rich soundscape with semi-tonal bells, ancient enigmas and high stakes.",
+      "tags": [
+        "drama",
+        "tension",
+        "crisis",
+        "investigation",
+        "crime",
+        "finance",
+        "danger",
+        "politics"
+      ],
+      "url": "/api/music/audio/dramatic_tension/Echoes_of_Time.mp3"
+    },
+    {
+      "id": "dramatic_tension/Intrepid.mp3",
+      "name": "Intrepid",
+      "category": "dramatic_tension",
+      "category_label": "Dramatic Tension",
+      "filename": "dramatic_tension/Intrepid.mp3",
+      "basename": "Intrepid.mp3",
+      "size_mb": 5.83,
+      "mood": "Driving Curiosity, Steady Investigation",
+      "description": "Subtle driving curiosity and steady investigation pulse.",
+      "tags": [
+        "drama",
+        "tension",
+        "crisis",
+        "investigation",
+        "crime",
+        "finance",
+        "danger",
+        "politics"
+      ],
+      "url": "/api/music/audio/dramatic_tension/Intrepid.mp3"
+    },
+    {
+      "id": "dramatic_tension/Lightless_Dawn.mp3",
+      "name": "Lightless Dawn",
+      "category": "dramatic_tension",
+      "category_label": "Dramatic Tension",
+      "filename": "dramatic_tension/Lightless_Dawn.mp3",
+      "basename": "Lightless_Dawn.mp3",
+      "size_mb": 14.49,
+      "mood": "Brooding Cinematic, Dark Building",
+      "description": "Dark building intensity and brooding cinematic presence.",
+      "tags": [
+        "drama",
+        "tension",
+        "crisis",
+        "investigation",
+        "crime",
+        "finance",
+        "danger",
+        "politics"
+      ],
+      "url": "/api/music/audio/dramatic_tension/Lightless_Dawn.mp3"
+    },
+    {
+      "id": "uplifting_inspirational/Promises_to_Keep.mp3",
+      "name": "Promises to Keep",
+      "category": "uplifting_inspirational",
+      "category_label": "Uplifting & Wonder",
+      "filename": "uplifting_inspirational/Promises_to_Keep.mp3",
+      "basename": "Promises_to_Keep.mp3",
+      "size_mb": 11.6,
+      "mood": "Hopeful Piano, Poignant Wonder",
+      "description": "Hopeful, soulful piano melody for triumph, discovery and wonder.",
+      "tags": [
+        "uplifting",
+        "hope",
+        "inspire",
+        "wonder",
+        "breakthrough",
+        "discovery",
+        "positive"
+      ],
+      "url": "/api/music/audio/uplifting_inspirational/Promises_to_Keep.mp3"
+    },
+    {
+      "id": "uplifting_inspirational/Sovereign.mp3",
+      "name": "Sovereign",
+      "category": "uplifting_inspirational",
+      "category_label": "Uplifting & Wonder",
+      "filename": "uplifting_inspirational/Sovereign.mp3",
+      "basename": "Sovereign.mp3",
+      "size_mb": 14.32,
+      "mood": "Majestic New Age, Grand Journey",
+      "description": "Noble, reflective and majestic new age piano, inspiring journeys.",
+      "tags": [
+        "uplifting",
+        "hope",
+        "inspire",
+        "wonder",
+        "breakthrough",
+        "discovery",
+        "positive"
+      ],
+      "url": "/api/music/audio/uplifting_inspirational/Sovereign.mp3"
+    },
+    {
+      "id": "uplifting_inspirational/Silver_Flame.mp3",
+      "name": "Silver Flame",
+      "category": "uplifting_inspirational",
+      "category_label": "Uplifting & Wonder",
+      "filename": "uplifting_inspirational/Silver_Flame.mp3",
+      "basename": "Silver_Flame.mp3",
+      "size_mb": 12.08,
+      "mood": "Warm Ambient Shimmer, Mystic Potential",
+      "description": "Warm ambient shimmer with mystical potential, scientific breakthroughs.",
+      "tags": [
+        "uplifting",
+        "hope",
+        "inspire",
+        "wonder",
+        "breakthrough",
+        "discovery",
+        "positive"
+      ],
+      "url": "/api/music/audio/uplifting_inspirational/Silver_Flame.mp3"
+    }
+  ]
+}

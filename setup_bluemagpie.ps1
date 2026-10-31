@@ -10,9 +10,12 @@ if (-not (Test-Path $envDir)) {
     py -3.11 -m venv $envDir
 }
 
-Write-Host "[+] Installing PyTorch, Transformers, SoundFile, FastAPI..." -ForegroundColor Green
+Write-Host "[+] Installing AMD ROCm PyTorch (gfx120X / Radeon RX 9000 series)..." -ForegroundColor Green
 & "$envDir\Scripts\python.exe" -m pip install --upgrade pip
-& "$envDir\Scripts\python.exe" -m pip install "torch>=2.1" "transformers>=4.44" "soundfile" "fastapi" "uvicorn" "pydantic" "python-multipart" "huggingface_hub" "safetensors" "librosa" "einops"
+& "$envDir\Scripts\python.exe" -m pip install --index-url https://rocm.nightlies.amd.com/v2/gfx120X-all/ --pre torch torchaudio
+
+Write-Host "[+] Installing Transformers, SoundFile, FastAPI..." -ForegroundColor Green
+& "$envDir\Scripts\python.exe" -m pip install "transformers>=4.44" "soundfile" "fastapi" "uvicorn" "pydantic" "python-multipart" "huggingface_hub" "safetensors" "librosa" "einops"
 
 Write-Host "[+] Installing Barbet and BlueMagpie-TTS from GitHub..." -ForegroundColor Green
 & "$envDir\Scripts\python.exe" -m pip install "git+https://github.com/OpenFormosa/Barbet.git"

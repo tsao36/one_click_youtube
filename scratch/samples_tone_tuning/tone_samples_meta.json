@@ -1,0 +1,42 @@
+[
+  {
+    "id": "sample_1_cfg24_steps14",
+    "title": "樣音 1：音調均衡強化 (CFG=2.4, Steps=14)",
+    "desc": "以 D 為基礎提升 CFG 至 2.4，微幅提高聲調條件約束，降低三聲與一聲的飄移",
+    "file": "scratch\\samples_tone_tuning\\sample_1_cfg24_steps14.wav",
+    "size_bytes": 1558252,
+    "elapsed_sec": 39.5
+  },
+  {
+    "id": "sample_2_cfg26_steps18",
+    "title": "樣音 2：緊湊咬字高解析 (CFG=2.6, Steps=18)",
+    "desc": "高導引 (2.6) 搭配 18 步高階數 ODE 積分，加強聲調轉折（下凹與急降）的聲學特徵",
+    "file": "scratch\\samples_tone_tuning\\sample_2_cfg26_steps18.wav",
+    "size_bytes": 1593886,
+    "elapsed_sec": 43.7
+  },
+  {
+    "id": "sample_3_cfg22_steps20",
+    "title": "樣音 3：D 款原汁音色 + 極限平滑步數 (CFG=2.2, Steps=20)",
+    "desc": "保留你最喜歡的 D 款 2.2 飽滿音色，但步數拉滿至 20 步，消除步數不足造成的音調抖動",
+    "file": "scratch\\samples_tone_tuning\\sample_3_cfg22_steps20.wav",
+    "size_bytes": 1510074,
+    "elapsed_sec": 42.8
+  },
+  {
+    "id": "sample_4_tone_disambiguated",
+    "title": "樣音 4：聲調文字優化版 (CFG=2.4, Steps=16 + 聲調標註修復)",
+    "desc": "針對「公釐(2聲)→公厘」、「摺疊(2聲)→折疊」及頓號斷詞防黏音，從文本根源校正發音",
+    "file": "scratch\\samples_tone_tuning\\sample_4_tone_disambiguated.wav",
+    "size_bytes": 1488366,
+    "elapsed_sec": 41.4
+  },
+  {
+    "id": "sample_5_alt_seed_trajectory",
+    "title": "樣音 5：替代擴散潛在軌跡 (CFG=2.3, Steps=16, Seed=777)",
+    "desc": "變更擴散高斯初始雜訊種子 (Seed=777)，探索另一條音高動態與聲調落點軌跡",
+    "file": "scratch\\samples_tone_tuning\\sample_5_alt_seed_trajectory.wav",
+    "size_bytes": 1552916,
+    "elapsed_sec": 41.2
+  }
+]

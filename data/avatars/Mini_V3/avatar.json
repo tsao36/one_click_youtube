@@ -1,0 +1,13 @@
+{
+  "name": "Mini_V3",
+  "display_name": "芷晴小V3",
+  "provider": "masked_speaker",
+  "layout": "fullscreen",
+  "is_default": false,
+  "is_masked": true,
+  "voice_profile": "aurora_mandarin",
+  "created_at": "2026-10-23 16:46:24",
+  "image_filename": "portrait.png",
+  "has_base_video": true,
+  "has_image": true
+}

@@ -12,5 +12,5 @@ if (-not (Test-Path $py)) {
     }
 }
 
-Write-Host "[+] Launching BlueMagpie-TTS server on http://127.0.0.1:8008..." -ForegroundColor Green
-& $py tools\bluemagpie_server.py --port 8008 --device cpu $args
+Write-Host "[+] Launching BlueMagpie-TTS server on http://127.0.0.1:8008 (AMD ROCm / GPU auto-detect)..." -ForegroundColor Green
+& $py tools\bluemagpie_server.py --port 8008 --device auto $args
