@@ -184,6 +184,114 @@ def parse_drama_script_markdown(md_text: str) -> tuple[str, list[dict]]:
     return title, sections
 
 
+def resolve_script_speakers_to_roster(
+    script_sections: list[dict],
+    roster: list[dict]
+) -> dict[str, dict]:
+    """Map unique raw speaker names in script sections to distinct characters from roster.
+    Guarantees:
+    1. Consistent 1:1 mapping for every unique speaker across all scenes.
+    2. Respects exact name, substring, and role matches.
+    3. Uses semantic role/gender matching (e.g. 房東/債主/老闆 -> male/antagonist, 女主角/租客/晚晚 -> female/heroine).
+    4. Automatically fills remaining unique speakers with unused roster characters.
+    """
+    from generators.character_manager import slugify_character
+
+    unique_speakers: list[str] = []
+    for sec in script_sections:
+        spk = sec.get("speaker") or "主角"
+        if spk not in unique_speakers:
+            unique_speakers.append(spk)
+
+    if not roster:
+        return {
+            spk: {"id": slugify_character(spk), "name": spk, "gender": "female", "voice_profile": "ichiehchieh"}
+            for spk in unique_speakers
+        }
+
+    speaker_map: dict[str, dict] = {}
+    used_char_ids: set[str] = set()
+
+    # Step 1: Exact name or ID match
+    for spk in unique_speakers:
+        if spk in speaker_map:
+            continue
+        for c in roster:
+            cid = c.get("id") or ""
+            cname = c.get("name") or ""
+            if (cname == spk or cid == spk) and cid not in used_char_ids:
+                speaker_map[spk] = c
+                used_char_ids.add(cid)
+                break
+
+    # Step 2: Substring name match (e.g. "林" in "林晚晚" matches "林芯怡")
+    for spk in unique_speakers:
+        if spk in speaker_map:
+            continue
+        for c in roster:
+            cid = c.get("id") or ""
+            cname = c.get("name") or ""
+            if cid in used_char_ids:
+                continue
+            if cname and (cname in spk or spk in cname):
+                speaker_map[spk] = c
+                used_char_ids.add(cid)
+                break
+
+    # Step 3: Exact or substring role match (e.g. "反派", "主角")
+    for spk in unique_speakers:
+        if spk in speaker_map:
+            continue
+        for c in roster:
+            cid = c.get("id") or ""
+            role = c.get("role") or ""
+            if cid in used_char_ids:
+                continue
+            if role and (role in spk or spk in role):
+                speaker_map[spk] = c
+                used_char_ids.add(cid)
+                break
+
+    # Step 4: Semantic role/gender keyword match
+    MALE_ANTAG_KEYWORDS = ("男", "房東", "債主", "反派", "董", "董事長", "老闆", "總裁", "經理", "主管", "張", "王", "陳", "黑道", "惡霸", "強者", "自負", "流氓", "高利貸")
+    FEMALE_HEROINE_KEYWORDS = ("女", "租客", "主角", "沈", "林", "芸", "妹", "晚晚", "受害", "女主角", "弱者", "女債主", "秘書")
+
+    for spk in unique_speakers:
+        if spk in speaker_map:
+            continue
+        is_male_antag = any(k in spk for k in MALE_ANTAG_KEYWORDS)
+        is_female_heroine = any(k in spk for k in FEMALE_HEROINE_KEYWORDS)
+        for c in roster:
+            cid = c.get("id") or ""
+            if cid in used_char_ids:
+                continue
+            c_gender = str(c.get("gender", "")).lower()
+            c_role = c.get("role", "")
+            if is_male_antag and (c_gender == "male" or any(k in c_role for k in ("反派", "對手", "經理", "董", "霸", "男"))):
+                speaker_map[spk] = c
+                used_char_ids.add(cid)
+                break
+            elif is_female_heroine and (c_gender == "female" or any(k in c_role for k in ("主角", "受害", "女", "正派"))):
+                speaker_map[spk] = c
+                used_char_ids.add(cid)
+                break
+
+    # Step 5: Assign any remaining unmapped unique speakers to remaining unused roster characters
+    unused_roster = [c for c in roster if (c.get("id") or "") not in used_char_ids]
+    for spk in unique_speakers:
+        if spk not in speaker_map and unused_roster:
+            c = unused_roster.pop(0)
+            speaker_map[spk] = c
+            used_char_ids.add(c.get("id") or "")
+
+    # Step 6: Fallback round-robin if more speakers than roster characters
+    for idx, spk in enumerate(unique_speakers):
+        if spk not in speaker_map:
+            speaker_map[spk] = roster[idx % len(roster)]
+
+    return speaker_map
+
+
 
 
 
