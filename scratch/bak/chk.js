@@ -4057,6 +4057,7 @@
         const sampleUrl = `/media/voices/${v.name}/test_sample.wav?t=${buster}`;
         const isEleven = v.provider === 'elevenlabs';
         const isVoai = v.provider === 'voai';
+        const isEdge = v.provider === 'edge';
 
         listEl.innerHTML += `
           <div style="background:#080d16; border:1px solid var(--card-border); padding:14px; border-radius:var(--radius); margin-bottom:12px; display:flex; flex-direction:column; gap:10px;">
@@ -4067,6 +4068,7 @@
                   <span style="font-size: 12px; color:var(--text-muted);">(${v.name})</span>
                   ${isEleven ? '<span style="background:rgba(37,99,235,0.25); border:1px solid #2563eb; color:#60a5fa; font-size: 12px; font-weight:700; padding:1px 6px; border-radius:4px;">⚡ ElevenLabs</span>' : ''}
                   ${isVoai ? '<span style="background:rgba(2,132,199,0.25); border:1px solid #0284c7; color:#38bdf8; font-size: 12px; font-weight:700; padding:1px 6px; border-radius:4px;">🇹🇼 VoAI 絕好聲創</span>' : ''}
+                  ${isEdge ? `<span style="background:rgba(16,185,129,0.22); border:1px solid #10b981; color:#6ee7b7; font-size: 12px; font-weight:700; padding:1px 6px; border-radius:4px;">🇹🇼 Edge-TTS ${v.gender === 'male' ? '臺灣男聲' : '臺灣女聲'}</span>` : ''}
                   ${hasSample ? '<span style="background:rgba(5,150,105,0.25); border:1px solid #059669; color:#34d399; font-size: 12px; font-weight:700; padding:1px 6px; border-radius:4px;">✓ Sample Saved</span>' : '<span style="font-size: 12px; color:#f59e0b; background:rgba(245,158,11,0.15); border:1px solid #d97706; padding:1px 6px; border-radius:4px;">⏳ No Sample</span>'}
                 </div>
                 <div style="font-size:12px; color:var(--text-muted); margin-top:3px;">
@@ -4074,9 +4076,11 @@
                     Provider: <b style="color:#60a5fa;">ElevenLabs Cloud</b> | Model: <b style="color:#93c5fd;">${v.model_id || 'eleven_multilingual_v2'}</b> | Voice ID: <b>${v.voice_id || v.voice || 'Rachel'}</b>
                   ` : (isVoai ? `
                     Provider: <b style="color:#38bdf8;">VoAI 絕好聲創 Cloud</b> | Version: <b style="color:#7dd3fc;">${v.version || v.model_id || 'Sota+'}</b> | Speaker: <b>${v.speaker || v.voice_id || v.voice || '佑希'}</b> | Style: <b>${v.voai_style || '預設'}</b>
+                  ` : (isEdge ? `
+                    Provider: <b style="color:#34d399;">Edge-TTS (Free Cloud)</b> | Neural Voice: <b style="color:#a7f3d0;">${v.voice || 'zh-TW-HsiaoChenNeural'}</b> | Rate: <b>${v.speech_rate || 1.0}x</b> | Pitch: <b>${v.pitch || '+0Hz'}</b>${v.persona ? ` | <span style="color:#cbd5e1;">${v.persona}</span>` : ''}
                   ` : `
                     Provider: <b>${v.provider.toUpperCase()}</b> | Language: <b>${v.language || 'Auto'}</b> | Cloned Ref: <b>${v.reference_wav ? 'Uploaded ✓' : 'None'}</b>
-                  `)}
+                  `))}
                 </div>
               </div>
 
@@ -4574,8 +4578,10 @@
       const bmBox = document.getElementById('v-bluemagpie-container');
       const elevenBox = document.getElementById('v-elevenlabs-container');
       const voaiBox = document.getElementById('v-voai-container');
+      const edgeBox = document.getElementById('v-edge-container');
       const refBox = document.getElementById('v-ref-audio-group');
       const hintBox = document.getElementById('v-ref-hint');
+      if (edgeBox) edgeBox.style.display = (prov === 'edge') ? 'block' : 'none';
       
       if (prov === 'bluemagpie') {
         if (bmBox) bmBox.style.display = 'block';
@@ -4599,6 +4605,12 @@
         if (hintBox) hintBox.style.display = 'none';
         await loadVoAISpeakers();
         onVoAIVersionOrSpeakerChange();
+      } else if (prov === 'edge') {
+        if (bmBox) bmBox.style.display = 'none';
+        if (elevenBox) elevenBox.style.display = 'none';
+        if (voaiBox) voaiBox.style.display = 'none';
+        if (refBox) refBox.style.display = 'none';
+        if (hintBox) hintBox.style.display = 'none';
       } else {
         if (bmBox) bmBox.style.display = 'none';
         if (elevenBox) elevenBox.style.display = 'none';
@@ -4687,6 +4699,11 @@
         }
         if (!name) name = `voai_${chosenVer.toLowerCase().replace(/[^a-z0-9]/g, '')}_${chosenSpeaker}`;
         if (!disp) disp = `VoAI - ${chosenSpeaker} (${chosenVer})`;
+      } else if (prov === 'edge') {
+        const edgeVoice = document.getElementById('v-edge-voice')?.value || 'zh-TW-HsiaoChenNeural';
+        const shortTag = edgeVoice.replace('zh-TW-', '').replace('Neural', '').toLowerCase();
+        if (!name) name = `edge_tw_${shortTag}_${Date.now().toString().slice(-4)}`;
+        if (!disp) disp = `Edge-TTS 臺灣國語 (${edgeVoice})`;
       }
 
       if (!name || !disp) {
@@ -4698,7 +4715,7 @@
       fd.append('display_name', disp);
       fd.append('provider', prov);
       fd.append('language', 'Traditional Chinese');
-      fd.append('speech_rate', prov === 'voai' ? parseFloat(document.getElementById('v-voai-speed')?.value || 1.0) : 1.0);
+      fd.append('speech_rate', prov === 'voai' ? parseFloat(document.getElementById('v-voai-speed')?.value || 1.0) : (prov === 'edge' ? parseFloat(document.getElementById('v-edge-speed')?.value || 1.02) : 1.0));
       fd.append('is_default', false);
 
       if (prov === 'elevenlabs') {
@@ -4727,6 +4744,13 @@
         fd.append('model_id', chosenVer);
         fd.append('voai_style', chosenStyle);
         fd.append('pitch_shift', chosenPitch);
+      } else if (prov === 'edge') {
+        const edgeVoice = document.getElementById('v-edge-voice')?.value || 'zh-TW-HsiaoChenNeural';
+        const edgePitch = parseFloat(document.getElementById('v-edge-pitch')?.value || 0);
+        fd.append('voice', edgeVoice);
+        fd.append('voice_id', edgeVoice);
+        fd.append('model_id', edgeVoice);
+        fd.append('pitch_shift', edgePitch);
       } else if (prov === 'bluemagpie') {
         const bmCfg = parseFloat(document.getElementById('v-bm-cfg')?.value || 2.8);
         const bmSteps = parseInt(document.getElementById('v-bm-steps')?.value || 18, 10);
