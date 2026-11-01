@@ -859,6 +859,8 @@ class DramaPipeline(BasePipeline):
 
         # 3. Create 1:1 Scene allocation for each dialogue line
 
+        speaker_map = resolve_script_speakers_to_roster(script_sections, roster)
+
         scenes = []
 
         for idx, sec in enumerate(script_sections):
@@ -867,7 +869,7 @@ class DramaPipeline(BasePipeline):
 
             raw_spk = sec.get("speaker") or "主角"
 
-            c_info = _resolve_char(raw_spk, idx)
+            c_info = speaker_map.get(raw_spk) or _resolve_char(raw_spk, idx)
 
             spk = c_info.get("name") or raw_spk
 
@@ -1757,8 +1759,15 @@ class DramaPipeline(BasePipeline):
 
                 styled_char_path = self.p.path("characters", f"{char_id}_styled_9x16.png")
                 from generators.face_reference_generator import generate_face_referenced_portrait
-                clothes_p = "sharp corporate navy blue executive suit and necktie with rimless gold glasses" if ("經理" in spk or "manager" in spk.lower()) else ("bespoke charcoal tailored wool overcoat" if ("陳董" in spk or "董" in spk) else "stylish contemporary professional attire")
-                bg_p = "modern luxury executive high-rise corporate corner office with glass desk and city skyline view"
+                char_app = (c_info or {}).get("appearance") or (c_info or {}).get("appearance_prompt") or ""
+                clothes_p = char_app if char_app else ("sharp corporate navy blue executive suit and necktie with rimless gold glasses" if ("經理" in spk or "manager" in spk.lower()) else ("bespoke charcoal tailored wool overcoat" if ("陳董" in spk or "董" in spk) else "stylish contemporary professional attire"))
+                s_vis = getattr(s, "visual_description", "")
+                if s_vis and len(s_vis) > 20:
+                    bg_p = s_vis.split(",", 1)[-1].strip() if "," in s_vis else s_vis
+                    if len(bg_p) > 120:
+                        bg_p = bg_p[:120]
+                else:
+                    bg_p = "cinematic interior setting with dramatic mood lighting"
                 act_p = getattr(s, "action_prompt", "") or getattr(s, "action", "")
 
                 # 1. Synthesize canonical anchor portrait once per character if not yet cached

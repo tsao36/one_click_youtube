@@ -694,6 +694,10 @@ def parse_dialogue_script_to_shots(
     per_shot_dur = round(max(3.0, duration_sec / max(1, num_shots)), 1)
     shots = []
 
+    from core.drama_pipeline import resolve_script_speakers_to_roster
+    dummy_secs = [{"speaker": spk, "dialogue": diag} for spk, diag in parsed_dialogues]
+    speaker_map = resolve_script_speakers_to_roster(dummy_secs, active_characters)
+
     for i, (spk, diag) in enumerate(parsed_dialogues, 1):
         if i <= max(1, num_shots // 4):
             beat = "hook"
@@ -711,18 +715,19 @@ def parse_dialogue_script_to_shots(
             hit = False
             sfx = "keyboard_click" if (i % 2 == 1) else None
 
-        c_info = next((c for c in active_characters if c.get("name") == spk), {})
-        app = c_info.get("appearance") or c_info.get("appearance_prompt") or f"Cinematic East Asian character {spk}"
+        c_info = next((c for c in active_characters if c.get("name") == spk), None) or speaker_map.get(spk, {})
+        resolved_name = c_info.get("name") or spk
+        app = c_info.get("appearance") or c_info.get("appearance_prompt") or f"Cinematic East Asian character {resolved_name}"
 
         shots.append({
             "shot_id": i,
             "dramatic_beat": beat,
-            "speaker": spk,
+            "speaker": resolved_name,
             "dialogue": diag,
-            "action": f"{spk}情緒飽滿地說出對白",
+            "action": f"{resolved_name}情緒飽滿地說出對白",
             "camera_motion": cam,
             "shot_size": "close_up" if hit else "medium_shot",
-            "visual_description": f"Cinematic shot of {spk}, {app}, high tension drama film still, 8k photorealistic",
+            "visual_description": f"Cinematic shot of {resolved_name}, {app}, high tension drama film still, 8k photorealistic",
             "estimated_duration": per_shot_dur,
             "sfx_cue": sfx,
             "has_impact_hit": hit,
@@ -880,18 +885,26 @@ def plan_drama_production(
             ]
         }
     
+    char_constraint_prompt = ""
+    if active_characters:
+        char_constraint_prompt = "\nDesignated Character Lineup (You MUST strictly use these character names as the 'speaker' in shots):\n"
+        for idx, c in enumerate(active_characters, 1):
+            char_constraint_prompt += f"- Character {idx}: \"{c.get('name')}\" (Role: {c.get('role', '')}, Gender: {c.get('gender', '')})\n"
+        char_names_str = ", ".join(f'"{c.get("name")}"' for c in active_characters if c.get("name"))
+        char_constraint_prompt += f"CRITICAL: Every single shot's 'speaker' field MUST be strictly chosen from: [{char_names_str}]. If the topic, premise or user notes mention other terms (like 房東, 租客, 經理, 債主, 壞人), map them to these exact designated character names.\n"
+
     prompt = f"""You are an elite short drama showrunner and director specializing in high-CTR, viral AI short dramas (like TikTok/Reels/Shorts 50s mini-series).
 Topic / Story Premise: {topic}
 Selected Formula: {formula['name']} ({formula['hook_premise']})
 User Custom Notes: {user_premise or 'None'}
 Target Video Duration: {duration_sec} seconds (Exactly {target_shots} dramatic shots)
 Aspect Ratio: {aspect_ratio}
-
+{char_constraint_prompt}
 Golden Rules for Viral Short Dramas (參考小金老師短劇法則 - 15% Hook / 55% Tension / 30% Payoff):
 1. Beat 1: Hook (First {hook_shots} shots, ~15% duration) - First line must be an explosive, shocking conflict line that arrests attention immediately.
 2. Beat 2: Tension & Complication (Next {tension_shots} shots, ~55% duration) - Multiple rounds of sharp verbal sparring, stakes escalation, and trap setting.
 3. Beat 3: Climax & Dramatic Reversal (Final {climax_shots} shots, ~30% duration) - Truth revealed, authority intervenes, mic-drop dialogue, humiliating defeat of the antagonist.
-4. Total Characters: 2 to 3 characters max. Give each character exact appearance tags (clothing, hairstyle, facial features, age) so their face remains consistent across shots.
+4. Total Characters: 2 to 3 characters max. Use the designated character cast. Give each character exact appearance tags (clothing, hairstyle, facial features, age) so their face remains consistent across shots.
 5. Dialogue: Snappy, razor-sharp Traditional Chinese (Taiwan Mandarin terms: 程式, 軟體, 總監, 專案, etc.). No filler.
 
 Return JSON in this EXACT structure:
@@ -912,12 +925,12 @@ Return JSON in this EXACT structure:
     {{
       "shot_id": 1,
       "dramatic_beat": "hook",
-      "speaker": "王經理",
-      "dialogue": "從今天起，妳被AI取代了。新系統一個月才一千塊。妳呢？",
-      "action": "王經理傲慢冷笑將解雇公文狠狠摔在桌面上，居高臨下俯視主角",
+      "speaker": "指定角色名",
+      "dialogue": "對白內容",
+      "action": "鏡頭與肢體動作描述",
       "camera_motion": "push_in",
       "shot_size": "medium_close_up",
-      "visual_description": "Cinematic shot of arrogant middle-aged manager slamming white termination paper onto modern wooden office desk, moody office lighting, 8k, photorealistic",
+      "visual_description": "Cinematic shot description, 8k, photorealistic",
       "estimated_duration": 4.5,
       "sfx_cue": "paper_slam",
       "has_impact_hit": false
@@ -935,6 +948,14 @@ Ensure exactly {target_shots} shots that add up to ~{duration_sec}s."""
             data = extract_json(raw)
             if data and data.get("shots") and len(data.get("shots")) >= 3:
                 data["characters"] = active_characters
+                # Harmonize any speaker names in shots to active_characters if LLM used alias terms
+                from core.drama_pipeline import resolve_script_speakers_to_roster
+                shots_secs = [{"speaker": s.get("speaker")} for s in data["shots"]]
+                s_map = resolve_script_speakers_to_roster(shots_secs, active_characters)
+                for s in data["shots"]:
+                    cur_spk = s.get("speaker") or "主角"
+                    if cur_spk in s_map and s_map[cur_spk].get("name"):
+                        s["speaker"] = s_map[cur_spk]["name"]
                 return data
         except Exception as e:
             log.warning("LLM drama generation failed: %s; using high-grade formula template", e)
