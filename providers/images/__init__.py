@@ -220,7 +220,7 @@ class GptImage1Provider(ImageProvider):
 
             try:
 
-                r = requests.post(url, json=body, headers=headers, timeout=180)
+                r = requests.post(url, json=body, headers=headers, timeout=5)
 
             except Exception as e:
 

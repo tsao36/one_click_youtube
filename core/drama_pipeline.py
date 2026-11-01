@@ -955,7 +955,7 @@ class DramaPipeline(BasePipeline):
 
 
 
-        roster = drama_pkg.get("characters", []) or self.p.read_json("research/character_roster.json", [])
+        roster = self.p.settings.get("drama_characters", []) or drama_pkg.get("characters", []) or self.p.read_json("research/character_roster.json", [])
 
 
 
@@ -973,7 +973,11 @@ class DramaPipeline(BasePipeline):
 
             from core.action_registry import assign_gesture_to_scene, get_gesture_by_tag
             spk = s.speaker or shot.get("speaker", "主角")
-            c_info = next((c for c in roster if c.get("name") == spk or c.get("id") == spk or spk in c.get("name", "")), {})
+            c_info = None
+            if getattr(s, "character_id", None):
+                c_info = next((c for c in roster if c.get("id") == s.character_id), None)
+            if not c_info:
+                c_info = next((c for c in roster if c.get("name") == spk or c.get("id") == spk or (c.get("name") and (c.get("name") in spk or spk in c.get("name")))), {})
             app = c_info.get("appearance") or c_info.get("appearance_prompt") or f"{spk}"
 
             # Action & Gesture Registry: Assign dynamic dramatic posture per scene
