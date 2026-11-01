@@ -1,1 +1,37 @@
-[]
+[
+  {
+    "id": "actor_a181d581",
+    "name": "房東要求房客用身體付房租",
+    "hook_premise": "房東要求房客用身體付房租, 房客不甘心但是也沒辦法只能屈服",
+    "character_count": 2,
+    "beats": [
+      "Beat 1 (0-3s Hook): 危機降臨，張豪強勢逼迫，林芯怡陷入絕境但目光堅定",
+      "Beat 2 (10-25s Tension): 雙方激烈對峙與條件交鋒，林芯怡暗中啟動反制手段",
+      "Beat 3 (35-50s Payoff): 真相爆發，張豪強勢現身掀開底牌，局面徹底反轉"
+    ],
+    "default_characters": [
+      {
+        "id": "lead_heroine",
+        "name": "林芯怡",
+        "role": "女主角 / 冷靜強勢受害者",
+        "gender": "female",
+        "age": 26,
+        "appearance": "26-year-old sleek elegant East Asian woman, sharp intelligent eyes, dark tailored blouse, stylish modern look, studio lighting, photorealistic portrait",
+        "voice_persona": "冷靜沉著、聲音清晰且帶有不卑不亢的堅定感",
+        "voice_provider": "ichiehchieh"
+      },
+      {
+        "id": "antagonist_boss",
+        "name": "張豪",
+        "role": "反派 / 居高臨下的自負對手",
+        "gender": "male",
+        "age": 45,
+        "appearance": "45-year-old arrogant middle-aged East Asian man, silk shirt, heavy gold ring, smug cynical smirk, dramatic contrast lighting, photorealistic portrait",
+        "voice_persona": "語速沉緩、略帶威脅與輕浮的中年男聲",
+        "voice_provider": "mytsaovoicemagpie"
+      }
+    ],
+    "default_script": "房東將房門反鎖，冷冷地將合約摔在桌上：「這個月的房租，妳拿什麼付？別跟我說沒錢。」林晚晚咬著下唇，手指死死攥著裙擺，聲音發顫：「我……我下個月一定補上，求求你再寬限幾天……」房東逼近一步，眼神毫不掩飾地掃過她的身體：「寬限？我已經給過三次了。現在只有一個辦法——用妳的身體抵。」林晚晚後退半步，背脊抵上牆，眼眶微紅卻仍強撐：「你……你不能這樣逼我……」房東伸手捏住她的下巴，迫使她抬頭：「這間屋子是我的，規矩也是我定的。簽，或者現在滾出去，連行李都別想帶走。」林晚晚閉了閉眼，長長的睫毛顫了顫。最終，她緩緩伸出手，接過那支筆，聲音低得幾乎聽不見：「……我簽。」",
+    "is_custom": true
+  }
+]
