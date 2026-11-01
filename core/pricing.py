@@ -45,6 +45,10 @@ PRICING = {
     },
     # Image providers (per image generated)
     "images": {
+        "gemini-2.5-flash-image": 0.039,    # Gemini 2.5 Flash Image (1,290 output tokens @ $30/1M)
+        "minimax_video_01": 0.25,           # MiniMax Video-01 Dynamic Scene (~$0.05/sec, 5s clip)
+        "minimax": 0.25,
+        "canonical_character_portrait": 0.0, # Pre-existing local character anchor portrait (Free)
         "nano-banana-2.1": 0.0168,          # Google Nano Banana 2.1 ($0.0168 batch / $0.0336 online)
         "gemini-nano-banana-2.1": 0.0168,
         "nano-banana": 0.0168,
@@ -90,6 +94,9 @@ PRICING = {
     },
     # Virtual Presenter / Talking Avatar providers (per clip)
     "presenter": {
+        "hedra_v3": 0.025,                                # Hedra Character-3 ($0.025/sec)
+        "hedra": 0.025,
+        "hedra-character-3": 0.025,
         "fal-ai/latentsync": 0.050,                       # Fal.ai LatentSync ($0.05/clip)
         "latentsync": 0.050,
         "fal-ai/kling-video/v1/standard/ai-avatar": 0.100,# Kling AI Avatar Standard ($0.10/clip)
@@ -324,6 +331,7 @@ def calculate_project_costs(project: Any) -> dict[str, Any]:
     anim_prov = stage_models.get("animation") or "kenburns"
     anim_cost = 0.0
     cloud_clips = 0
+    anim_prov_summary = []
     non_presenter_scenes = [s for s in scenes if not (getattr(s, "is_presenter", False) or getattr(s, "visual_type", "") == "talking_head")]
     presenter_scenes = [s for s in scenes if (getattr(s, "is_presenter", False) or getattr(s, "visual_type", "") == "talking_head")]
 
@@ -334,14 +342,22 @@ def calculate_project_costs(project: Any) -> dict[str, Any]:
         meta = getattr(anim_st, "meta", {}) or {}
         p_name = meta.get("provider") or anim_prov
         p_key = p_name.lower().strip()
-        if p_key in PRICING["animation"] and PRICING["animation"][p_key] > 0:
+        dur = float(meta.get("duration") or getattr(s, "audio_duration", 0.0) or 0.0)
+        if "hedra" in p_key:
+            anim_cost += round(0.025 * max(dur, 1.0), 4)
+            cloud_clips += 1
+            if "Hedra Character-3" not in anim_prov_summary:
+                anim_prov_summary.append("Hedra Character-3")
+        elif p_key in PRICING["animation"] and PRICING["animation"][p_key] > 0:
             anim_cost += PRICING["animation"][p_key]
             cloud_clips += 1
+            if p_name not in anim_prov_summary:
+                anim_prov_summary.append(p_name)
 
     stage_costs["animation"] = round(anim_cost, 4)
     stage_details["animation"] = {
         "cost": round(anim_cost, 4),
-        "provider": anim_prov,
+        "provider": ", ".join(anim_prov_summary) if anim_prov_summary else anim_prov,
         "description": f"{cloud_clips} AI Video clips" if cloud_clips else "Ken Burns 2.5D Motion (Hardware AMF - Free)",
         "units": f"{cloud_clips} cloud clips" if cloud_clips else f"{len(non_presenter_scenes)} motion scenes"
     }
@@ -366,7 +382,9 @@ def calculate_project_costs(project: Any) -> dict[str, Any]:
 
         rate = custom_presenter_rate
         if rate <= 0.0:
-            if p_key in PRICING["presenter"]:
+            if "hedra" in p_key:
+                rate = round(0.025 * max(dur, 1.0), 4)
+            elif p_key in PRICING["presenter"]:
                 rate = PRICING["presenter"][p_key]
             else:
                 for k, v in PRICING["presenter"].items():
@@ -380,7 +398,8 @@ def calculate_project_costs(project: Any) -> dict[str, Any]:
             presenter_cost += rate
             cloud_presenter_clips += 1
             disp_name = p_name
-            if "latentsync" in p_key: disp_name = "LatentSync (fal.ai)"
+            if "hedra" in p_key: disp_name = "Hedra Character-3"
+            elif "latentsync" in p_key: disp_name = "LatentSync (fal.ai)"
             elif "kling" in p_key: disp_name = "Kling AI Avatar (fal.ai)"
             elif "sadtalker" in p_key: disp_name = "SadTalker (fal.ai)"
             if disp_name not in presenter_prov_summary:
