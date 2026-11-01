@@ -987,6 +987,33 @@ class BasePipeline:
 
 
 
+            
+            # If any scene has a presenter / talking avatar, ensure avatar animation video matches the new audio
+            presenter_scenes = [s for s in self.p.scenes if (getattr(s, "is_presenter", False) or s.visual_type in ("talking_head", "talking_actor"))]
+            if presenter_scenes:
+                from generators.avatar_generator import generate_talking_avatar, load_avatar
+                for ps in presenter_scenes:
+                    if self._cancel_flag: raise PipelineCancelled()
+                    audio_f = self.p.abs(ps.audio.path) if (ps.audio and ps.audio.path) else self.p.path("audio", f"{ps.tag}.wav")
+                    if not audio_f or not audio_f.exists():
+                        continue
+                    av_name = getattr(ps, "avatar_profile", None) or (self.p.data.settings or {}).get("default_avatar")
+                    av_prof = load_avatar(av_name)
+                    if not av_prof:
+                        continue
+                    out_clip = self.p.path("animation", f"{ps.tag}.mp4")
+                    try:
+                        self.p.activity(f"Re-generating talking avatar for Scene {ps.scene_id} to match new audio narration...")
+                        meta = generate_talking_avatar(audio_f, av_prof, out_clip)
+                        ps.animation.status = Status.COMPLETED
+                        ps.animation.path = self.p.rel(out_clip)
+                        ps.animation.meta = meta
+                        ps.animation.error = None
+                        ps.ai_video = True
+                    except Exception as ex:
+                        log.warning("Could not regenerate avatar for scene %d: %s", ps.scene_id, ex)
+                self.p.save_scenes()
+
             self._run_subtitles()
 
             if self._cancel_flag:

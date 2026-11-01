@@ -120,13 +120,21 @@ class EdgeTTS(TTSProvider):
                 voice = "en-US-AndrewNeural"
         pct = round((float(profile.get("speech_rate", 1.0)) - 1.0) * 100)
         rate = f"{'+' if pct >= 0 else ''}{pct}%"
+        raw_pitch = profile.get("pitch")
+        if isinstance(raw_pitch, str) and raw_pitch.strip().endswith("Hz"):
+            pitch = raw_pitch.strip()
+            if not pitch.startswith(("+", "-")):
+                pitch = f"+{pitch}"
+        else:
+            hz = int(round(float(profile.get("pitch_shift", 0) or 0)))
+            pitch = f"{'+' if hz >= 0 else ''}{hz}Hz"
         output_file.parent.mkdir(parents=True, exist_ok=True)
 
         async def run():
             last_err = None
             for attempt in range(3):
                 try:
-                    await edge_tts.Communicate(text, voice, rate=rate).save(str(output_file))
+                    await edge_tts.Communicate(text, voice, rate=rate, pitch=pitch).save(str(output_file))
                     if output_file.exists() and output_file.stat().st_size >= 500:
                         return
                 except Exception as ex:

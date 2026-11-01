@@ -2899,10 +2899,6 @@ class DocumentaryPipeline(BasePipeline):
             for ps in presenter_scenes:
                 if self._cancel_flag: raise PipelineCancelled()
 
-                anim_file = self.p.abs(ps.animation.path) if (ps.animation and ps.animation.path) else None
-                if ps.animation.status == Status.COMPLETED and anim_file and anim_file.exists():
-                    continue
-
                 audio_file = self.p.abs(ps.audio.path) if (ps.audio and ps.audio.path) else None
                 if not audio_file or not os.path.exists(audio_file):
                     cand = self.p.path("audio", f"{ps.tag}.wav")
@@ -2912,6 +2908,20 @@ class DocumentaryPipeline(BasePipeline):
                 if not audio_file or not os.path.exists(audio_file):
                     log.warning("No audio found for presenter scene %d, skipping talking head generation", ps.scene_id)
                     continue
+
+                anim_file = self.p.abs(ps.animation.path) if (ps.animation and ps.animation.path) else None
+                if ps.animation.status == Status.COMPLETED and anim_file and anim_file.exists():
+                    try:
+                        from rendering.ffmpeg_utils import duration as get_dur
+                        a_dur = float(get_dur(audio_file))
+                        v_dur = float(get_dur(anim_file))
+                        a_mtime = os.path.getmtime(audio_file)
+                        v_mtime = anim_file.stat().st_mtime
+                        if v_dur >= a_dur - 0.25 and v_mtime >= a_mtime:
+                            continue
+                        log.info("Presenter scene %d avatar clip outdated (v_dur=%.2fs vs a_dur=%.2fs); re-rendering", ps.scene_id, v_dur, a_dur)
+                    except Exception:
+                        continue
 
                 av_prof = load_avatar(getattr(ps, "avatar_profile", None) or (self.p.data.settings or {}).get("default_avatar"))
                 if not av_prof or (not av_prof.get("has_image") and not av_prof.get("has_base_video")):

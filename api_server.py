@@ -3294,6 +3294,15 @@ async def create_voice(
         data["voai_style"] = voai_style or "預設"
         data["pitch_shift"] = pitch_shift
         data["breath_pause"] = breath_pause
+    if provider == "edge":
+        chosen_edge_voice = voice or voice_id or "zh-TW-HsiaoChenNeural"
+        data["voice"] = chosen_edge_voice
+        data["voice_id"] = chosen_edge_voice
+        data["model_id"] = chosen_edge_voice
+        hz = int(round(float(pitch_shift or 0)))
+        data["pitch_shift"] = hz
+        data["pitch"] = f"{'+' if hz >= 0 else ''}{hz}Hz"
+        data["gender"] = "male" if "YunJhe" in chosen_edge_voice or "WanLung" in chosen_edge_voice or "Yun" in chosen_edge_voice else "female" 
     if provider == "cosyvoice" and not ref_bytes:
         existing = DATA_DIR / "voices" / re.sub(r"[^a-zA-Z0-9_\-]", "_", name.strip()) / "reference.wav"
         if not existing.exists():

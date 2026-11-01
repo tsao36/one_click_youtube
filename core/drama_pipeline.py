@@ -3074,7 +3074,15 @@ class DramaPipeline(BasePipeline):
 
 
 
-                if out_clip.stat().st_mtime >= max(p_mtime, a_mtime):
+                try:
+                    from rendering.ffmpeg_utils import duration as get_dur
+                    a_dur = float(get_dur(audio_file)) if audio_file.exists() else 0.0
+                    v_dur = float(get_dur(out_clip))
+                    if out_clip.stat().st_mtime >= max(p_mtime, a_mtime) and (v_dur >= a_dur - 0.25):
+                        continue
+                except Exception:
+                    if out_clip.stat().st_mtime >= max(p_mtime, a_mtime):
+                        continue
 
 
 
