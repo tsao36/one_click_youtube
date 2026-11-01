@@ -49,7 +49,7 @@ GESTURE_REGISTRY: Dict[str, ActionGesture] = {
     "thoughtful_chin_touch": ActionGesture(
         tag="thoughtful_chin_touch",
         name="托下巴沉思 / 密謀反擊",
-        visual_prompt="resting hand on chin in deep contemplation and sharp intellectual focus, slight tilt of the head, calculating gaze",
+        visual_prompt="one hand gently resting on chin in deep contemplation and sharp intellectual focus, strictly two arms only, natural ergonomic human anatomy, slight tilt of the head, calculating gaze",
         motion_prompt="slowly lowering hand from chin in contemplation, eyes narrowing thoughtfully, turning head to make sharp eye contact",
         keywords=["思考", "不對勁", "原來如此", "計畫", "秘密", "陰謀", "如果", "算計", "奇怪", "為什麼"],
         character_roles=["總監", "駭客", "主角", "幕後黑手"],

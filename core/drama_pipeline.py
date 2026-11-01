@@ -60,6 +60,13 @@ from rendering.ffmpeg_renderer import project_timeline, render_project, run_ffmp
 
 from rendering.transitions import total_length
 
+DRAMA_DEFAULT_NEGATIVE_PROMPT = (
+    "extra arms, extra hands, multiple arms, 4 arms, 3 arms, duplicate arms, duplicate hands, "
+    "mutated hands, deformed fingers, extra limbs, bad anatomy, deformed, disfigured, malformed limbs, "
+    "poorly drawn hands, floating limbs, disconnected limbs, unnatural body posture, unergonomic body, "
+    "physically impossible anatomy, duplicate body parts, blurry, low quality, watermark"
+)
+
 
 
 
@@ -992,6 +999,7 @@ class DramaPipeline(BasePipeline):
 
             prompt_str = f"Cinematic {shot_size} vertical portrait (9:16) of {app}, {act}, {emo}, emotional intensity, high dynamic range cinematic dramatic lighting, 8k resolution, highly detailed photorealistic"
             s.prompt = prompt_str
+            s.negative_prompt = (s.negative_prompt or "").strip() or DRAMA_DEFAULT_NEGATIVE_PROMPT
             s.visual_description = prompt_str
             s.camera_motion = cam
             prompts_map[s.tag] = prompt_str
@@ -1723,7 +1731,7 @@ class DramaPipeline(BasePipeline):
 
 
 
-                        negative="blurry, deformed, cartoon, low quality, watermark",
+                        negative=(s.negative_prompt or DRAMA_DEFAULT_NEGATIVE_PROMPT),
 
 
 

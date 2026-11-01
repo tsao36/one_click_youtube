@@ -259,15 +259,21 @@ def build_chapter_timeline(
     v = s.get("voice", {})
     default_t = r.get("transition", "crossfade")
     fps = int(s.get("video", {}).get("fps", 30))
-    lead_in = float(v.get("lead_in", 0.25))
-    pause = float(v.get("pause_after_scene", 0.35))
-    tail = 1.0
-    trans_dur = float(r.get("transition_duration", 0.5))
-
     is_drama = bool(
         project.settings.get("project_mode") == "short_drama"
         or (hasattr(project, "data") and project.data and project.data.settings.get("project_mode") == "short_drama")
     )
+    if is_drama:
+        lead_in = 0.05
+        pause = 0.05
+        tail = 0.35
+        trans_dur = 0.0
+        default_t = "cut"
+    else:
+        lead_in = float(v.get("lead_in", 0.25))
+        pause = float(v.get("pause_after_scene", 0.35))
+        tail = 1.0
+        trans_dur = float(r.get("transition_duration", 0.5))
     pt_enabled = False if is_drama else (phase_turns_enabled if phase_turns_enabled is not None else r.get("phase_turns_enabled", True))
     pt_dur = phase_turn_dur if phase_turn_dur is not None else float(r.get("phase_turn_duration", 3.0))
     topic = getattr(project, "topic", "") or (project.data.topic if hasattr(project, "data") and project.data else "")
@@ -313,8 +319,8 @@ def build_chapter_timeline(
         for sc in chunk.scenes:
             expanded_scenes.append(sc)
             adur = float(sc.audio_duration or sc.estimated_duration or 8.0)
-            is_av = bool(getattr(sc, "is_presenter", False) or getattr(sc, "visual_type", "") == "talking_head")
-            sc_trans = sc.transition or default_t
+            is_av = bool(is_drama or getattr(sc, "is_presenter", False) or getattr(sc, "visual_type", "") in ("talking_head", "talking_actor") or "hedra" in str((sc.animation.meta or {}).get("provider", "")))
+            sc_trans = default_t if is_drama else (sc.transition or default_t)
             if is_av and sc_trans == "fadeblack":
                 sc_trans = "crossfade"
             timeline_items.append((sc.scene_id, adur, sc_trans, None, is_av))

@@ -510,6 +510,10 @@ class Imagen302ImageProvider(ImageProvider):
 
             }
 
+            if req.negative:
+
+                body["parameters"]["negativePrompt"] = req.negative
+
             try:
 
                 r = requests.post(url, json=body, headers=headers, timeout=180)
@@ -570,7 +574,8 @@ class Imagen302ImageProvider(ImageProvider):
 
             headers = {"Content-Type": "application/json"}
 
-            body = {"contents": [{"parts": [{"text": f"Generate a 16:9 widescreen image: {req.prompt}"}]}]}
+            neg_suffix = f". Avoid and exclude: {req.negative}" if req.negative else ""
+            body = {"contents": [{"parts": [{"text": f"Generate a {aspect} image: {req.prompt}{neg_suffix}"}]}]}
 
             try:
 

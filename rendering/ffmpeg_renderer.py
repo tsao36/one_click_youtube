@@ -90,13 +90,18 @@ def _clip_key(sc: Scene, slot: Slot, w: int, h: int, fps: int, project: Project)
     if sc.visual_type == "phase_turn_card":
         txt = getattr(sc, "phase_turn_text", None) or sc.section
         return hashlib.md5(f"phase_turn|{txt}|{slot.clip_length:.3f}|{w}x{h}@{fps}".encode()).hexdigest()[:10]
+    is_drama = bool(
+        project.settings.get("project_mode") == "short_drama"
+        or (hasattr(project, "data") and project.data and project.data.settings.get("project_mode") == "short_drama")
+    )
     avatar_allowed = project.is_avatar_enabled() if hasattr(project, "is_avatar_enabled") else bool(
         project.settings.get("avatar_enabled", True) and project.settings.get("presenter_placement") not in ("none", "off", "disabled", False)
     )
-    is_avatar = avatar_allowed and (getattr(sc, "is_presenter", False) or sc.visual_type in ("talking_head", "talking_actor"))
+    prov = str((sc.animation.meta or {}).get("provider", ""))
+    is_avatar = is_drama or ("hedra" in prov) or (avatar_allowed and (getattr(sc, "is_presenter", False) or sc.visual_type in ("talking_head", "talking_actor")))
     lead_s = max(0.0, float(slot.audio_start - slot.start)) if is_avatar else 0.0
-    v_type = "image" if (not avatar_allowed and sc.visual_type in ("talking_head", "talking_actor")) else sc.visual_type
-    parts = [v_type, sc.camera_motion, f"{slot.clip_length:.3f}", f"lead={lead_s:.3f}", f"{w}x{h}@{fps}", f"av_allowed={avatar_allowed}"]
+    v_type = "image" if (not avatar_allowed and not is_drama and sc.visual_type in ("talking_head", "talking_actor")) else sc.visual_type
+    parts = [v_type, sc.camera_motion, f"{slot.clip_length:.3f}", f"lead={lead_s:.3f}", f"{w}x{h}@{fps}", f"av_allowed={avatar_allowed}", f"is_drama={is_drama}"]
     for asset in (sc.image, sc.animation):
         p = project.abs(asset.path) if asset.status == Status.COMPLETED else None
         parts.append(f"{asset.path}:{p.stat().st_mtime_ns if p and p.exists() else 0}")
@@ -132,26 +137,30 @@ def render_scene_clip(project: Project, sc: Scene, slot: Slot, w: int, h: int, f
         oversample = 1 if draft else int(anim.get("oversample", 2))
         img = project.abs(sc.image.path) if sc.image.status == Status.COMPLETED else None
 
+        is_drama = bool(
+            project.settings.get("project_mode") == "short_drama"
+            or (hasattr(project, "data") and project.data and project.data.settings.get("project_mode") == "short_drama")
+        )
         avatar_allowed = project.is_avatar_enabled() if hasattr(project, "is_avatar_enabled") else bool(
             project.settings.get("avatar_enabled", True) and project.settings.get("presenter_placement") not in ("none", "off", "disabled", False)
         )
         vid = project.abs(sc.animation.path) if sc.animation.status == Status.COMPLETED else None
+        prov = str((sc.animation.meta or {}).get("provider", "")) if (vid and vid.exists()) else ""
         if vid and vid.exists():
-            prov = str((sc.animation.meta or {}).get("provider", ""))
-            is_avatar_clip = prov in (
+            is_avatar_clip = is_drama or ("hedra" in prov) or prov in (
                 "fal-ai/latentsync", "fal-ai/sadtalker",
                 "fal-ai/kling-video/v1/standard/ai-avatar",
                 "fal-ai/kling-video/v1/pro/ai-avatar",
                 "local_fallback", "masked_speaker"
             ) or getattr(sc, "is_presenter", False) or sc.visual_type in ("talking_head", "talking_actor")
 
-            if not avatar_allowed and is_avatar_clip:
+            if not avatar_allowed and is_avatar_clip and not is_drama:
                 log.info("Avatar is disabled: skipping avatar clip for scene %d, using full-bleed visual image with Ken Burns", sc.scene_id)
                 vid = None
 
         if vid and vid.exists():
             try:
-                is_avatar = avatar_allowed and (getattr(sc, "is_presenter", False) or sc.visual_type in ("talking_head", "talking_actor"))
+                is_avatar = is_drama or ("hedra" in prov) or (avatar_allowed and (getattr(sc, "is_presenter", False) or sc.visual_type in ("talking_head", "talking_actor")))
                 if is_avatar:
                     lead_in = max(0.0, float(slot.audio_start - slot.start))
                     ken_burns.render_talking_avatar_clip(vid, tmp_out, seconds, lead_in, w, h, fps, INTERMEDIATE)
