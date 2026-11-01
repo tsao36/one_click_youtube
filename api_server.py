@@ -248,10 +248,70 @@ def unload_gpu_memory():
 
 
 # ---------------- Project Endpoints ----------------
+class AutocompleteFormulaRequest(BaseModel):
+    basic_plot: str
+    character_count: int = 2
+    formula_name: Optional[str] = ""
+
+
+class SaveFormulaRequest(BaseModel):
+    id: Optional[str] = None
+    name: str
+    hook_premise: str
+    character_count: Optional[int] = None
+    beats: Optional[list[str]] = None
+    default_characters: list[dict[str, Any]]
+    default_script: Optional[str] = ""
+
+
 @app.get("/api/drama/formulas")
 def get_drama_formulas():
-    from agents.drama_agent import DRAMA_FORMULAS
-    return {"formulas": list(DRAMA_FORMULAS.values())}
+    from agents.drama_agent import load_all_formulas
+    return {"formulas": list(load_all_formulas().values())}
+
+
+@app.post("/api/drama/formulas/autocomplete")
+def autocomplete_drama_formula(req: AutocompleteFormulaRequest):
+    from agents.drama_agent import autocomplete_custom_formula
+    from providers.llm import LLMClient
+    from core.config import get_secret
+    client = None
+    try:
+        prov = "gemini" if get_secret("GEMINI_API_KEY") else None
+        client = LLMClient("research", provider_override=prov)
+    except Exception as ex:
+        log.warning("Could not instantiate LLMClient for autocomplete: %s", ex)
+    res = autocomplete_custom_formula(
+        basic_plot=req.basic_plot,
+        character_count=req.character_count,
+        formula_name=req.formula_name or "",
+        client=client
+    )
+    return res
+
+
+@app.post("/api/drama/formulas")
+def save_drama_formula(req: SaveFormulaRequest):
+    from agents.drama_agent import save_custom_formula
+    try:
+        saved = save_custom_formula(req.model_dump())
+        return {"status": "ok", "formula": saved}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.delete("/api/drama/formulas/{formula_id}")
+def delete_drama_formula(formula_id: str):
+    from agents.drama_agent import delete_custom_formula
+    try:
+        ok = delete_custom_formula(formula_id)
+        if not ok:
+            raise HTTPException(status_code=404, detail="Formula not found or cannot be deleted")
+        return {"status": "ok", "deleted": formula_id}
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/api/projects")

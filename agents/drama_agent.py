@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+from pathlib import Path
 from typing import Any, Optional
 
 from core.taiwan_mandarin import TAIWAN_MANDARIN_SYSTEM_PROMPT, enforce_taiwan_mandarin
@@ -124,6 +125,325 @@ DRAMA_FORMULAS = {
 
 
 
+
+DATA_FORMULAS_PATH = Path(__file__).resolve().parent.parent / "data" / "drama_formulas.json"
+
+
+def calculate_proportional_scenes(duration_sec: int) -> dict[str, int]:
+    """Calculate proportional scene count based on ~4.5s per scene,
+    and distribute across 3-beat structure: 15% Hook, 55% Tension, 30% Payoff/Climax.
+    """
+    total = max(4, round(duration_sec / 4.5))
+    hook = max(1, round(total * 0.15))
+    climax = max(1, round(total * 0.30))
+    tension = max(2, total - hook - climax)
+    return {
+        "total": total,
+        "hook": hook,
+        "tension": tension,
+        "climax": climax,
+    }
+
+
+def load_all_formulas() -> dict[str, Any]:
+    """Load built-in formulas and merge with custom formulas from data/drama_formulas.json."""
+    res = {}
+    for k, v in DRAMA_FORMULAS.items():
+        entry = dict(v)
+        entry["is_custom"] = False
+        res[k] = entry
+
+    if DATA_FORMULAS_PATH.exists():
+        try:
+            with open(DATA_FORMULAS_PATH, "r", encoding="utf-8") as f:
+                loaded = json.load(f)
+                items = loaded if isinstance(loaded, list) else list(loaded.values())
+                for item in items:
+                    fid = item.get("id")
+                    if fid and fid not in DRAMA_FORMULAS:
+                        item_copy = dict(item)
+                        item_copy["is_custom"] = True
+                        res[fid] = item_copy
+        except Exception as e:
+            log.warning("Could not read custom formulas from %s: %s", DATA_FORMULAS_PATH, e)
+    return res
+
+
+def save_custom_formula(data: dict[str, Any]) -> dict[str, Any]:
+    """Save or update a custom formula into data/drama_formulas.json."""
+    from generators.character_manager import slugify_character
+    import time
+
+    name = (data.get("name") or "").strip()
+    if not name:
+        raise ValueError("Formula name is required")
+
+    fid = (data.get("id") or "").strip()
+    if not fid:
+        fid = slugify_character(name) or f"custom_{int(time.time())}"
+    if fid in DRAMA_FORMULAS:
+        raise ValueError(f"Cannot overwrite built-in formula '{fid}'")
+
+    hook_premise = (data.get("hook_premise") or data.get("basic_plot") or "").strip()
+    beats = data.get("beats") or [
+        "Beat 1 (0-3s Hook): 衝突爆發震撼開場",
+        "Beat 2 (10-25s Tension): 危機加深與多輪語言交鋒",
+        "Beat 3 (35-50s Payoff): 絕殺反轉與打臉收尾",
+    ]
+    chars = data.get("default_characters") or []
+    for idx, c in enumerate(chars):
+        if not c.get("id"):
+            c["id"] = slugify_character(c.get("name") or f"char_{idx+1}")
+        if not c.get("voice_provider"):
+            c["voice_provider"] = "ichiehchieh" if c.get("gender") == "female" else "mytsaovoicemagpie"
+
+    formula_obj = {
+        "id": fid,
+        "name": name,
+        "hook_premise": hook_premise,
+        "character_count": len(chars),
+        "beats": beats,
+        "default_characters": chars,
+        "default_script": data.get("default_script", ""),
+        "is_custom": True,
+    }
+
+    existing = []
+    if DATA_FORMULAS_PATH.exists():
+        try:
+            with open(DATA_FORMULAS_PATH, "r", encoding="utf-8") as f:
+                loaded = json.load(f)
+                existing = loaded if isinstance(loaded, list) else list(loaded.values())
+        except Exception as e:
+            log.warning("Error reading %s: %s", DATA_FORMULAS_PATH, e)
+
+    updated = [f for f in existing if f.get("id") != fid]
+    updated.append(formula_obj)
+
+    DATA_FORMULAS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with open(DATA_FORMULAS_PATH, "w", encoding="utf-8") as f:
+        json.dump(updated, f, indent=2, ensure_ascii=False)
+
+    return formula_obj
+
+
+def delete_custom_formula(formula_id: str) -> bool:
+    """Delete a custom formula by ID from data/drama_formulas.json."""
+    if formula_id in DRAMA_FORMULAS:
+        raise ValueError("Cannot delete built-in formula template")
+    if not DATA_FORMULAS_PATH.exists():
+        return False
+
+    existing = []
+    try:
+        with open(DATA_FORMULAS_PATH, "r", encoding="utf-8") as f:
+            loaded = json.load(f)
+            existing = loaded if isinstance(loaded, list) else list(loaded.values())
+    except Exception as e:
+        log.warning("Error reading %s: %s", DATA_FORMULAS_PATH, e)
+        return False
+
+    orig_len = len(existing)
+    filtered = [f for f in existing if f.get("id") != formula_id]
+    if len(filtered) == orig_len:
+        return False
+
+    with open(DATA_FORMULAS_PATH, "w", encoding="utf-8") as f:
+        json.dump(filtered, f, indent=2, ensure_ascii=False)
+    return True
+
+
+def autocomplete_custom_formula(
+    basic_plot: str,
+    character_count: int = 2,
+    formula_name: str = "",
+    client: Optional[LLMClient] = None,
+) -> dict[str, Any]:
+    """Given a basic plot premise and character count (2-4), call LLM to generate:
+    - Formula name (if empty)
+    - 3-Beat Golden Structure
+    - Detailed character roster with names, roles, gender, age, appearance prompts, and voices
+    - A sample 5-6 line punchy dialogue script
+    """
+    char_count = max(2, min(4, int(character_count or 2)))
+    from generators.character_manager import slugify_character
+
+    prompt = f"""請為這部高節奏 AI 微短劇新公式自動補完黃金結構與角色定妝設定（繁體中文 / 台灣短劇用語）。
+基本劇情大綱：{basic_plot}
+公式自訂名稱：{formula_name or '自動命名'}
+需求角色數量：剛好 {char_count} 位核心角色
+
+【設計原則】：
+1. 黃金三幕結構 (3 Beats)：
+   - Beat 1 (0-3s Hook): 衝突爆發震撼開場，引爆第一張核心矛盾
+   - Beat 2 (10-25s Tension): 危機加深與多輪語言交鋒、心理戰與伏筆部署
+   - Beat 3 (35-50s Payoff): 絕殺反轉與身分底牌亮出，反派崩潰打臉
+2. 剛好 {char_count} 位角色：
+   - 包含主角、對手/反派，以及必要的關鍵第三方（若3-4人）
+   - 每位角色給出中文名、劇本定位 (role)、性別 (female/male)、年齡
+   - appearance: 詳細的英文 photorealistic 人像提示詞（年齡、外表特徵、髮型、服裝材質、光影、純肖像）
+   - voice_persona: 中文聲音性格特徵（如「冷靜沉穩、字句分明、略帶威嚴的年輕女聲」）
+   - voice_provider: 女性角色填 "ichiehchieh"（或 "hsiaochen"），男性年輕/中年角色填 "mytsaovoicemagpie"，權威長者男性角色填 "aurora_mandarin"
+3. default_script: 包含 5~6 句精彩對白與情境動作的示範短劇劇本，每行格式為「角色名：台詞」或附帶動作情境。
+
+請嚴格返回 JSON 格式如下：
+{{
+  "name": "公式名稱（如：{formula_name or '逆襲反擊'}）",
+  "hook_premise": "一句話核心衝突大綱",
+  "beats": [
+    "Beat 1 (0-3s Hook): ...",
+    "Beat 2 (10-25s Tension): ...",
+    "Beat 3 (35-50s Payoff): ..."
+  ],
+  "default_characters": [
+    {{
+      "id": "char_slug",
+      "name": "角色名",
+      "role": "定位",
+      "gender": "female or male",
+      "age": 28,
+      "appearance": "28-year-old sleek elegant East Asian woman, photorealistic portrait, 8k",
+      "voice_persona": "聲音特徵描述",
+      "voice_provider": "ichiehchieh"
+    }}
+  ],
+  "default_script": "示範對白腳本文字..."
+}}"""
+
+    system = f"{TAIWAN_MANDARIN_SYSTEM_PROMPT}\n你是一位百萬級短劇王牌編導與導演。嚴格返回合法 JSON。"
+
+    if client:
+        try:
+            from providers.llm.base import extract_json
+            raw = client.text(prompt + "\nReturn ONLY the JSON object.", system=system, temperature=0.7, max_tokens=2500)
+            data = extract_json(raw)
+            if data and data.get("default_characters"):
+                for idx, c in enumerate(data.get("default_characters", [])):
+                    if not c.get("id"):
+                        c["id"] = slugify_character(c.get("name") or f"char_{idx+1}")
+                    if not c.get("voice_provider"):
+                        c["voice_provider"] = "ichiehchieh" if c.get("gender") == "female" else "mytsaovoicemagpie"
+                data["character_count"] = len(data["default_characters"])
+                return data
+        except Exception as ex:
+            log.warning("Autocomplete LLM note: %s; using structured fallback", ex)
+
+    # Heuristic Fallback
+    fallback_chars = []
+    if char_count == 2:
+        fallback_chars = [
+            {
+                "id": "lead_heroine",
+                "name": "林芯怡",
+                "role": "女主角 / 冷靜強勢受害者",
+                "gender": "female",
+                "age": 26,
+                "appearance": "26-year-old sleek elegant East Asian woman, sharp intelligent eyes, dark tailored blouse, stylish modern look, studio lighting, photorealistic portrait",
+                "voice_persona": "冷靜沉著、聲音清晰且帶有不卑不亢的堅定感",
+                "voice_provider": "ichiehchieh"
+            },
+            {
+                "id": "antagonist_boss",
+                "name": "張豪",
+                "role": "反派 / 居高臨下的自負對手",
+                "gender": "male",
+                "age": 45,
+                "appearance": "45-year-old arrogant middle-aged East Asian man, silk shirt, heavy gold ring, smug cynical smirk, dramatic contrast lighting, photorealistic portrait",
+                "voice_persona": "語速沉緩、略帶威脅與輕浮的中年男聲",
+                "voice_provider": "mytsaovoicemagpie"
+            }
+        ]
+    elif char_count == 3:
+        fallback_chars = [
+            {
+                "id": "lead_heroine",
+                "name": "林芯怡",
+                "role": "女主角 / 隱藏身分的關鍵當事人",
+                "gender": "female",
+                "age": 26,
+                "appearance": "26-year-old sleek elegant East Asian woman, sharp intelligent eyes, dark tailored blouse, studio lighting, photorealistic portrait",
+                "voice_persona": "冷靜沉著、聲音清晰且帶有不卑不亢的堅定感",
+                "voice_provider": "ichiehchieh"
+            },
+            {
+                "id": "antagonist_boss",
+                "name": "張豪",
+                "role": "反派 / 自負壓迫者",
+                "gender": "male",
+                "age": 45,
+                "appearance": "45-year-old arrogant middle-aged East Asian man, silk shirt, heavy gold ring, smug smirk, photorealistic portrait",
+                "voice_persona": "語速沉緩、略帶威脅與輕浮的中年男聲",
+                "voice_provider": "mytsaovoicemagpie"
+            },
+            {
+                "id": "key_authority",
+                "name": "趙特助",
+                "role": "權威介入者 / 幕後實力派代表",
+                "gender": "male",
+                "age": 50,
+                "appearance": "50-year-old authoritative East Asian executive in black tailored trench coat, silver-rimmed glasses, stern piercing gaze, cinematic lighting",
+                "voice_persona": "威嚴沉穩、字句如山的老闆男聲",
+                "voice_provider": "aurora_mandarin"
+            }
+        ]
+    else:
+        fallback_chars = [
+            {
+                "id": "lead_heroine",
+                "name": "林芯怡",
+                "role": "女主角",
+                "gender": "female",
+                "age": 26,
+                "appearance": "26-year-old sleek elegant East Asian woman, sharp intelligent eyes, dark tailored blouse, photorealistic portrait",
+                "voice_persona": "冷靜沉著、聲音清晰",
+                "voice_provider": "ichiehchieh"
+            },
+            {
+                "id": "antagonist_boss",
+                "name": "張豪",
+                "role": "反派",
+                "gender": "male",
+                "age": 45,
+                "appearance": "45-year-old arrogant East Asian man, silk shirt, smug smirk, photorealistic portrait",
+                "voice_persona": "略帶威脅的中年男聲",
+                "voice_provider": "mytsaovoicemagpie"
+            },
+            {
+                "id": "supporting_witness",
+                "name": "小雨",
+                "role": "知情目擊者",
+                "gender": "female",
+                "age": 23,
+                "appearance": "23-year-old nervous East Asian woman, casual cardigan, fearful eyes, photorealistic portrait",
+                "voice_persona": "焦慮急促的青年女聲",
+                "voice_provider": "hsiaochen"
+            },
+            {
+                "id": "key_authority",
+                "name": "趙特助",
+                "role": "權威介入者",
+                "gender": "male",
+                "age": 50,
+                "appearance": "50-year-old authoritative East Asian executive in black trench coat, stern piercing gaze, cinematic lighting",
+                "voice_persona": "威嚴沉穩的老闆男聲",
+                "voice_provider": "aurora_mandarin"
+            }
+        ]
+
+    return {
+        "name": formula_name or "極致反轉新篇章",
+        "hook_premise": basic_plot,
+        "character_count": char_count,
+        "beats": [
+            f"Beat 1 (0-3s Hook): 危機降臨，{fallback_chars[1]['name']}強勢逼迫，{fallback_chars[0]['name']}陷入絕境但目光堅定",
+            f"Beat 2 (10-25s Tension): 雙方激烈對峙與條件交鋒，{fallback_chars[0]['name']}暗中啟動反制手段",
+            f"Beat 3 (35-50s Payoff): 真相爆發，{fallback_chars[-1]['name']}強勢現身掀開底牌，局面徹底反轉"
+        ],
+        "default_characters": fallback_chars,
+        "default_script": f"{fallback_chars[1]['name']}冷笑將協議拍在桌上：「今天不簽，妳就別想走出這扇門！」\n{fallback_chars[0]['name']}神情平靜，緩緩抬頭：「你真以為你掌握了全局？」\n{fallback_chars[1]['name']}大笑：「在這條街上，我說的話就是規矩！」\n大門突然被重重推開，{fallback_chars[-1]['name']}帶著護衛大步走入：「張豪，是誰給你的膽子，動我們的人？！」\n{fallback_chars[0]['name']}從容起身：「遊戲結束了。」"
+    }
+
+
 def generate_drama_script_for_duration(
     topic: str,
     formula_key: str = "workplace_revenge",
@@ -134,9 +454,14 @@ def generate_drama_script_for_duration(
     """Generate structured screenplay script tailored to target duration (3-4 scenes for 50s, 5-6 scenes for 90s).
     Returns {"title": str, "tagline": str, "duration_seconds": int, "scenes_count": int, "scenes": list[dict], "script_text": str, "characters": list[dict]}
     """
-    formula = DRAMA_FORMULAS.get(formula_key, DRAMA_FORMULAS["workplace_revenge"])
+    all_formulas = load_all_formulas()
+    formula = all_formulas.get(formula_key) or DRAMA_FORMULAS.get(formula_key, DRAMA_FORMULAS["workplace_revenge"])
     active_characters = characters if (characters and len(characters) > 0) else formula["default_characters"]
-    target_scenes_count = 3 if duration_sec <= 45 else (4 if duration_sec <= 65 else (5 if duration_sec <= 90 else 6))
+    pacing = calculate_proportional_scenes(duration_sec)
+    target_scenes_count = pacing["total"]
+    hook_count = pacing["hook"]
+    tension_count = pacing["tension"]
+    climax_count = pacing["climax"]
 
     spk_lead = active_characters[0].get("name", "沈總監")
     spk_villain = active_characters[1].get("name", "王經理") if len(active_characters) > 1 else "主管"
@@ -151,11 +476,11 @@ def generate_drama_script_for_duration(
 出場角色：
 {char_desc}
 
-【微短劇節奏原則】：
+【微短劇節奏原則（黃金三幕 15% / 55% / 30% 分配）】：
 - 總時長 {duration_sec} 秒，劃分為剛好 {target_scenes_count} 個戲劇場景。
-- 第 1 場（Hook 開場衝突）：0-3秒內第一句台詞必須極具衝擊力，引爆核心矛盾。
-- 中間場次（懸念升級與交鋒）：反派步步進逼嘲諷，主角冷靜布局。
-- 最終場次（反轉絕殺）：權威登場、真相揭曉、反派崩潰打臉。
+- 第 1 ~ {hook_count} 場（Hook 開場衝突，約前15%）：0-3秒內第一句台詞必須極具衝擊力，迅速建立核心壓迫與矛盾。
+- 第 {hook_count + 1} ~ {hook_count + tension_count} 場（Tension 危機升級與多次語言交鋒，約中段55%）：反派步步進逼嘲諷、主角冷靜反問與布局，多輪語言心理戰，節奏緊咬不拖沓。
+- 第 {hook_count + tension_count + 1} ~ {target_scenes_count} 場（Payoff 絕殺反轉與收尾打臉，約後段30%）：底牌亮出、權威登場、反派心理崩潰跪地求饒、主角從容離場。
 - 台詞必須簡潔有力，角色性格鮮明，禁止任何無效廢話。
 
 請嚴格返回 JSON 格式如下：
@@ -420,9 +745,14 @@ def plan_drama_production(
     2. Character Turnaround Roster (Appearance, Traits & Vocal assignment)
     3. Shot-by-shot Script with Character Dialogue lines & Cinematic Actions
     """
-    formula = DRAMA_FORMULAS.get(formula_key, DRAMA_FORMULAS["workplace_revenge"])
+    all_formulas = load_all_formulas()
+    formula = all_formulas.get(formula_key) or DRAMA_FORMULAS.get(formula_key, DRAMA_FORMULAS["workplace_revenge"])
     active_characters = custom_characters if (custom_characters and len(custom_characters) > 0) else formula["default_characters"]
-    target_shots = max(4, min(25, round(duration_sec / 5.0)))
+    pacing = calculate_proportional_scenes(duration_sec)
+    target_shots = pacing["total"]
+    hook_shots = pacing["hook"]
+    tension_shots = pacing["tension"]
+    climax_shots = pacing["climax"]
 
     # Try parsing user-supplied script directly if structured with dialogues
     user_parsed_shots = parse_dialogue_script_to_shots(user_premise or "", active_characters, duration_sec)
@@ -557,10 +887,10 @@ User Custom Notes: {user_premise or 'None'}
 Target Video Duration: {duration_sec} seconds (Exactly {target_shots} dramatic shots)
 Aspect Ratio: {aspect_ratio}
 
-Golden Rules for Viral Short Dramas (參考小金老師短劇法則):
-1. Beat 1: Hook (0-3s) - First line must be an explosive, shocking conflict line that arrests attention immediately (e.g. 「從今天起，妳被AI取代了。新系統一個月才一千塊。妳呢？」).
-2. Beat 2: Tension & Complication (10-25s) - Antagonist acts arrogant and dismissive; protagonist stays icy calm and plants the lethal technical trap/trump card.
-3. Beat 3: Climax & Dramatic Reversal (35-50s) - Truth revealed, authority intervenes, mic-drop dialogue, humiliating defeat of the antagonist.
+Golden Rules for Viral Short Dramas (參考小金老師短劇法則 - 15% Hook / 55% Tension / 30% Payoff):
+1. Beat 1: Hook (First {hook_shots} shots, ~15% duration) - First line must be an explosive, shocking conflict line that arrests attention immediately.
+2. Beat 2: Tension & Complication (Next {tension_shots} shots, ~55% duration) - Multiple rounds of sharp verbal sparring, stakes escalation, and trap setting.
+3. Beat 3: Climax & Dramatic Reversal (Final {climax_shots} shots, ~30% duration) - Truth revealed, authority intervenes, mic-drop dialogue, humiliating defeat of the antagonist.
 4. Total Characters: 2 to 3 characters max. Give each character exact appearance tags (clothing, hairstyle, facial features, age) so their face remains consistent across shots.
 5. Dialogue: Snappy, razor-sharp Traditional Chinese (Taiwan Mandarin terms: 程式, 軟體, 總監, 專案, etc.). No filler.
 
