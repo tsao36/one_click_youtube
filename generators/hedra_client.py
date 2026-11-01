@@ -233,6 +233,8 @@ def generate_hedra_character_video(
     timeout: int = 600,
     poll_interval: int = 5,
     cancel_check: Optional[Callable[[], bool]] = None,
+    aspect_ratio: str = "9:16",
+    resolution: str = "720p",
 ) -> dict:
     """Generate talking AI character video using Hedra v3 or legacy API."""
     key = hedra_key or get_hedra_key()
@@ -247,6 +249,8 @@ def generate_hedra_character_video(
             output_mp4=output_mp4,
             key=key,
             text_prompt=text_prompt,
+            aspect_ratio=aspect_ratio,
+            resolution=resolution,
             timeout=timeout,
             poll_interval=poll_interval,
             cancel_check=cancel_check,

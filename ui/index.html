@@ -1517,10 +1517,10 @@
           <div>
             <label style="font-size: 12px; font-weight: 700; color: #cbd5e1; margin-bottom: 5px; display: block;">對嘴與動畫引擎 (Animation Model):</label>
             <select id="drama-anim-engine" style="width: 100%; font-weight: 600; color: #fff; background: #070913; border: 1px solid #d97706; padding: 9px 12px; border-radius: 6px;">
-              <option value="minimax" selected>🌊 MiniMax 海螺 Video-01 (全新場景與大幅度真實肢體動作 · 推薦)</option>
-              <option value="hedra">🌟 Hedra Character-3 API (極致唇形對齊與生動表情微動態)</option>
-              <option value="kling_avatar">⚡ Fal.ai Kling AI Avatar (高品質動態演員)</option>
+              <option value="hedra" selected>🌟 Hedra Character-3 API (真實音訊對嘴唇形同步 · 推薦)</option>
+              <option value="kling_avatar">⚡ Fal.ai Kling AI Avatar (高品質動態對嘴演員)</option>
               <option value="local_fallback">🖥️ 本地音頻共振呼吸動態備用方案 ($0 成本，0 報錯)</option>
+              <option value="minimax">🌊 MiniMax 海螺 Video-01 (物理場景動作 · 無音訊唇形對齊)</option>
             </select>
           </div>
           <div>
@@ -12268,9 +12268,10 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
             <label style="font-size:12px; font-weight:700; color:var(--text-muted); margin:0;">Engine:</label>
             <select style="padding:4px 8px; font-size:12px; border-radius:var(--radius-sm); background:var(--bg-canvas); color:var(--text-primary); border:1px solid var(--border-muted);" onchange="updateStudioStageModel('animation', this.value)">
               ${isDrama ? `
-                <option value="minimax" ${currentSm === 'minimax' || !currentSm ? 'selected' : ''}>Cloud: MiniMax AI Actor Video (9:16)</option>
-                <option value="hedra" ${currentSm === 'hedra' ? 'selected' : ''}>Cloud: Hedra Character-2 Lip-Sync (9:16)</option>
-                <option value="kenburns" ${currentSm === 'kenburns' ? 'selected' : ''}>Local: Ken Burns 2.5D Motion</option>
+                <option value="hedra" ${currentSm === 'hedra' || !currentSm ? 'selected' : ''}>🌟 Cloud: Hedra Character-3 Lip-Sync (推薦 · 真實對嘴)</option>
+                <option value="kling_avatar" ${currentSm === 'kling_avatar' ? 'selected' : ''}>⚡ Cloud: Fal Kling AI Avatar (對嘴演員)</option>
+                <option value="local_fallback" ${currentSm === 'local_fallback' || currentSm === 'kenburns' ? 'selected' : ''}>🖥️ Local: 音頻共振呼吸動態備用方案 ($0)</option>
+                <option value="minimax" ${currentSm === 'minimax' ? 'selected' : ''}>🌊 Cloud: MiniMax 海螺 Video-01 (場景動作 · 無對嘴)</option>
               ` : `
                 <option value="kenburns" ${currentSm === 'kenburns' || !currentSm ? 'selected' : ''}>Local: Ken Burns 2.5D Motion</option>
                 <option value="comfyui_video" ${currentSm === 'comfyui_video' ? 'selected' : ''}>Local: ComfyUI Video</option>

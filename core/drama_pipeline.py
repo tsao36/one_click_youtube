@@ -2940,16 +2940,23 @@ class DramaPipeline(BasePipeline):
 
 
         from generators.minimax_client import is_minimax_configured
-        chosen_engine = self.get_stage_model("animation")
-        # Priority: explicit user choice > minimax if configured > hedra
-        if chosen_engine and chosen_engine in ("minimax", "video-01", "hailuo"):
-            target_anim_engine = "minimax"
-        elif chosen_engine and chosen_engine in ("hedra", "kling", "kling_avatar", "local_fallback"):
-            target_anim_engine = chosen_engine
-        elif is_minimax_configured():
+        chosen_engine = (self.get_stage_model("animation") or "").lower().strip()
+        # Stage 7 is Lip-sync synthesis ("對嘴合成").
+        # Priority: explicit choice > hedra (primary lip-sync) > kling_avatar > minimax > local_fallback
+        if chosen_engine in ("hedra", "hedra-character-3", "cloud"):
+            target_anim_engine = "hedra"
+        elif chosen_engine in ("kling", "kling_avatar"):
+            target_anim_engine = "kling_avatar"
+        elif chosen_engine in ("local_fallback", "kenburns"):
+            target_anim_engine = "local_fallback"
+        elif chosen_engine in ("minimax", "video-01", "hailuo"):
             target_anim_engine = "minimax"
         elif hedra_key:
             target_anim_engine = "hedra"
+        elif fal_key:
+            target_anim_engine = "kling_avatar"
+        elif is_minimax_configured():
+            target_anim_engine = "minimax"
         else:
             target_anim_engine = "local_fallback"
 
@@ -3122,8 +3129,39 @@ class DramaPipeline(BasePipeline):
 
 
 
-            # 1. MiniMax Video-01 Dynamic Physical Motion & Natural Acting
-            if not success and (target_anim_engine in ("minimax", "hailuo", "video-01") or (not hedra_key and is_minimax_configured())):
+            # 1. Hedra AI Character Lip-Syncing (Precision phoneme lip synchronization)
+            if not success and hedra_key and (target_anim_engine in ("hedra", "cloud") or target_anim_engine not in ("local_fallback", "kling_avatar", "minimax")):
+                try:
+                    self.p.activity(f"Stage 7/9: Hedra rendering lip-synced video for {s.speaker} (Scene {s.scene_id})...")
+                    meta = generate_hedra_character_video(
+                        portrait_file,
+                        audio_file,
+                        out_clip,
+                        hedra_key,
+                        text_prompt=s.narration,
+                        aspect_ratio="9:16",
+                        cancel_check=self.is_cancelled,
+                    )
+                    success = True
+                    log.info("Hedra lip-sync succeeded for Scene %d (%s): %s", s.scene_id, s.speaker, out_clip)
+                except Exception as he:
+                    log.warning("Hedra lip-sync failed for scene %d (%s); trying fallback: %s", s.scene_id, he)
+
+            # 2. Fal.ai Kling Avatar / SadTalker Lip-Sync
+            if not success and fal_key and (target_anim_engine in ("kling", "kling_avatar") or (not hedra_key and target_anim_engine not in ("local_fallback", "minimax"))):
+                try:
+                    self.p.activity(f"Stage 7/9: Fal.ai generating actor performance for {s.speaker} (Scene {s.scene_id})...")
+                    if target_anim_engine in ("kling", "kling_avatar"):
+                        meta = _generate_fal_kling_avatar(portrait_file, audio_file, out_clip, fal_key)
+                    else:
+                        meta = _generate_fal_sadtalker(portrait_file, audio_file, out_clip, fal_key)
+                    success = True
+                    log.info("Fal.ai lip-sync succeeded for Scene %d (%s): %s", s.scene_id, s.speaker, out_clip)
+                except Exception as fe:
+                    log.warning("Fal avatar generation failed for scene %d (%s); falling back...", s.scene_id, fe)
+
+            # 3. MiniMax Video-01 Dynamic Physical Motion & Natural Acting
+            if not success and (target_anim_engine in ("minimax", "hailuo", "video-01") or (not hedra_key and not fal_key and is_minimax_configured() and target_anim_engine != "local_fallback")):
                 try:
                     from generators.minimax_client import generate_minimax_character_video
                     self.p.activity(f"Stage 7/9: MiniMax Video-01 generating dynamic physical action for {s.speaker} (Scene {s.scene_id})...")
@@ -3136,27 +3174,23 @@ class DramaPipeline(BasePipeline):
                 except Exception as me:
                     log.warning("MiniMax generation failed for scene %d (%s); falling back to lip-sync: %s", s.scene_id, me)
 
-            # 2. Hedra AI Character Lip-Syncing (Precision phoneme lip synchronization)
-            if not success and hedra_key and (target_anim_engine in ("hedra", "cloud") or target_anim_engine not in ("local_fallback", "kling_avatar")):
+            # Fallback Hedra attempt if MiniMax or Kling failed and Hedra was not tried
+            if not success and hedra_key:
                 try:
-                    self.p.activity(f"Stage 7/9: Hedra rendering lip-synced video for {s.speaker} (Scene {s.scene_id})...")
-                    meta = generate_hedra_character_video(portrait_file, audio_file, out_clip, hedra_key, text_prompt=s.narration, cancel_check=self.is_cancelled)
+                    self.p.activity(f"Stage 7/9: Hedra fallback lip-syncing for {s.speaker} (Scene {s.scene_id})...")
+                    meta = generate_hedra_character_video(
+                        portrait_file,
+                        audio_file,
+                        out_clip,
+                        hedra_key,
+                        text_prompt=s.narration,
+                        aspect_ratio="9:16",
+                        cancel_check=self.is_cancelled,
+                    )
                     success = True
-                    log.info("Hedra lip-sync succeeded for Scene %d (%s): %s", s.scene_id, s.speaker, out_clip)
-                except Exception as he:
-                    log.warning("Hedra lip-sync failed for scene %d (%s); trying fallback: %s", s.scene_id, he)
-
-            # 3. Fal.ai Kling Avatar / SadTalker if Fal key configured
-            if not success and fal_key and "TOP_UP" not in str(meta):
-                try:
-                    self.p.activity(f"Stage 7/9: Fal.ai generating actor performance for {s.speaker} (Scene {s.scene_id})...")
-                    if target_anim_engine in ("kling", "kling_avatar"):
-                        meta = _generate_fal_kling_avatar(portrait_file, audio_file, out_clip, fal_key)
-                    else:
-                        meta = _generate_fal_sadtalker(portrait_file, audio_file, out_clip, fal_key)
-                    success = True
-                except Exception as fe:
-                    log.warning("Fal avatar generation failed for scene %d (%s); falling back...", s.scene_id, fe)
+                    log.info("Hedra fallback lip-sync succeeded for Scene %d (%s): %s", s.scene_id, s.speaker, out_clip)
+                except Exception as he2:
+                    log.warning("Hedra fallback failed: %s", he2)
 
             # 3. Dynamic Local Animated Actor Performance (Guaranteed $0, 0 error fallback)
 
