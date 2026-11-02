@@ -62,6 +62,8 @@ class Scene(BaseModel):
     phase_turn_text: Optional[str] = None       # Critical text on black screen foretelling next phase
     speaker: Optional[str] = None               # For drama mode: character speaking the line (e.g. "王經理", "沈總監")
     character_id: Optional[str] = None          # For drama mode: unique character slug ID (e.g. "manager_wang")
+    costume_variant: Optional[str] = "default"  # Drama mode: costume variant ("default" locks to master anchor)
+    scene_location: Optional[str] = "primary"   # Drama mode: location profile ("primary" locks to formula default_primary_setting)
     action: Optional[str] = None                # Drama action summary / tag (e.g. "[gesture: pointing_forward]")
     action_gesture: Optional[str] = None        # Action & Gesture Registry key (e.g. "pointing_forward")
     action_prompt: Optional[str] = None         # Specific physical pose prompt for Stage 5 image generation

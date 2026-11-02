@@ -45,10 +45,13 @@ def generate_face_referenced_portrait(
     target_width: int = 720,
     target_height: int = 1280,
     gemini_key: Optional[str] = None,
+    aesthetic_prompt: str = "",
+    costume_locked: bool = True,
 ) -> Path:
     """Generate a 9:16 vertical character portrait with specified clothing and background,
     using the facial likeness from reference_face_path, anchored to anchor_reference_path
-    if available, performing the specific action_prompt posture.
+    if available, performing the specific action_prompt posture while maintaining strict
+    wardrobe and environment continuity.
     """
     key = gemini_key or get_secret("GEMINI_API_KEY")
     if not reference_face_path.exists():
@@ -67,7 +70,7 @@ def generate_face_referenced_portrait(
 
     # If anchor reference image exists (e.g. styled_9x16.png), prepare it for multi-image conditioning
     anchor_b64: Optional[str] = None
-    if anchor_reference_path and Path(anchor_reference_path).exists() and Path(anchor_reference_path).stat().st_size > 1000:
+    if anchor_reference_path and Path(anchor_reference_path).exists() and Path(anchor_reference_path).stat().st_size > 100:
         try:
             with Image.open(anchor_reference_path) as aim:
                 a_upright = ImageOps.exif_transpose(aim)
@@ -88,17 +91,30 @@ def generate_face_referenced_portrait(
             "gemini-3-pro-image",
         ]
         
-        action_clause = f"ACTION & GESTURE (NEW POSTURE): The character must perform this action: {action_prompt}." if action_prompt else "POSTURE: Classic authoritative executive portrait stance."
-        prompt_text = (
-            f"Generate a vertical 9:16 cinematic character portrait based on the person in the reference image. "
-            f"CRITICAL IDENTITY REQUIREMENT: Accurately maintain and transfer this exact person's facial features, facial structure, "
-            f"eyes, nose, mouth, hair color, skin tone, and recognizable identity from the reference image. "
-            f"CLOTHING & APPEARANCE: Dress them in {clothing_prompt}. "
-            f"{action_clause} "
-            f"BACKGROUND & SETTING: Place them in {background_prompt}. "
-            f"STYLE & LIGHTING: High dynamic range cinematic dramatic lighting, vertical 9:16 portrait composition, "
-            f"sharp focus on the face and expressive hands/gesture, photorealistic 8k, authentic corporate short drama aesthetic."
-        )
+        style_clause = aesthetic_prompt or "Cinematic dramatic lighting, 35mm film still, sharp focus on face, rich color depth, 8k resolution, authentic short drama aesthetic"
+        action_clause = f"ACTION & GESTURE (NEW POSTURE): The character must perform this action: {action_prompt}." if action_prompt else "POSTURE: Classic cinematic character portrait stance."
+
+        if anchor_b64 and costume_locked:
+            prompt_text = (
+                "Generate a vertical 9:16 cinematic character portrait film still maintaining strict visual continuity.\n"
+                "CRITICAL CONTINUITY DIRECTIVES (DUAL-IMAGE ANCHOR LOCK):\n"
+                "1. FACE & IDENTITY: Maintain 100% exact facial structure, facial features, eyes, nose, mouth, skin tone, and identity from the second image (Face Reference).\n"
+                "2. WARDROBE & COSTUME: 100% replicate the exact clothing, colors, fabrics, collar, cuts, accessories, and hairstyle shown in the first image (Master Anchor Reference). Do not change, swap, or alter the character's clothing.\n"
+                f"3. BACKGROUND & ENVIRONMENT: The character is located in the exact same room/interior shown in the first image ({background_prompt}). Maintain identical wall textures, color palette, lighting direction, and atmosphere.\n"
+                f"4. {action_clause}\n"
+                f"5. STYLE & LIGHTING: {style_clause}, vertical 9:16 composition, photorealistic 8k.\n"
+                "6. ERGONOMIC NEGATIVE CONSTRAINTS: Strictly exactly two natural arms and two hands only. Natural ergonomic posture, no extra limbs, no duplicated fingers, no anatomical distortion, no clothing color drift, no sudden background shifts."
+            )
+        else:
+            prompt_text = (
+                "Generate a vertical 9:16 cinematic character portrait based on the person in the reference image.\n"
+                "CRITICAL IDENTITY REQUIREMENT: Accurately transfer this exact person's facial features, facial structure, eyes, nose, mouth, hair, skin tone, and recognizable identity.\n"
+                f"CLOTHING & APPEARANCE: Dress them in {clothing_prompt}.\n"
+                f"{action_clause}\n"
+                f"BACKGROUND & SETTING: Place them in {background_prompt}.\n"
+                f"STYLE & LIGHTING: {style_clause}, vertical 9:16 portrait composition, sharp focus on face and expressive hands/gesture, photorealistic 8k.\n"
+                "NEGATIVE CONSTRAINTS: Strictly exactly two natural arms only, natural ergonomic posture, no extra limbs, no anatomical distortion."
+            )
 
         parts = []
         if anchor_b64:

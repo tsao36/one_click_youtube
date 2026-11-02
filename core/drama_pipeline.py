@@ -481,7 +481,9 @@ class DramaPipeline(BasePipeline):
 
 
 
-        bible_md = f"# AI Short Drama: {drama_pkg.get('title', self.p.data.topic)}\n\n**Tagline**: {drama_pkg.get('tagline', '')}\n\n## Character Roster (定妝表)\n"
+        p_set = drama_pkg.get("primary_setting", "")
+        a_prof = drama_pkg.get("aesthetic_profile", "")
+        bible_md = f"# AI Short Drama: {drama_pkg.get('title', self.p.data.topic)}\n\n**Tagline**: {drama_pkg.get('tagline', '')}\n\n## Environment & Aesthetic Bible\n- **Primary Setting**: {p_set}\n- **Aesthetic Profile**: {a_prof}\n\n## Character Roster (定妝表)\n"
 
 
 
@@ -928,12 +930,16 @@ class DramaPipeline(BasePipeline):
 
 
             char_app = c_info.get("appearance") or c_info.get("appearance_prompt") or ""
-
             act = sec.get("action") or f"{spk}情緒飽滿說出台詞"
 
-            vis_desc = f"{char_app}, {act}, {aspect_tag}, cinematic vertical lighting, 8k drama still" if char_app else f"{act}, {aspect_tag}"
+            primary_setting = drama_pkg.get("primary_setting") or ""
+            aesthetic_profile = drama_pkg.get("aesthetic_profile") or ""
+            c_variant = sec.get("costume_variant") or (sec.get("shot") or {}).get("costume_variant") or "default"
+            s_loc = sec.get("scene_location") or (sec.get("shot") or {}).get("scene_location") or "primary"
 
-
+            setting_tag = primary_setting if (s_loc == "primary" and primary_setting) else (s_loc if s_loc != "primary" else "")
+            vis_parts = [p for p in (char_app, act, setting_tag, aesthetic_profile, aspect_tag) if p]
+            vis_desc = ", ".join(vis_parts) + ", 8k drama still" if vis_parts else f"{act}, {aspect_tag}"
 
             is_climax = (idx >= len(script_sections) - 1)
 
@@ -941,9 +947,7 @@ class DramaPipeline(BasePipeline):
 
             per_scene_dur = max(3.5, round(len(full_narration) / 3.2, 1))
 
-
-
-            scenes.append(Scene(
+            sc_item = Scene(
 
                 scene_id=sid,
 
@@ -977,7 +981,10 @@ class DramaPipeline(BasePipeline):
 
                 callout_type=None,
 
-            ))
+            )
+            sc_item.costume_variant = c_variant
+            sc_item.scene_location = s_loc
+            scenes.append(sc_item)
 
 
 
@@ -1757,12 +1764,22 @@ class DramaPipeline(BasePipeline):
 
 
 
-                styled_char_path = self.p.path("characters", f"{char_id}_styled_9x16.png")
+                drama_pkg = self.p.read_json("research/drama_plan.json", {})
+                primary_setting = drama_pkg.get("primary_setting") or ""
+                aesthetic_profile = drama_pkg.get("aesthetic_profile") or ""
+
+                c_variant = getattr(s, "costume_variant", "default") or "default"
+                variant_suffix = f"_{c_variant}" if c_variant != "default" else ""
+                styled_char_path = self.p.path("characters", f"{char_id}_styled{variant_suffix}_9x16.png")
                 from generators.face_reference_generator import generate_face_referenced_portrait
                 char_app = (c_info or {}).get("appearance") or (c_info or {}).get("appearance_prompt") or ""
-                clothes_p = char_app if char_app else ("sharp corporate navy blue executive suit and necktie with rimless gold glasses" if ("經理" in spk or "manager" in spk.lower()) else ("bespoke charcoal tailored wool overcoat" if ("陳董" in spk or "董" in spk) else "stylish contemporary professional attire"))
+                clothes_p = char_app if char_app else "contemporary short drama attire"
+
+                # Primary setting background consistency
                 s_vis = getattr(s, "visual_description", "")
-                if s_vis and len(s_vis) > 20:
+                if primary_setting:
+                    bg_p = primary_setting
+                elif s_vis and len(s_vis) > 20:
                     bg_p = s_vis.split(",", 1)[-1].strip() if "," in s_vis else s_vis
                     if len(bg_p) > 120:
                         bg_p = bg_p[:120]
@@ -1778,13 +1795,15 @@ class DramaPipeline(BasePipeline):
                             reference_face_path=portrait_cand,
                             clothing_prompt=clothes_p,
                             background_prompt=bg_p,
-                            action_prompt="authoritative executive portrait stance",
+                            action_prompt="authoritative character portrait stance",
                             anchor_reference_path=None,
                             output_path=styled_char_path,
                             target_width=width,
-                            target_height=height
+                            target_height=height,
+                            aesthetic_prompt=aesthetic_profile,
+                            costume_locked=False,
                         )
-                        cached_portraits[char_id] = styled_char_path
+                        cached_portraits[f"{char_id}{variant_suffix}"] = styled_char_path
                     except Exception as anchor_err:
                         log.warning("Canonical anchor portrait synthesis failed (%s); using fallback", anchor_err)
 
@@ -1802,7 +1821,9 @@ class DramaPipeline(BasePipeline):
                             anchor_reference_path=styled_char_path,
                             output_path=img_path,
                             target_width=width,
-                            target_height=height
+                            target_height=height,
+                            aesthetic_prompt=aesthetic_profile,
+                            costume_locked=True,
                         )
                         synthesized_scene_img = (img_path.exists() and img_path.stat().st_size > 1000)
                     except Exception as pose_err:

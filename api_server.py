@@ -258,6 +258,8 @@ class SaveFormulaRequest(BaseModel):
     id: Optional[str] = None
     name: str
     hook_premise: str
+    aesthetic_profile: Optional[str] = None
+    default_primary_setting: Optional[str] = None
     character_count: Optional[int] = None
     beats: Optional[list[str]] = None
     default_characters: list[dict[str, Any]]

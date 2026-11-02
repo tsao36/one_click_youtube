@@ -87,3 +87,23 @@ _Avoid_: Jump cut, audio split, sentence interruption
 **Local Persona Mutation**:
 The policy where character styling, wardrobe variations, and portrait takes altered within a specific project remain isolated to that project's snapshot unless explicitly published back to the global library.
 _Avoid_: Global character auto-sync, uncontrolled asset mutation
+
+**Visual Aesthetic Profile**:
+A formula-level cinematic texture, color palette, lighting temperature, and camera rendering descriptor (e.g. sharp corporate glass vs warm golden luxury vs cold dystopian neon) injected into Stage 5 image prompting to preserve look-and-feel unity across all shots.
+_Avoid_: Art style prompt, visual preset, image theme
+
+**Master Anchor Reference**:
+The canonical 9:16 full-body or medium-shot character portrait (`{char_id}_styled_9x16.png`) capturing approved face identity, hairstyle, lighting, and baseline wardrobe, serving as the master visual conditioning anchor across the entire production.
+_Avoid_: Face template, base photo, profile pic
+
+**Dual-Image Anchor Lock Conditioning**:
+A Stage 5 image generation architecture where Gemini Image Generation is fed both the Master Anchor Reference (conditioned for wardrobe, fabric texture, and environment coherence) and Face Reference (conditioned for facial identity), combined with strict anatomical negative constraints.
+_Avoid_: Single face swap, freeform diffusion, unanchored re-prompting
+
+**Contextual Costume Variant**:
+An explicit shot-level wardrobe override tag (`costume_variant`) enabling deliberate clothing changes (e.g. pajamas, hospital gown, tactical gear) only when specified in the screenplay, defaulting to `"default"` to lock wardrobe consistency.
+_Avoid_: Random outfit variation, costume drift, unmanaged dress change
+
+**Primary Setting Anchor**:
+The default architectural and environmental space profile derived from the drama formula and story premise (e.g. high-rise CEO office, modern police interrogation room) that binds background scenes across the video episode.
+_Avoid_: Random background, floating location, prompt backdrop

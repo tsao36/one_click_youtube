@@ -26,6 +26,8 @@ DRAMA_FORMULAS = {
         "id": "workplace_revenge",
         "name": "職場逆襲打臉（如《開除我？那套AI是我寫的》）",
         "hook_premise": "主管狂妄當眾解雇核心技術女主，宣稱新系統一個月才一千塊；女主冷靜收回管理員權限，董事長親自到場威嚴打臉",
+        "aesthetic_profile": "High-contrast modern corporate cinematic lighting, sleek glass and dark wood reflections, cool daylight rim light with dramatic office shadows, 35mm film still, sharp crisp depth of field",
+        "default_primary_setting": "Sleek contemporary executive tech corner office, expansive glass windows overlooking city skyline, polished mahogany desk",
         "beats": [
             "Beat 1 (0-3s Hook): 衝突爆發，主管居高臨下摔解僱公文，冷笑宣稱女主被AI取代",
             "Beat 2 (10-25s Tension): 女主淡定反問系統是誰寫的，主管狂妄嘲諷；女主手指輕敲鍵盤收回核心權限，辦公室警報響起",
@@ -65,6 +67,8 @@ DRAMA_FORMULAS = {
         "id": "suspense_twist",
         "name": "懸疑極限反轉（暗室審訊與雙重佈局）",
         "hook_premise": "嫌疑人被逼入死角即將簽署認罪書，最後三秒揭曉審訊官才是真正的獵物",
+        "aesthetic_profile": "Moody dark noir interrogation lighting, single overhead tungsten lamp, deep harsh shadows, atmospheric dust particles, 50mm cinematic lens, high tension film grain",
+        "default_primary_setting": "Dimly lit claustrophobic concrete interrogation room, scratched metallic table, solitary hanging incandescent lamp, frosted two-way mirror",
         "beats": [
             "Beat 1 (0-3s Hook): 昏暗審訊室，桌上倒數計時器逼近歸零，審訊官拍桌逼迫簽字",
             "Beat 2 (10-25s Tension): 嫌疑人抬起頭露出詭異微笑，指出房間內的監控訊號早已被掉包",
@@ -95,6 +99,8 @@ DRAMA_FORMULAS = {
         "id": "scifi_cyber",
         "name": "科幻神展開（世界模型與意識覺醒）",
         "hook_premise": "頂尖工程師發現自己所處的世界只是伺服器裡運行的一千次模擬之一",
+        "aesthetic_profile": "Cyberpunk neon luminescence, cyan and magenta rim light, rain-streaked dark reflective glass, holographic terminal reflections, anamorphic cinematic lens flare, photorealistic 8k",
+        "default_primary_setting": "High-tech neon-lit subterranean research lab, glowing holographic interface screens, industrial cyberpunk architecture with exposed wiring",
         "beats": [
             "Beat 1 (0-3s Hook): 窗外的雨滴在半空中突然定格成六角形數位代碼，警報響起",
             "Beat 2 (10-25s Tension): 虛擬管家警告即將執行記憶格式化，主角駭入底層核心日誌",
@@ -201,6 +207,8 @@ def save_custom_formula(data: dict[str, Any]) -> dict[str, Any]:
         "id": fid,
         "name": name,
         "hook_premise": hook_premise,
+        "aesthetic_profile": data.get("aesthetic_profile") or "Cinematic dramatic lighting, 35mm film still, sharp focus on face, rich color depth, 8k resolution",
+        "default_primary_setting": data.get("default_primary_setting") or "Cinematic atmospheric interior setting with dramatic mood lighting",
         "character_count": len(chars),
         "beats": beats,
         "default_characters": chars,
@@ -307,6 +315,8 @@ def autocomplete_custom_formula(
       "voice_provider": "ichiehchieh"
     }}
   ],
+  "default_primary_setting": "English description of primary room/interior location",
+  "aesthetic_profile": "English cinematic visual tone and lighting contrast",
   "default_script": "示範對白腳本文字..."
 }}"""
 
@@ -324,6 +334,8 @@ def autocomplete_custom_formula(
                     if not c.get("voice_provider"):
                         c["voice_provider"] = "ichiehchieh" if c.get("gender") == "female" else "mytsaovoicemagpie"
                 data["character_count"] = len(data["default_characters"])
+                data.setdefault("default_primary_setting", "Cinematic atmospheric interior setting with dramatic mood lighting")
+                data.setdefault("aesthetic_profile", "Atmospheric moody cinematic film lighting, high contrast shadows, 35mm shallow depth of field")
                 return data
         except Exception as ex:
             log.warning("Autocomplete LLM note: %s; using structured fallback", ex)
@@ -433,6 +445,8 @@ def autocomplete_custom_formula(
     return {
         "name": formula_name or "極致反轉新篇章",
         "hook_premise": basic_plot,
+        "default_primary_setting": "Cinematic atmospheric interior setting with dramatic mood lighting",
+        "aesthetic_profile": "Atmospheric moody cinematic film lighting, high contrast shadows, 35mm shallow depth of field",
         "character_count": char_count,
         "beats": [
             f"Beat 1 (0-3s Hook): 危機降臨，{fallback_chars[1]['name']}強勢逼迫，{fallback_chars[0]['name']}陷入絕境但目光堅定",
@@ -719,6 +733,12 @@ def parse_dialogue_script_to_shots(
         resolved_name = c_info.get("name") or spk
         app = c_info.get("appearance") or c_info.get("appearance_prompt") or f"Cinematic East Asian character {resolved_name}"
 
+        # Detect contextual costume or location shifts
+        c_variant = "default"
+        s_loc = "primary"
+        if any(k in diag for k in ("隔天", "翌日", "多年後", "換上", "睡衣", "洗澡", "病房", "外出")):
+            c_variant = "variant_1"
+
         shots.append({
             "shot_id": i,
             "dramatic_beat": beat,
@@ -727,6 +747,8 @@ def parse_dialogue_script_to_shots(
             "action": f"{resolved_name}情緒飽滿地說出對白",
             "camera_motion": cam,
             "shot_size": "close_up" if hit else "medium_shot",
+            "costume_variant": c_variant,
+            "scene_location": s_loc,
             "visual_description": f"Cinematic shot of {resolved_name}, {app}, high tension drama film still, 8k photorealistic",
             "estimated_duration": per_shot_dur,
             "sfx_cue": sfx,
@@ -759,23 +781,38 @@ def plan_drama_production(
     tension_shots = pacing["tension"]
     climax_shots = pacing["climax"]
 
+    def_setting = formula.get("default_primary_setting") or "Cinematic atmospheric interior setting with dramatic mood lighting"
+    def_aesthetic = formula.get("aesthetic_profile") or "Cinematic dramatic lighting, 35mm film still, sharp focus on face, rich color depth, 8k resolution"
+
+    def _finalize_pkg(pkg: dict[str, Any]) -> dict[str, Any]:
+        pkg.setdefault("primary_setting", def_setting)
+        pkg.setdefault("aesthetic_profile", def_aesthetic)
+        for s in pkg.get("shots", []):
+            s.setdefault("costume_variant", "default")
+            s.setdefault("scene_location", "primary")
+        return pkg
+
     # Try parsing user-supplied script directly if structured with dialogues
     user_parsed_shots = parse_dialogue_script_to_shots(user_premise or "", active_characters, duration_sec)
     if user_parsed_shots and len(user_parsed_shots) >= 3 and (not client or formula_key == "custom"):
         log.info("Directly using %d parsed script shots for drama '%s'", len(user_parsed_shots), topic)
-        return {
+        return _finalize_pkg({
             "title": topic,
             "tagline": f"{active_characters[0].get('name', '主角')}的命運對決",
+            "primary_setting": def_setting,
+            "aesthetic_profile": def_aesthetic,
             "characters": active_characters,
             "shots": user_parsed_shots,
-        }
+        })
 
     # Fast-path for the flagship reference video template 《開除我？那套AI是我寫的》
     if formula_key == "workplace_revenge" and (not user_premise or user_premise.strip() == "") and any(k in topic for k in ("開除", "AI是我寫", "職場", "那套AI", "取代")):
         log.info("Loading reference master drama package for '%s'", topic)
-        return {
+        return _finalize_pkg({
             "title": "開除我？那套AI是我寫的",
             "tagline": "一個鏡頭好看很容易，難的是十個鏡頭都在打你的臉。",
+            "primary_setting": def_setting,
+            "aesthetic_profile": def_aesthetic,
             "characters": active_characters,
             "shots": [
                 {
@@ -883,7 +920,7 @@ def plan_drama_production(
                     "has_impact_hit": False
                 }
             ]
-        }
+        })
     
     char_constraint_prompt = ""
     if active_characters:
@@ -911,6 +948,8 @@ Return JSON in this EXACT structure:
 {{
   "title": "短劇劇名 (e.g. 開除我？那套AI是我寫的)",
   "tagline": "吸引人的單句金句",
+  "primary_setting": "English description of primary room/interior location (walls, furniture, lighting) for background continuity",
+  "aesthetic_profile": "English cinematic visual tone, color palette, lighting contrast, 35mm lens feel",
   "characters": [
     {{
       "name": "角色名 (e.g. 沈總監)",
@@ -926,6 +965,8 @@ Return JSON in this EXACT structure:
       "shot_id": 1,
       "dramatic_beat": "hook",
       "speaker": "指定角色名",
+      "costume_variant": "default",
+      "scene_location": "primary",
       "dialogue": "對白內容",
       "action": "鏡頭與肢體動作描述",
       "camera_motion": "push_in",
@@ -948,6 +989,10 @@ Ensure exactly {target_shots} shots that add up to ~{duration_sec}s."""
             data = extract_json(raw)
             if data and data.get("shots") and len(data.get("shots")) >= 3:
                 data["characters"] = active_characters
+                if not data.get("primary_setting"):
+                    data["primary_setting"] = def_setting
+                if not data.get("aesthetic_profile"):
+                    data["aesthetic_profile"] = def_aesthetic
                 # Harmonize any speaker names in shots to active_characters if LLM used alias terms
                 from core.drama_pipeline import resolve_script_speakers_to_roster
                 shots_secs = [{"speaker": s.get("speaker")} for s in data["shots"]]
@@ -956,22 +1001,29 @@ Ensure exactly {target_shots} shots that add up to ~{duration_sec}s."""
                     cur_spk = s.get("speaker") or "主角"
                     if cur_spk in s_map and s_map[cur_spk].get("name"):
                         s["speaker"] = s_map[cur_spk]["name"]
-                return data
+                    s.setdefault("costume_variant", "default")
+                    s.setdefault("scene_location", "primary")
+                return _finalize_pkg(data)
         except Exception as e:
             log.warning("LLM drama generation failed: %s; using high-grade formula template", e)
 
     # If user provided a script that was parsed, use it before generic fallback
     if user_parsed_shots and len(user_parsed_shots) >= 2:
-        return {
+        return _finalize_pkg({
             "title": topic,
             "tagline": "極限反轉，高能對決",
+            "primary_setting": def_setting,
+            "aesthetic_profile": def_aesthetic,
             "characters": active_characters,
             "shots": user_parsed_shots,
-        }
+        })
 
     # Built-in High-Impact Fallback Package (Based directly on reference video)
-    return {
+    return _finalize_pkg({
         "title": "開除我？那套AI是我寫的",
+        "tagline": "一個鏡頭好看很容易，難的是十個鏡頭都在打你的臉。",
+        "primary_setting": def_setting,
+        "aesthetic_profile": def_aesthetic,
         "tagline": "一個鏡頭好看很容易，難的是十個鏡頭都在打你的臉。",
         "characters": active_characters,
         "shots": [
@@ -1093,4 +1145,4 @@ Ensure exactly {target_shots} shots that add up to ~{duration_sec}s."""
                 "has_impact_hit": True
             }
         ]
-    }
+    })

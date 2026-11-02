@@ -3,6 +3,8 @@
     "id": "actor_a181d581",
     "name": "房東要求房客用身體付房租",
     "hook_premise": "房東要求房客用身體付房租, 房客不甘心但是也沒辦法只能屈服",
+    "aesthetic_profile": "Atmospheric moody urban film lighting, dim warm incandescent bulb, soft diffused rainy window light, dramatic high-contrast shadow, 35mm shallow depth of field",
+    "default_primary_setting": "Small cluttered rental studio apartment room, aged peeling beige wallpaper, wooden table with papers, locked apartment door",
     "character_count": 2,
     "beats": [
       "Beat 1 (0-3s Hook): 危機降臨，張豪強勢逼迫，林芯怡陷入絕境但目光堅定",
