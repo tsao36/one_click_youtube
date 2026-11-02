@@ -59,3 +59,31 @@ _Avoid_: Global find-replace, multi-tab string edit, batch word change
 **Text Outdated Invalidation**:
 An automated dependency tracking state where modifying any scene's narration text marks its audio asset as pending and outdated (`text_outdated = True`), cascading into voice and subtitle pipeline stages so incremental conforming only re-synthesizes the affected audio clips.
 _Avoid_: Dirty audio flag, stale voice tag, modified script mark
+
+**Drama Formula**:
+A structured narrative recipe defining a genre archetype, golden-ratio 3-beat rhythm (Hook, Tension, Payoff), premise guidelines, and a default cast template for short-form viral storytelling.
+_Avoid_: Script prompt, drama preset, story template
+
+**Character Roster**:
+A project-bound and global ensemble specification containing normalized identity tags (`id`, `name`, `gender`, `role`), visual appearance prompts, voice profiles, and canonical turnaround face portraits.
+_Avoid_: Actor list, cast sheet, character setting
+
+**Proportional Scene Pacing**:
+A dynamic storyboard allocation strategy where total shot count and narrative beat durations scale dynamically with total target video duration (15% Hook, 55% Tension, 30% Payoff, ~3.5s-5.0s per shot) rather than fixed-length scene cuts.
+_Avoid_: Fixed 3-act cuts, static scene pacing, hardcoded shot counts
+
+**Fail-Fast Quota Guard**:
+An intentional pipeline halt policy that immediately halts video generation, flags the stage with a prominent warning, and prevents downstream asset degradation when external cloud GPU credits or API balance are depleted.
+_Avoid_: Silent downgrade, invisible fallback, cheap avatar fallback
+
+**Pre-flight Quota Check**:
+A verification probe executed prior to dispatching GPU-heavy generation stages that queries provider balance endpoints, preventing the creation of partial or unfinishable video batches.
+_Avoid_: Late credit check, runtime billing probe, mid-job balance test
+
+**Split-Angle Dialogue Cut**:
+A visual pacing mechanism that automatically alternates camera sizes or angles (e.g. medium push-in to tight close-up) during an extended spoken line (>6.0s) while preserving continuous uninterrupted audio.
+_Avoid_: Jump cut, audio split, sentence interruption
+
+**Local Persona Mutation**:
+The policy where character styling, wardrobe variations, and portrait takes altered within a specific project remain isolated to that project's snapshot unless explicitly published back to the global library.
+_Avoid_: Global character auto-sync, uncontrolled asset mutation
