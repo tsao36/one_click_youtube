@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from core.config import ROOT, get_secret, load_providers
+from agents.prompts_common import UNIVERSAL_QUALITY_NEGATIVE, merge_negative_prompts
 
 from providers.comfy_client import ComfyClient
 
@@ -688,11 +689,11 @@ class NanoBanana21ImageProvider(ImageProvider):
             clean_prompt = clean_prompt[:1200]
 
         # Prevent clone faces / identical people across scenes (critical for multi-character & crowd shots)
-        anti_clone_neg = "multiple people with the same face, identical faces, cloned faces, duplicate faces, identical twins, clone army, copy-paste faces, repeated facial features across different people, cloned crowd"
+        anti_clone_neg = UNIVERSAL_QUALITY_NEGATIVE
         user_neg = (req.negative or "").strip()
         full_neg = f"{anti_clone_neg}, {user_neg}".strip(", ")
 
-        enhanced_prompt = f"{clean_prompt}. {aspect_desc}. Ensure all people in the scene have unique, distinct facial features and varied individual appearances. Avoid: {full_neg}."
+        enhanced_prompt = f"{clean_prompt}. {aspect_desc}. Ensure all human subjects have natural anatomy with strictly two arms and two hands, clear detailed facial features, and distinct individual faces with diverse appearances. Avoid: {full_neg}."
 
         last_error = None
 
@@ -852,10 +853,10 @@ class Imagen3ImageProvider(ImageProvider):
 
         last_error = None
 
-        anti_clone_neg = "multiple people with the same face, identical faces, cloned faces, duplicate faces, identical twins, clone army, copy-paste faces, repeated facial features across different people"
+        anti_clone_neg = UNIVERSAL_QUALITY_NEGATIVE
         user_neg = (req.negative or "").strip()
         full_neg = f"{anti_clone_neg}, {user_neg}".strip(", ")
-        img_prompt = f"Generate an image: {req.prompt}. Ensure all people in the scene have unique, distinct facial features and varied individual appearances. Avoid: {full_neg}."
+        img_prompt = f"Generate an image: {req.prompt}. Ensure all human subjects have natural anatomy with strictly two arms and two hands, clear detailed facial features, and distinct individual faces with diverse appearances. Avoid: {full_neg}."
 
         for m in models_to_try:
 

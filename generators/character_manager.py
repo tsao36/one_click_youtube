@@ -261,6 +261,7 @@ def generate_character_portrait_ai(
 ) -> dict[str, Any]:
     """Generate and save an AI character portrait using the project's active image provider (Nano Banana 2.1)."""
     from providers.images import ImageRequest, get_image_provider
+    from agents.prompts_common import UNIVERSAL_QUALITY_NEGATIVE, merge_negative_prompts
 
     clean_id = re.sub(r"[^a-zA-Z0-9_\-]", "_", char_id.strip()).lower()
     d = CHARACTERS_DIR / clean_id
@@ -280,7 +281,7 @@ def generate_character_portrait_ai(
     )
     req = ImageRequest(
         prompt=full_prompt,
-        negative="blurry, distorted, bad anatomy, deformed face, cartoon, drawing, watermark",
+        negative=merge_negative_prompts("blurry, distorted, bad anatomy, deformed face, cartoon, drawing, watermark", UNIVERSAL_QUALITY_NEGATIVE),
         seed=int(time.time()) % 2**31,
         width=width,
         height=height,

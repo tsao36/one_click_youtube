@@ -34,6 +34,7 @@ from agents.scene_planner import direct_scenes, segment, visual_bible
 
 from agents.script_writer import script_markdown, write_script
 
+from agents.prompts_common import merge_negative_prompts, UNIVERSAL_QUALITY_NEGATIVE
 from core.base_pipeline import BasePipeline, PipelineCancelled, apply_presenter_placement
 
 from core.config import ROOT, get_secret, load_providers
@@ -1054,19 +1055,7 @@ class DocumentaryPipeline(BasePipeline):
 
 
 
-                anti_clone_tokens = "multiple people with the same face, cloned faces, identical faces, duplicate faces, identical twins, clone army, copy-paste faces, repeated facial features"
-
-
-
-                curr_neg = (s.negative_prompt or "").strip()
-
-
-
-                if "cloned faces" not in curr_neg.lower():
-
-
-
-                    curr_neg = f"{curr_neg}, {anti_clone_tokens}".strip(", ")
+                curr_neg = merge_negative_prompts((s.negative_prompt or "").strip(), UNIVERSAL_QUALITY_NEGATIVE)
 
 
 

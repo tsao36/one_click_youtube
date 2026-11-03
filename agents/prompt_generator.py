@@ -6,6 +6,7 @@ import re
 from core.logging_setup import log
 from core.models import Scene
 from providers.llm import LLMClient
+from agents.prompts_common import UNIVERSAL_QUALITY_NEGATIVE, merge_negative_prompts
 
 SYSTEM = (
     "You are an expert visual director and prompt engineer for high-end text-to-image models (SDXL, DALL-E 3, FLUX). "
@@ -15,12 +16,19 @@ SYSTEM = (
     "2. CONTEXTUAL GROUNDING: Always preserve the subject context of the overall video topic. Do not produce generic unrelated imagery. The visual elements must make total sense in the context of the subject (e.g. telecommunications, semiconductor, consumer tech, historical documentary).\n"
     "3. ERGONOMIC & ANATOMICAL PLAUSIBILITY (CRITICAL FOR HUMANS):\n"
     "   - When human subjects, hands, or poses appear, enforce natural ergonomics and biologically plausible biomechanics.\n"
+    "   - STRICTLY TWO ARMS & TWO HANDS: Every human figure MUST have strictly and exactly two natural arms, two natural hands, and five fingers per hand. Never describe overlapping gestures or multi-tasking poses that cause diffusion models to hallucinate extra arms or 4 hands.\n"
     "   - SINGLE COHERENT ACTION: Describe only ONE primary physical posture or action per person at a time (e.g. 'naturally sitting and looking at screen' OR 'walking forward'). Never blend contradictory simultaneous movements (e.g. avoid twisting head 180 degrees, multi-tasking overlapping limb postures).\n"
-    "   - NATURAL LIMBS & HANDS: Use positive anatomical anchoring like 'relaxed ergonomic posture', 'anatomically correct hands', 'natural relaxed hand grip', 'plausible body biomechanics'.\n"
+    "   - NATURAL LIMBS & HANDS: Use positive anatomical anchoring like 'relaxed ergonomic posture', 'strictly two natural hands', 'anatomically correct hands', 'natural relaxed hand grip', 'plausible body biomechanics'.\n"
     "   - CAMERA FRAMING FOR PEOPLE: Prefer medium shots (Medium Shot, Waist-up, Over-the-shoulder) over awkward micro-finger macro closeups to prevent limb and finger fusion.\n"
-    "4. PURE ENGLISH: All JSON fields ('subject', 'environment', 'composition', 'lighting', 'mood') MUST be written strictly in vivid, descriptive ENGLISH keywords and visual tags. Translate any Chinese or non-English terminology into accurate, picturesque English visual concepts.\n"
-    "5. NO TEXT / NO LOGOS: Never request readable text, words, or watermarks on the image.\n"
-    "6. Output valid JSON only."
+    "4. HIGH-DEFINITION FACIAL FEATURES (NO LOW QUALITY OR BLANK FACES):\n"
+    "   - All people and characters appearing in scenes MUST have sharp, detailed, clearly defined, and recognizable facial features (expressive eyes, defined nose, realistic mouth, natural bone structure).\n"
+    "   - Avoid distant featureless silhouette faces or blurred face blobs; even in medium, wide, or environmental shots, specify clear facial contours and recognizable human expressions.\n"
+    "5. DIVERSE & UNIQUE INDIVIDUAL FACES (NO IDENTICAL OR CLONED FACES):\n"
+    "   - Whenever two or more people, a group, audience, crowd, or military unit appear, EVERY single person MUST have a distinct, unique facial appearance with varied facial features, different hairstyles, and diverse ages/expressions.\n"
+    "   - Strictly NO identical faces, no cloned faces, no duplicate twins, and no copy-paste faces across any group or crowd scene.\n"
+    "6. PURE ENGLISH: All JSON fields ('subject', 'environment', 'composition', 'lighting', 'mood') MUST be written strictly in vivid, descriptive ENGLISH keywords and visual tags. Translate any Chinese or non-English terminology into accurate, picturesque English visual concepts.\n"
+    "7. NO TEXT / NO LOGOS: Never request readable text, words, or watermarks on the image.\n"
+    "8. Output valid JSON only."
 )
 
 
@@ -125,12 +133,34 @@ def compose(parts: dict, style: dict, entity_desc: list[str], visual_type: str, 
         if any(w in subj_str for w in ["person", "man", "woman", "engineer", "people", "worker", "human", "character", "soldier", "hand", "hands", "face", "portrait"]):
             pieces.append("simple minimalist circular-head cartoon figure, two small black dot eyes, single line mouth, no hair, no ears, no nose, simple cylindrical limbs, mitt hands, consistent flat vector cartoon style")
     else:
-        # Provide positive anatomical baseline for human plausibility across FLUX and SDXL
-        subj_str = (parts.get("subject") or "").lower()
-        if any(w in subj_str for w in ["person", "man", "woman", "engineer", "people", "worker", "human", "hand", "hands", "face", "portrait"]):
-            pieces.append("anatomically correct, natural ergonomic posture, plausible body proportions")
-            if any(w in subj_str for w in ["people", "crowd", "audience", "workers", "team", "soldiers", "men", "women", "group"]):
-                pieces.append("distinct individual faces with diverse varied features and unique facial appearances")
+        # Provide positive anatomical baseline and high-definition facial clarity across FLUX and SDXL
+        combined_text = " ".join([
+            parts.get("subject") or "",
+            parts.get("environment") or "",
+            parts.get("composition") or "",
+            *entity_desc
+        ]).lower()
+        has_human = bool(re.search(
+            r"\b(person|people|man|men|woman|women|human|humans|figure|figures|character|characters|"
+            r"worker|workers|engineer|engineers|soldier|soldiers|officer|officers|official|officials|"
+            r"judge|judges|lawyer|lawyers|defendant|defendants|witness|witnesses|jury|clerk|clerks|"
+            r"leader|leaders|politician|politicians|president|minister|mayor|governor|emperor|king|queen|"
+            r"audience|crowd|group|team|military|personnel|citizens|bystanders|spectators|passersby|"
+            r"child|children|boy|boys|girl|girls|student|students|teacher|teachers|doctor|doctors|scientist|scientists|"
+            r"hand|hands|arm|arms|face|faces|portrait|portraits|headshot|speaker|host|avatar|turnaround)\b",
+            combined_text
+        ))
+        has_multiple_people = bool(re.search(
+            r"\b(people|crowd|audience|workers|engineers|team|soldiers|officers|officials|judges|lawyers|"
+            r"men|women|group|citizens|bystanders|spectators|passersby|military|personnel|colleagues|"
+            r"students|children|assembly|delegates|representatives|jurors)\b",
+            combined_text
+        ))
+        if has_human:
+            pieces.append("strictly two arms and two hands only, anatomically correct, natural ergonomic posture, plausible body proportions")
+            pieces.append("detailed clear facial features, sharp distinct facial structures, clear expressive eyes and mouth")
+            if has_multiple_people:
+                pieces.append("distinct individual faces with diverse varied features and unique facial appearances, absolutely no identical faces")
     if era_constraints:
         pieces.append(era_constraints)
     pieces.append("16:9 widescreen composition, high detail")
@@ -258,13 +288,10 @@ def generate_prompts(scenes: list[Scene], style: dict, bible: dict, client: LLMC
         entity_desc = [ents[e] for e in s_ents if e in ents]
         s.prompt = compose(parts, style, entity_desc, s.visual_type, world_setting=world_setting)
         base_neg = (style.get("negative") or "").strip()
-        anti_clone_tokens = "multiple people with the same face, cloned faces, identical faces, duplicate faces, identical twins, clone army, copy-paste faces, repeated facial features across different people"
-        neg_parts = [base_neg] if "cloned faces" in base_neg.lower() else [base_neg, anti_clone_tokens]
+        negs = []
         if world_setting and world_setting.get("negative_anachronisms"):
             negs = world_setting["negative_anachronisms"]
-            negs_str = ", ".join(negs) if isinstance(negs, list) else str(negs)
-            neg_parts.append(negs_str)
-        s.negative_prompt = ", ".join([p for p in neg_parts if p]).strip(", ")
+        s.negative_prompt = merge_negative_prompts(base_neg, UNIVERSAL_QUALITY_NEGATIVE, negs)
         s.seed = int(style["consistency_seed"]) + s.scene_id * 101
         out.append({"scene_id": s.scene_id, "prompt": s.prompt, "negative": s.negative_prompt, "seed": s.seed,
                     "parts": parts})

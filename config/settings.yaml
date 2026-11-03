@@ -107,7 +107,7 @@ visual_styles:
       depth
     lens: 50mm prime lens, f/1.8, shallow depth of field, natural background blur
     mood: authentic, hyper-realistic, emotionally grounded, atmospheric
-    negative: ugly, deformed, disfigured, poor details, bad anatomy, bad posture,
+    negative: extra arms, extra hands, multiple arms, 4 arms, bad anatomy, deformed limbs, malformed hands, extra fingers, featureless face, blurry face, low quality face, indistinct facial features, blank face, melted face, ugly, deformed, disfigured, poor details, bad anatomy, bad posture,
       unnatural body twist, twisted limbs, broken neck, extra fingers, fused fingers,
       missing fingers, malformed hands, awkward grip, impossible ergonomics, multiple
       people with the same face, cloned faces, identical faces, duplicate faces, identical
@@ -120,7 +120,7 @@ visual_styles:
     lighting: natural cinematic lighting
     lens: 35mm lens, shallow depth of field
     mood: thoughtful, informative
-    negative: text, watermark, logo, signature, blurry, lowres, deformed, bad anatomy,
+    negative: extra arms, extra hands, multiple arms, 4 arms, bad anatomy, deformed limbs, malformed hands, extra fingers, featureless face, blurry face, low quality face, indistinct facial features, blank face, melted face, text, watermark, logo, signature, blurry, lowres, deformed, bad anatomy,
       unnatural body twist, twisted limbs, extra fingers, fused fingers, malformed
       hands, impossible ergonomics, bad posture, multiple people with the same face,
       cloned faces, identical faces, duplicate faces, identical twins, clone army,
@@ -132,7 +132,7 @@ visual_styles:
     lighting: natural cinematic side lighting, rich micro-contrast
     lens: 85mm f/1.4 portrait prime lens, razor sharp center
     mood: authentic, compelling, journalistic
-    negative: text, watermark, logo, deformed, bad anatomy, unnatural body twist,
+    negative: extra arms, extra hands, multiple arms, 4 arms, bad anatomy, deformed limbs, malformed hands, extra fingers, featureless face, blurry face, low quality face, indistinct facial features, blank face, melted face, text, watermark, logo, deformed, bad anatomy, unnatural body twist,
       extra fingers, fused fingers, malformed hands, impossible ergonomics, bad posture,
       multiple people with the same face, cloned faces, identical faces, duplicate
       faces, identical twins, clone army, copy-paste faces, CGI, 3D render, digital
@@ -157,7 +157,7 @@ visual_styles:
     lighting: dramatic volumetric lighting
     lens: wide angle composition
     mood: epic, atmospheric
-    negative: text, watermark, logo, photo, blurry, deformed
+    negative: extra arms, extra hands, multiple arms, 4 arms, bad anatomy, deformed limbs, malformed hands, extra fingers, featureless face, blurry face, low quality face, indistinct facial features, blank face, melted face, text, watermark, logo, photo, blurry, deformed
   anime_ghibli:
     label: Anime / Studio Ghibli
     style: Studio Ghibli aesthetic, vibrant hand-painted anime art, painterly anime
@@ -165,7 +165,7 @@ visual_styles:
     lighting: warm golden hour sunlight
     lens: cinematic anime composition
     mood: whimsical, enchanting, nostalgic
-    negative: text, watermark, logo, 3D CGI, photo, photorealistic, blurry, distorted
+    negative: extra arms, extra hands, multiple arms, 4 arms, bad anatomy, deformed limbs, malformed hands, extra fingers, featureless face, blurry face, low quality face, indistinct facial features, blank face, melted face, text, watermark, logo, 3D CGI, photo, photorealistic, blurry, distorted
   anime_shinkai:
     label: Anime / Makoto Shinkai (新海誠極致光影風)
     style: Makoto Shinkai anime aesthetic, CoMix Wave Films visual masterpiece, Your
@@ -180,7 +180,7 @@ visual_styles:
       hyper-detailed environmental depth, crystal-clear focus
     mood: awe-inspiring, emotionally resonant, ethereal, romantic, nostalgic, sublime,
       magical realism
-    negative: text, watermark, logo, photo, photorealistic, 3D CGI render, dull colors,
+    negative: extra arms, extra hands, multiple arms, 4 arms, bad anatomy, deformed limbs, malformed hands, extra fingers, featureless face, blurry face, low quality face, indistinct facial features, blank face, melted face, text, watermark, logo, photo, photorealistic, 3D CGI render, dull colors,
       blurry, deformed, lowres, sketch, muddy, dark dingy, multiple people with the
       same face, cloned faces, identical faces, duplicate faces, identical twins,
       clone army, jpeg artifacts
@@ -199,7 +199,7 @@ visual_styles:
       hyper-detailed environmental depth, crystal-clear focus
     mood: awe-inspiring, emotionally resonant, ethereal, romantic, nostalgic, sublime,
       magical realism
-    negative: text, watermark, logo, photo, photorealistic, 3D CGI render, dull colors,
+    negative: extra arms, extra hands, multiple arms, 4 arms, bad anatomy, deformed limbs, malformed hands, extra fingers, featureless face, blurry face, low quality face, indistinct facial features, blank face, melted face, text, watermark, logo, photo, photorealistic, 3D CGI render, dull colors,
       blurry, deformed, lowres, sketch, muddy, dark dingy, multiple people with the
       same face, cloned faces, identical faces, duplicate faces, identical twins,
       clone army, jpeg artifacts
@@ -211,7 +211,7 @@ visual_styles:
     lighting: vibrant neon cyan and magenta illumination, atmospheric rain mist
     lens: cinematic anamorphic lens with subtle chromatic aberration
     mood: dystopian, electrifying, moody
-    negative: text, watermark, logo, daytime, vintage, sunny, blurry, oversaturated
+    negative: extra arms, extra hands, multiple arms, 4 arms, bad anatomy, deformed limbs, malformed hands, extra fingers, featureless face, blurry face, low quality face, indistinct facial features, blank face, melted face, text, watermark, logo, daytime, vintage, sunny, blurry, oversaturated
   watercolor_art:
     label: Watercolor Illustration
     style: delicate watercolor painting, fluid pigment washes, soft wet-on-wet gradients,
@@ -219,7 +219,7 @@ visual_styles:
     lighting: gentle diffused morning daylight
     lens: artistic soft vignette composition
     mood: serene, poetic, elegant
-    negative: text, watermark, logo, 3D render, photo, photorealistic, harsh stark
+    negative: extra arms, extra hands, multiple arms, 4 arms, bad anatomy, deformed limbs, malformed hands, extra fingers, featureless face, blurry face, low quality face, indistinct facial features, blank face, melted face, text, watermark, logo, 3D render, photo, photorealistic, harsh stark
       shadows
   hyperreal_3d:
     label: Hyperreal 3D Unreal Engine 5
@@ -228,7 +228,7 @@ visual_styles:
     lighting: volumetric sun godrays, realistic subsurface scattering
     lens: cinematic IMAX composition, sharp depth of field
     mood: breathtaking, polished, majestic
-    negative: text, watermark, logo, low-poly, pixelated, flat lighting, blurry
+    negative: extra arms, extra hands, multiple arms, 4 arms, bad anatomy, deformed limbs, malformed hands, extra fingers, featureless face, blurry face, low quality face, indistinct facial features, blank face, melted face, text, watermark, logo, low-poly, pixelated, flat lighting, blurry
   retro_comic:
     label: Retro Comic Book / Pop Art
     style: vintage American comic book art, bold black ink linework, stylized halftone
@@ -253,7 +253,7 @@ visual_styles:
     lighting: dim eerie moonlight, torchlight glow in shadows
     lens: dramatic wide environmental perspective
     mood: mysterious, haunting, epic
-    negative: text, watermark, logo, bright sunny, cartoon, anime, modern technology
+    negative: extra arms, extra hands, multiple arms, 4 arms, bad anatomy, deformed limbs, malformed hands, extra fingers, featureless face, blurry face, low quality face, indistinct facial features, blank face, melted face, text, watermark, logo, bright sunny, cartoon, anime, modern technology
   ink_wash_history:
     label: Traditional Ink Wash & Historical Epic (水墨史詩歷史風)
     style: traditional Chinese ink wash painting meets cinematic epic concept art,
@@ -263,7 +263,7 @@ visual_styles:
     lighting: dramatic atmospheric lantern glow, misty dawn volumetric lighting
     lens: cinematic wide anamorphic lens, epic depth of field
     mood: poetic, ancient, mysterious, grand, historically solemn
-    negative: modern buildings, text, watermark, logo, neon, sci-fi, cartoon, plastic
+    negative: extra arms, extra hands, multiple arms, 4 arms, bad anatomy, deformed limbs, malformed hands, extra fingers, featureless face, blurry face, low quality face, indistinct facial features, blank face, melted face, modern buildings, text, watermark, logo, neon, sci-fi, cartoon, plastic
       3D, blurry
   minimalist_explainer_cartoon:
     label: Minimalist Vector Explainer (商業大師 / Doodle Cartoon)
