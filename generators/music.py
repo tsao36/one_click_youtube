@@ -126,7 +126,9 @@ def sync_catalog(directory: str = "data/music") -> dict[str, Any]:
             rel = p.name
 
         cat = p.parent.name.lower()
-        if cat not in CATEGORY_KEYWORDS:
+        if "classical" in rel.lower() or p.parent.name.lower() == "classical":
+            cat = "cinematic_documentary"
+        elif cat not in CATEGORY_KEYWORDS:
             cat = "tech_futuristic"
 
         if rel not in known_filenames:
@@ -337,6 +339,7 @@ class MusicSegment:
     volume_db: float       # Playback volume offset in dB
     category: str          # Music category (e.g. tech_futuristic, uplifting_inspirational)
     name: str              # Track file name
+    start_offset: float = 0.0  # Seconds into the source audio file to start playing
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -348,6 +351,7 @@ class MusicSegment:
             "volume_db": round(float(self.volume_db), 2),
             "category": str(self.category),
             "name": str(self.name),
+            "start_offset": round(float(getattr(self, "start_offset", 0.0) or 0.0), 2),
         }
 
     @classmethod
@@ -365,6 +369,7 @@ class MusicSegment:
             volume_db=float(data.get("volume_db", -16.0)),
             category=str(data.get("category", "")),
             name=str(data.get("name", track_path.name)),
+            start_offset=float(data.get("start_offset", 0.0) or 0.0),
         )
 
 

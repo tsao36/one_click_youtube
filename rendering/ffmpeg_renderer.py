@@ -333,6 +333,7 @@ def build_audio_mix(project: Project, narration: Path, total: float, out: Path,
         track = seg.track
         vol = seg.volume_db
         fi, fo = seg.crossfade_in, seg.crossfade_out
+        so = float(getattr(seg, "start_offset", 0.0) or 0.0)
         args = ["-i", str(narration), "-stream_loop", "-1", "-i", str(track)]
         drum_in_idx = 2
         if drum_triggers and drum_path:
@@ -341,7 +342,7 @@ def build_audio_mix(project: Project, narration: Path, total: float, out: Path,
         fc_parts = [
             f"[0:a]aresample=48000,aformat=channel_layouts=stereo,asplit=2[nar][nsc];",
             f"[1:a]aresample=48000,aformat=channel_layouts=stereo,loudnorm=I=-16:TP=-2,volume={vol}dB,"
-            f"atrim=0:{total:.3f},afade=t=in:d={fi},afade=t=out:st={max(0, total - fo):.3f}:d={fo}[mus_bed];",
+            f"atrim={so:.3f}:{so + total:.3f},asetpts=PTS-STARTPTS,afade=t=in:d={fi},afade=t=out:st={max(0, total - fo):.3f}:d={fo}[mus_bed];",
             duck_filter,
         ]
         mix_inputs = ["[nar]", "[md]"]
@@ -378,12 +379,13 @@ def build_audio_mix(project: Project, narration: Path, total: float, out: Path,
         fi_i = seg.crossfade_in
         fo_i = seg.crossfade_out
         vol_i = seg.volume_db
+        so_i = float(getattr(seg, "start_offset", 0.0) or 0.0)
         overlap = fo_i if i < len(music_plan) - 1 else 0.0
         trim_len = dur_i + overlap
 
         fc_parts.append(
             f"[{in_idx}:a]aresample=48000,aformat=channel_layouts=stereo,loudnorm=I=-16:TP=-2,volume={vol_i}dB,"
-            f"atrim=0:{trim_len:.3f},afade=t=in:d={fi_i},afade=t=out:st={dur_i:.3f}:d={fo_i},"
+            f"atrim={so_i:.3f}:{so_i + trim_len:.3f},asetpts=PTS-STARTPTS,afade=t=in:d={fi_i},afade=t=out:st={dur_i:.3f}:d={fo_i},"
             f"adelay={start_ms}:all=1[m{i}];"
         )
         bed_labels.append(f"[m{i}]")

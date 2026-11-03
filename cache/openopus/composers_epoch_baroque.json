@@ -1,0 +1,214 @@
+{
+  "status": {
+    "version": "1.20.6",
+    "success": "true",
+    "source": "db",
+    "rows": 22,
+    "processingtime": 0.0008039474487304688,
+    "api": "Open Opus-dyn"
+  },
+  "request": {
+    "type": "epoch",
+    "item": "Baroque"
+  },
+  "composers": [
+    {
+      "id": "27",
+      "name": "Albinoni",
+      "complete_name": "Tomaso Albinoni",
+      "birth": "1671-01-01",
+      "death": "1751-01-01",
+      "epoch": "Baroque",
+      "portrait": "https://assets.openopus.org/portraits/20001817-1568084856.jpg"
+    },
+    {
+      "id": "87",
+      "name": "Bach",
+      "complete_name": "Johann Sebastian Bach",
+      "birth": "1685-01-01",
+      "death": "1750-01-01",
+      "epoch": "Baroque",
+      "portrait": "https://assets.openopus.org/portraits/12091447-1568084857.jpg"
+    },
+    {
+      "id": "47",
+      "name": "Biber",
+      "complete_name": "Heinrich Franz von Biber",
+      "birth": "1644-01-01",
+      "death": "1704-01-01",
+      "epoch": "Baroque",
+      "portrait": "https://assets.openopus.org/portraits/87867069-1568084863.jpg"
+    },
+    {
+      "id": "73",
+      "name": "Buxtehude",
+      "complete_name": "Dietrich Buxtehude",
+      "birth": "1637-01-01",
+      "death": "1707-01-01",
+      "epoch": "Baroque",
+      "portrait": "https://assets.openopus.org/portraits/90484183-1568084869.jpg"
+    },
+    {
+      "id": "9",
+      "name": "Charpentier",
+      "complete_name": "Marc-Antoine Charpentier",
+      "birth": "1636-01-01",
+      "death": "1704-01-01",
+      "epoch": "Baroque",
+      "portrait": "https://assets.openopus.org/portraits/21157884-1568084872.jpg"
+    },
+    {
+      "id": "139",
+      "name": "Corelli",
+      "complete_name": "Arcangelo Corelli",
+      "birth": "1653-01-01",
+      "death": "1713-01-01",
+      "epoch": "Baroque",
+      "portrait": "https://assets.openopus.org/portraits/40466422-1568084875.jpg"
+    },
+    {
+      "id": "128",
+      "name": "Couperin",
+      "complete_name": "François Couperin",
+      "birth": "1668-01-01",
+      "death": "1733-01-01",
+      "epoch": "Baroque",
+      "portrait": "https://assets.openopus.org/portraits/14431853-1568084875.jpg"
+    },
+    {
+      "id": "58",
+      "name": "Frescobaldi",
+      "complete_name": "Girolamo Frescobaldi",
+      "birth": "1583-01-01",
+      "death": "1643-01-01",
+      "epoch": "Baroque",
+      "portrait": "https://assets.openopus.org/portraits/19560835-1568084899.jpg"
+    },
+    {
+      "id": "67",
+      "name": "Handel",
+      "complete_name": "George Frideric Handel",
+      "birth": "1685-01-01",
+      "death": "1759-01-01",
+      "epoch": "Baroque",
+      "portrait": "https://assets.openopus.org/portraits/59133744-1568084908.jpg"
+    },
+    {
+      "id": "10",
+      "name": "Lully",
+      "complete_name": "Jean-Baptiste Lully",
+      "birth": "1632-01-01",
+      "death": "1687-01-01",
+      "epoch": "Baroque",
+      "portrait": "https://assets.openopus.org/portraits/70218674-1568084919.jpg"
+    },
+    {
+      "id": "204",
+      "name": "Marais",
+      "complete_name": "Marin Marais",
+      "birth": "1656-01-01",
+      "death": "1728-01-01",
+      "epoch": "Baroque",
+      "portrait": "https://assets.openopus.org/portraits/77577104-1568084921.jpg"
+    },
+    {
+      "id": "177",
+      "name": "Marcello",
+      "complete_name": "Benedetto Marcello",
+      "birth": "1686-01-01",
+      "death": "1739-01-01",
+      "epoch": "Baroque",
+      "portrait": "https://assets.openopus.org/portraits/77429072-1568084922.jpg"
+    },
+    {
+      "id": "187",
+      "name": "Marcello, A.",
+      "complete_name": "Alessandro Marcello",
+      "birth": "1684-01-01",
+      "death": "1750-01-01",
+      "epoch": "Baroque",
+      "portrait": "https://assets.openopus.org/portraits/60841558-1568084922.jpg"
+    },
+    {
+      "id": "115",
+      "name": "Pachelbel",
+      "complete_name": "Johann Pachelbel",
+      "birth": "1653-01-01",
+      "death": "1706-01-01",
+      "epoch": "Baroque",
+      "portrait": "https://assets.openopus.org/portraits/56262073-1568084928.jpg"
+    },
+    {
+      "id": "113",
+      "name": "Pergolesi",
+      "complete_name": "Giovanni Battista Pergolesi",
+      "birth": "1710-01-01",
+      "death": "1736-01-01",
+      "epoch": "Baroque",
+      "portrait": "https://assets.openopus.org/portraits/91561352-1568084930.jpg"
+    },
+    {
+      "id": "199",
+      "name": "Purcell",
+      "complete_name": "Henry Purcell",
+      "birth": "1659-01-01",
+      "death": "1695-01-01",
+      "epoch": "Baroque",
+      "portrait": "https://assets.openopus.org/portraits/98518308-1568084936.jpg"
+    },
+    {
+      "id": "178",
+      "name": "Rameau",
+      "complete_name": "Jean-Philippe Rameau",
+      "birth": "1683-01-01",
+      "death": "1764-01-01",
+      "epoch": "Baroque",
+      "portrait": "https://assets.openopus.org/portraits/82780595-1568084937.jpg"
+    },
+    {
+      "id": "97",
+      "name": "Scarlatti",
+      "complete_name": "Domenico Scarlatti",
+      "birth": "1685-01-01",
+      "death": "1757-01-01",
+      "epoch": "Baroque",
+      "portrait": "https://assets.openopus.org/portraits/19391876-1568084943.jpg"
+    },
+    {
+      "id": "65",
+      "name": "Scarlatti, A.",
+      "complete_name": "Alessandro Scarlatti",
+      "birth": "1660-01-01",
+      "death": "1725-01-01",
+      "epoch": "Baroque",
+      "portrait": "https://assets.openopus.org/portraits/61039920-1568084943.jpg"
+    },
+    {
+      "id": "167",
+      "name": "Tartini",
+      "complete_name": "Giuseppe Tartini",
+      "birth": "1692-01-01",
+      "death": "1770-01-01",
+      "epoch": "Baroque",
+      "portrait": "https://assets.openopus.org/portraits/83636030-1568084954.jpg"
+    },
+    {
+      "id": "83",
+      "name": "Telemann",
+      "complete_name": "Georg Philipp Telemann",
+      "birth": "1681-01-01",
+      "death": "1767-01-01",
+      "epoch": "Baroque",
+      "portrait": "https://assets.openopus.org/portraits/19557310-1568084956.jpg"
+    },
+    {
+      "id": "98",
+      "name": "Vivaldi",
+      "complete_name": "Antonio Vivaldi",
+      "birth": "1678-01-01",
+      "death": "1741-01-01",
+      "epoch": "Baroque",
+      "portrait": "https://assets.openopus.org/portraits/64540242-1568084959.jpg"
+    }
+  ]
+}

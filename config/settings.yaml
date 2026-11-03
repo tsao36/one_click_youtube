@@ -21,7 +21,7 @@ images:
   fallback_provider: placeholder
   auto_stock_mode: balanced
   workflow: workflows/default_image.json
-  checkpoint: juggernautXL_v8Rundiffusion.safetensors
+  checkpoint: nano-banana-2.1
   width: 1024
   height: 576
   steps: 4
@@ -113,7 +113,7 @@ visual_styles:
       people with the same face, cloned faces, identical faces, duplicate faces, identical
       twins, clone army, copy-paste faces, cartoon, 3d, anime, airbrushed, plastic
       skin, render, drawing, watermark, signature, blur
-    recommended_model: juggernautXL_v8Rundiffusion.safetensors
+    recommended_model: nano-banana-2.1
   cinematic_documentary:
     label: Cinematic Documentary
     style: cinematic documentary photography, photorealistic, highly detailed

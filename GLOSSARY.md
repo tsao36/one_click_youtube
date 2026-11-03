@@ -191,3 +191,31 @@ _Avoid_: Celebrity face swap, deepfake portrait, generic AI avatar, hallucinated
 **Wikipedia Infobox Resolver**:
 A zero-key biographical image retrieval probe querying the Wikipedia Page Summary API to fetch curated, high-resolution public domain biographical portraits and infobox photography for verified public figures.
 _Avoid_: Google web scrape, Bing image scraper, random photo crawler
+
+**Classical Work Catalog**:
+A structured directory of public domain classical music compositions and metadata (composers, epochs, genres, movements) referenced from OpenOpus.
+_Avoid_: Classical playlist, opus table, piece list
+
+**OpenOpus Metadata Provider**:
+The external REST service interface querying classical composer biographies, epoch breakdowns, catalogs of works, and movement indices.
+_Avoid_: Music API, classical backend, opus scraper
+
+**Audio Fulfillment Provider**:
+The resolver service responsible for pairing abstract OpenOpus work metadata with playable, copyright-cleared audio recordings for in-app preview and FFmpeg soundtrack rendering.
+_Avoid_: Music downloader, mp3 fetcher, audio link grabber
+
+**Epoch-to-Vibe Mapper**:
+The deterministic translation heuristic converting classical epoch and instrumentation metadata into video narrative atmosphere categories and movement energy tiers.
+_Avoid_: Style converter, classical tagger, genre translator
+
+**Work Ingestion Snapshot**:
+A catalog record combining OpenOpus opus metadata with local file audio descriptors (sample rate, duration, volume normalization) registered in the music catalog.
+_Avoid_: Music entry, track row, cached audio item
+
+**Start Offset**:
+A designated timestamp (in seconds or mm:ss) into an audio track from which FFmpeg begins extraction, allowing iconic musical passages located mid-composition to align with video narrative movements.
+_Avoid_: Audio seek time, track start trim, cut beginning
+
+**Public Domain Audio Resolver**:
+An automated background service querying the Internet Archive and Wikimedia Commons APIs for zero-key, copyright-cleared classical audio recordings matching composer and opus metadata.
+_Avoid_: MP3 crawler, audio scraper, torrent fetcher
