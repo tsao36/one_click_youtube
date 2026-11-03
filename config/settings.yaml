@@ -287,7 +287,7 @@ visual_styles:
     mood: "satirical, insightful, compelling, political explainer, sharp, analytical"
     negative: "photorealistic, 3D, CGI, realistic skin pores, photorealistic human photo, messy cluttered background, realistic background, blurry, lowres, distorted anatomy, extra fingers, watermark, logo, text"
 remotion:
-  default_style: CinemaImpactCard
+  default_style: EvidenceHighlightScene
 thumbnail:
   template: editorial_chill
   color_preset: dr_beauty_gold

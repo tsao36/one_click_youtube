@@ -110,7 +110,12 @@
         "crypto",
         "digital"
       ],
-      "url": "/api/music/audio/tech_futuristic/Deliberate_Thought.mp3"
+      "url": "/api/music/audio/tech_futuristic/Deliberate_Thought.mp3",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ]
     },
     {
       "id": "tech_futuristic/Crypto.mp3",
@@ -132,7 +137,12 @@
         "crypto",
         "digital"
       ],
-      "url": "/api/music/audio/tech_futuristic/Crypto.mp3"
+      "url": "/api/music/audio/tech_futuristic/Crypto.mp3",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ]
     },
     {
       "id": "tech_futuristic/Floating_Cities.mp3",
@@ -154,7 +164,12 @@
         "crypto",
         "digital"
       ],
-      "url": "/api/music/audio/tech_futuristic/Floating_Cities.mp3"
+      "url": "/api/music/audio/tech_futuristic/Floating_Cities.mp3",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ]
     },
     {
       "id": "tech_futuristic/Digital_Bark.mp3",
@@ -176,7 +191,12 @@
         "crypto",
         "digital"
       ],
-      "url": "/api/music/audio/tech_futuristic/Digital_Bark.mp3"
+      "url": "/api/music/audio/tech_futuristic/Digital_Bark.mp3",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ]
     },
     {
       "id": "tech_futuristic/Airship_Serenity.mp3",
@@ -198,7 +218,12 @@
         "crypto",
         "digital"
       ],
-      "url": "/api/music/audio/tech_futuristic/Airship_Serenity.mp3"
+      "url": "/api/music/audio/tech_futuristic/Airship_Serenity.mp3",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ]
     },
     {
       "id": "cinematic_documentary/Dreamer.mp3",
@@ -219,7 +244,12 @@
         "culture",
         "war"
       ],
-      "url": "/api/music/audio/cinematic_documentary/Dreamer.mp3"
+      "url": "/api/music/audio/cinematic_documentary/Dreamer.mp3",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ]
     },
     {
       "id": "cinematic_documentary/Autumn_Day.mp3",
@@ -240,7 +270,12 @@
         "culture",
         "war"
       ],
-      "url": "/api/music/audio/cinematic_documentary/Autumn_Day.mp3"
+      "url": "/api/music/audio/cinematic_documentary/Autumn_Day.mp3",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ]
     },
     {
       "id": "cinematic_documentary/Heartbreaking.mp3",
@@ -261,7 +296,12 @@
         "culture",
         "war"
       ],
-      "url": "/api/music/audio/cinematic_documentary/Heartbreaking.mp3"
+      "url": "/api/music/audio/cinematic_documentary/Heartbreaking.mp3",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ]
     },
     {
       "id": "cinematic_documentary/Frost_Waltz.mp3",
@@ -282,7 +322,12 @@
         "culture",
         "war"
       ],
-      "url": "/api/music/audio/cinematic_documentary/Frost_Waltz.mp3"
+      "url": "/api/music/audio/cinematic_documentary/Frost_Waltz.mp3",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ]
     },
     {
       "id": "cinematic_documentary/Deep_Haze.mp3",
@@ -303,7 +348,12 @@
         "culture",
         "war"
       ],
-      "url": "/api/music/audio/cinematic_documentary/Deep_Haze.mp3"
+      "url": "/api/music/audio/cinematic_documentary/Deep_Haze.mp3",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ]
     },
     {
       "id": "mystery_cosmic/Phantom_from_Space.mp3",
@@ -325,7 +375,12 @@
         "unexplained",
         "ocean"
       ],
-      "url": "/api/music/audio/mystery_cosmic/Phantom_from_Space.mp3"
+      "url": "/api/music/audio/mystery_cosmic/Phantom_from_Space.mp3",
+      "energy_level": "low",
+      "movement_roles": [
+        "intro",
+        "development"
+      ]
     },
     {
       "id": "mystery_cosmic/Mesmerize.mp3",
@@ -347,7 +402,12 @@
         "unexplained",
         "ocean"
       ],
-      "url": "/api/music/audio/mystery_cosmic/Mesmerize.mp3"
+      "url": "/api/music/audio/mystery_cosmic/Mesmerize.mp3",
+      "energy_level": "low",
+      "movement_roles": [
+        "intro",
+        "development"
+      ]
     },
     {
       "id": "mystery_cosmic/Static_Motion.mp3",
@@ -369,7 +429,12 @@
         "unexplained",
         "ocean"
       ],
-      "url": "/api/music/audio/mystery_cosmic/Static_Motion.mp3"
+      "url": "/api/music/audio/mystery_cosmic/Static_Motion.mp3",
+      "energy_level": "low",
+      "movement_roles": [
+        "intro",
+        "development"
+      ]
     },
     {
       "id": "mystery_cosmic/Blue_Sizzle.mp3",
@@ -391,7 +456,12 @@
         "unexplained",
         "ocean"
       ],
-      "url": "/api/music/audio/mystery_cosmic/Blue_Sizzle.mp3"
+      "url": "/api/music/audio/mystery_cosmic/Blue_Sizzle.mp3",
+      "energy_level": "low",
+      "movement_roles": [
+        "intro",
+        "development"
+      ]
     },
     {
       "id": "mystery_cosmic/Darkest_Child.mp3",
@@ -413,7 +483,12 @@
         "unexplained",
         "ocean"
       ],
-      "url": "/api/music/audio/mystery_cosmic/Darkest_Child.mp3"
+      "url": "/api/music/audio/mystery_cosmic/Darkest_Child.mp3",
+      "energy_level": "low",
+      "movement_roles": [
+        "intro",
+        "development"
+      ]
     },
     {
       "id": "calm_focus/Meditation_Impromptu_01.mp3",
@@ -435,7 +510,12 @@
         "tutorial",
         "psychology"
       ],
-      "url": "/api/music/audio/calm_focus/Meditation_Impromptu_01.mp3"
+      "url": "/api/music/audio/calm_focus/Meditation_Impromptu_01.mp3",
+      "energy_level": "low",
+      "movement_roles": [
+        "intro",
+        "development"
+      ]
     },
     {
       "id": "calm_focus/Meditation_Impromptu_02.mp3",
@@ -457,7 +537,12 @@
         "tutorial",
         "psychology"
       ],
-      "url": "/api/music/audio/calm_focus/Meditation_Impromptu_02.mp3"
+      "url": "/api/music/audio/calm_focus/Meditation_Impromptu_02.mp3",
+      "energy_level": "low",
+      "movement_roles": [
+        "intro",
+        "development"
+      ]
     },
     {
       "id": "calm_focus/Clean_Soul.mp3",
@@ -479,7 +564,12 @@
         "tutorial",
         "psychology"
       ],
-      "url": "/api/music/audio/calm_focus/Clean_Soul.mp3"
+      "url": "/api/music/audio/calm_focus/Clean_Soul.mp3",
+      "energy_level": "low",
+      "movement_roles": [
+        "intro",
+        "development"
+      ]
     },
     {
       "id": "calm_focus/Dream_Culture.mp3",
@@ -501,7 +591,12 @@
         "tutorial",
         "psychology"
       ],
-      "url": "/api/music/audio/calm_focus/Dream_Culture.mp3"
+      "url": "/api/music/audio/calm_focus/Dream_Culture.mp3",
+      "energy_level": "low",
+      "movement_roles": [
+        "intro",
+        "development"
+      ]
     },
     {
       "id": "calm_focus/Fresh_Air.mp3",
@@ -523,7 +618,12 @@
         "tutorial",
         "psychology"
       ],
-      "url": "/api/music/audio/calm_focus/Fresh_Air.mp3"
+      "url": "/api/music/audio/calm_focus/Fresh_Air.mp3",
+      "energy_level": "low",
+      "movement_roles": [
+        "intro",
+        "development"
+      ]
     },
     {
       "id": "dramatic_tension/Hitman.mp3",
@@ -545,7 +645,12 @@
         "danger",
         "politics"
       ],
-      "url": "/api/music/audio/dramatic_tension/Hitman.mp3"
+      "url": "/api/music/audio/dramatic_tension/Hitman.mp3",
+      "energy_level": "high",
+      "movement_roles": [
+        "development",
+        "climax"
+      ]
     },
     {
       "id": "dramatic_tension/Redletter.mp3",
@@ -567,7 +672,12 @@
         "danger",
         "politics"
       ],
-      "url": "/api/music/audio/dramatic_tension/Redletter.mp3"
+      "url": "/api/music/audio/dramatic_tension/Redletter.mp3",
+      "energy_level": "high",
+      "movement_roles": [
+        "development",
+        "climax"
+      ]
     },
     {
       "id": "dramatic_tension/Echoes_of_Time.mp3",
@@ -589,7 +699,12 @@
         "danger",
         "politics"
       ],
-      "url": "/api/music/audio/dramatic_tension/Echoes_of_Time.mp3"
+      "url": "/api/music/audio/dramatic_tension/Echoes_of_Time.mp3",
+      "energy_level": "high",
+      "movement_roles": [
+        "development",
+        "climax"
+      ]
     },
     {
       "id": "dramatic_tension/Intrepid.mp3",
@@ -611,7 +726,12 @@
         "danger",
         "politics"
       ],
-      "url": "/api/music/audio/dramatic_tension/Intrepid.mp3"
+      "url": "/api/music/audio/dramatic_tension/Intrepid.mp3",
+      "energy_level": "high",
+      "movement_roles": [
+        "development",
+        "climax"
+      ]
     },
     {
       "id": "dramatic_tension/Lightless_Dawn.mp3",
@@ -633,7 +753,12 @@
         "danger",
         "politics"
       ],
-      "url": "/api/music/audio/dramatic_tension/Lightless_Dawn.mp3"
+      "url": "/api/music/audio/dramatic_tension/Lightless_Dawn.mp3",
+      "energy_level": "high",
+      "movement_roles": [
+        "development",
+        "climax"
+      ]
     },
     {
       "id": "uplifting_inspirational/Promises_to_Keep.mp3",
@@ -654,7 +779,12 @@
         "discovery",
         "positive"
       ],
-      "url": "/api/music/audio/uplifting_inspirational/Promises_to_Keep.mp3"
+      "url": "/api/music/audio/uplifting_inspirational/Promises_to_Keep.mp3",
+      "energy_level": "high",
+      "movement_roles": [
+        "development",
+        "climax"
+      ]
     },
     {
       "id": "uplifting_inspirational/Sovereign.mp3",
@@ -675,7 +805,12 @@
         "discovery",
         "positive"
       ],
-      "url": "/api/music/audio/uplifting_inspirational/Sovereign.mp3"
+      "url": "/api/music/audio/uplifting_inspirational/Sovereign.mp3",
+      "energy_level": "high",
+      "movement_roles": [
+        "development",
+        "climax"
+      ]
     },
     {
       "id": "uplifting_inspirational/Silver_Flame.mp3",
@@ -696,7 +831,1559 @@
         "discovery",
         "positive"
       ],
-      "url": "/api/music/audio/uplifting_inspirational/Silver_Flame.mp3"
+      "url": "/api/music/audio/uplifting_inspirational/Silver_Flame.mp3",
+      "energy_level": "high",
+      "movement_roles": [
+        "development",
+        "climax"
+      ]
+    },
+    {
+      "id": "Adrian_Walther_Happiness_background_vocals_2_49.wav",
+      "name": "Adrian Walther Happiness Background Vocals 2 49",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "Adrian_Walther_Happiness_background_vocals_2_49.wav",
+      "basename": "Adrian_Walther_Happiness_background_vocals_2_49.wav",
+      "size_mb": 46.72,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "adrian",
+        "walther",
+        "happiness",
+        "background",
+        "vocals"
+      ],
+      "url": "/api/music/audio/Adrian_Walther_Happiness_background_vocals_2_49.wav"
+    },
+    {
+      "id": "Basketcase_We_Have_To_Go_Back_instrumental_1_33.wav",
+      "name": "Basketcase We Have To Go Back Instrumental 1 33",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "Basketcase_We_Have_To_Go_Back_instrumental_1_33.wav",
+      "basename": "Basketcase_We_Have_To_Go_Back_instrumental_1_33.wav",
+      "size_mb": 25.68,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "basketcase",
+        "have",
+        "back",
+        "instrumental"
+      ],
+      "url": "/api/music/audio/Basketcase_We_Have_To_Go_Back_instrumental_1_33.wav"
+    },
+    {
+      "id": "Brent_Wood_Sunday_Coffee_instrumental_1_36.wav",
+      "name": "Brent Wood Sunday Coffee Instrumental 1 36",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "Brent_Wood_Sunday_Coffee_instrumental_1_36.wav",
+      "basename": "Brent_Wood_Sunday_Coffee_instrumental_1_36.wav",
+      "size_mb": 26.55,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "brent",
+        "wood",
+        "sunday",
+        "coffee",
+        "instrumental"
+      ],
+      "url": "/api/music/audio/Brent_Wood_Sunday_Coffee_instrumental_1_36.wav"
+    },
+    {
+      "id": "DeHartmann_Morning_Star_instrumental_2_52.wav",
+      "name": "Dehartmann Morning Star Instrumental 2 52",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "DeHartmann_Morning_Star_instrumental_2_52.wav",
+      "basename": "DeHartmann_Morning_Star_instrumental_2_52.wav",
+      "size_mb": 47.76,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "dehartmann",
+        "morning",
+        "star",
+        "instrumental"
+      ],
+      "url": "/api/music/audio/DeHartmann_Morning_Star_instrumental_2_52.wav"
+    },
+    {
+      "id": "Falls_Fluidity_instrumental_5_29.wav",
+      "name": "Falls Fluidity Instrumental 5 29",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "Falls_Fluidity_instrumental_5_29.wav",
+      "basename": "Falls_Fluidity_instrumental_5_29.wav",
+      "size_mb": 90.85,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "falls",
+        "fluidity",
+        "instrumental"
+      ],
+      "url": "/api/music/audio/Falls_Fluidity_instrumental_5_29.wav"
+    },
+    {
+      "id": "GLASWING_Drifting_background_vocals_3_30.wav",
+      "name": "Glaswing Drifting Background Vocals 3 30",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "GLASWING_Drifting_background_vocals_3_30.wav",
+      "basename": "GLASWING_Drifting_background_vocals_3_30.wav",
+      "size_mb": 58.16,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "glaswing",
+        "drifting",
+        "background",
+        "vocals"
+      ],
+      "url": "/api/music/audio/GLASWING_Drifting_background_vocals_3_30.wav"
+    },
+    {
+      "id": "GLASWING_Like_Water_On_A_Glass_Table_lead_vocal_3_26.wav",
+      "name": "Glaswing Like Water On A Glass Table Lead Vocal 3 26",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "GLASWING_Like_Water_On_A_Glass_Table_lead_vocal_3_26.wav",
+      "basename": "GLASWING_Like_Water_On_A_Glass_Table_lead_vocal_3_26.wav",
+      "size_mb": 57.02,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "glaswing",
+        "like",
+        "water",
+        "glass",
+        "table",
+        "lead",
+        "vocal"
+      ],
+      "url": "/api/music/audio/GLASWING_Like_Water_On_A_Glass_Table_lead_vocal_3_26.wav"
+    },
+    {
+      "id": "GLASWING_Rose_Colored_instrumental_1_38.wav",
+      "name": "Glaswing Rose Colored Instrumental 1 38",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "GLASWING_Rose_Colored_instrumental_1_38.wav",
+      "basename": "GLASWING_Rose_Colored_instrumental_1_38.wav",
+      "size_mb": 27.31,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "glaswing",
+        "rose",
+        "colored",
+        "instrumental"
+      ],
+      "url": "/api/music/audio/GLASWING_Rose_Colored_instrumental_1_38.wav"
+    },
+    {
+      "id": "Isaac_Joel_Alumroot_instrumental_1_28.wav",
+      "name": "Isaac Joel Alumroot Instrumental 1 28",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "Isaac_Joel_Alumroot_instrumental_1_28.wav",
+      "basename": "Isaac_Joel_Alumroot_instrumental_1_28.wav",
+      "size_mb": 24.42,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "isaac",
+        "joel",
+        "alumroot",
+        "instrumental"
+      ],
+      "url": "/api/music/audio/Isaac_Joel_Alumroot_instrumental_1_28.wav"
+    },
+    {
+      "id": "Kurtis_Parks_Promise_of_Hope_instrumental_2_46.wav",
+      "name": "Kurtis Parks Promise Of Hope Instrumental 2 46",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "Kurtis_Parks_Promise_of_Hope_instrumental_2_46.wav",
+      "basename": "Kurtis_Parks_Promise_of_Hope_instrumental_2_46.wav",
+      "size_mb": 46.06,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "kurtis",
+        "parks",
+        "promise",
+        "hope",
+        "instrumental"
+      ],
+      "url": "/api/music/audio/Kurtis_Parks_Promise_of_Hope_instrumental_2_46.wav"
+    },
+    {
+      "id": "Lunareh_Awake_All_Night_background_vocals_2_47.wav",
+      "name": "Lunareh Awake All Night Background Vocals 2 47",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "Lunareh_Awake_All_Night_background_vocals_2_47.wav",
+      "basename": "Lunareh_Awake_All_Night_background_vocals_2_47.wav",
+      "size_mb": 46.21,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "lunareh",
+        "awake",
+        "all",
+        "night",
+        "background",
+        "vocals"
+      ],
+      "url": "/api/music/audio/Lunareh_Awake_All_Night_background_vocals_2_47.wav"
+    },
+    {
+      "id": "Lunareh_Now_Or_Never_background_vocals_2_55.wav",
+      "name": "Lunareh Now Or Never Background Vocals 2 55",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "Lunareh_Now_Or_Never_background_vocals_2_55.wav",
+      "basename": "Lunareh_Now_Or_Never_background_vocals_2_55.wav",
+      "size_mb": 48.48,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "lunareh",
+        "now",
+        "never",
+        "background",
+        "vocals"
+      ],
+      "url": "/api/music/audio/Lunareh_Now_Or_Never_background_vocals_2_55.wav"
+    },
+    {
+      "id": "Lunareh_Retrograde_background_vocals_3_03.wav",
+      "name": "Lunareh Retrograde Background Vocals 3 03",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "Lunareh_Retrograde_background_vocals_3_03.wav",
+      "basename": "Lunareh_Retrograde_background_vocals_3_03.wav",
+      "size_mb": 50.68,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "lunareh",
+        "retrograde",
+        "background",
+        "vocals"
+      ],
+      "url": "/api/music/audio/Lunareh_Retrograde_background_vocals_3_03.wav"
+    },
+    {
+      "id": "Lunareh_Y2K_background_vocals_3_27.wav",
+      "name": "Lunareh Y2K Background Vocals 3 27",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "Lunareh_Y2K_background_vocals_3_27.wav",
+      "basename": "Lunareh_Y2K_background_vocals_3_27.wav",
+      "size_mb": 57.35,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "lunareh",
+        "y2k",
+        "background",
+        "vocals"
+      ],
+      "url": "/api/music/audio/Lunareh_Y2K_background_vocals_3_27.wav"
+    },
+    {
+      "id": "Makenna_Susan_Lone_Pine_instrumental_2_05.wav",
+      "name": "Makenna Susan Lone Pine Instrumental 2 05",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "Makenna_Susan_Lone_Pine_instrumental_2_05.wav",
+      "basename": "Makenna_Susan_Lone_Pine_instrumental_2_05.wav",
+      "size_mb": 34.61,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "makenna",
+        "susan",
+        "lone",
+        "pine",
+        "instrumental"
+      ],
+      "url": "/api/music/audio/Makenna_Susan_Lone_Pine_instrumental_2_05.wav"
+    },
+    {
+      "id": "Markus_Huber_The_Sea_Of_Trees_instrumental_3_08.wav",
+      "name": "Markus Huber The Sea Of Trees Instrumental 3 08",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "Markus_Huber_The_Sea_Of_Trees_instrumental_3_08.wav",
+      "basename": "Markus_Huber_The_Sea_Of_Trees_instrumental_3_08.wav",
+      "size_mb": 52.14,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "markus",
+        "huber",
+        "the",
+        "sea",
+        "trees",
+        "instrumental"
+      ],
+      "url": "/api/music/audio/Markus_Huber_The_Sea_Of_Trees_instrumental_3_08.wav"
+    },
+    {
+      "id": "Material_Gurl_The_Happiest_Memories_instrumental_1_56.wav",
+      "name": "Material Gurl The Happiest Memories Instrumental 1 56",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "Material_Gurl_The_Happiest_Memories_instrumental_1_56.wav",
+      "basename": "Material_Gurl_The_Happiest_Memories_instrumental_1_56.wav",
+      "size_mb": 32.11,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "material",
+        "gurl",
+        "the",
+        "happiest",
+        "memories",
+        "instrumental"
+      ],
+      "url": "/api/music/audio/Material_Gurl_The_Happiest_Memories_instrumental_1_56.wav"
+    },
+    {
+      "id": "Memory_Theory_Many_Worlds_instrumental_2_16.wav",
+      "name": "Memory Theory Many Worlds Instrumental 2 16",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "Memory_Theory_Many_Worlds_instrumental_2_16.wav",
+      "basename": "Memory_Theory_Many_Worlds_instrumental_2_16.wav",
+      "size_mb": 37.64,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "memory",
+        "theory",
+        "many",
+        "worlds",
+        "instrumental"
+      ],
+      "url": "/api/music/audio/Memory_Theory_Many_Worlds_instrumental_2_16.wav"
+    },
+    {
+      "id": "Midnight_Daydream_Chillabye_instrumental_4_10.wav",
+      "name": "Midnight Daydream Chillabye Instrumental 4 10",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "Midnight_Daydream_Chillabye_instrumental_4_10.wav",
+      "basename": "Midnight_Daydream_Chillabye_instrumental_4_10.wav",
+      "size_mb": 69.18,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "midnight",
+        "daydream",
+        "chillabye",
+        "instrumental"
+      ],
+      "url": "/api/music/audio/Midnight_Daydream_Chillabye_instrumental_4_10.wav"
+    },
+    {
+      "id": "Moments_The_Light_Within_instrumental_4_53.wav",
+      "name": "Moments The Light Within Instrumental 4 53",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "Moments_The_Light_Within_instrumental_4_53.wav",
+      "basename": "Moments_The_Light_Within_instrumental_4_53.wav",
+      "size_mb": 81.02,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "moments",
+        "the",
+        "light",
+        "within",
+        "instrumental"
+      ],
+      "url": "/api/music/audio/Moments_The_Light_Within_instrumental_4_53.wav"
+    },
+    {
+      "id": "Moments_Within_Yourself_instrumental_5_11.wav",
+      "name": "Moments Within Yourself Instrumental 5 11",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "Moments_Within_Yourself_instrumental_5_11.wav",
+      "basename": "Moments_Within_Yourself_instrumental_5_11.wav",
+      "size_mb": 86.1,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "moments",
+        "within",
+        "yourself",
+        "instrumental"
+      ],
+      "url": "/api/music/audio/Moments_Within_Yourself_instrumental_5_11.wav"
+    },
+    {
+      "id": "Nu_Alkemi_t_Down_instrumental_4_30.wav",
+      "name": "Nu Alkemi T Down Instrumental 4 30",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "Nu_Alkemi_t_Down_instrumental_4_30.wav",
+      "basename": "Nu_Alkemi_t_Down_instrumental_4_30.wav",
+      "size_mb": 74.68,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "alkemi",
+        "down",
+        "instrumental"
+      ],
+      "url": "/api/music/audio/Nu_Alkemi_t_Down_instrumental_4_30.wav"
+    },
+    {
+      "id": "Outside_The_Sky_Constant_741_Hz_Meditation_instrumental_3_47.wav",
+      "name": "Outside The Sky Constant 741 Hz Meditation Instrumental 3 47",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "Outside_The_Sky_Constant_741_Hz_Meditation_instrumental_3_47.wav",
+      "basename": "Outside_The_Sky_Constant_741_Hz_Meditation_instrumental_3_47.wav",
+      "size_mb": 62.79,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "outside",
+        "the",
+        "sky",
+        "constant",
+        "741",
+        "meditation",
+        "instrumental"
+      ],
+      "url": "/api/music/audio/Outside_The_Sky_Constant_741_Hz_Meditation_instrumental_3_47.wav"
+    },
+    {
+      "id": "Outside_The_Sky_Kindness_instrumental_9_55.wav",
+      "name": "Outside The Sky Kindness Instrumental 9 55",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "Outside_The_Sky_Kindness_instrumental_9_55.wav",
+      "basename": "Outside_The_Sky_Kindness_instrumental_9_55.wav",
+      "size_mb": 164.36,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "outside",
+        "the",
+        "sky",
+        "kindness",
+        "instrumental"
+      ],
+      "url": "/api/music/audio/Outside_The_Sky_Kindness_instrumental_9_55.wav"
+    },
+    {
+      "id": "Outside_The_Sky_Luminosity_instrumental_5_04.wav",
+      "name": "Outside The Sky Luminosity Instrumental 5 04",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "Outside_The_Sky_Luminosity_instrumental_5_04.wav",
+      "basename": "Outside_The_Sky_Luminosity_instrumental_5_04.wav",
+      "size_mb": 84.15,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "outside",
+        "the",
+        "sky",
+        "luminosity",
+        "instrumental"
+      ],
+      "url": "/api/music/audio/Outside_The_Sky_Luminosity_instrumental_5_04.wav"
+    },
+    {
+      "id": "PALA_Heartbeats_background_vocals_3_16.wav",
+      "name": "Pala Heartbeats Background Vocals 3 16",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "PALA_Heartbeats_background_vocals_3_16.wav",
+      "basename": "PALA_Heartbeats_background_vocals_3_16.wav",
+      "size_mb": 54.18,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "pala",
+        "heartbeats",
+        "background",
+        "vocals"
+      ],
+      "url": "/api/music/audio/PALA_Heartbeats_background_vocals_3_16.wav"
+    },
+    {
+      "id": "Renderings_Low_Key_instrumental_3_14.wav",
+      "name": "Renderings Low Key Instrumental 3 14",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "Renderings_Low_Key_instrumental_3_14.wav",
+      "basename": "Renderings_Low_Key_instrumental_3_14.wav",
+      "size_mb": 53.62,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "renderings",
+        "low",
+        "key",
+        "instrumental"
+      ],
+      "url": "/api/music/audio/Renderings_Low_Key_instrumental_3_14.wav"
+    },
+    {
+      "id": "Sam_Barsh_Sue_s_Dark_Side_instrumental_2_42.wav",
+      "name": "Sam Barsh Sue S Dark Side Instrumental 2 42",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "Sam_Barsh_Sue_s_Dark_Side_instrumental_2_42.wav",
+      "basename": "Sam_Barsh_Sue_s_Dark_Side_instrumental_2_42.wav",
+      "size_mb": 45.0,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "sam",
+        "barsh",
+        "sue",
+        "dark",
+        "side",
+        "instrumental"
+      ],
+      "url": "/api/music/audio/Sam_Barsh_Sue_s_Dark_Side_instrumental_2_42.wav"
+    },
+    {
+      "id": "Shimmer_Era_instrumental_5_10.wav",
+      "name": "Shimmer Era Instrumental 5 10",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "Shimmer_Era_instrumental_5_10.wav",
+      "basename": "Shimmer_Era_instrumental_5_10.wav",
+      "size_mb": 85.63,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "shimmer",
+        "era",
+        "instrumental"
+      ],
+      "url": "/api/music/audio/Shimmer_Era_instrumental_5_10.wav"
+    },
+    {
+      "id": "Simple_Thieves_Autumns_background_vocals_3_02.wav",
+      "name": "Simple Thieves Autumns Background Vocals 3 02",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "Simple_Thieves_Autumns_background_vocals_3_02.wav",
+      "basename": "Simple_Thieves_Autumns_background_vocals_3_02.wav",
+      "size_mb": 50.37,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "simple",
+        "thieves",
+        "autumns",
+        "background",
+        "vocals"
+      ],
+      "url": "/api/music/audio/Simple_Thieves_Autumns_background_vocals_3_02.wav"
+    },
+    {
+      "id": "Soulplusmind_A_Step_Back_instrumental_2_32.wav",
+      "name": "Soulplusmind A Step Back Instrumental 2 32",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "Soulplusmind_A_Step_Back_instrumental_2_32.wav",
+      "basename": "Soulplusmind_A_Step_Back_instrumental_2_32.wav",
+      "size_mb": 42.21,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "soulplusmind",
+        "step",
+        "back",
+        "instrumental"
+      ],
+      "url": "/api/music/audio/Soulplusmind_A_Step_Back_instrumental_2_32.wav"
+    },
+    {
+      "id": "Soulplusmind_Quartz_Stroll_instrumental_2_33.wav",
+      "name": "Soulplusmind Quartz Stroll Instrumental 2 33",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "Soulplusmind_Quartz_Stroll_instrumental_2_33.wav",
+      "basename": "Soulplusmind_Quartz_Stroll_instrumental_2_33.wav",
+      "size_mb": 42.34,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "soulplusmind",
+        "quartz",
+        "stroll",
+        "instrumental"
+      ],
+      "url": "/api/music/audio/Soulplusmind_Quartz_Stroll_instrumental_2_33.wav"
+    },
+    {
+      "id": "Strength_To_Last_Majestic_Skies_background_vocals_3_29.wav",
+      "name": "Strength To Last Majestic Skies Background Vocals 3 29",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "Strength_To_Last_Majestic_Skies_background_vocals_3_29.wav",
+      "basename": "Strength_To_Last_Majestic_Skies_background_vocals_3_29.wav",
+      "size_mb": 57.74,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "strength",
+        "last",
+        "majestic",
+        "skies",
+        "background",
+        "vocals"
+      ],
+      "url": "/api/music/audio/Strength_To_Last_Majestic_Skies_background_vocals_3_29.wav"
+    },
+    {
+      "id": "The_Realist_Astral_Journey_instrumental_2_47.wav",
+      "name": "The Realist Astral Journey Instrumental 2 47",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "The_Realist_Astral_Journey_instrumental_2_47.wav",
+      "basename": "The_Realist_Astral_Journey_instrumental_2_47.wav",
+      "size_mb": 46.17,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "the",
+        "realist",
+        "astral",
+        "journey",
+        "instrumental"
+      ],
+      "url": "/api/music/audio/The_Realist_Astral_Journey_instrumental_2_47.wav"
+    },
+    {
+      "id": "Tide_Electric_Last_Night_instrumental_4_04.wav",
+      "name": "Tide Electric Last Night Instrumental 4 04",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "Tide_Electric_Last_Night_instrumental_4_04.wav",
+      "basename": "Tide_Electric_Last_Night_instrumental_4_04.wav",
+      "size_mb": 67.54,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "tide",
+        "electric",
+        "last",
+        "night",
+        "instrumental"
+      ],
+      "url": "/api/music/audio/Tide_Electric_Last_Night_instrumental_4_04.wav"
+    },
+    {
+      "id": "Tide_Electric_The_Explorer_instrumental_3_31.wav",
+      "name": "Tide Electric The Explorer Instrumental 3 31",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "Tide_Electric_The_Explorer_instrumental_3_31.wav",
+      "basename": "Tide_Electric_The_Explorer_instrumental_3_31.wav",
+      "size_mb": 58.49,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "tide",
+        "electric",
+        "the",
+        "explorer",
+        "instrumental"
+      ],
+      "url": "/api/music/audio/Tide_Electric_The_Explorer_instrumental_3_31.wav"
+    },
+    {
+      "id": "Transmuter_Match_instrumental_3_37.wav",
+      "name": "Transmuter Match Instrumental 3 37",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "Transmuter_Match_instrumental_3_37.wav",
+      "basename": "Transmuter_Match_instrumental_3_37.wav",
+      "size_mb": 60.19,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "transmuter",
+        "match",
+        "instrumental"
+      ],
+      "url": "/api/music/audio/Transmuter_Match_instrumental_3_37.wav"
+    },
+    {
+      "id": "Tru_Genesis_Tense_instrumental_2_55.wav",
+      "name": "Tru Genesis Tense Instrumental 2 55",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "Tru_Genesis_Tense_instrumental_2_55.wav",
+      "basename": "Tru_Genesis_Tense_instrumental_2_55.wav",
+      "size_mb": 48.46,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "tru",
+        "genesis",
+        "tense",
+        "instrumental"
+      ],
+      "url": "/api/music/audio/Tru_Genesis_Tense_instrumental_2_55.wav"
+    },
+    {
+      "id": "Wayfair_Poplar_Creek_instrumental_2_50.wav",
+      "name": "Wayfair Poplar Creek Instrumental 2 50",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "Wayfair_Poplar_Creek_instrumental_2_50.wav",
+      "basename": "Wayfair_Poplar_Creek_instrumental_2_50.wav",
+      "size_mb": 47.18,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "wayfair",
+        "poplar",
+        "creek",
+        "instrumental"
+      ],
+      "url": "/api/music/audio/Wayfair_Poplar_Creek_instrumental_2_50.wav"
+    },
+    {
+      "id": "Wild_Wonder_Another_Life_instrumental_3_52.wav",
+      "name": "Wild Wonder Another Life Instrumental 3 52",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "Wild_Wonder_Another_Life_instrumental_3_52.wav",
+      "basename": "Wild_Wonder_Another_Life_instrumental_3_52.wav",
+      "size_mb": 64.29,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "wild",
+        "wonder",
+        "another",
+        "life",
+        "instrumental"
+      ],
+      "url": "/api/music/audio/Wild_Wonder_Another_Life_instrumental_3_52.wav"
+    },
+    {
+      "id": "mystery_cosmic/deep_space_ambient_test.wav",
+      "name": "Deep Space Ambient Test",
+      "category": "mystery_cosmic",
+      "category_label": "Dark Mystery & Space",
+      "filename": "mystery_cosmic/deep_space_ambient_test.wav",
+      "basename": "deep_space_ambient_test.wav",
+      "size_mb": 0.0,
+      "mood": "Dark Mystery & Space Atmosphere",
+      "description": "Ambient background track in Dark Mystery & Space genre.",
+      "energy_level": "low",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "mystery_cosmic",
+        "deep",
+        "space",
+        "ambient",
+        "test"
+      ],
+      "url": "/api/music/audio/mystery_cosmic/deep_space_ambient_test.wav"
+    },
+    {
+      "id": "tech_futuristic/cyber_pulse_test.mp3",
+      "name": "Cyber Pulse Test",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "tech_futuristic/cyber_pulse_test.mp3",
+      "basename": "cyber_pulse_test.mp3",
+      "size_mb": 0.0,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "cyber",
+        "pulse",
+        "test"
+      ],
+      "url": "/api/music/audio/tech_futuristic/cyber_pulse_test.mp3"
+    },
+    {
+      "id": "auto/AFTERNOONZ_Starbound_instrumental_3_14.wav",
+      "name": "Afternoonz Starbound Instrumental 3 14",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "auto/AFTERNOONZ_Starbound_instrumental_3_14.wav",
+      "basename": "AFTERNOONZ_Starbound_instrumental_3_14.wav",
+      "size_mb": 53.83,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "afternoonz",
+        "starbound",
+        "instrumental"
+      ],
+      "url": "/api/music/audio/auto/AFTERNOONZ_Starbound_instrumental_3_14.wav"
+    },
+    {
+      "id": "auto/Anthony_Catacoli_Melancholy_Midnight_instrumental_2_45.wav",
+      "name": "Anthony Catacoli Melancholy Midnight Instrumental 2 45",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "auto/Anthony_Catacoli_Melancholy_Midnight_instrumental_2_45.wav",
+      "basename": "Anthony_Catacoli_Melancholy_Midnight_instrumental_2_45.wav",
+      "size_mb": 45.82,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "anthony",
+        "catacoli",
+        "melancholy",
+        "midnight",
+        "instrumental"
+      ],
+      "url": "/api/music/audio/auto/Anthony_Catacoli_Melancholy_Midnight_instrumental_2_45.wav"
+    },
+    {
+      "id": "auto/Cast_Of_Characters_Locomotive_Rag_instrumental_2_07.wav",
+      "name": "Cast Of Characters Locomotive Rag Instrumental 2 07",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "auto/Cast_Of_Characters_Locomotive_Rag_instrumental_2_07.wav",
+      "basename": "Cast_Of_Characters_Locomotive_Rag_instrumental_2_07.wav",
+      "size_mb": 35.23,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "cast",
+        "characters",
+        "locomotive",
+        "rag",
+        "instrumental"
+      ],
+      "url": "/api/music/audio/auto/Cast_Of_Characters_Locomotive_Rag_instrumental_2_07.wav"
+    },
+    {
+      "id": "auto/Central_Train_Station_Platform_03.wav",
+      "name": "Central Train Station Platform 03",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "auto/Central_Train_Station_Platform_03.wav",
+      "basename": "Central_Train_Station_Platform_03.wav",
+      "size_mb": 24.97,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "central",
+        "train",
+        "station",
+        "platform"
+      ],
+      "url": "/api/music/audio/auto/Central_Train_Station_Platform_03.wav"
+    },
+    {
+      "id": "auto/Elise_Solberg_Ode_To_Bill_instrumental_3_46.wav",
+      "name": "Elise Solberg Ode To Bill Instrumental 3 46",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "auto/Elise_Solberg_Ode_To_Bill_instrumental_3_46.wav",
+      "basename": "Elise_Solberg_Ode_To_Bill_instrumental_3_46.wav",
+      "size_mb": 62.61,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "elise",
+        "solberg",
+        "ode",
+        "bill",
+        "instrumental"
+      ],
+      "url": "/api/music/audio/auto/Elise_Solberg_Ode_To_Bill_instrumental_3_46.wav"
+    },
+    {
+      "id": "auto/King_Flamingo_Other_Shores_instrumental_2_36.wav",
+      "name": "King Flamingo Other Shores Instrumental 2 36",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "auto/King_Flamingo_Other_Shores_instrumental_2_36.wav",
+      "basename": "King_Flamingo_Other_Shores_instrumental_2_36.wav",
+      "size_mb": 43.3,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "king",
+        "flamingo",
+        "other",
+        "shores",
+        "instrumental"
+      ],
+      "url": "/api/music/audio/auto/King_Flamingo_Other_Shores_instrumental_2_36.wav"
+    },
+    {
+      "id": "auto/King_Flamingo_Seaside_Samba_instrumental_1_44.wav",
+      "name": "King Flamingo Seaside Samba Instrumental 1 44",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "auto/King_Flamingo_Seaside_Samba_instrumental_1_44.wav",
+      "basename": "King_Flamingo_Seaside_Samba_instrumental_1_44.wav",
+      "size_mb": 28.73,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "king",
+        "flamingo",
+        "seaside",
+        "samba",
+        "instrumental"
+      ],
+      "url": "/api/music/audio/auto/King_Flamingo_Seaside_Samba_instrumental_1_44.wav"
+    },
+    {
+      "id": "auto/King_Flamingo_Vignettes_instrumental_2_32.wav",
+      "name": "King Flamingo Vignettes Instrumental 2 32",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "auto/King_Flamingo_Vignettes_instrumental_2_32.wav",
+      "basename": "King_Flamingo_Vignettes_instrumental_2_32.wav",
+      "size_mb": 42.15,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "king",
+        "flamingo",
+        "vignettes",
+        "instrumental"
+      ],
+      "url": "/api/music/audio/auto/King_Flamingo_Vignettes_instrumental_2_32.wav"
+    },
+    {
+      "id": "auto/King_Flamingo_Wistful_instrumental_2_40.wav",
+      "name": "King Flamingo Wistful Instrumental 2 40",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "auto/King_Flamingo_Wistful_instrumental_2_40.wav",
+      "basename": "King_Flamingo_Wistful_instrumental_2_40.wav",
+      "size_mb": 44.4,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "king",
+        "flamingo",
+        "wistful",
+        "instrumental"
+      ],
+      "url": "/api/music/audio/auto/King_Flamingo_Wistful_instrumental_2_40.wav"
+    },
+    {
+      "id": "auto/Liberty_The_Duke_Of_New_York_instrumental_2_42.wav",
+      "name": "Liberty The Duke Of New York Instrumental 2 42",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "auto/Liberty_The_Duke_Of_New_York_instrumental_2_42.wav",
+      "basename": "Liberty_The_Duke_Of_New_York_instrumental_2_42.wav",
+      "size_mb": 44.83,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "liberty",
+        "the",
+        "duke",
+        "new",
+        "york",
+        "instrumental"
+      ],
+      "url": "/api/music/audio/auto/Liberty_The_Duke_Of_New_York_instrumental_2_42.wav"
+    },
+    {
+      "id": "auto/Liberty_The_Night_Is_Young_instrumental_2_43.wav",
+      "name": "Liberty The Night Is Young Instrumental 2 43",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "auto/Liberty_The_Night_Is_Young_instrumental_2_43.wav",
+      "basename": "Liberty_The_Night_Is_Young_instrumental_2_43.wav",
+      "size_mb": 45.08,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "liberty",
+        "the",
+        "night",
+        "young",
+        "instrumental"
+      ],
+      "url": "/api/music/audio/auto/Liberty_The_Night_Is_Young_instrumental_2_43.wav"
+    },
+    {
+      "id": "auto/Paul_Croteau_Beauty_In_Color_instrumental_2_52.wav",
+      "name": "Paul Croteau Beauty In Color Instrumental 2 52",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "auto/Paul_Croteau_Beauty_In_Color_instrumental_2_52.wav",
+      "basename": "Paul_Croteau_Beauty_In_Color_instrumental_2_52.wav",
+      "size_mb": 47.6,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "paul",
+        "croteau",
+        "beauty",
+        "color",
+        "instrumental"
+      ],
+      "url": "/api/music/audio/auto/Paul_Croteau_Beauty_In_Color_instrumental_2_52.wav"
+    },
+    {
+      "id": "auto/Renderings_Exploration_Of_A_New_City_instrumental_3_08.wav",
+      "name": "Renderings Exploration Of A New City Instrumental 3 08",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "auto/Renderings_Exploration_Of_A_New_City_instrumental_3_08.wav",
+      "basename": "Renderings_Exploration_Of_A_New_City_instrumental_3_08.wav",
+      "size_mb": 52.16,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "renderings",
+        "exploration",
+        "new",
+        "city",
+        "instrumental"
+      ],
+      "url": "/api/music/audio/auto/Renderings_Exploration_Of_A_New_City_instrumental_3_08.wav"
+    },
+    {
+      "id": "auto/Renderings_Gettin_Ya_instrumental_3_07.wav",
+      "name": "Renderings Gettin Ya Instrumental 3 07",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "auto/Renderings_Gettin_Ya_instrumental_3_07.wav",
+      "basename": "Renderings_Gettin_Ya_instrumental_3_07.wav",
+      "size_mb": 51.69,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "renderings",
+        "gettin",
+        "instrumental"
+      ],
+      "url": "/api/music/audio/auto/Renderings_Gettin_Ya_instrumental_3_07.wav"
+    },
+    {
+      "id": "auto/Renderings_Hoagy_s_Dream_instrumental_3_27.wav",
+      "name": "Renderings Hoagy S Dream Instrumental 3 27",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "auto/Renderings_Hoagy_s_Dream_instrumental_3_27.wav",
+      "basename": "Renderings_Hoagy_s_Dream_instrumental_3_27.wav",
+      "size_mb": 57.23,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "renderings",
+        "hoagy",
+        "dream",
+        "instrumental"
+      ],
+      "url": "/api/music/audio/auto/Renderings_Hoagy_s_Dream_instrumental_3_27.wav"
+    },
+    {
+      "id": "auto/Renderings_Patterns_instrumental_3_10.wav",
+      "name": "Renderings Patterns Instrumental 3 10",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "auto/Renderings_Patterns_instrumental_3_10.wav",
+      "basename": "Renderings_Patterns_instrumental_3_10.wav",
+      "size_mb": 52.63,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "renderings",
+        "patterns",
+        "instrumental"
+      ],
+      "url": "/api/music/audio/auto/Renderings_Patterns_instrumental_3_10.wav"
+    },
+    {
+      "id": "auto/Renderings_Spoken_Word_instrumental_3_08.wav",
+      "name": "Renderings Spoken Word Instrumental 3 08",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "auto/Renderings_Spoken_Word_instrumental_3_08.wav",
+      "basename": "Renderings_Spoken_Word_instrumental_3_08.wav",
+      "size_mb": 51.94,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "renderings",
+        "spoken",
+        "word",
+        "instrumental"
+      ],
+      "url": "/api/music/audio/auto/Renderings_Spoken_Word_instrumental_3_08.wav"
+    },
+    {
+      "id": "auto/Sam_Barsh_Days_Old_instrumental_2_54.wav",
+      "name": "Sam Barsh Days Old Instrumental 2 54",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "auto/Sam_Barsh_Days_Old_instrumental_2_54.wav",
+      "basename": "Sam_Barsh_Days_Old_instrumental_2_54.wav",
+      "size_mb": 48.26,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "sam",
+        "barsh",
+        "days",
+        "old",
+        "instrumental"
+      ],
+      "url": "/api/music/audio/auto/Sam_Barsh_Days_Old_instrumental_2_54.wav"
+    },
+    {
+      "id": "auto/Sam_Barsh_Jefe_Nueva_instrumental_3_21.wav",
+      "name": "Sam Barsh Jefe Nueva Instrumental 3 21",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "auto/Sam_Barsh_Jefe_Nueva_instrumental_3_21.wav",
+      "basename": "Sam_Barsh_Jefe_Nueva_instrumental_3_21.wav",
+      "size_mb": 55.53,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "sam",
+        "barsh",
+        "jefe",
+        "nueva",
+        "instrumental"
+      ],
+      "url": "/api/music/audio/auto/Sam_Barsh_Jefe_Nueva_instrumental_3_21.wav"
+    },
+    {
+      "id": "auto/Sam_Barsh_Morning_Macchiato_instrumental_3_09.wav",
+      "name": "Sam Barsh Morning Macchiato Instrumental 3 09",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "auto/Sam_Barsh_Morning_Macchiato_instrumental_3_09.wav",
+      "basename": "Sam_Barsh_Morning_Macchiato_instrumental_3_09.wav",
+      "size_mb": 52.2,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "sam",
+        "barsh",
+        "morning",
+        "macchiato",
+        "instrumental"
+      ],
+      "url": "/api/music/audio/auto/Sam_Barsh_Morning_Macchiato_instrumental_3_09.wav"
+    },
+    {
+      "id": "auto/Thruline_Stay_Up_High_instrumental_2_43.wav",
+      "name": "Thruline Stay Up High Instrumental 2 43",
+      "category": "tech_futuristic",
+      "category_label": "Tech & Sci-Fi",
+      "filename": "auto/Thruline_Stay_Up_High_instrumental_2_43.wav",
+      "basename": "Thruline_Stay_Up_High_instrumental_2_43.wav",
+      "size_mb": 45.16,
+      "mood": "Tech & Sci-Fi Atmosphere",
+      "description": "Ambient background track in Tech & Sci-Fi genre.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "development"
+      ],
+      "tags": [
+        "tech_futuristic",
+        "thruline",
+        "stay",
+        "high",
+        "instrumental"
+      ],
+      "url": "/api/music/audio/auto/Thruline_Stay_Up_High_instrumental_2_43.wav"
     }
   ]
 }

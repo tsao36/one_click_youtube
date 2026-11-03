@@ -91,6 +91,90 @@ def load_catalog(directory: str) -> dict[str, Any]:
     return {"categories": {}, "tracks": []}
 
 
+def sync_catalog(directory: str = "data/music") -> dict[str, Any]:
+    """Scan music directory recursively and register any new/unindexed tracks into catalog.json."""
+    cat_file = ROOT / directory / "catalog.json"
+    catalog = load_catalog(directory)
+    existing_tracks = catalog.get("tracks", [])
+    known_filenames = {t.get("filename"): t for t in existing_tracks if t.get("filename")}
+
+    all_disk_tracks = list_tracks(directory)
+    updated = False
+
+    cat_labels = {
+        "tech_futuristic": "Tech & Sci-Fi",
+        "cinematic_documentary": "Cinematic Documentary",
+        "mystery_cosmic": "Dark Mystery & Space",
+        "calm_focus": "Calm & Focus",
+        "dramatic_tension": "Dramatic Tension",
+        "uplifting_inspirational": "Uplifting & Wonder",
+    }
+
+    default_energy = {
+        "calm_focus": "low",
+        "mystery_cosmic": "low",
+        "tech_futuristic": "mid",
+        "cinematic_documentary": "mid",
+        "dramatic_tension": "high",
+        "uplifting_inspirational": "high",
+    }
+
+    for p in all_disk_tracks:
+        try:
+            rel = p.relative_to(ROOT / directory).as_posix()
+        except ValueError:
+            rel = p.name
+
+        cat = p.parent.name.lower()
+        if cat not in CATEGORY_KEYWORDS:
+            cat = "tech_futuristic"
+
+        if rel not in known_filenames:
+            size_mb = round(p.stat().st_size / (1024 * 1024), 2)
+            name_clean = p.stem.replace("_", " ").replace("-", " ").title()
+            en = default_energy.get(cat, "mid")
+            roles = ["intro", "development"] if en in ("low", "mid") else ["development", "climax"]
+
+            entry = {
+                "id": rel,
+                "name": name_clean,
+                "category": cat,
+                "category_label": cat_labels.get(cat, cat.replace("_", " ").title()),
+                "filename": rel,
+                "basename": p.name,
+                "size_mb": size_mb,
+                "mood": f"{cat_labels.get(cat, 'Ambient')} Atmosphere",
+                "description": f"Ambient background track in {cat_labels.get(cat, cat)} genre.",
+                "energy_level": en,
+                "movement_roles": roles,
+                "tags": [cat] + [w.lower() for w in name_clean.split() if len(w) > 2],
+                "url": f"/api/music/audio/{rel}",
+            }
+            existing_tracks.append(entry)
+            known_filenames[rel] = entry
+            updated = True
+        else:
+            entry = known_filenames[rel]
+            if "energy_level" not in entry:
+                entry["energy_level"] = default_energy.get(entry.get("category", ""), "mid")
+                updated = True
+            if "movement_roles" not in entry:
+                en = entry.get("energy_level", "mid")
+                entry["movement_roles"] = ["intro", "development"] if en in ("low", "mid") else ["development", "climax"]
+                updated = True
+
+    if updated:
+        catalog["tracks"] = existing_tracks
+        try:
+            cat_file.parent.mkdir(parents=True, exist_ok=True)
+            cat_file.write_text(json.dumps(catalog, indent=2, ensure_ascii=False), encoding="utf-8")
+            log.info("Catalog synced: %d total tracks registered in %s", len(existing_tracks), cat_file)
+        except Exception as e:
+            log.warning("Could not persist synced catalog: %s", e)
+
+    return catalog
+
+
 def list_tracks(directory: str, category: str | None = None) -> list[Path]:
     d = ROOT / directory
     if not d.exists():
@@ -111,20 +195,37 @@ def list_tracks(directory: str, category: str | None = None) -> list[Path]:
     return sorted(tracks, key=lambda p: (p.parent.name, p.name))
 
 
-def detect_topic_category(topic: str | None, context_text: str | None = None) -> str | None:
+def detect_topic_category(
+    topic: str | None,
+    context_text: str | None = None,
+    preferred_vibe: str | None = None,
+) -> str | None:
+    # 1. Explicit user override if present
+    if preferred_vibe:
+        v = preferred_vibe.strip().lower()
+        if v in CATEGORY_KEYWORDS:
+            return v
+
     combined = f"{topic or ''} {context_text or ''}".lower()
     if not combined.strip():
-        return None
+        return "tech_futuristic"
 
-    best_cat = None
-    max_score = 0
+    # 2. Weighted keyword scoring: topic title matches get 3x weight, context/script gets 1x
+    scores: dict[str, float] = {cat: 0.0 for cat in CATEGORY_KEYWORDS}
+    topic_clean = (topic or "").lower()
     for cat, kws in CATEGORY_KEYWORDS.items():
-        score = sum(1 for kw in kws if kw.lower() in combined)
-        if score > max_score:
-            max_score = score
-            best_cat = cat
+        for kw in kws:
+            kw_l = kw.lower()
+            if kw_l in topic_clean:
+                scores[cat] += 3.0
+            elif kw_l in combined:
+                scores[cat] += 1.0
 
-    return best_cat if max_score > 0 else None
+    best_cat = max(scores, key=lambda k: scores[k])
+    if scores[best_cat] > 0.0:
+        return best_cat
+
+    return "tech_futuristic"
 
 
 def pick_track(
@@ -132,14 +233,45 @@ def pick_track(
     key: str,
     preferred: str | None = None,
     topic: str | None = None,
+    context_text: str | None = None,
     exclude: set[Path] | None = None,
     randomize: bool = False,
+    movement_role: str | None = None,
+    energy: str | None = None,
 ) -> Path | None:
     all_tracks = list_tracks(directory)
     if not all_tracks:
         return None
 
     exclude_set = exclude or set()
+    cat_meta_map = {}
+    try:
+        cat_data = load_catalog(directory)
+        for t_info in cat_data.get("tracks", []):
+            fn = t_info.get("filename")
+            if fn:
+                cat_meta_map[fn] = t_info
+    except Exception:
+        pass
+
+    def filter_by_role_and_energy(candidate_tracks: list[Path]) -> list[Path]:
+        if not movement_role and not energy:
+            return candidate_tracks
+        filtered = []
+        for t in candidate_tracks:
+            try:
+                rel = t.relative_to(ROOT / directory).as_posix()
+            except Exception:
+                rel = t.name
+            t_info = cat_meta_map.get(rel)
+            if not t_info:
+                continue
+            if movement_role and movement_role not in t_info.get("movement_roles", []):
+                continue
+            if energy and t_info.get("energy_level") != energy:
+                continue
+            filtered.append(t)
+        return filtered or candidate_tracks
 
     if preferred:
         pref = str(preferred).strip()
@@ -153,6 +285,7 @@ def pick_track(
         if pref_lower in CATEGORY_KEYWORDS:
             cat_tracks = list_tracks(directory, category=pref_lower)
             avail = [t for t in cat_tracks if t not in exclude_set] or cat_tracks
+            avail = filter_by_role_and_energy(avail)
             if avail:
                 if randomize:
                     return random.choice(avail)
@@ -172,21 +305,22 @@ def pick_track(
                 ):
                     return t
 
-    # Auto selection: smart topic matching if topic is provided
-    detected_cat = detect_topic_category(topic)
+    # Auto selection: smart topic matching
+    detected_cat = detect_topic_category(topic, context_text=context_text)
     if detected_cat:
         cat_tracks = list_tracks(directory, category=detected_cat)
         avail = [t for t in cat_tracks if t not in exclude_set] or cat_tracks
+        avail = filter_by_role_and_energy(avail)
         if avail:
             if randomize:
                 return random.choice(avail)
-            # Use combined key + topic to ensure distinct projects on distinct topics get varied tracks
             hash_src = f"{key}_{topic}_{len(topic or '')}"
             idx = int(hashlib.md5(hash_src.encode()).hexdigest(), 16) % len(avail)
             return avail[idx]
 
     # Fallback over all tracks
     avail = [t for t in all_tracks if t not in exclude_set] or all_tracks
+    avail = filter_by_role_and_energy(avail)
     if randomize:
         return random.choice(avail)
     idx = int(hashlib.md5(key.encode()).hexdigest(), 16) % len(avail)
@@ -203,6 +337,35 @@ class MusicSegment:
     volume_db: float       # Playback volume offset in dB
     category: str          # Music category (e.g. tech_futuristic, uplifting_inspirational)
     name: str              # Track file name
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "track": str(self.track).replace("\\", "/"),
+            "start_time": round(float(self.start_time), 2),
+            "end_time": round(float(self.end_time), 2),
+            "crossfade_in": round(float(self.crossfade_in), 2),
+            "crossfade_out": round(float(self.crossfade_out), 2),
+            "volume_db": round(float(self.volume_db), 2),
+            "category": str(self.category),
+            "name": str(self.name),
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "MusicSegment":
+        track_val = data.get("track", "")
+        track_path = Path(track_val)
+        if not track_path.is_absolute():
+            track_path = ROOT / track_val
+        return cls(
+            track=track_path,
+            start_time=float(data.get("start_time", 0.0)),
+            end_time=float(data.get("end_time", 0.0)),
+            crossfade_in=float(data.get("crossfade_in", 2.0)),
+            crossfade_out=float(data.get("crossfade_out", 2.0)),
+            volume_db=float(data.get("volume_db", -16.0)),
+            category=str(data.get("category", "")),
+            name=str(data.get("name", track_path.name)),
+        )
 
 
 ENDING_KEYWORDS = [
@@ -258,6 +421,7 @@ def plan_music_timeline(
     key: str = "default",
     preferred: str | None = None,
     topic: str | None = None,
+    context_text: str | None = None,
     total_duration: float = 0.0,
     scenes: list[Any] | None = None,
     slots: list[Any] | None = None,
@@ -294,9 +458,24 @@ def plan_music_timeline(
     ending_pref = m.get("ending_track", "auto")
     ending_cat = m.get("ending_category", "uplifting_inspirational")
 
-    # Pick main opening track
+    # Sync catalog to discover any user uploaded tracks
+    try:
+        sync_catalog(directory)
+    except Exception as e:
+        log.warning("Could not sync catalog: %s", e)
+
+    # Pick main opening track (Movement 1: Intro atmosphere, low-mid energy)
+    vibe_pref = m.get("vibe") or pref
     used_tracks: set[Path] = set()
-    main_track = pick_track(directory, key, pref, topic=topic)
+    main_track = pick_track(
+        directory,
+        key,
+        preferred=vibe_pref,
+        topic=topic,
+        context_text=context_text,
+        movement_role="intro",
+        energy="low"
+    )
     if not main_track:
         return []
     used_tracks.add(main_track)
@@ -336,21 +515,57 @@ def plan_music_timeline(
             if c2_candidates:
                 t_m2 = round(c2_candidates[0], 1)
 
-        # Movement 2 track (Deep Dive / Investigation / Tension)
+        # Movement 2 track (Deep Dive / Investigation / Tension - mid energy)
         main_cat = main_track.parent.name.lower()
         comp_cat = COMPLEMENTARY_MOVEMENT_CATEGORY.get(main_cat, "dramatic_tension")
-        m2_track = pick_track(directory, key + "_m2", preferred=comp_cat, topic=topic, exclude=used_tracks)
+        m2_track = pick_track(
+            directory,
+            key + "_m2",
+            preferred=comp_cat,
+            topic=topic,
+            context_text=context_text,
+            exclude=used_tracks,
+            movement_role="development",
+            energy="mid"
+        )
         if not m2_track or m2_track in used_tracks:
-            m2_track = pick_track(directory, key + "_m2_alt", preferred="dramatic_tension", topic=topic, exclude=used_tracks)
+            m2_track = pick_track(
+                directory,
+                key + "_m2_alt",
+                preferred="dramatic_tension",
+                topic=topic,
+                context_text=context_text,
+                exclude=used_tracks,
+                movement_role="development",
+                energy="mid"
+            )
         if m2_track:
             used_tracks.add(m2_track)
         else:
             m2_track = main_track
 
-        # Movement 3 track (Uplifting resolution & outlook)
-        m3_track = pick_track(directory, key + "_m3", preferred=ending_cat, topic=topic, exclude=used_tracks)
+        # Movement 3 track (Uplifting resolution & outlook - climax / high energy)
+        m3_track = pick_track(
+            directory,
+            key + "_m3",
+            preferred=ending_cat,
+            topic=topic,
+            context_text=context_text,
+            exclude=used_tracks,
+            movement_role="climax",
+            energy="high"
+        )
         if not m3_track or m3_track in used_tracks:
-            m3_track = pick_track(directory, key + "_m3_alt", preferred="uplifting_inspirational", topic=topic, exclude=used_tracks)
+            m3_track = pick_track(
+                directory,
+                key + "_m3_alt",
+                preferred="uplifting_inspirational",
+                topic=topic,
+                context_text=context_text,
+                exclude=used_tracks,
+                movement_role="climax",
+                energy="high"
+            )
         if m3_track:
             used_tracks.add(m3_track)
         else:

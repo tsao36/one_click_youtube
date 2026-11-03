@@ -279,17 +279,33 @@ def build_audio_mix(project: Project, narration: Path, total: float, out: Path,
         except Exception as e:
             log.warning("Could not load chapters for music timeline: %s", e)
 
-    music_plan = plan_music_timeline(
-        directory=m.get("directory", "data/music"),
-        key=project.id,
-        preferred=preferred,
-        topic=topic,
-        total_duration=total,
-        scenes=scenes,
-        slots=slots,
-        chapters=chapters,
-        music_settings=m,
-    ) if is_enabled else []
+    # Check if pre-planned music timeline exists in project (from Stage 7: Ambient Music)
+    music_plan_file = project.path("music/music_plan.json")
+    music_plan = []
+    if is_enabled:
+        if music_plan_file.exists():
+            try:
+                plan_data = json.loads(music_plan_file.read_text(encoding="utf-8"))
+                from generators.music import MusicSegment
+                for seg_item in plan_data:
+                    music_plan.append(MusicSegment.from_dict(seg_item))
+                log.info("Loaded pre-planned music timeline with %d segments from %s", len(music_plan), music_plan_file)
+            except Exception as e:
+                log.warning("Could not load pre-planned music timeline: %s, falling back to dynamic plan", e)
+                music_plan = []
+
+        if not music_plan:
+            music_plan = plan_music_timeline(
+                directory=m.get("directory", "data/music"),
+                key=project.id,
+                preferred=preferred,
+                topic=topic,
+                total_duration=total,
+                scenes=scenes,
+                slots=slots,
+                chapters=chapters,
+                music_settings=m,
+            )
     final_norm = f"loudnorm=I={r.get('final_lufs', -14)}:TP=-1.5:LRA=11"
 
     if not music_plan:
@@ -372,7 +388,7 @@ def build_audio_mix(project: Project, narration: Path, total: float, out: Path,
         )
         bed_labels.append(f"[m{i}]")
 
-    fc_parts.append(f"{''.join(bed_labels)}amix=inputs={len(bed_labels)}:duration=first:normalize=0[mus_bed];")
+    fc_parts.append(f"{''.join(bed_labels)}amix=inputs={len(bed_labels)}:duration=longest:normalize=0[mus_bed];")
     fc_parts.append(duck_filter)
 
     mix_inputs = ["[nar]", "[md]"]

@@ -195,59 +195,35 @@ def extract_card_props(sc: Scene) -> dict[str, Any]:
 
 REMOTION_STYLES = [
     {
-        "id": "TechCard",
-        "name": "⚡ Tech Card",
-        "label": "賽博青光發光",
-        "description": "深藍磨砂玻璃、霓虹青光流動、數位數據框",
+        "id": "BranchPathwayScene",
+        "name": "🔀 分支抉擇 (Branch Pathway)",
+        "label": "多路徑決策・動態排除",
+        "description": "多路線取捨、4條路徑對比、動態劃線、淘汰淡化與深層技術展開",
         "accentColor": "#00F5FF",
-        "type": "card",
-    },
-    {
-        "id": "MinimalistCard",
-        "name": "📐 Minimalist",
-        "label": "瑞士極簡綠線",
-        "description": "瑞士極簡排版、俐落線條延展、高雅冷灰墨黑與翡翠綠",
-        "accentColor": "#34d399",
-        "type": "card",
-    },
-    {
-        "id": "CinemaImpactCard",
-        "name": "🎬 Cinema Impact",
-        "label": "電影金曜震撼",
-        "description": "電影巨幕暗幕、金曜微光、高張力動態衝擊與大字視覺",
-        "accentColor": "#fbbf24",
-        "type": "card",
-    },
-    {
-        "id": "TitleScene",
-        "name": "🏆 標題揭露 (Title)",
-        "label": "重大結論・微光脈衝",
-        "description": "重大結論、命題揭露、玻璃擬態卡片與微光脈衝動畫",
-        "accentColor": "#3B82F6",
         "type": "scene",
     },
     {
-        "id": "GridCompareScene",
-        "name": "⚖️ 雙欄比較 (Compare)",
-        "label": "概念對決・左右對立",
-        "description": "左右雙欄概念對立、Point A vs Point B 對決卡片",
-        "accentColor": "#EC4899",
+        "id": "LeaderCalloutScene",
+        "name": "🎯 引線標註 (Leader Callout)",
+        "label": "解剖結構・HUD動態引線",
+        "description": "解剖層次、微觀結構、手肘連接折線、動態脈衝原點與浮動數據卡",
+        "accentColor": "#00F5FF",
         "type": "scene",
     },
     {
-        "id": "KCurveScene",
-        "name": "📈 K型分化 (K-Curve)",
-        "label": "走向脫鉤・兩極軌跡",
-        "description": "平滑三次貝茲曲線，演示基線前行後分化為向上/向下雙軌跡",
-        "accentColor": "#8B5CF6",
+        "id": "ScaleCompareScene",
+        "name": "🔬 尺度對比 (Scale Loupe)",
+        "label": "極致尺度・同心圓放大鏡",
+        "description": "同心微觀放大鏡、20X極限對比、光學十字準心與動態微米滑動尺規",
+        "accentColor": "#00F5FF",
         "type": "scene",
     },
     {
-        "id": "StatNumberScene",
-        "name": "🔢 動態數字 (Counter)",
-        "label": "自適應遞增・單位標題",
-        "description": "自適應數字動態遞增，支援億/萬/百分比/單位與標題",
-        "accentColor": "#10B981",
+        "id": "EvidenceHighlightScene",
+        "name": "📑 文獻劃記 (Evidence Highlight)",
+        "label": "紙本檔案・螢光筆劃記",
+        "description": "調查紀錄、臨床試驗、實體剪紙陰影、動態螢光筆劃記與遙測數據卡",
+        "accentColor": "#00F5FF",
         "type": "scene",
     },
 ]
@@ -262,60 +238,54 @@ def _default_accent_for_style(comp: str) -> str:
 
 def _normalize_props_for_composition(comp: str, raw: dict[str, Any]) -> dict[str, Any]:
     p = dict(raw or {})
-    if comp == "TitleScene":
-        title = p.get("title") or p.get("headline") or "重大結論揭露"
-        p["title"] = str(title).strip() or "重大結論揭露"
-        p["subtitle"] = str(p.get("subtitle") or p.get("subtext") or "").strip()
-        p["category"] = str(p.get("category") or "重點結論").strip()
-        p["accentColor"] = p.get("accentColor") or "#3B82F6"
-        p["animationStyle"] = p.get("animationStyle") or "fade_slide"
-    elif comp == "GridCompareScene":
-        p["leftTitle"] = str(p.get("leftTitle") or "方案 A (優勢)").strip() or "方案 A"
-        p["leftBody"] = str(p.get("leftBody") or p.get("headline") or "核心優勢與關鍵推動力").strip() or "核心優勢"
-        p["rightTitle"] = str(p.get("rightTitle") or "方案 B (挑戰)").strip() or "方案 B"
-        p["rightBody"] = str(p.get("rightBody") or p.get("subtext") or "傳統模式與潛在風險挑戰").strip() or "潛在挑戰"
-        p["comparisonLabel"] = str(p.get("comparisonLabel") or "VS").strip()
-        p["leftColor"] = p.get("leftColor") or "#3B82F6"
-        p["rightColor"] = p.get("rightColor") or "#EF4444"
-        p["accentColor"] = p.get("accentColor") or "#EC4899"
-    elif comp == "KCurveScene":
-        p["title"] = str(p.get("title") or "K 型兩極分化走向").strip()
-        p["upperText"] = str(p.get("upperText") or p.get("headline") or "頂尖發展 (持續飆升)").strip() or "頂尖成長"
-        p["lowerText"] = str(p.get("lowerText") or p.get("subtext") or "傳統收縮 (成長停滯)").strip() or "傳統落後"
-        try:
-            p["forkProgress"] = max(0.1, min(0.8, float(p.get("forkProgress", 0.35))))
-        except (ValueError, TypeError):
-            p["forkProgress"] = 0.35
-        p["upperColor"] = p.get("upperColor") or "#10B981"
-        p["lowerColor"] = p.get("lowerColor") or "#EF4444"
-        p["accentColor"] = p.get("accentColor") or "#8B5CF6"
-    elif comp == "StatNumberScene":
-        val_raw = p.get("value")
-        if val_raw is None or val_raw == "":
-            metric = p.get("metric", "")
-            m = re.search(r"(\d+(?:\.\d+)?)", str(metric))
-            val_raw = float(m.group(1)) if m else 100
-        try:
-            p["value"] = float(val_raw)
-        except (ValueError, TypeError):
-            p["value"] = 100.0
-        p["prefix"] = str(p.get("prefix") or "").strip()
-        p["suffix"] = str(p.get("suffix") or "").strip()
-        p["unit"] = str(p.get("unit") or "").strip()
-        p["label"] = str(p.get("label") or p.get("headline") or "關鍵數據統計").strip() or "數據統計"
-        p["subtext"] = str(p.get("subtext") or "").strip()
-        try:
-            p["decimals"] = int(p.get("decimals", 0))
-        except (ValueError, TypeError):
-            p["decimals"] = 0
-        p["accentColor"] = p.get("accentColor") or "#10B981"
-    else:
-        # Legacy cards
-        p["category"] = str(p.get("category") or "關鍵重點").strip()
-        p["headline"] = str(p.get("headline") or "核心重點摘要").strip()
-        p["metric"] = str(p.get("metric") or "").strip()
-        p["subtext"] = str(p.get("subtext") or "").strip()
-        p["accentColor"] = p.get("accentColor") or _default_accent_for_style(comp)
+    title = p.get("title") or p.get("headline") or "關鍵技術剖析"
+
+    if comp == "BranchPathwayScene":
+        p["title"] = str(title).strip()
+        p["subtitle"] = str(p.get("subtitle") or p.get("subtext") or "深度技術路徑取捨與架構評估").strip()
+        if not p.get("paths"):
+            p["paths"] = [
+                {"id": "p1", "name": "路線 1: 傳統常規方案", "category": "基礎方案", "detail": "成本較低但性能衰減嚴重", "status": "eliminated", "eliminationReason": "無法滿足極限性能需求"},
+                {"id": "p2", "name": "路線 2: 突破性深層方案", "category": "前沿技術", "detail": "直接切入深層核心，提供單一單元極致精確度", "status": "selected", "highlightTag": "核心突破選擇"}
+            ]
+        p["selectedId"] = p.get("selectedId") or "p2"
+        p["accentColor"] = p.get("accentColor") or "#00F5FF"
+    elif comp == "LeaderCalloutScene":
+        p["title"] = str(title).strip()
+        p["subtitle"] = str(p.get("subtitle") or p.get("subtext") or "結構層次與關鍵組件深入導引").strip()
+        if not p.get("callouts"):
+            p["callouts"] = [
+                {"id": "c1", "label": "外層保護結構", "sublabel": "微米級微孔穿透，隔離外在環境干擾", "anchorX": 0.35, "anchorY": 0.3, "boxX": 0.68, "boxY": 0.28, "metric": "公差 < 10μm", "status": "normal"},
+                {"id": "c2", "label": "核心信號傳導區", "sublabel": "超高密度電極絲精準著陸點", "anchorX": 0.42, "anchorY": 0.65, "boxX": 0.68, "boxY": 0.65, "metric": "深度 1.5mm", "status": "active"}
+            ]
+        p["accentColor"] = p.get("accentColor") or "#00F5FF"
+    elif comp == "ScaleCompareScene":
+        p["title"] = str(title).strip()
+        p["subtitle"] = str(p.get("subtitle") or p.get("subtext") or "微觀結構與宏觀對照物的極致差距").strip()
+        p["macroLabel"] = str(p.get("macroLabel") or "人類頭髮 (Human Hair)").strip()
+        p["macroValue"] = str(p.get("macroValue") or "100 μm").strip()
+        p["macroDesc"] = str(p.get("macroDesc") or "肉眼可見的宏觀參考基準").strip()
+        p["microLabel"] = str(p.get("microLabel") or "微米級柔性電極絲").strip()
+        p["microValue"] = str(p.get("microValue") or "5 μm").strip()
+        p["microDesc"] = str(p.get("microDesc") or "極細柔性結構，大幅降低組織排異反應").strip()
+        p["ratioMultiplier"] = str(p.get("ratioMultiplier") or "20×").strip()
+        p["ratioLabel"] = str(p.get("ratioLabel") or "尺度差距").strip()
+        p["magnificationFactor"] = str(p.get("magnificationFactor") or "20X OPTICAL").strip()
+        p["accentColor"] = p.get("accentColor") or "#00F5FF"
+    else:  # EvidenceHighlightScene or fallback
+        p["title"] = str(title).strip()
+        p["docHeader"] = str(p.get("docHeader") or "TECHNICAL WHITEPAPER & PROTOCOL").strip()
+        p["docDate"] = str(p.get("docDate") or "OFFICIAL SPECIFICATION").strip()
+        excerpt = str(p.get("documentExcerpt") or p.get("subtext") or p.get("headline") or "關鍵試驗數據表明，自動化系統以高精度循環作業，大幅降低組織創傷。").strip()
+        p["documentExcerpt"] = excerpt
+        p["highlightPhrase"] = str(p.get("highlightPhrase") or excerpt[:min(len(excerpt), 30)]).strip()
+        if not p.get("telemetryStats"):
+            p["telemetryStats"] = [
+                {"label": "循環週期", "value": "1.5 秒", "badge": "超高速"},
+                {"label": "通道容量", "value": "1024 頻寬", "badge": "高通量"}
+            ]
+        p["accentColor"] = p.get("accentColor") or "#00F5FF"
+
     return p
 
 
@@ -346,7 +316,7 @@ def render_card(props: dict[str, Any], out_path: Path, seconds: float, bg_image:
     props_file.write_text(json.dumps(full_props, ensure_ascii=False), encoding="utf-8")
 
     frames = max(30, int(round(seconds * fps)))
-    out_path = Path(out_path)
+    out_path = Path(out_path).resolve()
     out_path.parent.mkdir(parents=True, exist_ok=True)
     cmd = [
         _npx(), "remotion", "render", composition, str(out_path),
@@ -378,7 +348,7 @@ def render_card(props: dict[str, Any], out_path: Path, seconds: float, bg_image:
 
 
 def render_scene_card(project, sc: Scene, props: dict[str, Any] | None = None, fps: int = 30,
-                      composition: str = "TechCard") -> dict[str, Any]:
+                      composition: str = "EvidenceHighlightScene") -> dict[str, Any]:
     """Render a card for `sc` over its own image and attach it as the scene's animation clip."""
     props = props or extract_card_props(sc)
     bg = project.abs(sc.image.path) if sc.image.status == Status.COMPLETED and sc.image.path else None
@@ -395,7 +365,7 @@ def render_scene_card(project, sc: Scene, props: dict[str, Any] | None = None, f
 
 def render_critical_scene_cards(project, scenes: list[Scene], progress: Callable[[int, int], None] | None = None,
                                 cancel: Callable[[], bool] | None = None, select: bool = True,
-                                composition: str = "TechCard") -> list[int]:
+                                composition: str = "EvidenceHighlightScene") -> list[int]:
     """Render cards for critical scenes. Returns the scene ids that got a card.
 
     With select=True the critical scenes are chosen from `scenes`; with select=False

@@ -1193,9 +1193,11 @@
             <div class="form-group">
               <label id="label-stage-model-animation">Stage 7: Animation & AI Video</label>
               <select id="model-stage-animation" onchange="onStageModelChange('animation')">
-                <option value="remotion">⚡ Remotion: Tech Cyberpunk Cards (+ Ken Burns)</option>
-                <option value="remotion_minimalist">📐 Remotion: Minimalist Swiss Cards (+ Ken Burns)</option>
-                <option value="remotion_cinema">🎬 Remotion: Cinema Impact Cards (+ Ken Burns)</option>
+                <option value="remotion_evidence">📑 Remotion: Evidence Highlight 文獻劃記 (+ Ken Burns)</option>
+                <option value="remotion_pathway">🔀 Remotion: Branch Pathway 分支決策 (+ Ken Burns)</option>
+                <option value="remotion_callout">🎯 Remotion: Leader Callout 引線標註 (+ Ken Burns)</option>
+                <option value="remotion_scale">🔬 Remotion: Scale Loupe 尺度對比 (+ Ken Burns)</option>
+                <option value="remotion">⚛️ Remotion: Auto Tactile Blueprint 自動藍圖 (+ Ken Burns)</option>
                 <option value="kenburns" selected>Local: Ken Burns 2.5D Motion (0 VRAM)</option>
                 <option value="stock_video">🌐 Online Stock Video Clips (B-Roll Footage)</option>
                 <option value="comfyui_video">Local GPU: ComfyUI Video</option>
@@ -1206,21 +1208,25 @@
               </select>
               <div id="creator-remotion-preview-strip" style="display: none; margin-top: 8px; padding: 10px; background: #060b16; border: 1.5px solid #00F5FF; border-radius: 8px;">
                 <div style="font-size: 11px; font-weight: 700; color: #00F5FF; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;">
-                  <span>⚛️ Remotion 視覺卡片樣式預覽</span>
-                  <span id="creator-remotion-active-name" style="color: #93c5fd; font-size: 11px; font-weight: 600;">⚡ 賽博青光 (Cyber Glow)</span>
+                  <span>⚛️ Remotion Tactile Blueprint 樣式預覽</span>
+                  <span id="creator-remotion-active-name" style="color: #93c5fd; font-size: 11px; font-weight: 600;">📑 文獻劃記 (Evidence Highlight)</span>
                 </div>
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
-                  <div onclick="selectCreatorRemotionStyle('remotion')" id="creator-style-remotion" style="border: 2px solid #00F5FF; border-radius: 6px; overflow: hidden; cursor: pointer; text-align: center; background: #000; box-shadow: 0 0 10px rgba(0,245,255,0.25); transition: all 0.2s;">
-                    <img src="/remotion/style_techcard.png" alt="Tech Card" style="width: 100%; height: 50px; object-fit: cover; display: block;">
-                    <span style="font-size: 10px; color: #00F5FF; font-weight: 700; display: block; padding: 3px 0;">⚡ 賽博青光</span>
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
+                  <div onclick="selectCreatorRemotionStyle('remotion_pathway')" id="creator-style-remotion_pathway" style="border: 1px solid #1e293b; border-radius: 6px; overflow: hidden; cursor: pointer; text-align: center; background: #000; transition: all 0.2s;">
+                    <img src="/remotion/style_branchpathway.png" alt="Branch Pathway" style="width: 100%; height: 50px; object-fit: cover; display: block;">
+                    <span style="font-size: 10px; color: #38bdf8; font-weight: 700; display: block; padding: 3px 0;">🔀 分支決策</span>
                   </div>
-                  <div onclick="selectCreatorRemotionStyle('remotion_minimalist')" id="creator-style-remotion_minimalist" style="border: 1px solid #1e293b; border-radius: 6px; overflow: hidden; cursor: pointer; text-align: center; background: #000; transition: all 0.2s;">
-                    <img src="/remotion/style_minimalist.png" alt="Minimalist" style="width: 100%; height: 50px; object-fit: cover; display: block;">
-                    <span style="font-size: 10px; color: #34d399; font-weight: 700; display: block; padding: 3px 0;">📐 瑞士極簡</span>
+                  <div onclick="selectCreatorRemotionStyle('remotion_callout')" id="creator-style-remotion_callout" style="border: 1px solid #1e293b; border-radius: 6px; overflow: hidden; cursor: pointer; text-align: center; background: #000; transition: all 0.2s;">
+                    <img src="/remotion/style_leadercallout.png" alt="Leader Callout" style="width: 100%; height: 50px; object-fit: cover; display: block;">
+                    <span style="font-size: 10px; color: #38bdf8; font-weight: 700; display: block; padding: 3px 0;">🎯 引線標註</span>
                   </div>
-                  <div onclick="selectCreatorRemotionStyle('remotion_cinema')" id="creator-style-remotion_cinema" style="border: 1px solid #1e293b; border-radius: 6px; overflow: hidden; cursor: pointer; text-align: center; background: #000; transition: all 0.2s;">
-                    <img src="/remotion/style_cinema.png" alt="Cinema" style="width: 100%; height: 50px; object-fit: cover; display: block;">
-                    <span style="font-size: 10px; color: #fbbf24; font-weight: 700; display: block; padding: 3px 0;">🎬 電影金曜</span>
+                  <div onclick="selectCreatorRemotionStyle('remotion_scale')" id="creator-style-remotion_scale" style="border: 1px solid #1e293b; border-radius: 6px; overflow: hidden; cursor: pointer; text-align: center; background: #000; transition: all 0.2s;">
+                    <img src="/remotion/style_scalecompare.png" alt="Scale Compare" style="width: 100%; height: 50px; object-fit: cover; display: block;">
+                    <span style="font-size: 10px; color: #38bdf8; font-weight: 700; display: block; padding: 3px 0;">🔬 尺度對比</span>
+                  </div>
+                  <div onclick="selectCreatorRemotionStyle('remotion_evidence')" id="creator-style-remotion_evidence" style="border: 2px solid #00F5FF; border-radius: 6px; overflow: hidden; cursor: pointer; text-align: center; background: #000; box-shadow: 0 0 10px rgba(0,245,255,0.25); transition: all 0.2s;">
+                    <img src="/remotion/style_evidencehighlight.png" alt="Evidence Highlight" style="width: 100%; height: 50px; object-fit: cover; display: block;">
+                    <span style="font-size: 10px; color: #00F5FF; font-weight: 700; display: block; padding: 3px 0;">📑 文獻劃記</span>
                   </div>
                 </div>
               </div>
@@ -2083,22 +2089,43 @@
 
     <!-- UPLOAD CUSTOM MUSIC CARD -->
     <div class="card" style="margin-top: 20px;">
-      <div class="card-title">📤 Upload Custom Background Track</div>
+      <div class="card-title">📤 Upload Custom Background Tracks (Multi-File Ingestion)</div>
       <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px;">
-        Add your own royalty-free ambient music (.mp3, .wav, .m4a, .ogg, .flac). It will instantly become available across all video projects.
+        Add royalty-free ambient music (.mp3, .wav, .m4a, .ogg, .flac). Supports multi-file selection & batch drag-and-drop. Instantly indexed into catalog across all projects.
       </div>
+
+      <!-- Drag & Drop Zone -->
+      <div id="music-dropzone" style="border: 2px dashed rgba(59, 130, 246, 0.45); border-radius: var(--radius); padding: 22px 20px; text-align: center; background: rgba(15, 23, 42, 0.6); cursor: pointer; transition: all 0.2s; margin-bottom: 14px;"
+           onclick="document.getElementById('music-upload-file').click()"
+           ondragover="onMusicDropZoneOver(event)"
+           ondragleave="onMusicDropZoneLeave(event)"
+           ondrop="onMusicDropZoneDrop(event)">
+        <div style="font-size: 30px; margin-bottom: 6px;">📂 ➔ 🎶</div>
+        <div style="font-size: 13.5px; font-weight: 700; color: #fff;">
+          點此選取多個音訊檔案，或直接將音檔自檔案總管拖曳至此處
+        </div>
+        <div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">
+          支援單次選取多首 .mp3, .wav, .m4a 批次匯入，自動依檔名分流並同步 Catalog 標籤
+        </div>
+      </div>
+
       <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
-        <input type="file" id="music-upload-file" accept="audio/*" style="font-size: 13px; max-width: 300px;">
-        <select id="music-upload-category" style="padding: 7px 10px; font-size: 13px; border-radius: var(--radius); background: var(--bg-sunken); border: 1px solid var(--border-muted); color: var(--text-main); min-width: 200px;">
-          <option value="tech_futuristic">🚀 Tech & Sci-Fi</option>
-          <option value="cinematic_documentary">🎬 Cinematic Documentary</option>
-          <option value="mystery_cosmic">🌌 Dark Mystery & Space</option>
-          <option value="calm_focus" selected>🌿 Calm & Focus</option>
-          <option value="dramatic_tension">⚡ Dramatic Tension</option>
-          <option value="uplifting_inspirational">✨ Uplifting & Wonder</option>
-          <option value="custom">📁 Custom / Other</option>
-        </select>
-        <button onclick="uploadMusicFile()" class="btn-primary" style="padding: 8px 16px; font-weight: 700;">Upload Track</button>
+        <input type="file" id="music-upload-file" accept="audio/*" multiple style="display: none;" onchange="onMusicFileInputChange(this)">
+        <span id="music-selected-count" style="font-size: 12px; color: #60a5fa; font-weight: 600;">未選取檔案</span>
+        <div style="display: flex; align-items: center; gap: 6px; margin-left: auto;">
+          <label style="font-size: 12px; font-weight: 700; color: #cbd5e1; margin: 0;">匯入分類：</label>
+          <select id="music-upload-category" style="padding: 7px 10px; font-size: 12.5px; border-radius: var(--radius); background: var(--bg-sunken); border: 1px solid var(--border-muted); color: var(--text-main); min-width: 220px;">
+            <option value="auto" selected>🤖 自動依檔名智慧分流 (Auto Categorize)</option>
+            <option value="tech_futuristic">🚀 Tech & Sci-Fi (科技未來)</option>
+            <option value="cinematic_documentary">🎬 Cinematic Documentary (歷史紀錄)</option>
+            <option value="mystery_cosmic">🌌 Dark Mystery & Space (宇宙未解)</option>
+            <option value="calm_focus">🌿 Calm & Focus (平靜沉思)</option>
+            <option value="dramatic_tension">⚡ Dramatic Tension (衝突危機)</option>
+            <option value="uplifting_inspirational">✨ Uplifting & Wonder (勵志突破)</option>
+            <option value="custom">📁 Custom / Other</option>
+          </select>
+        </div>
+        <button id="btn-upload-music" onclick="uploadMusicFile()" class="btn-primary" style="padding: 8px 18px; font-weight: 700;">🚀 批次上傳音樂 (Upload Batch)</button>
       </div>
       <div id="music-upload-status" style="font-size: 12px; margin-top: 8px; color: #94a3b8;"></div>
     </div>
@@ -2506,63 +2533,80 @@
       <div class="card-title" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
         <div style="display: flex; align-items: center; gap: 8px;">
           <span>⚛️</span>
-          <span>Remotion Motion Graphics & Style Gallery (重點字卡樣式庫)</span>
+          <span>Remotion Motion Graphics & Style Gallery (紀錄片動態圖解樣式庫)</span>
         </div>
-        <span style="font-size: 11px; background: rgba(0, 245, 255, 0.15); border: 1px solid #00F5FF; color: #00F5FF; font-weight: 700; padding: 3px 10px; border-radius: 12px;">React 18 · Remotion 4.0 · 1080p</span>
+        <span style="font-size: 11px; background: rgba(0, 245, 255, 0.15); border: 1px solid #00F5FF; color: #00F5FF; font-weight: 700; padding: 3px 10px; border-radius: 12px;">React 19 · Remotion 4.0 · 1080p Tactile Blueprint</span>
       </div>
       <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 16px;">
-        針對關鍵重要分鏡（約 20% 分鏡），自動將分鏡底圖調暗模糊，並在上方疊加 React 算繪的高質感動態數據圖卡。下方為三種可選視覺風格樣式與即時預覽：
+        專為深度調查、科技科普與重大工程解說打造的 Tactile Blueprint 動態視覺體系。針對關鍵重要分鏡，自動將分鏡底圖調暗，並由 React 算繪多路徑分支、微觀尺度放大鏡、解剖引線 HUD 或文獻螢光筆劃記：
       </div>
 
-      <!-- 3 Style Cards Grid with Clickable Selection -->
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 20px;">
-        <!-- Style 1 -->
-        <div id="remotion-style-card-tech" class="remotion-style-card active" onclick="selectRemotionGlobalStyle('TechCard')" style="background: #060b16; border: 2px solid #00F5FF; border-radius: 8px; overflow: hidden; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 0 15px rgba(0,245,255,0.2);">
-          <div style="position: relative; width: 100%; height: 130px; background: #000; overflow: hidden;">
-            <img src="/remotion/style_techcard.png" alt="Cyber Glow" style="width: 100%; height: 100%; object-fit: cover;">
-            <span style="position: absolute; top: 8px; left: 8px; background: rgba(0,245,255,0.9); color: #000; font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 4px; text-transform: uppercase;">Style 1</span>
+      <!-- 4 Style Cards Grid with Clickable Selection -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-bottom: 20px;">
+        <!-- Style 1: Branch Pathway -->
+        <div id="remotion-style-card-branchpathway" class="remotion-style-card" onclick="selectRemotionGlobalStyle('BranchPathwayScene')" style="background: #060b16; border: 1.5px solid #1e293b; border-radius: 8px; overflow: hidden; cursor: pointer; transition: all 0.2s ease;">
+          <div style="position: relative; width: 100%; height: 140px; background: #000; overflow: hidden;">
+            <img src="/remotion/style_branchpathway.png" alt="Branch Pathway" style="width: 100%; height: 100%; object-fit: cover;">
+            <span style="position: absolute; top: 8px; left: 8px; background: rgba(0,245,255,0.9); color: #000; font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 4px; text-transform: uppercase;">Archetype 1</span>
           </div>
           <div style="padding: 12px 14px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-              <b style="color: #38bdf8; font-size: 13px;">Cyber Glow (賽博科技發光)</b>
-              <span id="remotion-badge-tech" class="badge" style="background: #0284c7; color: #fff; font-size: 10px;">預設</span>
+              <b style="color: #38bdf8; font-size: 13px;">🔀 分支決策 (Branch Pathway)</b>
+              <span id="remotion-badge-branchpathway" class="badge" style="display: none; background: #0284c7; color: #fff; font-size: 10px;">預設</span>
             </div>
             <div style="font-size: 11px; color: #94a3b8; line-height: 1.4;">
-              青藍霓虹光暈、動態數字計數器、發光 Tag 標籤。最適合科技硬體、AI 實測與數位產品評測。
+              四條技術路線對比、三段式動態劃線、淘汰打叉與最終目標鎖定。最適合架構抉擇與技術選型對比。
             </div>
           </div>
         </div>
 
-        <!-- Style 2 -->
-        <div id="remotion-style-card-mini" class="remotion-style-card" onclick="selectRemotionGlobalStyle('MinimalistCard')" style="background: #060b16; border: 1.5px solid #1e293b; border-radius: 8px; overflow: hidden; cursor: pointer; transition: all 0.2s ease;">
-          <div style="position: relative; width: 100%; height: 130px; background: #000; overflow: hidden;">
-            <img src="/remotion/style_minimalist.png" alt="Swiss Minimalist" style="width: 100%; height: 100%; object-fit: cover;">
-            <span style="position: absolute; top: 8px; left: 8px; background: rgba(52,211,153,0.9); color: #000; font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 4px; text-transform: uppercase;">Style 2</span>
+        <!-- Style 2: Leader Callout -->
+        <div id="remotion-style-card-leadercallout" class="remotion-style-card" onclick="selectRemotionGlobalStyle('LeaderCalloutScene')" style="background: #060b16; border: 1.5px solid #1e293b; border-radius: 8px; overflow: hidden; cursor: pointer; transition: all 0.2s ease;">
+          <div style="position: relative; width: 100%; height: 140px; background: #000; overflow: hidden;">
+            <img src="/remotion/style_leadercallout.png" alt="Leader Callout" style="width: 100%; height: 100%; object-fit: cover;">
+            <span style="position: absolute; top: 8px; left: 8px; background: rgba(0,245,255,0.9); color: #000; font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 4px; text-transform: uppercase;">Archetype 2</span>
           </div>
           <div style="padding: 12px 14px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-              <b style="color: #34d399; font-size: 13px;">Swiss Minimalist (瑞士極簡)</b>
-              <span id="remotion-badge-mini" class="badge" style="display: none; background: #059669; color: #fff; font-size: 10px;">已選</span>
+              <b style="color: #38bdf8; font-size: 13px;">🎯 引線標註 (Leader Callout)</b>
+              <span id="remotion-badge-leadercallout" class="badge" style="display: none; background: #0284c7; color: #fff; font-size: 10px;">預設</span>
             </div>
             <div style="font-size: 11px; color: #94a3b8; line-height: 1.4;">
-              翡翠綠幾何分割、極致乾淨黑白排版。最適合深度知識解說、商業分析、學術科普類影片。
+              解剖與硬體 HUD、SVG 手肘折線動態繪製、脈衝原點與浮動數據卡。最適合大腦層次與精密結構標註。
             </div>
           </div>
         </div>
 
-        <!-- Style 3 -->
-        <div id="remotion-style-card-cinema" class="remotion-style-card" onclick="selectRemotionGlobalStyle('CinemaImpactCard')" style="background: #060b16; border: 1.5px solid #1e293b; border-radius: 8px; overflow: hidden; cursor: pointer; transition: all 0.2s ease;">
-          <div style="position: relative; width: 100%; height: 130px; background: #000; overflow: hidden;">
-            <img src="/remotion/style_cinema.png" alt="Cinematic Spotlight" style="width: 100%; height: 100%; object-fit: cover;">
-            <span style="position: absolute; top: 8px; left: 8px; background: rgba(251,191,36,0.9); color: #000; font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 4px; text-transform: uppercase;">Style 3</span>
+        <!-- Style 3: Scale Compare -->
+        <div id="remotion-style-card-scalecompare" class="remotion-style-card" onclick="selectRemotionGlobalStyle('ScaleCompareScene')" style="background: #060b16; border: 1.5px solid #1e293b; border-radius: 8px; overflow: hidden; cursor: pointer; transition: all 0.2s ease;">
+          <div style="position: relative; width: 100%; height: 140px; background: #000; overflow: hidden;">
+            <img src="/remotion/style_scalecompare.png" alt="Scale Compare" style="width: 100%; height: 100%; object-fit: cover;">
+            <span style="position: absolute; top: 8px; left: 8px; background: rgba(0,245,255,0.9); color: #000; font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 4px; text-transform: uppercase;">Archetype 3</span>
           </div>
           <div style="padding: 12px 14px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-              <b style="color: #fbbf24; font-size: 13px;">Cinematic Spotlight (電影金曜)</b>
-              <span id="remotion-badge-cinema" class="badge" style="display: none; background: #d97706; color: #fff; font-size: 10px;">已選</span>
+              <b style="color: #38bdf8; font-size: 13px;">🔬 尺度對比 (Scale Loupe)</b>
+              <span id="remotion-badge-scalecompare" class="badge" style="display: none; background: #0284c7; color: #fff; font-size: 10px;">預設</span>
             </div>
             <div style="font-size: 11px; color: #94a3b8; line-height: 1.4;">
-              琥珀金發光邊框、電影黑金質感、大幅動態縮放。最適合重磅揭示、關鍵反轉、震撼結論分鏡。
+              20X 同心圓微觀光學放大鏡、十字準心、雙對照物截面與滑動微米尺規。最適合頭髮 vs 微電極極致尺度對比。
+            </div>
+          </div>
+        </div>
+
+        <!-- Style 4: Evidence Highlight -->
+        <div id="remotion-style-card-evidencehighlight" class="remotion-style-card active" onclick="selectRemotionGlobalStyle('EvidenceHighlightScene')" style="background: #060b16; border: 2px solid #00F5FF; border-radius: 8px; overflow: hidden; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 0 15px rgba(0,245,255,0.25);">
+          <div style="position: relative; width: 100%; height: 140px; background: #000; overflow: hidden;">
+            <img src="/remotion/style_evidencehighlight.png" alt="Evidence Highlight" style="width: 100%; height: 100%; object-fit: cover;">
+            <span style="position: absolute; top: 8px; left: 8px; background: rgba(0,245,255,0.9); color: #000; font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 4px; text-transform: uppercase;">Archetype 4</span>
+          </div>
+          <div style="padding: 12px 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <b style="color: #38bdf8; font-size: 13px;">📑 文獻劃記 (Evidence Highlight)</b>
+              <span id="remotion-badge-evidencehighlight" class="badge" style="background: #0284c7; color: #fff; font-size: 10px;">預設</span>
+            </div>
+            <div style="font-size: 11px; color: #94a3b8; line-height: 1.4;">
+              實體剪紙質感、動態螢光筆筆刷劃記與右側手術數據卡。最適合專利文獻、白皮書關鍵結論與數據佐證。
             </div>
           </div>
         </div>
@@ -2572,19 +2616,19 @@
       <div style="background: #040813; border: 1px solid #1e3a8a; border-radius: 8px; padding: 14px 18px; margin-bottom: 16px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
           <div>
-            <b style="color: #93c5fd; font-size: 13px;">分鏡實際疊加效果展示 (Darkened Background + React Motion Overlay)</b>
-            <div style="font-size: 11px; color: #64748b; margin-top: 2px;">底圖自動降低亮度至 45% 並微模糊，確保前景重點動態字卡 100% 聚焦清晰</div>
+            <b style="color: #93c5fd; font-size: 13px;">分鏡實際算繪效果展示 (1080p Tactile Blueprint + Motion Graphics Composite)</b>
+            <div style="font-size: 11px; color: #64748b; margin-top: 2px;">暗色藍圖網格與分鏡底圖自動融合，確保前景 SVG 引線、紙質質感與數據遙測 100% 焦點清晰</div>
           </div>
-          <span style="font-size: 11px; color: #10b981; font-weight: 600;">✅ 自動整合於 Stage 7</span>
+          <span style="font-size: 11px; color: #10b981; font-weight: 600;">✅ 自動整合於 Stage 8 動畫階段</span>
         </div>
-        <div style="border-radius: 6px; overflow: hidden; border: 1px solid #1e293b; max-height: 240px; position: relative;">
+        <div style="border-radius: 6px; overflow: hidden; border: 1px solid #1e293b; max-height: 280px; position: relative;">
           <img src="/remotion/scene_overlay_preview.png" alt="Overlay In Situ" style="width: 100%; height: auto; display: block; object-fit: cover;">
         </div>
       </div>
 
       <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
         <div style="font-size: 12px; color: #94a3b8;">
-          當前預設風格：<b id="remotion-current-style-name" style="color: #00F5FF;">Cyber Glow (Tech Card)</b>
+          當前預設動態圖解風格：<b id="remotion-current-style-name" style="color: #00F5FF;">📑 文獻劃記 (Evidence Highlight)</b>
         </div>
         <button onclick="saveRemotionGlobalSettings()" class="btn-primary" style="font-size: 12px; padding: 6px 14px; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); border: 1px solid #00F5FF; font-weight: 700;">
           儲存 Remotion 預設風格
@@ -4442,17 +4486,18 @@
       }
     }
 
-    const STAGE_ORDER = ["research", "script", "scenes", "prompts", "images", "voice", "animation", "subtitles", "render"];
+    const STAGE_ORDER = ["research", "script", "scenes", "prompts", "images", "voice", "music", "animation", "subtitles", "render"];
     const STAGE_LABELS = {
-      research: "1/9 Research",
-      script: "2/9 Script",
-      scenes: "3/9 Scenes",
-      prompts: "4/9 Prompts",
-      images: "5/9 Images",
-      voice: "6/9 Voice TTS",
-      animation: "7/9 Animation",
-      subtitles: "8/9 Subtitles",
-      render: "9/9 Render"
+      research: "1/10 Research",
+      script: "2/10 Script",
+      scenes: "3/10 Scenes",
+      prompts: "4/10 Prompts",
+      images: "5/10 Images",
+      voice: "6/10 Voice TTS",
+      music: "7/10 Ambient Music",
+      animation: "8/10 Animation",
+      subtitles: "9/10 Subtitles",
+      render: "10/10 Render"
     };
 
     function switchTab(name) {
@@ -4568,20 +4613,21 @@
       const v = el.value || '';
       if (v.startsWith('remotion')) {
         strip.style.display = 'block';
-        const styles = ['remotion', 'remotion_minimalist', 'remotion_cinema'];
+        const styles = ['remotion_pathway', 'remotion_callout', 'remotion_scale', 'remotion_evidence'];
         styles.forEach(k => {
           const card = document.getElementById('creator-style-' + k);
           if (card) {
-            const isSel = (v === k);
-            const color = (k === 'remotion') ? '#00F5FF' : (k === 'remotion_minimalist' ? '#34d399' : '#fbbf24');
+            const isSel = (v === k || (v === 'remotion' && k === 'remotion_evidence'));
+            const color = '#00F5FF';
             card.style.border = isSel ? `2px solid ${color}` : '1px solid #1e293b';
             card.style.boxShadow = isSel ? `0 0 10px ${color}40` : 'none';
           }
         });
         if (activeName) {
-          if (v === 'remotion') activeName.textContent = '⚡ 賽博青光 (Cyber Glow)';
-          else if (v === 'remotion_minimalist') activeName.textContent = '📐 瑞士極簡 (Swiss Minimalist)';
-          else if (v === 'remotion_cinema') activeName.textContent = '🎬 電影金曜 (Cinematic Spotlight)';
+          if (v === 'remotion_pathway') activeName.textContent = '🔀 分支決策 (Branch Pathway)';
+          else if (v === 'remotion_callout') activeName.textContent = '🎯 引線標註 (Leader Callout)';
+          else if (v === 'remotion_scale') activeName.textContent = '🔬 尺度對比 (Scale Loupe)';
+          else activeName.textContent = '📑 文獻劃記 (Evidence Highlight)';
         }
       } else {
         strip.style.display = 'none';
@@ -9992,35 +10038,113 @@
       }
     }
 
+    let pendingMusicFiles = [];
+
+    function onMusicFileInputChange(inputEl) {
+      if (inputEl.files && inputEl.files.length) {
+        pendingMusicFiles = Array.from(inputEl.files);
+        updateSelectedMusicCount();
+      }
+    }
+
+    function updateSelectedMusicCount() {
+      const countEl = document.getElementById('music-selected-count');
+      if (countEl) {
+        if (!pendingMusicFiles.length) {
+          countEl.textContent = "未選取檔案";
+        } else {
+          countEl.textContent = `已選取 ${pendingMusicFiles.length} 個音訊檔案 (準備上傳)`;
+        }
+      }
+    }
+
+    function onMusicDropZoneOver(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      const dz = document.getElementById('music-dropzone');
+      if (dz) {
+        dz.style.borderColor = '#3b82f6';
+        dz.style.background = 'rgba(59, 130, 246, 0.15)';
+      }
+    }
+
+    function onMusicDropZoneLeave(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      const dz = document.getElementById('music-dropzone');
+      if (dz) {
+        dz.style.borderColor = 'rgba(59, 130, 246, 0.45)';
+        dz.style.background = 'rgba(15, 23, 42, 0.6)';
+      }
+    }
+
+    function onMusicDropZoneDrop(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      onMusicDropZoneLeave(e);
+      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) {
+        const audioFiles = Array.from(e.dataTransfer.files).filter(f => {
+          const ext = f.name.toLowerCase().split('.').pop();
+          return ['mp3', 'wav', 'm4a', 'ogg', 'flac', 'aac'].includes(ext);
+        });
+        if (!audioFiles.length) {
+          return alert("請拖入有效的音訊檔案 (.mp3, .wav, .m4a, .ogg, .flac)！");
+        }
+        pendingMusicFiles = audioFiles;
+        updateSelectedMusicCount();
+        if (typeof showToast === 'function') {
+          showToast(`已就緒 ${audioFiles.length} 個音訊檔案，請點擊「🚀 批次上傳音樂」`);
+        }
+      }
+    }
+
     async function uploadMusicFile() {
       const fileInput = document.getElementById('music-upload-file');
       const catSelect = document.getElementById('music-upload-category');
       const statusEl = document.getElementById('music-upload-status');
-      if (!fileInput || !fileInput.files.length) {
-        return alert("Please select an audio file (.mp3, .wav, .m4a, etc.) to upload.");
+      const btn = document.getElementById('btn-upload-music');
+
+      const filesToUpload = pendingMusicFiles.length ? pendingMusicFiles : (fileInput && fileInput.files.length ? Array.from(fileInput.files) : []);
+
+      if (!filesToUpload.length) {
+        return alert("請先點擊選取或拖入音訊檔案 (.mp3, .wav, .m4a 等)。");
       }
-      const file = fileInput.files[0];
+
       const formData = new FormData();
-      formData.append('file', file);
+      filesToUpload.forEach(f => {
+        formData.append('files', f);
+      });
       if (catSelect && catSelect.value) {
         formData.append('category', catSelect.value);
       }
 
-      if (statusEl) statusEl.textContent = "Uploading track...";
+      if (btn) btn.disabled = true;
+      if (statusEl) statusEl.textContent = `⏳ 正在批次上傳 ${filesToUpload.length} 首音軌並自動同步至 Catalog...`;
+
       try {
-        const res = await fetch('/api/music/upload', {
+        const res = await fetch('/api/music/upload-multiple', {
           method: 'POST',
           body: formData
         });
+        const data = await res.json();
         if (res.ok) {
-          if (statusEl) statusEl.textContent = `✓ Uploaded ${file.name} successfully!`;
-          fileInput.value = '';
+          if (statusEl) {
+            statusEl.innerHTML = `<span style="color: #34d399; font-weight: 700;">✓ 成功上傳 ${data.count || filesToUpload.length} 首音軌！已自動完成分類與 Catalog 標籤登錄。</span>`;
+          }
+          if (typeof showToast === 'function') {
+            showToast(`✓ 成功批次匯入 ${data.count || filesToUpload.length} 首背景配樂！`);
+          }
+          pendingMusicFiles = [];
+          if (fileInput) fileInput.value = '';
+          updateSelectedMusicCount();
           await loadMusicTracks();
         } else {
-          if (statusEl) statusEl.textContent = `Upload failed: ${res.statusText}`;
+          if (statusEl) statusEl.textContent = `上傳失敗: ${data.detail || res.statusText}`;
         }
       } catch (e) {
-        if (statusEl) statusEl.textContent = `Upload error: ${e.message}`;
+        if (statusEl) statusEl.textContent = `上傳發生錯誤: ${e.message}`;
+      } finally {
+        if (btn) btn.disabled = false;
       }
     }
 
@@ -10287,14 +10411,20 @@
       }
     }
 
-    let currentGlobalRemotionStyle = 'TechCard';
+    let currentGlobalRemotionStyle = 'EvidenceHighlightScene';
 
     function selectRemotionGlobalStyle(styleName) {
+      // Graceful legacy name alias
+      if (styleName === 'TechCard') styleName = 'EvidenceHighlightScene';
+      else if (styleName === 'MinimalistCard') styleName = 'LeaderCalloutScene';
+      else if (styleName === 'CinemaImpactCard') styleName = 'ScaleCompareScene';
+
       currentGlobalRemotionStyle = styleName;
       const styles = {
-        'TechCard': { id: 'remotion-style-card-tech', badge: 'remotion-badge-tech', name: 'Cyber Glow (Tech Card)', color: '#00F5FF' },
-        'MinimalistCard': { id: 'remotion-style-card-mini', badge: 'remotion-badge-mini', name: 'Swiss Minimalist (Minimalist Card)', color: '#34d399' },
-        'CinemaImpactCard': { id: 'remotion-style-card-cinema', badge: 'remotion-badge-cinema', name: 'Cinematic Spotlight (Cinema Impact Card)', color: '#fbbf24' }
+        'BranchPathwayScene': { id: 'remotion-style-card-branchpathway', badge: 'remotion-badge-branchpathway', name: '🔀 分支決策 (Branch Pathway)', color: '#00F5FF' },
+        'LeaderCalloutScene': { id: 'remotion-style-card-leadercallout', badge: 'remotion-badge-leadercallout', name: '🎯 引線標註 (Leader Callout)', color: '#00F5FF' },
+        'ScaleCompareScene': { id: 'remotion-style-card-scalecompare', badge: 'remotion-badge-scalecompare', name: '🔬 尺度對比 (Scale Loupe)', color: '#00F5FF' },
+        'EvidenceHighlightScene': { id: 'remotion-style-card-evidencehighlight', badge: 'remotion-badge-evidencehighlight', name: '📑 文獻劃記 (Evidence Highlight)', color: '#00F5FF' }
       };
 
       Object.keys(styles).forEach(k => {
@@ -10343,13 +10473,17 @@
     }
 
     function selectRemotionStudioStyle(compName) {
+      if (compName === 'TechCard') compName = 'EvidenceHighlightScene';
+      else if (compName === 'MinimalistCard') compName = 'LeaderCalloutScene';
+      else if (compName === 'CinemaImpactCard') compName = 'ScaleCompareScene';
+
       const sel = document.getElementById('remotion-style-select');
       if (sel) sel.value = compName;
-      ['TechCard', 'MinimalistCard', 'CinemaImpactCard'].forEach(c => {
+      ['BranchPathwayScene', 'LeaderCalloutScene', 'ScaleCompareScene', 'EvidenceHighlightScene'].forEach(c => {
         const card = document.getElementById('studio-style-card-' + c);
         if (card) {
           const isSel = (c === compName);
-          const color = (c === 'TechCard') ? '#00F5FF' : (c === 'MinimalistCard' ? '#34d399' : '#fbbf24');
+          const color = '#00F5FF';
           card.style.border = isSel ? `2px solid ${color}` : '1.5px solid #1e293b';
           card.style.boxShadow = isSel ? `0 0 12px ${color}40` : 'none';
         }
@@ -10729,7 +10863,7 @@
 
           <!-- Per-Scene Gallery & Tuning -->
           <div style="font-size:12px; color:var(--text-muted); margin-bottom:10px;">Scene Images Gallery: Tune prompts or change models per scene, then click Regenerate to re-render using ComfyUI DirectML.</div>
-          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:14px;">
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(460px, 1fr)); gap:14px;">
         `;
 
         const buster = Date.now();
@@ -10794,26 +10928,42 @@
                 `)}
               ` }
 
-              <!-- Script / Narration Box for compare check of script vs selected image -->
-              <div style="background: rgba(14, 20, 34, 0.75); border: 1px solid rgba(124, 145, 182, 0.25); border-left: 3px solid #C19D49; border-radius: 6px; padding: 6px 10px; font-size: 12px; line-height: 1.45; color: #f1f5f9; box-shadow: inset 0 1px 3px rgba(0,0,0,0.3); margin-bottom: 2px;">
-                <div style="font-size: 10px; font-weight: 700; color: #C19D49; margin-bottom: 2px; display: flex; align-items: center; justify-content: space-between;">
-                  <span style="display: flex; align-items: center; gap: 4px;">
-                    <span>🎙️</span> <span>分鏡旁白台詞 (Script):</span>
-                  </span>
-                  <span style="font-size: 9px; color: #7C91B6; font-family: monospace;">${(s.narration || '').length} 字</span>
+              <!-- Side-by-Side: Image and Scene Script Line -->
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; align-items: stretch;">
+                <!-- Left: Scene Image Preview -->
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <div style="width:100%; height:150px; background:#000; border-radius:6px; overflow:hidden; display:flex; align-items:center; justify-content:center; position:relative; border: 1px solid #1e293b;">
+                    ${imgUrl ? `
+                      <img id="insp-scene-img-${s.scene_id}" src="${imgUrlBusted}" style="width:100%; height:100%; object-fit:cover; cursor:pointer;" onclick="window.open('${imgUrl}')" title="Click to view full image">
+                      <div style="position: absolute; bottom: 4px; left: 4px; background: rgba(0,0,0,0.7); font-size: 10px; color: #cbd5e1; padding: 2px 5px; border-radius: 3px; pointer-events: none;">🔍 Click to Zoom</div>
+                      <button onclick="event.stopPropagation(); deleteSceneActiveImage(${s.scene_id})" style="position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.75); border: 1px solid #ef4444; color: #fca5a5; border-radius: 3px; padding: 2px 6px; font-size: 11px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 3px; z-index: 2;" title="Delete current image">
+                        🗑️ Delete
+                      </button>
+                    ` : `<span id="insp-no-img-${s.scene_id}" style="font-size:12px; color:gray;">No Image Generated</span>`}
+                  </div>
                 </div>
-                <div style="font-weight: 500; color: #e2e8f0; word-break: break-word;">
-                  ${escapeHtml(s.narration || '（無旁白）')}
-                </div>
-              </div>
 
-              <div style="width:100%; height:140px; background:#000; border-radius:6px; overflow:hidden; display:flex; align-items:center; justify-content:center; position:relative;">
-                ${imgUrl ? `
-                  <img id="insp-scene-img-${s.scene_id}" src="${imgUrlBusted}" style="width:100%; height:100%; object-fit:cover; cursor:pointer;" onclick="window.open('${imgUrl}')" title="Click to view full image">
-                  <button onclick="event.stopPropagation(); deleteSceneActiveImage(${s.scene_id})" style="position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.75); border: 1px solid #ef4444; color: #fca5a5; border-radius: 3px; padding: 2px 6px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 3px;" title="Delete current image">
-                    🗑️ Delete
-                  </button>
-                ` : `<span id="insp-no-img-${s.scene_id}" style="font-size:12px; color:gray;">No Image Generated</span>`}
+                <!-- Right: Script / Narration Box for match check & adjustment -->
+                <div style="display: flex; flex-direction: column; gap: 5px; background: rgba(14, 20, 34, 0.75); border: 1px solid rgba(124, 145, 182, 0.25); border-left: 3px solid #C19D49; border-radius: 6px; padding: 8px 10px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 11px; font-weight: 700; color: #C19D49; display: flex; align-items: center; gap: 4px;">
+                      <span>🎙️</span> <span>分鏡旁白台詞 (Script Line)</span>
+                    </span>
+                    <span id="insp-script-len-${s.scene_id}" style="font-size: 10px; color: #7C91B6; font-family: monospace;">${(s.narration || '').length} 字</span>
+                  </div>
+                  <div style="font-size: 11px; color: #94a3b8; line-height: 1.3;">
+                    核對台詞與左側畫面是否相符，可在此直接編輯台詞：
+                  </div>
+                  <div style="flex: 1; display: flex; flex-direction: column;">
+                    <textarea id="insp-scene-script-${s.scene_id}" rows="3" style="width: 100%; flex: 1; min-height: 75px; font-size: 12px; line-height: 1.45; padding: 6px 8px; background: #04070e; border: 1px solid #1e293b; color: #f1f5f9; border-radius: 4px; resize: vertical;" oninput="onStudioScriptInput(${s.scene_id}, this.value)" onblur="saveSingleSceneScript(${s.scene_id}, true)" placeholder="輸入旁白台詞...">${escapeHtml(s.narration || '')}</textarea>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 2px;">
+                    <span id="insp-script-toast-${s.scene_id}" style="font-size: 11px; color: #34d399; font-weight: 600; display: none;">✓ 台詞已儲存</span>
+                    <button class="btn-sec" id="insp-btn-save-script-${s.scene_id}" style="padding: 2px 8px; font-size: 11px; background: #233b6d; border-color: #3b82f6; color: #93c5fd; font-weight: 600; margin-left: auto;" onclick="saveSingleSceneScript(${s.scene_id}, false)" title="儲存修改後的旁白台詞">
+                      💾 儲存台詞
+                    </button>
+                  </div>
+                </div>
               </div>
 
               <!-- Live Progress & GPU Workload Box -->
@@ -11846,7 +11996,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       if (!currentProjectId) return alert("請先選取或建立專案。");
       const btn = document.getElementById('remotion-auto-btn');
       const st = document.getElementById('remotion-auto-status');
-      const comp = document.getElementById('remotion-style-select')?.value || 'TechCard';
+      const comp = document.getElementById('remotion-style-select')?.value || 'EvidenceHighlightScene';
       try {
         const prev = await (await fetch(`/api/projects/${currentProjectId}/remotion/critical`)).json();
         const ids = (prev.scenes || []).map(s => s.scene_id);
@@ -11872,7 +12022,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       const statusText = document.getElementById('remotion-status-text');
       const previewBox = document.getElementById('remotion-preview-box');
       const previewVideo = document.getElementById('remotion-preview-video');
-      const comp = document.getElementById('remotion-style-select')?.value || 'TechCard';
+      const comp = document.getElementById('remotion-style-select')?.value || 'EvidenceHighlightScene';
 
       // Empty fields are filled on the server from the scene's callout / narration.
       const category = (document.getElementById('remotion-cat')?.value || '').trim();
@@ -12264,6 +12414,11 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       pollTimer = setInterval(pollStatus, 500);
       pollStatus();
 
+      const scriptEl = document.getElementById(`insp-scene-script-${sceneId}`) || document.getElementById(`studio-scene-script-${sceneId}`);
+      if (scriptEl && typeof saveSingleSceneScript === 'function') {
+        await saveSingleSceneScript(sceneId, true);
+      }
+
       const body = {
         prompt: promptEl ? promptEl.value : null,
         model: modelEl ? modelEl.value : null,
@@ -12317,19 +12472,71 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       openStageInspector('voice');
     }
 
+
+    function onStudioMusicSegmentTrackChange(segIdx, selEl) {
+      if (!studioStageData || !studioStageData.music_plan || !studioStageData.music_plan[segIdx]) return;
+      const opt = selEl.options[selEl.selectedIndex];
+      const newPath = selEl.value;
+      const newUrl = opt.getAttribute('data-url') || '';
+      const newCat = opt.getAttribute('data-cat') || '';
+      const seg = studioStageData.music_plan[segIdx];
+      seg.track = newPath;
+      seg.name = newPath.split(/[\/\\]/).pop();
+      seg.category = newCat;
+      seg.audio_url = newUrl;
+      const audioEl = document.getElementById(`studio-music-audio-${segIdx}`);
+      if (audioEl) {
+        audioEl.src = newUrl;
+      }
+      if (typeof showToast === 'function') showToast(`✓ 已更新樂章 ${segIdx + 1} 曲目為: ${seg.name}`);
+    }
+
+    async function onStudioMusicVibeChange(val) {
+      if (!studioStageData) return;
+      studioStageData.current_vibe = val;
+      studioStageData.music_settings = studioStageData.music_settings || {};
+      studioStageData.music_settings.vibe = val;
+      try {
+        await fetch(`/api/projects/${currentProjectId}/stage_data/music`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ vibe: val, music_settings: studioStageData.music_settings })
+        });
+        if (typeof showToast === 'function') showToast(`✓ 配樂氛圍風格已設為: ${val}`);
+      } catch (e) {
+        console.error("Failed to save music vibe", e);
+      }
+    }
+
+    async function reMatchStudioMusicVibe() {
+      const vibeEl = document.getElementById('studio-music-vibe-select');
+      const chosenVibe = vibeEl ? vibeEl.value : (studioStageData?.current_vibe || 'auto');
+      await onStudioMusicVibeChange(chosenVibe);
+      runStudioStageOnly('music');
+    }
+
+    function updateStudioMusicProgression(val) {
+      if (!studioStageData) return;
+      studioStageData.music_settings = studioStageData.music_settings || {};
+      studioStageData.music_settings.progression = val;
+      studioStageData.music_settings.dynamic_music = (val === 'narrative_evolving');
+      if (typeof showToast === 'function') showToast(`✓ 配樂演進模式已切換為: ${val}`);
+    }
+
     /* ==========================================================================
        STAGE STUDIO (Independent Stage Playground & Assembly)
        ========================================================================== */
     const STAGE_META = {
-      research: { num: 1, name: "Research", icon: "🔬", title: "Stage 1/9: Topic Research & Knowledge Base", desc: "AI-driven topic research and fact gathering to provide accurate context for your video topic.", runBtn: "▶ Run Topic Research Only" },
-      script: { num: 2, name: "Script", icon: "📝", title: "Stage 2/9: Narration Scriptwriting", desc: "Drafts a compelling YouTube narration script formatted with intro, hook, core points, and outro.", runBtn: "▶ Run Scriptwriting Only" },
-      scenes: { num: 3, name: "Scenes", icon: "🎬", title: "Stage 3/9: Storyboard & Scene Segmentation", desc: "Segments your script into timed visual scenes with camera motions (pan, zoom, static).", runBtn: "▶ Run Scene Segmentation Only" },
-      prompts: { num: 4, name: "Prompts", icon: "🎨", title: "Stage 4/9: Prompt Engineering & Art Style", desc: "Transforms each scene's visual description into detailed SDXL prompts using your chosen art style.", runBtn: "▶ Run Prompt Generation Only" },
-      images: { num: 5, name: "Images", icon: "🖼️", title: "Stage 5/9: AI Image Generation (ComfyUI DirectML)", desc: "Generates high-res visual assets for every scene using ComfyUI DirectML hardware acceleration.", runBtn: "▶ Generate All Scene Images" },
-      voice: { num: 6, name: "Voice TTS", icon: "🎙️", title: "Stage 6/9: Voiceover Synthesis (BlueMagpie-TTS)", desc: "Synthesizes expressive voiceover audio per scene using BlueMagpie-TTS voice cloning or local TTS.", runBtn: "▶ Synthesize Full Voiceover" },
-      animation: { num: 7, name: "Animation", icon: "🎞️", title: "Stage 7/9: Motion Dynamics & Video FX", desc: "Applies pan/zoom camera motion dynamics or AI video interpolation to static images.", runBtn: "▶ Run Animation Processing Only" },
-      subtitles: { num: 8, name: "Subtitles", icon: "💬", title: "Stage 8/9: Subtitles & Timed Captions", desc: "Generates precisely timed .srt subtitles aligned with voiceover narration for on-screen display.", runBtn: "▶ Generate Subtitles Only" },
-      render: { num: 9, name: "Render", icon: "🎥", title: "Stage 9/9: Final 1080p Video Composition", desc: "Composes all scenes, animations, voiceovers, background music, and subtitles into a 1080p MP4.", runBtn: "▶ Render 1080p Video" }
+      research: { num: 1, name: "Research", icon: "🔬", title: "Stage 1/10: Topic Research & Knowledge Base", desc: "AI-driven topic research and fact gathering to provide accurate context for your video topic.", runBtn: "▶ Run Topic Research Only" },
+      script: { num: 2, name: "Script", icon: "📝", title: "Stage 2/10: Narration Scriptwriting", desc: "Drafts a compelling YouTube narration script formatted with intro, hook, core points, and outro.", runBtn: "▶ Run Scriptwriting Only" },
+      scenes: { num: 3, name: "Scenes", icon: "🎬", title: "Stage 3/10: Storyboard & Scene Segmentation", desc: "Segments your script into timed visual scenes with camera motions (pan, zoom, static).", runBtn: "▶ Run Scene Segmentation Only" },
+      prompts: { num: 4, name: "Prompts", icon: "🎨", title: "Stage 4/10: Prompt Engineering & Art Style", desc: "Transforms each scene's visual description into detailed SDXL prompts using your chosen art style.", runBtn: "▶ Run Prompt Generation Only" },
+      images: { num: 5, name: "Images", icon: "🖼️", title: "Stage 5/10: AI Image Generation (ComfyUI DirectML)", desc: "Generates high-res visual assets for every scene using ComfyUI DirectML hardware acceleration.", runBtn: "▶ Generate All Scene Images" },
+      voice: { num: 6, name: "Voice TTS", icon: "🎙️", title: "Stage 6/10: Voiceover Synthesis (BlueMagpie-TTS)", desc: "Synthesizes expressive voiceover audio per scene using BlueMagpie-TTS voice cloning or local TTS.", runBtn: "▶ Synthesize Full Voiceover" },
+      music: { num: 7, name: "Ambient Music", icon: "🎶", title: "Stage 7/10: Ambient Music & Narrative Progression", desc: "Plans and mixes dynamic multi-movement background music (Opening Context ➔ Rising Stakes ➔ Uplifting Resolution).", runBtn: "▶ Plan & Mix Ambient Music" },
+      animation: { num: 8, name: "Animation", icon: "🎞️", title: "Stage 8/10: Motion Dynamics & Video FX", desc: "Applies pan/zoom camera motion dynamics or AI video interpolation to static images.", runBtn: "▶ Run Animation Processing Only" },
+      subtitles: { num: 9, name: "Subtitles", icon: "💬", title: "Stage 9/10: Subtitles & Timed Captions", desc: "Generates precisely timed .srt subtitles aligned with voiceover narration for on-screen display.", runBtn: "▶ Generate Subtitles Only" },
+      render: { num: 10, name: "Render", icon: "🎥", title: "Stage 10/10: Final 1080p Video Composition", desc: "Composes all scenes, animations, voiceovers, background music, and subtitles into a 1080p MP4.", runBtn: "▶ Render 1080p Video" }
     };
 
     const STAGE_META_DRAMA = {
@@ -12498,7 +12705,9 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       if (!stepperEl || !project) return;
 
       let html = '';
-      STAGE_ORDER.forEach((stKey, idx) => {
+      const isDramaProj = isDramaStudioProject(project);
+      const activeStageOrder = isDramaProj ? STAGE_ORDER.filter(s => s !== 'music') : STAGE_ORDER;
+      activeStageOrder.forEach((stKey, idx) => {
         const isDrama = isDramaStudioProject(project);
         const activeMetaMap = isDrama ? STAGE_META_DRAMA : STAGE_META;
         const meta = activeMetaMap[stKey] || STAGE_META[stKey];
@@ -12621,6 +12830,16 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
             </select>
           </div>
         `;
+      } else if (stKey === 'music') {
+        stageModelSwitcherHtml = `
+          <div style="display:flex; align-items:center; gap:6px; font-size:12px; background:var(--bg-sunken); padding:4px 8px; border-radius:var(--radius-sm); border:1px solid var(--border-subtle);">
+            <label style="font-size:12px; font-weight:700; color:var(--text-muted); margin:0;">Progression:</label>
+            <select style="padding:4px 8px; font-size:12px; border-radius:var(--radius-sm); background:var(--bg-canvas); color:var(--text-primary); border:1px solid var(--border-muted);" onchange="updateStudioMusicProgression(this.value)">
+              <option value="narrative_evolving" selected>🌟 多樂章劇情演進 (3-Movement Progression)</option>
+              <option value="single_loop">🔄 單曲循環 (Single Track Loop)</option>
+            </select>
+          </div>
+        `;
       } else if (stKey === 'animation') {
         stageModelSwitcherHtml = `
           <div style="display:flex; align-items:center; gap:6px; font-size:12px; background:var(--bg-sunken); padding:4px 8px; border-radius:var(--radius-sm); border:1px solid var(--border-subtle);">
@@ -12682,6 +12901,15 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
             <button class="btn-sec" style="padding: 8px 14px; font-size: 12px;" onclick="saveStudioStage('${stKey}')">
               💾 Save Changes
             </button>
+            ${stKey === 'research' ? `
+              <button class="btn-primary" style="padding: 8px 16px; font-size: 12px; font-weight: 700; background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); border: 1px solid #8b5cf6;" onclick="runCascadeFrom('script')" title="Auto-runs Script -> Storyboard -> Prompts -> Images -> Voice -> Video">
+                ⚡ Re-generate Full Video (重製全片)
+              </button>
+            ` : (['scenes', 'prompts', 'images'].includes(stKey) ? `
+              <button class="btn-primary" style="padding: 8px 16px; font-size: 12px; font-weight: 700; background: linear-gradient(135deg, #059669 0%, #047857 100%); border: 1px solid #10b981;" onclick="runCascadeFrom('scenes')" title="Keeps script & voice; re-generates Storyboard -> Prompts -> Images -> Video">
+                🎨 Re-generate Visuals & Video (重製畫面與成片)
+              </button>
+            ` : '')}
             <button class="btn-primary" style="padding: 8px 16px; font-size: 12px; font-weight: 700; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);" onclick="assembleAllStagesNow()">
               🔗 String All Stages Together
             </button>
@@ -12736,6 +12964,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       else if (stKey === 'prompts') alertMsg = isDrama ? 'AI 生成人物定妝與場景提示詞中...' : 'AI Prompt Engineer is synthesizing visual prompts...';
       else if (stKey === 'images') alertMsg = isDrama ? '生圖模型生成 9:16 直式人物定妝肖像與場景中...' : 'Rendering high-res scene images...';
       else if (stKey === 'voice') alertMsg = isDrama ? '合成各角色專屬對白配音中...' : 'Synthesizing expressive voiceover audio...';
+      else if (stKey === 'music') alertMsg = '規劃多樂章敘事配樂時序與情緒調性中 (Planning Ambient Music Timeline)...';
       else if (stKey === 'animation') alertMsg = isDrama ? 'AI 生成演員角色對嘴與動態微表情影片中...' : 'Processing motion dynamics and animation...';
       else if (stKey === 'subtitles') alertMsg = '對齊短劇字幕時間軸...';
       else if (stKey === 'render') alertMsg = isDrama ? 'FFmpeg 正在組裝 9:16 短劇影片、人物動態與音軌...' : 'FFmpeg is assembling scenes, audio, and subtitles into 1080p MP4...';
@@ -12764,14 +12993,79 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       let bodyHtml = '<div style="padding: 20px;">';
 
       if (stKey === 'research') {
-        const resText = typeof data.research === 'string' ? data.research : JSON.stringify(data.research || {}, null, 2);
+        let resObj = {};
+        if (typeof data.research === 'string') {
+          try { resObj = JSON.parse(data.research); } catch(e) { resObj = { notes: data.research }; }
+        } else if (data.research && typeof data.research === 'object') {
+          resObj = data.research;
+        }
+        const resText = JSON.stringify(resObj, null, 2);
+        const ws = resObj.world_setting || {};
+        const stringifyWsVal = (v) => {
+          if (!v) return '';
+          if (typeof v === 'string') return v;
+          if (Array.isArray(v)) {
+            return v.map(item => (typeof item === 'object' ? ((item.location || item.name || '') + ': ' + (item.description || item.architectural_details || JSON.stringify(item))).trim().replace(/^:\s*/, '') : String(item))).join('; ');
+          }
+          if (typeof v === 'object') {
+            return Object.entries(v).map(([k, val]) => `${k}: ${typeof val === 'object' ? JSON.stringify(val) : val}`).join('\n');
+          }
+          return String(v);
+        };
+        const wsEra = (stringifyWsVal(ws.temporal_era) || '').replace(/"/g, '&quot;');
+        const wsEnv = (stringifyWsVal(ws.environment_reality) || '').replace(/"/g, '&quot;');
+        const wsSettings = (stringifyWsVal(ws.key_settings) || '').replace(/"/g, '&quot;');
+        const wsEnsemble = stringifyWsVal(ws.ensemble_specs) || '';
+        const wsNegatives = Array.isArray(ws.negative_anachronisms) ? ws.negative_anachronisms.join('\n') : (ws.negative_anachronisms || '');
+
         bodyHtml += `
+          <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(59, 130, 246, 0.35); border-radius: 8px; padding: 16px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+              <div style="font-weight: 700; color: #93c5fd; font-size: 14px; display: flex; align-items: center; gap: 8px;">
+                <span>🌐</span> World Setting & Historical Constraints (世界觀與歷史約束規格)
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <button class="btn-sec" style="font-size: 11px; padding: 4px 10px; background: rgba(59, 130, 246, 0.2); border-color: #3b82f6; color: #93c5fd; font-weight: 700;" onclick="autoGenerateWorldSetting(this)">
+                  ✨ Auto-Generate from Topic (AI 快速生成世界觀)
+                </button>
+                <span style="font-size: 11px; background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4); padding: 2px 8px; border-radius: 12px;">Grounding Stage 3 & 4</span>
+              </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 12px;">
+              <div>
+                <label style="font-size: 12px; font-weight: 600; color: #cbd5e1; display: block; margin-bottom: 4px;">📅 Temporal Era / Year (時代背景與年份):</label>
+                <input type="text" id="studio-ws-era" value="${wsEra}" placeholder="e.g. 1945-1946 Post-WWII / 日本投降至東京審判" style="width: 100%; background: #080d16; border: 1px solid var(--card-border); color: #fff; padding: 8px 10px; border-radius: 6px; font-size: 12px;" oninput="syncWorldSettingToJson()">
+              </div>
+              <div>
+                <label style="font-size: 12px; font-weight: 600; color: #cbd5e1; display: block; margin-bottom: 4px;">🏛️ Physical Locations & Indoors/Outdoors (核心場景與建築):</label>
+                <input type="text" id="studio-ws-settings" value="${wsSettings}" placeholder="e.g. 市谷陸軍省大講堂審判大廳、木造長桌法官席、室內吊燈" style="width: 100%; background: #080d16; border: 1px solid var(--card-border); color: #fff; padding: 8px 10px; border-radius: 6px; font-size: 12px;" oninput="syncWorldSettingToJson()">
+              </div>
+            </div>
+            <div style="margin-bottom: 12px;">
+              <label style="font-size: 12px; font-weight: 600; color: #cbd5e1; display: block; margin-bottom: 4px;">🏚️ Environment & Damage Reality (環境實況與破壞程度):</label>
+              <input type="text" id="studio-ws-env" value="${wsEnv}" placeholder="e.g. 東京大轟炸後的大片廢墟、焦黑殘木瓦礫、臨時防空棚戶，絕無現代高樓" style="width: 100%; background: #080d16; border: 1px solid var(--card-border); color: #fff; padding: 8px 10px; border-radius: 6px; font-size: 12px;" oninput="syncWorldSettingToJson()">
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+              <div>
+                <label style="font-size: 12px; font-weight: 600; color: #cbd5e1; display: block; margin-bottom: 4px;">👥 Ensemble & Demographics (人物群體、性別與國籍規格):</label>
+                <textarea id="studio-ws-ensemble" rows="3" placeholder="e.g. 11位盟國法官全為男性，包含1位印度法官、1位菲律賓法官、1位中國法官，身著1940年代深色正裝法袍" style="width: 100%; background: #080d16; border: 1px solid var(--card-border); color: #fff; padding: 8px 10px; border-radius: 6px; font-size: 12px; resize: vertical;" oninput="syncWorldSettingToJson()">${escapeHtml(wsEnsemble)}</textarea>
+              </div>
+              <div>
+                <label style="font-size: 12px; font-weight: 600; color: #f87171; display: block; margin-bottom: 4px;">🚫 Negative Anachronisms (嚴格禁止的時代違和元素，每行一項):</label>
+                <textarea id="studio-ws-negatives" rows="3" placeholder="現代摩天大樓&#10;女性法官&#10;粒子對撞機&#10;現代汽車與空調室外機" style="width: 100%; background: #080d16; border: 1px solid rgba(239, 68, 68, 0.4); color: #fca5a5; padding: 8px 10px; border-radius: 6px; font-size: 12px; resize: vertical;" oninput="syncWorldSettingToJson()">${escapeHtml(wsNegatives)}</textarea>
+              </div>
+            </div>
+          </div>
+
           <div style="margin-bottom: 16px;">
-            <label style="font-weight: 600; display: block; margin-bottom: 8px; color: #cbd5e1;">Topic Research Notes & Knowledge Base (JSON / Markdown):</label>
-            <textarea id="studio-research" style="width: 100%; height: 380px; font-family: monospace; font-size: 13px; background: #080d16; color: #e2e8f0; border: 1px solid var(--card-border); padding: 12px; border-radius: 6px; line-height: 1.5;">${resText}</textarea>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <label style="font-weight: 600; color: #cbd5e1;">Topic Research Notes & Knowledge Base (JSON / Markdown):</label>
+              <button class="btn-sec" style="font-size: 11px; padding: 2px 8px;" onclick="syncWorldSettingFromJson()">🔄 Reload Form from JSON</button>
+            </div>
+            <textarea id="studio-research" style="width: 100%; height: 320px; font-family: monospace; font-size: 13px; background: #080d16; color: #e2e8f0; border: 1px solid var(--card-border); padding: 12px; border-radius: 6px; line-height: 1.5;">${escapeHtml(resText)}</textarea>
           </div>
           <div style="font-size: 12px; color: var(--text-muted);">
-            💡 <b>Tip:</b> You can refine the research notes directly above. When you run Scriptwriting, it will use these tuned facts and points to draft your narration.
+            💡 <b>Tip:</b> Refine the World Setting card above or the research JSON. When you click <b>Save Changes</b>, both the world view constraints and knowledge base will guide Stage 2 Script, Stage 3 Storyboard, and Stage 4 Image Prompts.
           </div>
         `;
       } else if (stKey === 'script') {
@@ -12958,7 +13252,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
               <button class="btn-sec" id="btn-gallery-strip" style="padding: 3px 8px; font-size: 12px; font-weight: 600; ${imagesGalleryLayout === 'strip' ? 'background: #1e3a8a; border-color: #3b82f6; color: #fff;' : ''}" onclick="toggleImagesGalleryLayout('strip')" title="Horizontal scroll bar across all scene images">↔️ Horizontal Scroll View</button>
             </div>
           </div>
-          <div id="studio-images-gallery-container" class="custom-horizontal-scroll" style="${imagesGalleryLayout === 'strip' ? 'display: flex; gap: 16px; overflow-x: auto; padding-bottom: 14px;' : 'display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; overflow-x: auto; padding-bottom: 10px;'}">
+          <div id="studio-images-gallery-container" class="custom-horizontal-scroll" style="${imagesGalleryLayout === 'strip' ? 'display: flex; gap: 16px; overflow-x: auto; padding-bottom: 14px;' : 'display: grid; grid-template-columns: repeat(auto-fit, minmax(460px, 1fr)); gap: 16px; overflow-x: auto; padding-bottom: 10px;'}">
         `;
 
         const buster = Date.now();
@@ -12986,95 +13280,143 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
           const hasNextTake = activeTake < totalTakes;
 
           bodyHtml += `
-            <div id="studio-scene-card-${s.scene_id}" style="background: #080d16; border: 1px solid var(--card-border); border-radius: 8px; padding: 14px; display: flex; flex-direction: column; gap: 10px; min-width: 0; ${imagesGalleryLayout === 'strip' ? 'flex: 0 0 350px;' : ''} transition: border-color 0.3s ease;">
+            <div id="studio-scene-card-${s.scene_id}" style="background: #080d16; border: 1px solid var(--card-border); border-radius: 8px; padding: 14px; display: flex; flex-direction: column; gap: 10px; min-width: 0; ${imagesGalleryLayout === 'strip' ? 'flex: 0 0 540px;' : ''} transition: border-color 0.3s ease;">
               <div style="display: flex; justify-content: space-between; align-items: center;">
                 <span style="font-weight: 700; color: #93c5fd; font-size: 14px;">Scene #${s.scene_id}</span>
                 <span id="studio-scene-badge-${s.scene_id}" style="font-size: 12px; color: ${imgUrl?'#34d399':'#f59e0b'}; font-weight: 600;">${imgUrl ? '✓ Generated' : '⏳ Pending'}</span>
               </div>
-              <div style="width: 100%; height: 160px; background: #000; border-radius: 6px; overflow: hidden; display: flex; align-items: center; justify-content: center; position: relative;">
-                ${imgUrl ? `
-                  <img id="studio-scene-img-${s.scene_id}" src="${imgUrlBusted}" style="width: 100%; height: 100%; object-fit: cover; cursor: pointer;" onclick="window.open('${imgUrl}')" title="Click to view full image">
-                  <button onclick="event.stopPropagation(); deleteSceneActiveImage(${s.scene_id})" style="position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.75); border: 1px solid #ef4444; color: #fca5a5; border-radius: 3px; padding: 2px 6px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 3px; z-index: 2;" title="Delete current image">
-                    🗑️ Delete
-                  </button>
-                ` : `<span id="studio-no-img-${s.scene_id}" style="font-size: 12px; color: gray;">No Image Generated</span>`}
-              </div>
 
-              <!-- Live Progress & GPU Workload Box (Active during generation) -->
-              <div id="studio-prog-box-${s.scene_id}" style="display: none; background: #040914; border: 1px solid #2563eb; border-radius: 6px; padding: 8px 10px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                  <span id="studio-prog-title-${s.scene_id}" style="color: #60a5fa; font-weight: 600; font-size: 12px;">🚀 Initializing ComfyUI...</span>
-                  <span id="studio-prog-pct-${s.scene_id}" style="color: #93c5fd; font-weight: 700; font-size: 12px;">0%</span>
+              ${isDrama ? `
+                <div style="font-size: 11px; padding: 4px 8px; background: rgba(245, 158, 11, 0.15); border: 1px solid #d97706; border-radius: 4px; color: #fbbf24; font-weight: 600; display: flex; align-items: center; justify-content: space-between;">
+                  <span>👤 角色: <b>${s.character || s.speaker || '主演'}</b></span>
+                  <span style="font-size: 9px; background: #b45309; color: #fff; padding: 1px 5px; border-radius: 3px; font-weight: 700;">9:16 直式立繪</span>
                 </div>
-                <div style="width: 100%; height: 7px; background: #1e293b; border-radius: 999px; overflow: hidden; margin-bottom: 6px;">
-                  <div id="studio-prog-bar-${s.scene_id}" style="width: 0%; height: 100%; background: linear-gradient(90deg, #2563eb, #38bdf8); transition: width 0.25s ease;"></div>
-                </div>
-                <div id="studio-prog-gpu-${s.scene_id}" style="font-size: 12px; color: #94a3b8; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #1e293b; padding-top: 4px;">
-                  <span>DirectML GPU:</span>
-                  <span id="studio-prog-gpu-val-${s.scene_id}" style="color: #38bdf8; font-weight: 600;">Querying load...</span>
-                </div>
-              </div>
-
-              <!-- Success Alert Flash -->
-              <div id="studio-scene-toast-${s.scene_id}" style="display: none; background: #064e3b; border: 1px solid #059669; border-radius: 4px; padding: 4px 8px; color: #a7f3d0; font-size: 12px; font-weight: 600; text-align: center;">✓ Scene #${s.scene_id} Image Regenerated!</div>
-
-              <!-- Takes Management & Selector -->
-              <div style="background: #04070e; border: 1px solid #1e293b; border-radius: 6px; padding: 8px 10px; display: flex; flex-direction: column; gap: 8px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
-                  <div style="display: flex; align-items: center; gap: 6px;">
-                    <span id="studio-takes-header-count-${s.scene_id}" style="font-weight: 700; color: #93c5fd; font-size: 12px;">🎞️ Takes (${totalTakes}):</span>
-                    <span id="studio-scene-active-take-badge-${s.scene_id}" style="background: rgba(5,150,105,0.25); border: 1px solid #059669; color: #34d399; font-size: 12px; font-weight: 700; padding: 1px 6px; border-radius: 4px;">✓ Take #${activeTake || 1} Active</span>
+              ` : `
+                <!-- Real-world Quick Stock Status Pill -->
+                ${s.is_stock_active ? `
+                  <div style="font-size: 11px; padding: 4px 8px; background: rgba(5, 150, 105, 0.25); border: 1px solid #059669; border-radius: 4px; color: #6ee7b7; font-weight: 600; display: flex; align-items: center; justify-content: space-between; gap: 4px;">
+                    <span style="display: flex; align-items: center; gap: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                      <span>📸 已套用線上圖庫:</span> <b style="color: #fff;">${s.active_stock_source || (s.image && s.image.meta && s.image.meta.source) || 'Stock'}</b>
+                      ${(s.active_stock_title || (s.image && s.image.meta && s.image.meta.title)) ? `<span style="opacity: 0.8; font-weight: normal; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px;">(${s.active_stock_title || s.image.meta.title})</span>` : ''}
+                    </span>
+                    <span style="font-size: 9px; background: #065f46; color: #a7f3d0; padding: 1px 4px; border-radius: 3px; font-weight: 700;">ACTIVE</span>
                   </div>
-                  <div style="display: flex; gap: 4px; align-items: center;">
-                    <button id="studio-take-prev-btn-${s.scene_id}" class="btn-sec" style="padding: 2px 7px; font-size: 12px;" onclick="cycleSceneImageTake(${s.scene_id}, -1)" ${hasPrevTake ? '' : 'disabled'} title="Previous Take">◀</button>
-                    <button id="studio-take-next-btn-${s.scene_id}" class="btn-sec" style="padding: 2px 7px; font-size: 12px;" onclick="cycleSceneImageTake(${s.scene_id}, 1)" ${hasNextTake ? '' : 'disabled'} title="Next Take">▶</button>
-                    <button class="btn-sec" style="padding: 2px 8px; font-size: 12px; background: #1e3a8a; border-color: #3b82f6; color: #fff; font-weight: 600;" onclick="openTakesGalleryModal(${s.scene_id})">🖼️ Compare Takes (${totalTakes})</button>
+                ` : (s.quick_stock_available ? `
+                  <div style="font-size: 11px; padding: 4px 8px; background: rgba(59, 130, 246, 0.2); border: 1px solid #3b82f6; border-radius: 4px; color: #93c5fd; font-weight: 600; display: flex; align-items: center; justify-content: space-between; gap: 6px;">
+                    <span title="命中素材目標: ${s.quick_stock_target}" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                      🌐 <b>可使用 Quick Stock:</b> ${s.quick_stock_target}
+                    </span>
+                    <span style="font-size: 9px; background: #1e3a8a; color: #bfdbfe; padding: 1px 4px; border-radius: 3px; white-space: nowrap; font-weight: 700;">
+                      ${s.quick_stock_source === 'youtube_snippet' ? 'YouTube 實體片段' : '維基共享資源'}
+                    </span>
                   </div>
-                </div>
+                ` : `
+                  <div style="font-size: 11px; padding: 3px 6px; background: rgba(148, 163, 184, 0.08); border: 1px solid #334155; border-radius: 4px; color: #94a3b8; display: flex; align-items: center; gap: 4px;">
+                    🎨 <span>AI 生成畫面 (無特定真實實體標籤)</span>
+                  </div>
+                `)}
+              ` }
 
-                <!-- Horizontal Takes Thumbnail Strip with dedicated scrollbar and scroll controls -->
-                ${takes.length > 0 ? `
-                  <div id="studio-takes-wrapper-${s.scene_id}" style="display: flex; flex-direction: column; gap: 4px; background: #03060c; border: 1px solid #1e293b; border-radius: 6px; padding: 6px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                      <span id="studio-takes-count-${s.scene_id}" style="font-size: 12px; color: #94a3b8; font-weight: 600;">Images created (${takes.length}):</span>
-                      <div style="display: flex; gap: 3px;">
-                        <button class="btn-sec" style="padding: 1px 6px; font-size: 12px;" onclick="scrollTakesStrip('studio-takes-strip-${s.scene_id}', -120)" title="Scroll Left">◀</button>
-                        <button class="btn-sec" style="padding: 1px 6px; font-size: 12px;" onclick="scrollTakesStrip('studio-takes-strip-${s.scene_id}', 120)" title="Scroll Right">▶</button>
-                      </div>
+              <!-- Side-by-Side: Image and Scene Script Line -->
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; align-items: stretch;">
+                
+                <!-- Left: Scene Image Preview & Takes Switcher -->
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 11px; font-weight: 700; color: #cbd5e1; display: flex; align-items: center; gap: 4px;">
+                      <span>🖼️</span> <span>視覺畫面 (Visual Image)</span>
+                    </span>
+                    ${totalTakes > 1 ? `<span id="studio-scene-active-take-badge-${s.scene_id}" style="background: rgba(5,150,105,0.25); border: 1px solid #059669; color: #34d399; font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 3px;">Take #${activeTake || 1} / ${totalTakes}</span>` : ''}
+                  </div>
+                  <div style="width: 100%; height: 165px; background: #000; border-radius: 6px; overflow: hidden; display: flex; align-items: center; justify-content: center; position: relative; border: 1px solid #1e293b;">
+                    ${imgUrl ? `
+                      <img id="studio-scene-img-${s.scene_id}" src="${imgUrlBusted}" style="width: 100%; height: 100%; object-fit: cover; cursor: pointer;" onclick="window.open('${imgUrl}')" title="Click to view full image in new tab">
+                      <div style="position: absolute; bottom: 4px; left: 4px; background: rgba(0,0,0,0.7); font-size: 10px; color: #cbd5e1; padding: 2px 5px; border-radius: 3px; pointer-events: none;">🔍 Click to Zoom</div>
+                      <button onclick="event.stopPropagation(); deleteSceneActiveImage(${s.scene_id})" style="position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.75); border: 1px solid #ef4444; color: #fca5a5; border-radius: 3px; padding: 2px 6px; font-size: 11px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 3px; z-index: 2;" title="Delete current image">
+                        🗑️ Delete
+                      </button>
+                    ` : `<span id="studio-no-img-${s.scene_id}" style="font-size: 12px; color: gray;">No Image Generated</span>`}
+                  </div>
+
+                  <!-- Quick Takes Navigator Row under image -->
+                  <div style="display: flex; justify-content: space-between; align-items: center; background: #04070e; border: 1px solid #1e293b; border-radius: 5px; padding: 4px 8px;">
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                      <span id="studio-takes-header-count-${s.scene_id}" style="font-weight: 700; color: #93c5fd; font-size: 11px;">🎞️ Takes (${totalTakes}):</span>
                     </div>
-                    <div id="studio-takes-strip-${s.scene_id}" class="takes-scroll-strip" onwheel="if(event.deltaY !== 0){ event.preventDefault(); this.scrollLeft += event.deltaY; }">
-                      ${takes.map(tk => {
-                        const isAct = (tk.take === activeTake);
-                        const tkSrc = `/media/${currentProjectId}/${tk.path}?t=${buster}`;
-                        const tkStyle = (styles[tk.style] && styles[tk.style].label) || tk.style || 'Default';
-                        return `
-                          <div style="flex: 0 0 105px; background: ${isAct ? '#081a38' : '#03060d'}; border: 2px solid ${isAct ? '#3b82f6' : '#1e293b'}; border-radius: 6px; padding: 5px; display: flex; flex-direction: column; gap: 4px; cursor: pointer; transition: all 0.2s ease;" onclick="switchSceneTakeDirect(${s.scene_id}, ${tk.take})" title="Click to select Take #${tk.take} for final video">
-                            <div style="width: 100%; height: 56px; background: #000; border-radius: 4px; overflow: hidden; position: relative;">
-                              <img src="${tkSrc}" alt="" onerror="this.onerror=null; this.src='/media/${currentProjectId}/images/scene_${String(s.scene_id).padStart(3, '0')}.png';" style="width: 100%; height: 100%; object-fit: cover;" title="Take #${tk.take}: ${tk.prompt || ''}">
-                              ${isAct ? '<span style="position: absolute; top: 2px; right: 2px; background: #10b981; color: #fff; font-size: 8px; font-weight: 700; padding: 1px 4px; border-radius: 3px; box-shadow: 0 1px 3px rgba(0,0,0,0.6);">ACTIVE</span>' : ''}
-                            </div>
-                            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 9px; font-weight: 700;">
-                              <span style="color: ${isAct ? '#93c5fd' : '#cbd5e1'};">Take #${tk.take}</span>
-                              <span style="font-size: 8px; color: #94a3b8;">${tk.created_at ? tk.created_at.split(' ')[1] || '' : ''}</span>
-                            </div>
-                            <div style="font-size: 8px; color: #94a3b8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${tkStyle}">
-                              ${tkStyle}
-                            </div>
-                            <div style="display: flex; gap: 3px; margin-top: auto; padding-top: 2px;">
-                              <button class="btn-sec" style="flex: 1; font-size: 8px; padding: 3px 4px; font-weight: 600; ${isAct ? 'background: #059669; border-color: #10b981; color: #fff;' : 'background: #1e3a8a; border-color: #3b82f6; color: #fff;'}" onclick="event.stopPropagation(); switchSceneTakeDirect(${s.scene_id}, ${tk.take})">
-                                ${isAct ? '✓ In Video' : '👉 Select'}
-                              </button>
-                              <button class="btn-sec" style="padding: 2px 6px; font-size: 9px; background: rgba(239, 68, 68, 0.25); border-color: #b91c1c; color: #fca5a5; font-weight: 700;" onclick="event.stopPropagation(); deleteSceneImageTake(${s.scene_id}, ${tk.take})" title="Delete Take #${tk.take}">
-                                🗑️
-                              </button>
-                            </div>
+                    <div style="display: flex; gap: 4px; align-items: center;">
+                      <button id="studio-take-prev-btn-${s.scene_id}" class="btn-sec" style="padding: 1px 6px; font-size: 11px;" onclick="cycleSceneImageTake(${s.scene_id}, -1)" ${hasPrevTake ? '' : 'disabled'} title="Previous Take">◀</button>
+                      <button id="studio-take-next-btn-${s.scene_id}" class="btn-sec" style="padding: 1px 6px; font-size: 11px;" onclick="cycleSceneImageTake(${s.scene_id}, 1)" ${hasNextTake ? '' : 'disabled'} title="Next Take">▶</button>
+                      <button class="btn-sec" style="padding: 1px 6px; font-size: 10px; background: #1e3a8a; border-color: #3b82f6; color: #fff; font-weight: 600;" onclick="openTakesGalleryModal(${s.scene_id})">Compare</button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Right: Script / Narration Box for match check & adjustment -->
+                <div style="display: flex; flex-direction: column; gap: 6px; background: rgba(14, 20, 34, 0.75); border: 1px solid rgba(124, 145, 182, 0.25); border-left: 3px solid #C19D49; border-radius: 6px; padding: 8px 10px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 11px; font-weight: 700; color: #C19D49; display: flex; align-items: center; gap: 4px;">
+                      <span>🎙️</span> <span>分鏡旁白台詞 (Script Line)</span>
+                    </span>
+                    <span id="studio-script-len-${s.scene_id}" style="font-size: 10px; color: #7C91B6; font-family: monospace;">${(s.narration || '').length} 字</span>
+                  </div>
+                  <div style="font-size: 11px; color: #94a3b8; line-height: 1.35;">
+                    核對此段台詞是否與左側畫面相符；可直接在此調整台詞或於下方微調提示詞：
+                  </div>
+                  <div style="flex: 1; display: flex; flex-direction: column;">
+                    <textarea id="studio-scene-script-${s.scene_id}" rows="4" style="width: 100%; flex: 1; min-height: 90px; font-size: 12px; line-height: 1.45; padding: 6px 8px; background: #04070e; border: 1px solid #1e293b; color: #f1f5f9; border-radius: 4px; resize: vertical;" oninput="onStudioScriptInput(${s.scene_id}, this.value)" onblur="saveSingleSceneScript(${s.scene_id}, true)" placeholder="輸入此鏡頭的旁白台詞 (Narration script)...">${escapeHtml(s.narration || '')}</textarea>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 2px;">
+                    <span id="studio-script-toast-${s.scene_id}" style="font-size: 11px; color: #34d399; font-weight: 600; display: none;">✓ 台詞已儲存</span>
+                    <button class="btn-sec" id="studio-btn-save-script-${s.scene_id}" style="padding: 2px 8px; font-size: 11px; background: #233b6d; border-color: #3b82f6; color: #93c5fd; font-weight: 600; margin-left: auto;" onclick="saveSingleSceneScript(${s.scene_id}, false)" title="儲存修改後的旁白台詞">
+                      💾 儲存台詞
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+
+              <!-- Takes Management Strip (if multiple takes exist) -->
+              ${takes.length > 0 ? `
+                <div id="studio-takes-wrapper-${s.scene_id}" style="display: flex; flex-direction: column; gap: 4px; background: #03060c; border: 1px solid #1e293b; border-radius: 6px; padding: 6px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span id="studio-takes-count-${s.scene_id}" style="font-size: 12px; color: #94a3b8; font-weight: 600;">Images created (${takes.length}):</span>
+                    <div style="display: flex; gap: 3px;">
+                      <button class="btn-sec" style="padding: 1px 6px; font-size: 12px;" onclick="scrollTakesStrip('studio-takes-strip-${s.scene_id}', -120)" title="Scroll Left">◀</button>
+                      <button class="btn-sec" style="padding: 1px 6px; font-size: 12px;" onclick="scrollTakesStrip('studio-takes-strip-${s.scene_id}', 120)" title="Scroll Right">▶</button>
+                    </div>
+                  </div>
+                  <div id="studio-takes-strip-${s.scene_id}" class="takes-scroll-strip" onwheel="if(event.deltaY !== 0){ event.preventDefault(); this.scrollLeft += event.deltaY; }">
+                    ${takes.map(tk => {
+                      const isAct = (tk.take === activeTake);
+                      const tkSrc = `/media/${currentProjectId}/${tk.path}?t=${buster}`;
+                      const tkStyle = (styles[tk.style] && styles[tk.style].label) || tk.style || 'Default';
+                      return `
+                        <div style="flex: 0 0 105px; background: ${isAct ? '#081a38' : '#03060d'}; border: 2px solid ${isAct ? '#3b82f6' : '#1e293b'}; border-radius: 6px; padding: 5px; display: flex; flex-direction: column; gap: 4px; cursor: pointer; transition: all 0.2s ease;" onclick="switchSceneTakeDirect(${s.scene_id}, ${tk.take})" title="Click to select Take #${tk.take} for final video">
+                          <div style="width: 100%; height: 56px; background: #000; border-radius: 4px; overflow: hidden; position: relative;">
+                            <img src="${tkSrc}" alt="" onerror="this.onerror=null; this.src='/media/${currentProjectId}/images/scene_${String(s.scene_id).padStart(3, '0')}.png';" style="width: 100%; height: 100%; object-fit: cover;" title="Take #${tk.take}: ${tk.prompt || ''}">
+                            ${isAct ? '<span style="position: absolute; top: 2px; right: 2px; background: #10b981; color: #fff; font-size: 8px; font-weight: 700; padding: 1px 4px; border-radius: 3px; box-shadow: 0 1px 3px rgba(0,0,0,0.6);">ACTIVE</span>' : ''}
                           </div>
-                        `;
-                      }).join('')}
-                    </div>
+                          <div style="display: flex; justify-content: space-between; align-items: center; font-size: 9px; font-weight: 700;">
+                            <span style="color: ${isAct ? '#93c5fd' : '#cbd5e1'};">Take #${tk.take}</span>
+                            <span style="font-size: 8px; color: #94a3b8;">${tk.created_at ? tk.created_at.split(' ')[1] || '' : ''}</span>
+                          </div>
+                          <div style="font-size: 8px; color: #94a3b8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${tkStyle}">
+                            ${tkStyle}
+                          </div>
+                          <div style="display: flex; gap: 3px; margin-top: auto; padding-top: 2px;">
+                            <button class="btn-sec" style="flex: 1; font-size: 8px; padding: 3px 4px; font-weight: 600; ${isAct ? 'background: #059669; border-color: #10b981; color: #fff;' : 'background: #1e3a8a; border-color: #3b82f6; color: #fff;'}" onclick="event.stopPropagation(); switchSceneTakeDirect(${s.scene_id}, ${tk.take})">
+                              ${isAct ? '✓ In Video' : '👉 Select'}
+                            </button>
+                            <button class="btn-sec" style="padding: 2px 6px; font-size: 9px; background: rgba(239, 68, 68, 0.25); border-color: #b91c1c; color: #fca5a5; font-weight: 700;" onclick="event.stopPropagation(); deleteSceneImageTake(${s.scene_id}, ${tk.take})" title="Delete Take #${tk.take}">
+                              🗑️
+                            </button>
+                          </div>
+                        </div>
+                      `;
+                    }).join('')}
                   </div>
-                ` : ''}
-              </div>
+                </div>
+              ` : ''}
 
               <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #94a3b8;">
                 <span>Active Model: <b style="color: #94a3b8;">${formatModelLabel(renderedModel)}</b></span>
@@ -13277,6 +13619,118 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
           `;
         });
         bodyHtml += `</div>`;
+      } else if (stKey === 'music') {
+        const plan = data.music_plan || [];
+        const mSettings = data.music_settings || {};
+        const availTracks = data.available_tracks || [];
+        const totalDur = data.total_duration || 0;
+        const topic = data.topic || '';
+
+        const movementNames = [
+          { title: "Movement 1: 引言與氛圍鋪墊 (Opening Context & Atmosphere)", badge: "bg-blue", defaultEnergy: "LOW / MID", desc: "引導觀眾進入紀錄片核心主題，營造沉浸式宏觀背景氣氛。" },
+          { title: "Movement 2: 深入探討與張力起伏 (Deep Dive & Rising Stakes)", badge: "bg-purple", defaultEnergy: "MID / HIGH", desc: "隨劇情深入探討核心衝突、技術困境或調查轉折，節奏張力遞增。" },
+          { title: "Movement 3: 終章昇華與未來啟示 (Outlook & Climax Resolution)", badge: "bg-emerald", defaultEnergy: "HIGH / UPLIFTING", desc: "收尾結語、總結思考與願景展望，激昂或沉穩昇華觀眾情緒。" }
+        ];
+        const currentVibe = data.current_vibe || (mSettings && mSettings.vibe) || 'auto';
+
+        bodyHtml += `
+          <!-- Ambient Music Overview Card -->
+          <div style="background: linear-gradient(135deg, rgba(14, 27, 49, 0.95) 0%, rgba(10, 15, 30, 0.95) 100%); border: 1px solid rgba(59, 130, 246, 0.35); border-radius: 10px; padding: 18px 20px; margin-bottom: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 12px;">
+              <div>
+                <div style="font-size: 16px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px;">
+                  <span>🎶</span> 紀錄片多樂章敘事配樂工坊 (Narrative Progression Studio)
+                </div>
+                <div style="font-size: 12.5px; color: #94a3b8; margin-top: 5px;">
+                  主題識別：<b style="color: #60a5fa;">${topic || '紀錄片主題'}</b> | 總長度：<b style="color: #cbd5e1;">${totalDur > 0 ? totalDur.toFixed(1) + 's' : '自動估算中'}</b> | 演進模式：<span class="badge badge-blue">🌟 3-Movement Progression</span>
+                </div>
+              </div>
+              <div style="display: flex; gap: 8px;">
+                <button class="btn-sec" onclick="reMatchStudioMusicVibe()" style="font-size: 12px; padding: 6px 14px; background: rgba(59,130,246,0.15); border: 1px solid #3b82f6; color: #93c5fd; font-weight: 600;">🎲 依風格重新匹配 (Re-Match)</button>
+                <button class="btn-primary" onclick="saveStudioStage('music')" style="font-size: 12px; padding: 6px 14px; background: #059669; font-weight: 700;">💾 儲存配樂計畫 (Save Music Plan)</button>
+              </div>
+            </div>
+
+            <!-- Vibe & Genre Override Row -->
+            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding-top: 10px; border-top: 1px solid rgba(59, 130, 246, 0.2);">
+              <label style="font-size: 12.5px; font-weight: 700; color: #cbd5e1; margin: 0; display: flex; align-items: center; gap: 5px;">
+                <span>🎭</span> 配樂氛圍風格 (Music Vibe):
+              </label>
+              <select id="studio-music-vibe-select" style="min-width: 250px; padding: 6px 12px; font-size: 12px; border-radius: var(--radius-sm); background: #040814; color: #60a5fa; border: 1px solid #3b82f6; font-weight: 600;" onchange="onStudioMusicVibeChange(this.value)">
+                <option value="auto" ${(!currentVibe || currentVibe === 'auto') ? 'selected' : ''}>🤖 自動語意推論 (Auto Semantic Grounding)</option>
+                <option value="tech_futuristic" ${currentVibe === 'tech_futuristic' ? 'selected' : ''}>🔬 科技未來 (Tech & Sci-Fi)</option>
+                <option value="cinematic_documentary" ${currentVibe === 'cinematic_documentary' ? 'selected' : ''}>🏛️ 歷史紀錄 (Cinematic Documentary)</option>
+                <option value="dramatic_tension" ${currentVibe === 'dramatic_tension' ? 'selected' : ''}>⚡ 衝突危機 (Dramatic Tension)</option>
+                <option value="mystery_cosmic" ${currentVibe === 'mystery_cosmic' ? 'selected' : ''}>🌌 宇宙未解 (Dark Mystery & Space)</option>
+                <option value="uplifting_inspirational" ${currentVibe === 'uplifting_inspirational' ? 'selected' : ''}>✨ 勵志突破 (Uplifting & Wonder)</option>
+                <option value="calm_focus" ${currentVibe === 'calm_focus' ? 'selected' : ''}>🧘 平靜沉思 (Calm & Focus)</option>
+              </select>
+              <span style="font-size: 11px; color: #94a3b8;">切換後點擊「🎲 依風格重新匹配」將自動以該情感基調重算三樂章</span>
+            </div>
+          </div>
+        `;
+
+        if (!plan.length) {
+          bodyHtml += `
+            <div style="text-align: center; padding: 60px 20px; background: #080d16; border: 1px dashed rgba(124, 145, 182, 0.3); border-radius: 8px;">
+              <div style="font-size: 32px; margin-bottom: 12px;">🎶</div>
+              <h4 style="color: #fff; margin: 0 0 8px 0;">尚無已生成的配樂時間軸計畫</h4>
+              <p style="font-size: 13px; color: var(--text-muted); max-width: 460px; margin: 0 auto 16px auto;">
+                系統將根據前置 Stage 6 旁白精確時長與章節斷點，自動為引言、探討、結尾精準匹配三段敘事演進配樂並計算平滑交叉淡入淡出（Crossfade）。
+              </p>
+              <button class="btn-primary" onclick="runStudioStageOnly('music')" style="padding: 8px 18px; font-weight: 700;">▶ 立即規劃環境配樂 (Plan Ambient Music)</button>
+            </div>
+          `;
+        } else {
+          bodyHtml += `<div style="display: flex; flex-direction: column; gap: 16px;">`;
+          plan.forEach((seg, idx) => {
+            const mvMeta = movementNames[idx] || { title: `Movement ${idx + 1}`, desc: "動態樂章時序", badge: "bg-blue" };
+            const dur = (seg.end_time - seg.start_time).toFixed(1);
+
+            let trackOptionsHtml = '';
+            availTracks.forEach(tr => {
+              const isSelected = (tr.name === seg.name || tr.path.endsWith(seg.name));
+              trackOptionsHtml += `<option value="${tr.path}" data-url="${tr.url}" data-cat="${tr.category}" ${isSelected ? 'selected' : ''}>[${tr.category}] ${tr.name}</option>`;
+            });
+
+            bodyHtml += `
+              <div id="studio-music-card-${idx}" style="background: #080d16; border: 1px solid rgba(124, 145, 182, 0.2); border-radius: 8px; padding: 16px; transition: border-color 0.2s;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px; margin-bottom: 10px;">
+                  <div>
+                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                      <span style="font-size: 14px; font-weight: 700; color: #fff;">${mvMeta.title}</span>
+                      <span style="font-size: 11px; background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid rgba(59,130,246,0.3); border-radius: 4px; padding: 2px 6px;">${seg.category || 'auto'}</span>
+                      <span style="font-size: 11px; background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.3); border-radius: 4px; padding: 2px 6px;">⚡ 能量階梯: ${mvMeta.defaultEnergy}</span>
+                    </div>
+                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 3px;">
+                      時間範圍：<b style="color: #93c5fd;">${seg.start_time.toFixed(1)}s ➔ ${seg.end_time.toFixed(1)}s</b> (${dur}s) | 淡入: ${seg.crossfade_in || 2}s | 淡出: ${seg.crossfade_out || 2}s
+                    </div>
+                  </div>
+                  <div style="font-size: 12px; color: #a7f3d0; background: rgba(5,150,105,0.15); border: 1px solid #059669; border-radius: 4px; padding: 3px 8px;">
+                    🔊 音量: <b>${seg.volume_db || -16} dB</b>
+                  </div>
+                </div>
+
+                <!-- Audio Preview Player -->
+                <div style="background: #04070e; border: 1px solid #1e293b; border-radius: 6px; padding: 10px 12px; margin-bottom: 12px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <span style="font-size: 12px; font-weight: 600; color: #cbd5e1;">🎧 即時試聽音軌：<b style="color: #60a5fa;">${seg.name}</b></span>
+                  </div>
+                  <audio id="studio-music-audio-${idx}" controls src="${seg.audio_url || ''}" style="width: 100%; height: 32px;"></audio>
+                </div>
+
+                <!-- Track Selector & Controls -->
+                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                  <label style="font-size: 12px; font-weight: 600; color: #94a3b8; margin: 0;">更換此樂章曲目：</label>
+                  <select id="studio-music-select-${idx}" style="flex: 1; min-width: 260px; padding: 6px 10px; font-size: 12px; border-radius: var(--radius-sm); background: var(--bg-canvas); color: var(--text-primary); border: 1px solid var(--border-muted);" onchange="onStudioMusicSegmentTrackChange(${idx}, this)">
+                    ${trackOptionsHtml}
+                  </select>
+                </div>
+              </div>
+            `;
+          });
+          bodyHtml += `</div>`;
+        }
       } else if (stKey === 'animation') {
         const scenes = data.scenes || [];
         if (isDrama) {
@@ -13374,26 +13828,32 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
               <div style="margin-bottom: 14px;">
                 <label style="font-size: 11px; font-weight: 700; color: #93c5fd; display: block; margin-bottom: 6px;">視覺風格 (Card Style) - 點擊縮圖即時切換：</label>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px;">
-                  <div onclick="selectRemotionStudioStyle('TechCard')" id="studio-style-card-TechCard" style="border: 2px solid #00F5FF; background: #060b16; border-radius: 8px; padding: 6px; cursor: pointer; text-align: center; box-shadow: 0 0 12px rgba(0,245,255,0.25); transition: all 0.2s;">
-                    <img src="/remotion/style_techcard.png" alt="Tech Card" style="width: 100%; height: 68px; object-fit: cover; border-radius: 5px; display: block; margin-bottom: 5px;">
-                    <div style="font-size: 11px; font-weight: 800; color: #00F5FF;">⚡ Tech Card</div>
-                    <div style="font-size: 10px; color: #94a3b8;">賽博青光發光</div>
+                  <div onclick="selectRemotionStudioStyle('BranchPathwayScene')" id="studio-style-card-BranchPathwayScene" style="border: 1.5px solid #1e293b; background: #060b16; border-radius: 8px; padding: 6px; cursor: pointer; text-align: center; transition: all 0.2s;">
+                    <img src="/remotion/style_branchpathway.png" alt="Branch Pathway" style="width: 100%; height: 68px; object-fit: cover; border-radius: 5px; display: block; margin-bottom: 5px;">
+                    <div style="font-size: 11px; font-weight: 800; color: #38bdf8;">🔀 分支決策</div>
+                    <div style="font-size: 10px; color: #94a3b8;">4條路線對比排除</div>
                   </div>
-                  <div onclick="selectRemotionStudioStyle('MinimalistCard')" id="studio-style-card-MinimalistCard" style="border: 1.5px solid #1e293b; background: #060b16; border-radius: 8px; padding: 6px; cursor: pointer; text-align: center; transition: all 0.2s;">
-                    <img src="/remotion/style_minimalist.png" alt="Minimalist" style="width: 100%; height: 68px; object-fit: cover; border-radius: 5px; display: block; margin-bottom: 5px;">
-                    <div style="font-size: 11px; font-weight: 800; color: #34d399;">📐 Minimalist</div>
-                    <div style="font-size: 10px; color: #94a3b8;">瑞士極簡綠線</div>
+                  <div onclick="selectRemotionStudioStyle('LeaderCalloutScene')" id="studio-style-card-LeaderCalloutScene" style="border: 1.5px solid #1e293b; background: #060b16; border-radius: 8px; padding: 6px; cursor: pointer; text-align: center; transition: all 0.2s;">
+                    <img src="/remotion/style_leadercallout.png" alt="Leader Callout" style="width: 100%; height: 68px; object-fit: cover; border-radius: 5px; display: block; margin-bottom: 5px;">
+                    <div style="font-size: 11px; font-weight: 800; color: #38bdf8;">🎯 引線標註</div>
+                    <div style="font-size: 10px; color: #94a3b8;">HUD手肘折線標籤</div>
                   </div>
-                  <div onclick="selectRemotionStudioStyle('CinemaImpactCard')" id="studio-style-card-CinemaImpactCard" style="border: 1.5px solid #1e293b; background: #060b16; border-radius: 8px; padding: 6px; cursor: pointer; text-align: center; transition: all 0.2s;">
-                    <img src="/remotion/style_cinema.png" alt="Cinema Impact" style="width: 100%; height: 68px; object-fit: cover; border-radius: 5px; display: block; margin-bottom: 5px;">
-                    <div style="font-size: 11px; font-weight: 800; color: #fbbf24;">🎬 Cinema Impact</div>
-                    <div style="font-size: 10px; color: #94a3b8;">電影金曜震撼</div>
+                  <div onclick="selectRemotionStudioStyle('ScaleCompareScene')" id="studio-style-card-ScaleCompareScene" style="border: 1.5px solid #1e293b; background: #060b16; border-radius: 8px; padding: 6px; cursor: pointer; text-align: center; transition: all 0.2s;">
+                    <img src="/remotion/style_scalecompare.png" alt="Scale Compare" style="width: 100%; height: 68px; object-fit: cover; border-radius: 5px; display: block; margin-bottom: 5px;">
+                    <div style="font-size: 11px; font-weight: 800; color: #38bdf8;">🔬 尺度對比</div>
+                    <div style="font-size: 10px; color: #94a3b8;">20X同心圓放大鏡</div>
+                  </div>
+                  <div onclick="selectRemotionStudioStyle('EvidenceHighlightScene')" id="studio-style-card-EvidenceHighlightScene" style="border: 2px solid #00F5FF; background: #060b16; border-radius: 8px; padding: 6px; cursor: pointer; text-align: center; box-shadow: 0 0 12px rgba(0,245,255,0.25); transition: all 0.2s;">
+                    <img src="/remotion/style_evidencehighlight.png" alt="Evidence Highlight" style="width: 100%; height: 68px; object-fit: cover; border-radius: 5px; display: block; margin-bottom: 5px;">
+                    <div style="font-size: 11px; font-weight: 800; color: #00F5FF;">📑 文獻劃記</div>
+                    <div style="font-size: 10px; color: #94a3b8;">剪紙與螢光筆劃記</div>
                   </div>
                 </div>
                 <select id="remotion-style-select" style="display: none;">
-                  <option value="TechCard" selected>TechCard</option>
-                  <option value="MinimalistCard">MinimalistCard</option>
-                  <option value="CinemaImpactCard">CinemaImpactCard</option>
+                  <option value="EvidenceHighlightScene" selected>EvidenceHighlightScene</option>
+                  <option value="BranchPathwayScene">BranchPathwayScene</option>
+                  <option value="LeaderCalloutScene">LeaderCalloutScene</option>
+                  <option value="ScaleCompareScene">ScaleCompareScene</option>
                 </select>
               </div>
 
@@ -13579,9 +14039,10 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       bodyHtml += '</div>';
 
       // 3. Footer Navigation Bar
-      const currentIdx = STAGE_ORDER.indexOf(stKey);
-      const prevKey = currentIdx > 0 ? STAGE_ORDER[currentIdx - 1] : null;
-      const nextKey = currentIdx < STAGE_ORDER.length - 1 ? STAGE_ORDER[currentIdx + 1] : null;
+      const currentOrder = isDrama ? STAGE_ORDER.filter(s => s !== 'music') : STAGE_ORDER;
+      const currentIdx = currentOrder.indexOf(stKey);
+      const prevKey = currentIdx > 0 ? currentOrder[currentIdx - 1] : null;
+      const nextKey = currentIdx < currentOrder.length - 1 ? currentOrder[currentIdx + 1] : null;
 
       let footerHtml = `
         <div style="background: #080d16; border-top: 1px solid var(--card-border); padding: 14px 20px; border-radius: 0 0 8px 8px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
@@ -15040,14 +15501,117 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       }
     }
 
+
+    async function autoGenerateWorldSetting(btn) {
+      if (!currentProjectId) return alert("Please select or create a project first.");
+      const origHtml = btn ? btn.innerHTML : '';
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<span class="spinner-inline" style="width:10px; height:10px; margin-right:4px;"></span> Generating...`;
+      }
+      try {
+        const res = await fetch(`/api/projects/${currentProjectId}/generate_world_setting`, { method: 'POST' });
+        const data = await res.json();
+        if (data.status === 'ok' && data.world_setting) {
+          const ws = data.world_setting;
+          const stringifyWsVal = (v) => {
+            if (!v) return '';
+            if (typeof v === 'string') return v;
+            if (Array.isArray(v)) {
+              return v.map(item => (typeof item === 'object' ? ((item.location || item.name || '') + ': ' + (item.description || item.architectural_details || JSON.stringify(item))).trim().replace(/^:\s*/, '') : String(item))).join('; ');
+            }
+            if (typeof v === 'object') {
+              return Object.entries(v).map(([k, val]) => `${k}: ${typeof val === 'object' ? JSON.stringify(val) : val}`).join('\n');
+            }
+            return String(v);
+          };
+          const eraEl = document.getElementById('studio-ws-era');
+          if (eraEl) eraEl.value = stringifyWsVal(ws.temporal_era);
+          const envEl = document.getElementById('studio-ws-env');
+          if (envEl) envEl.value = stringifyWsVal(ws.environment_reality);
+          const setEl = document.getElementById('studio-ws-settings');
+          if (setEl) setEl.value = stringifyWsVal(ws.key_settings);
+          const ensEl = document.getElementById('studio-ws-ensemble');
+          if (ensEl) ensEl.value = stringifyWsVal(ws.ensemble_specs);
+          const negEl = document.getElementById('studio-ws-negatives');
+          if (negEl) negEl.value = Array.isArray(ws.negative_anachronisms) ? ws.negative_anachronisms.join('\n') : (ws.negative_anachronisms || '');
+          syncWorldSettingToJson();
+        } else {
+          throw new Error(data.detail || "Server error");
+        }
+      } catch(e) {
+        alert("Failed to auto-generate world setting: " + e.message);
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = origHtml;
+        }
+      }
+    }
+
+    function syncWorldSettingToJson() {
+      const jsonArea = document.getElementById('studio-research');
+      if (!jsonArea) return;
+      let obj = {};
+      try { obj = JSON.parse(jsonArea.value); } catch(e) { return; }
+      if (!obj.world_setting || typeof obj.world_setting !== 'object') obj.world_setting = {};
+      const eraEl = document.getElementById('studio-ws-era');
+      if (eraEl) obj.world_setting.temporal_era = eraEl.value.trim();
+      const envEl = document.getElementById('studio-ws-env');
+      if (envEl) obj.world_setting.environment_reality = envEl.value.trim();
+      const setEl = document.getElementById('studio-ws-settings');
+      if (setEl) obj.world_setting.key_settings = setEl.value.trim();
+      const ensEl = document.getElementById('studio-ws-ensemble');
+      if (ensEl) obj.world_setting.ensemble_specs = ensEl.value.trim();
+      const negEl = document.getElementById('studio-ws-negatives');
+      if (negEl) obj.world_setting.negative_anachronisms = negEl.value.split('\n').map(s => s.trim()).filter(Boolean);
+      jsonArea.value = JSON.stringify(obj, null, 2);
+    }
+
+    function syncWorldSettingFromJson() {
+      const jsonArea = document.getElementById('studio-research');
+      if (!jsonArea) return;
+      try {
+        const obj = JSON.parse(jsonArea.value);
+        const ws = obj.world_setting || {};
+        const eraEl = document.getElementById('studio-ws-era');
+        if (eraEl) eraEl.value = ws.temporal_era || '';
+        const envEl = document.getElementById('studio-ws-env');
+        if (envEl) envEl.value = ws.environment_reality || '';
+        const setEl = document.getElementById('studio-ws-settings');
+        if (setEl) setEl.value = ws.key_settings || '';
+        const ensEl = document.getElementById('studio-ws-ensemble');
+        if (ensEl) ensEl.value = ws.ensemble_specs || '';
+        const negEl = document.getElementById('studio-ws-negatives');
+        if (negEl) negEl.value = Array.isArray(ws.negative_anachronisms) ? ws.negative_anachronisms.join('\n') : (ws.negative_anachronisms || '');
+      } catch(e) {
+        alert("Invalid JSON in research textarea: " + e.message);
+      }
+    }
+
     async function saveStudioStage(stKey) {
       if (!currentProjectId) return alert("Please select or create a project first.");
       let payload = {};
       if (stKey === 'research') {
         const text = document.getElementById('studio-research').value;
         try { payload.research = JSON.parse(text); } catch(e) { payload.research = { notes: text }; }
+        const eraEl = document.getElementById('studio-ws-era');
+        if (eraEl && payload.research && typeof payload.research === 'object') {
+          if (!payload.research.world_setting || typeof payload.research.world_setting !== 'object') {
+            payload.research.world_setting = {};
+          }
+          payload.research.world_setting.temporal_era = eraEl.value.trim();
+          payload.research.world_setting.environment_reality = (document.getElementById('studio-ws-env') || {}).value || '';
+          payload.research.world_setting.key_settings = (document.getElementById('studio-ws-settings') || {}).value || '';
+          payload.research.world_setting.ensemble_specs = (document.getElementById('studio-ws-ensemble') || {}).value || '';
+          const negsVal = (document.getElementById('studio-ws-negatives') || {}).value || '';
+          payload.research.world_setting.negative_anachronisms = negsVal.split('\n').map(s => s.trim()).filter(Boolean);
+        }
       } else if (stKey === 'script') {
         payload.script_md = document.getElementById('studio-script-md').value;
+      } else if (stKey === 'music') {
+        payload.music_plan = studioStageData.music_plan;
+        payload.music_settings = studioStageData.music_settings;
       } else if (stKey === 'scenes' || stKey === 'prompts' || stKey === 'animation') {
         payload.scenes = studioStageData.scenes;
       } else if (stKey === 'subtitles') {
@@ -15148,6 +15712,90 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       }
     }
 
+    const scriptDebounceTimers = {};
+
+    function onStudioScriptInput(sceneId, val) {
+      const lenEl = document.getElementById(`studio-script-len-${sceneId}`) || document.getElementById(`insp-script-len-${sceneId}`);
+      if (lenEl) lenEl.textContent = `${(val || '').length} 字`;
+
+      if (scriptDebounceTimers[sceneId]) clearTimeout(scriptDebounceTimers[sceneId]);
+      scriptDebounceTimers[sceneId] = setTimeout(() => {
+        saveSingleSceneScript(sceneId, true);
+      }, 1500);
+    }
+
+    function showScriptToast(sceneId, text) {
+      const t = document.getElementById(`studio-script-toast-${sceneId}`) || document.getElementById(`insp-script-toast-${sceneId}`);
+      if (t) {
+        t.textContent = text;
+        t.style.display = 'inline-block';
+        setTimeout(() => { if (t) t.style.display = 'none'; }, 3000);
+      }
+    }
+
+    async function saveSingleSceneScript(sceneId, isAutoSave = false) {
+      if (!currentProjectId) return;
+      if (scriptDebounceTimers[sceneId]) clearTimeout(scriptDebounceTimers[sceneId]);
+
+      const scriptEl = document.getElementById(`studio-scene-script-${sceneId}`) || document.getElementById(`insp-scene-script-${sceneId}`);
+      if (!scriptEl) return;
+      const newNarr = scriptEl.value;
+
+      // Check if unchanged against cache
+      let cachedNarr = null;
+      if (studioStageData && studioStageData.scenes) {
+        const sc = studioStageData.scenes.find(s => s.scene_id === sceneId);
+        if (sc) cachedNarr = sc.narration;
+      }
+      if (cachedNarr === null && inspectedStageData && inspectedStageData.scenes) {
+        const sc = inspectedStageData.scenes.find(s => s.scene_id === sceneId);
+        if (sc) cachedNarr = sc.narration;
+      }
+      if (cachedNarr !== null && cachedNarr === newNarr && isAutoSave) {
+        return; // nothing changed
+      }
+
+      const saveBtn = document.getElementById(`studio-btn-save-script-${sceneId}`) || document.getElementById(`insp-btn-save-script-${sceneId}`);
+      if (saveBtn && !isAutoSave) {
+        saveBtn.disabled = true;
+        saveBtn.textContent = '💾 Saving...';
+      }
+
+      try {
+        const res = await fetch(`/api/projects/${currentProjectId}/scenes/${sceneId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ narration: newNarr })
+        });
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.detail || "Failed to update scene");
+        }
+
+        // Update local caches
+        [studioStageData, inspectedStageData].forEach(sd => {
+          if (sd && sd.scenes) {
+            const sc = sd.scenes.find(s => s.scene_id === sceneId);
+            if (sc) sc.narration = newNarr;
+          }
+        });
+        if (typeof currentScenes !== 'undefined' && Array.isArray(currentScenes)) {
+          const sc = currentScenes.find(s => s.scene_id === sceneId);
+          if (sc) sc.narration = newNarr;
+        }
+
+        showScriptToast(sceneId, "✓ 台詞已儲存 (Saved)");
+      } catch (e) {
+        console.error("Failed to save scene script", e);
+        if (!isAutoSave) alert("Failed to save script: " + e.message);
+      } finally {
+        if (saveBtn && !isAutoSave) {
+          saveBtn.disabled = false;
+          saveBtn.textContent = '💾 儲存台詞';
+        }
+      }
+    }
+
     function onStudioSceneStyleChange(sceneId, styleKey) {
       if (!studioStageData || !studioStageData.available_styles) return;
       const st = studioStageData.available_styles[styleKey];
@@ -15245,6 +15893,11 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
 
       pollTimer = setInterval(pollStatus, 500);
       pollStatus();
+
+      const scriptEl = document.getElementById(`insp-scene-script-${sceneId}`) || document.getElementById(`studio-scene-script-${sceneId}`);
+      if (scriptEl && typeof saveSingleSceneScript === 'function') {
+        await saveSingleSceneScript(sceneId, true);
+      }
 
       const body = {
         prompt: promptEl ? promptEl.value : null,
@@ -15462,6 +16115,30 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
           btn.disabled = false;
           btn.textContent = "🎙️ Synthesize Voice";
         }
+      }
+    }
+
+    async function runCascadeFrom(fromStage) {
+      if (!currentProjectId) return alert("Please select or create a project first.");
+      const isFull = (fromStage === 'script');
+      const confirmMsg = isFull
+        ? "⚡ Re-generate Full Video from current Research?\n\nThis will automatically cascade through:\n1. Fresh narration script based on research\n2. Storyboard with World Setting constraints\n3. Historical image prompts & high-res generation\n4. Cloned voiceover audio\n5. Subtitles & 1080p final video render\n\nContinue?"
+        : "🎨 Re-generate Visuals and Render Video?\n\nThis will preserve your existing script and voiceover, and re-generate:\n1. Storyboard with World Setting constraints\n2. Image prompts & high-res generation\n3. Final 1080p video render\n\nContinue?";
+      if (!confirm(confirmMsg)) return;
+
+      try {
+        const res = await fetch(`/api/projects/${currentProjectId}/run_cascade/${fromStage}`, { method: 'POST' });
+        const d = await res.json();
+        if (d.status === 'already_running') {
+          return alert("Pipeline is already executing. Please wait or stop it first.");
+        }
+        studioStageRunning = fromStage;
+        startPolling();
+        alert(isFull
+          ? "🚀 Full video re-generation started! The pipeline is now cascading through Script -> Storyboard -> Prompts -> Images -> Voice -> Video."
+          : "🎨 Visual re-generation started! The pipeline is now re-generating Storyboard -> Prompts -> Images -> Video.");
+      } catch (e) {
+        alert("Failed to start cascade: " + e.message);
       }
     }
 

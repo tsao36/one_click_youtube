@@ -134,11 +134,18 @@ class EdgeTTS(TTSProvider):
             last_err = None
             for attempt in range(3):
                 try:
-                    await edge_tts.Communicate(text, voice, rate=rate, pitch=pitch).save(str(output_file))
+                    comm = edge_tts.Communicate(text, voice, rate=rate, pitch=pitch)
+                    # 25-second socket timeout to prevent indefinite hangs if websocket stalls
+                    await asyncio.wait_for(comm.save(str(output_file)), timeout=25.0)
                     if output_file.exists() and output_file.stat().st_size >= 500:
                         return
                 except Exception as ex:
                     last_err = ex
+                    if output_file.exists() and output_file.stat().st_size < 500:
+                        try:
+                            output_file.unlink(missing_ok=True)
+                        except Exception:
+                            pass
                     await asyncio.sleep(0.8 * (attempt + 1))
             if last_err:
                 raise last_err

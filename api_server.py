@@ -185,7 +185,7 @@ class TogglePresenterRequest(BaseModel):
 
 
 class RemotionRenderRequest(BaseModel):
-    composition: str = "TechCard"
+    composition: str = "EvidenceHighlightScene"
     props: dict[str, Any] = {}
     duration_frames: Optional[int] = 120
     fps: Optional[int] = 30
@@ -967,6 +967,11 @@ async def upload_music_track(
     target.write_bytes(content)
 
     rel_path = target.relative_to(music_dir).as_posix()
+    try:
+        from generators.music import sync_catalog
+        sync_catalog("data/music")
+    except Exception as e:
+        log.warning("Catalog sync after single upload failed: %s", e)
     return {"status": "uploaded", "filename": rel_path}
 
 @app.post("/api/music/upload-multiple")
@@ -974,24 +979,63 @@ async def upload_multiple_music_tracks(
     files: List[UploadFile] = File(...),
     category: Optional[str] = Form(None)
 ):
-    """Upload one or more music tracks (audio files)."""
+    """Upload one or more music tracks (audio files) with auto-categorization and safe conflict resolution."""
     music_dir = DATA_DIR / "music"
-    if category and re.match(r"^[a-zA-Z0-9_\-]+$", category):
-        target_dir = music_dir / category
-    else:
-        target_dir = music_dir
-    target_dir.mkdir(parents=True, exist_ok=True)
+    music_dir.mkdir(parents=True, exist_ok=True)
+    audio_exts = {".mp3", ".wav", ".m4a", ".ogg", ".flac", ".aac"}
 
+    from generators.music import CATEGORY_KEYWORDS, sync_catalog
+
+    def detect_cat(name: str) -> str:
+        stem_clean = Path(name).stem.lower().replace("_", " ").replace("-", " ")
+        scores = {cat: 0 for cat in CATEGORY_KEYWORDS}
+        for cat, kws in CATEGORY_KEYWORDS.items():
+            for kw in kws:
+                if kw.lower() in stem_clean:
+                    scores[cat] += 1
+        best_cat = max(scores, key=lambda k: scores[k])
+        return best_cat if scores[best_cat] > 0 else "calm_focus"
+
+    is_auto = (category is None or category.strip().lower() in ("auto", "", "none"))
     uploaded = []
+
     for file in files:
         raw_name = file.filename or "ambient_track.mp3"
-        clean_name = re.sub(r"[^a-zA-Z0-9_\-\.]", "_", raw_name)
-        target = target_dir / clean_name
+        ext = Path(raw_name).suffix.lower()
+        if ext not in audio_exts:
+            continue
+
+        target_cat = detect_cat(raw_name) if is_auto else category.strip()
+        if not re.match(r"^[a-zA-Z0-9_\-]+$", target_cat):
+            target_cat = "calm_focus"
+
+        target_dir = music_dir / target_cat
+        target_dir.mkdir(parents=True, exist_ok=True)
+
+        clean_stem = re.sub(r"[^a-zA-Z0-9_\-]", "_", Path(raw_name).stem).strip("_") or "track"
+        target = target_dir / f"{clean_stem}{ext}"
+
+        # Safe conflict resolution: non-destructive de-duplication
+        counter = 1
+        while target.exists():
+            target = target_dir / f"{clean_stem}_{counter}{ext}"
+            counter += 1
+
         content = await file.read()
         target.write_bytes(content)
         rel_path = target.relative_to(music_dir).as_posix()
-        uploaded.append({"filename": rel_path})
-    return {"status": "uploaded", "files": uploaded}
+        uploaded.append({
+            "filename": rel_path,
+            "category": target_cat,
+            "name": target.name
+        })
+
+    try:
+        sync_catalog("data/music")
+    except Exception as e:
+        log.warning("Catalog sync after multiple upload failed: %s", e)
+
+    return {"status": "uploaded", "count": len(uploaded), "files": uploaded}
 
 
 @app.delete("/api/music/tracks/{filepath:path}")
@@ -1098,6 +1142,35 @@ def run_stage_endpoint(project_id: str, stage_name: str, background_tasks: Backg
     background_tasks.add_task(pipeline.run_stage, stage_name)
     return {"status": "started_stage", "stage": stage_name}
 
+
+
+@app.post("/api/projects/{project_id}/run_cascade/{from_stage}")
+def run_cascade_endpoint(project_id: str, from_stage: str, background_tasks: BackgroundTasks):
+    p = Project(project_id)
+    p.reload()
+
+    if p.id in active_pipelines and p.data.state == "running":
+        return {"status": "already_running"}
+
+    if from_stage == "script":
+        cascade_stages = ["script", "scenes", "prompts", "images", "voice", "music", "animation", "subtitles", "render"]
+    elif from_stage == "scenes":
+        cascade_stages = ["scenes", "prompts", "images", "animation", "subtitles", "render"]
+    else:
+        raise HTTPException(status_code=400, detail=f"Unsupported cascade start stage '{from_stage}'")
+
+    for st in cascade_stages:
+        p.set_stage(st, Status.PENDING)
+
+    p.data.state = "running"
+    p.data.error = None
+    p.save()
+
+    pipeline = Pipeline(p)
+    active_pipelines[p.id] = pipeline
+    p.activity(f"Cascading generation from {from_stage} through to final video...")
+    background_tasks.add_task(pipeline.run)
+    return {"status": "started_cascade", "from_stage": from_stage, "stages": cascade_stages}
 
 @app.post("/api/projects/{project_id}/assemble")
 def assemble_project_pipeline(project_id: str, background_tasks: BackgroundTasks):
@@ -1211,12 +1284,134 @@ def get_stage_data_endpoint(project_id: str, stage_name: str):
             "style": sub_s.get("style", "youtube_standard"),
             "font": sub_s.get("font", "Microsoft JhengHei UI"),
         }
+    elif stage_name == "music":
+        from generators.music import list_tracks, sync_catalog
+        music_s = p.data.settings.get("music") or p.settings.get("music", {})
+        music_dir = music_s.get("directory", "data/music")
+        cat = sync_catalog(music_dir)
+        raw_plan = p.read_json("music/music_plan.json", [])
+
+        # Add direct audio playback URL for each segment
+        plan_with_urls = []
+        for seg in raw_plan:
+            seg_copy = dict(seg)
+            track_path = seg.get("track", "")
+            try:
+                p_trk = Path(track_path)
+                parts = p_trk.parts
+                if "music" in parts:
+                    idx = parts.index("music")
+                    rel_audio = "/".join(parts[idx+1:]).replace("\\", "/")
+                else:
+                    rel_audio = f"{p_trk.parent.name}/{p_trk.name}" if p_trk.parent.name else p_trk.name
+                seg_copy["audio_url"] = f"/api/music/audio/{rel_audio}"
+            except Exception:
+                seg_copy["audio_url"] = ""
+            plan_with_urls.append(seg_copy)
+
+        # List all available tracks for dropdown selection with rich metadata
+        tracks_meta = {t.get("filename"): t for t in cat.get("tracks", [])}
+        all_tracks_list = []
+        for t in list_tracks(music_dir):
+            try:
+                rel = t.relative_to(ROOT / music_dir).as_posix()
+            except Exception:
+                rel = f"{t.parent.name}/{t.name}"
+            m_info = tracks_meta.get(rel) or {}
+            all_tracks_list.append({
+                "name": t.name,
+                "category": t.parent.name,
+                "path": str(t).replace("\\", "/"),
+                "url": f"/api/music/audio/{t.parent.name}/{t.name}",
+                "energy_level": m_info.get("energy_level", "mid"),
+                "movement_roles": m_info.get("movement_roles", ["intro", "development"]),
+                "mood": m_info.get("mood", ""),
+                "description": m_info.get("description", ""),
+            })
+
+        ret = {
+            "music_plan": plan_with_urls,
+            "music_settings": music_s,
+            "current_vibe": music_s.get("vibe", "auto"),
+            "topic": p.data.topic or p.topic,
+            "categories": list(cat.get("categories", {}).keys()),
+            "catalog": cat,
+            "available_tracks": all_tracks_list,
+            "total_duration": p.data.total_duration_seconds or 0.0,
+        }
     elif stage_name == "render":
         ret = {"outputs": p.data.outputs}
 
     ret["versioning"] = get_stage_versions(p, stage_name)
     return ret
 
+
+
+@app.post("/api/projects/{project_id}/generate_world_setting")
+def generate_world_setting_endpoint(project_id: str):
+    p = Project(project_id)
+    p.reload()
+    topic = p.data.topic
+    res_data = p.read_json("research/research.json", {})
+    notes_parts = []
+    if res_data.get("main_question"):
+        notes_parts.append(f"Main Question: {res_data.get('main_question')}")
+    if res_data.get("interesting_facts"):
+        notes_parts.append("Facts: " + " | ".join(res_data.get("interesting_facts", [])[:5]))
+    if res_data.get("raw_notes"):
+        notes_parts.append(res_data.get("raw_notes")[:2000])
+    notes = "\n".join(notes_parts)
+
+    from providers.llm import LLMClient
+    prov = p.settings.get("stage_models", {}).get("research")
+    client = LLMClient("world_setting_generation", provider_override=prov)
+
+    sys_msg = (
+        "You are an expert historical and documentary world setting specialist. "
+        "Extract or infer the authoritative World Setting Spec for image and scene generation. "
+        "Ensure rigorous factual accuracy: accurate era, authentic environmental damage/condition, "
+        "exact indoor/outdoor architectural locations, demographic ensemble rules (exact numbers, gender, nationality), "
+        "and explicit negative anachronisms. Output ONLY valid JSON matching the schema."
+    )
+    prompt = (
+        f"Video Topic: {topic}\n\n"
+        f"Context / Notes:\n{notes}\n\n"
+        "Return JSON with exact keys:\n"
+        '{\n'
+        '  "temporal_era": "exact historical era / time period (e.g. 1945-1946 Post-WWII or Contemporary)",\n'
+        '  "environment_reality": "physical condition and destruction state of the environment (e.g. Post-firebombing Tokyo, extensive rubble, charred wooden debris, no modern skyscrapers)",\n'
+        '  "key_settings": "primary physical locations, architectures, and indoors vs outdoors (e.g. War Ministry auditorium in Ichigaya, wooden bench dais, dark wood paneling, indoor fluorescent/tungsten lighting)",\n'
+        '  "ensemble_specs": "strict demographic breakdown, numbers, gender, attire, and national composition of key groups (e.g. 11 Allied judges, all male, international bench including 1 Indian (Radhabinod Pal), 1 Filipino, 1 Chinese judge, dressed in formal mid-20th-century robes and suits)",\n'
+        '  "negative_anachronisms": ["forbidden elements such as modern buildings, female judges on the 1946 bench, pristine sunny modern skyscrapers, particle colliders"]\n'
+        '}'
+    )
+
+    def _val(d):
+        if not isinstance(d, dict):
+            raise ValueError("Expected dict")
+        d.setdefault("temporal_era", "Contemporary")
+        d.setdefault("environment_reality", "Realistic authentic environment")
+        d.setdefault("key_settings", "")
+        d.setdefault("ensemble_specs", "")
+        if not isinstance(d.get("negative_anachronisms"), list):
+            d["negative_anachronisms"] = []
+        return d
+
+    try:
+        ws = client.json(prompt, sys_msg, temperature=0.4, validate=_val)
+    except Exception as e:
+        log.warning("World setting generation failed (%s), returning defaults", e)
+        ws = {
+            "temporal_era": "Contemporary",
+            "environment_reality": "Realistic authentic environment",
+            "key_settings": "",
+            "ensemble_specs": "",
+            "negative_anachronisms": []
+        }
+
+    res_data["world_setting"] = ws
+    p.write_json("research/research.json", res_data)
+    return {"status": "ok", "world_setting": ws}
 
 @app.get("/api/projects/{project_id}/stages/{stage_name}/versions")
 def get_versions_endpoint(project_id: str, stage_name: str):
@@ -1391,6 +1586,20 @@ def update_stage_data_endpoint(project_id: str, stage_name: str, payload: dict[s
                     p.set_stage("render", Status.PENDING)
             elif stage_name == "prompts":
                 p.invalidate("images")
+    elif stage_name == "music":
+        if "music_plan" in payload:
+            p.write_json("music/music_plan.json", payload["music_plan"])
+            p.set_stage("music", Status.COMPLETED)
+        if "music_settings" in payload:
+            m_up = payload["music_settings"]
+            p.settings.setdefault("music", {}).update(m_up)
+            p.data.settings.setdefault("music", {}).update(m_up)
+            p.save()
+        if "vibe" in payload:
+            p.settings.setdefault("music", {})["vibe"] = payload["vibe"]
+            p.data.settings.setdefault("music", {})["vibe"] = payload["vibe"]
+            p.save()
+        p.invalidate("render")
     elif stage_name == "subtitles":
         if "srt" in payload:
             p.write_text("subtitles/subtitles.srt", payload["srt"])
@@ -1957,6 +2166,37 @@ def update_scenes(project_id: str, scenes: list[Scene]):
         p.data.outputs.pop("final", None)
     p.save()
     return {"status": "updated", "count": len(scenes)}
+
+
+@app.patch("/api/projects/{project_id}/scenes/{scene_id}")
+def patch_scene(project_id: str, scene_id: int, payload: dict[str, Any]):
+    p = Project(project_id)
+    p.reload()
+    for sc in p.scenes:
+        if sc.scene_id == scene_id:
+            if "narration" in payload:
+                new_narr = str(payload["narration"])
+                if sc.narration.strip() != new_narr.strip():
+                    sc.narration = new_narr
+                    sc.audio.status = Status.PENDING
+                    sc.audio.error = None
+                    if sc.audio.meta is None:
+                        sc.audio.meta = {}
+                    sc.audio.meta["text_outdated"] = True
+                    p.invalidate("voice")
+                    p.set_stage("voice", Status.PENDING)
+                    p.set_stage("subtitles", Status.PENDING)
+                    p.set_stage("render", Status.PENDING)
+            if "prompt" in payload:
+                sc.prompt = str(payload["prompt"])
+            if "visual_description" in payload:
+                sc.visual_description = str(payload["visual_description"])
+            p.sync_avatar_disabled_state()
+            p.clear_clips_cache()
+            p.save_scenes()
+            p.save()
+            return {"status": "updated", "scene": sc.model_dump(mode="json")}
+    raise HTTPException(status_code=404, detail=f"Scene {scene_id} not found")
 
 
 @app.get("/api/images/styles")
@@ -3064,7 +3304,7 @@ def apply_remotion_to_scene(project_id: str, req: RemotionRenderRequest):
 
     auto = extract_card_props(s)
     props = {**auto, **{k: v for k, v in (req.props or {}).items() if v not in (None, "")}}
-    comp = req.composition or "TechCard"
+    comp = req.composition or "EvidenceHighlightScene"
     try:
         render_scene_card(p, s, props=props, fps=int(req.fps or 30), composition=comp)
     except Exception as e:
@@ -3101,7 +3341,7 @@ def preview_remotion_critical_scenes(project_id: str):
 
 @app.post("/api/projects/{project_id}/remotion/auto")
 def auto_remotion_critical_scenes(project_id: str, background_tasks: BackgroundTasks,
-                                  composition: str = "TechCard"):
+                                  composition: str = "EvidenceHighlightScene"):
     """Render cards for all critical scenes in the background."""
     from generators.remotion_cards import render_critical_scene_cards, select_critical_scenes
     p = Project(project_id)

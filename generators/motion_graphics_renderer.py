@@ -57,7 +57,7 @@ def render_motion_graphic_clip(
     props_file = REMOTION_DIR / f"props_{run_id}.json"
     props_file.write_text(json.dumps(full_props, ensure_ascii=False), encoding="utf-8")
 
-    out_path = Path(out_path)
+    out_path = Path(out_path).resolve()
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
     frames = max(30, duration_frames)

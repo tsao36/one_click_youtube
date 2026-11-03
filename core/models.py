@@ -22,6 +22,7 @@ STAGES = [
     "prompts",
     "images",
     "voice",
+    "music",
     "animation",
     "subtitles",
     "render",
@@ -72,7 +73,7 @@ class Scene(BaseModel):
     has_impact_hit: bool = False                # Trigger dramatic sound effect on this shot
     entities: list[str] = Field(default_factory=list)
     search_keyword: Optional[str] = None        # Real-world entity/keyword to search online (e.g. YouTube clip/screenshot)
-    media_source: str = "ai"                    # "ai" | "youtube_snippet" | "youtube_screenshot" | "stock"
+    media_source: str = "ai"                    # "ai" | "stock_portrait" | "youtube_snippet" | "youtube_screenshot" | "stock" | "wikimedia"
     enabled: bool = True
     ai_video: bool = False          # selected for real image-to-video
     ai_video_user: Optional[bool] = None  # explicit user override from scene editor

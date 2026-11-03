@@ -6,7 +6,7 @@ from core.logging_setup import log
 from core.taiwan_mandarin import is_taiwan_mandarin, normalize_to_taiwan_mandarin
 from providers.llm import LLMClient, build_provider
 
-SYSTEM = "You are a meticulous research assistant for educational YouTube documentaries. Output only JSON."
+SYSTEM = "You are a meticulous research assistant for educational YouTube documentaries. You ensure rigorous factual and historical accuracy, establishing clear world settings and demographic realities so visual production avoids anachronisms. Output only JSON."
 
 SCHEMA = """{
   "main_question": "the core question the video answers",
@@ -14,6 +14,13 @@ SCHEMA = """{
   "key_concepts": ["concept: one-line plain explanation", "..."],
   "misconceptions": ["common misconception and the correction", "..."],
   "interesting_facts": ["surprising but accurate fact", "..."],
+  "world_setting": {
+    "temporal_era": "exact historical era or time period (e.g. '1945-1946 Post-WWII')",
+    "environment_reality": "physical condition and destruction state of the environment (e.g. 'Post-firebombing Tokyo, extensive rubble, charred wooden remnants, makeshift shelters, no modern buildings')",
+    "key_settings": "primary physical locations, architectures, and indoors vs outdoors (e.g. 'War Ministry auditorium in Ichigaya, wooden bench dais, dark wood paneling, indoor fluorescent/tungsten lighting')",
+    "ensemble_specs": "strict demographic breakdown, numbers, gender, attire, and national composition of key groups (e.g. '11 Allied judges, all male, international bench including 1 Indian (Radhabinod Pal), 1 Filipino, 1 Chinese judge, dressed in formal mid-20th-century robes and suits')",
+    "negative_anachronisms": ["forbidden elements such as modern buildings, female judges on the 1946 bench, pristine sunny modern skyscrapers, particle colliders"]
+  },
   "narrative_structure": [
     {"section": "Hook", "purpose": "..."},
     {"section": "Introduction", "purpose": "..."},
@@ -32,6 +39,16 @@ def _validate(d):
     d.setdefault("key_concepts", [])
     d.setdefault("misconceptions", [])
     d.setdefault("interesting_facts", [])
+    ws = d.setdefault("world_setting", {})
+    if not isinstance(ws, dict):
+        ws = {}
+        d["world_setting"] = ws
+    ws.setdefault("temporal_era", "Contemporary")
+    ws.setdefault("environment_reality", "Realistic authentic environment")
+    ws.setdefault("key_settings", "")
+    ws.setdefault("ensemble_specs", "")
+    if not isinstance(ws.get("negative_anachronisms"), list):
+        ws["negative_anachronisms"] = []
     if not isinstance(d.get("narrative_structure"), list) or len(d["narrative_structure"]) < 3:
         d["narrative_structure"] = [{"section": s, "purpose": ""} for s in
                                     ("Hook", "Introduction", "How it works", "Why it happens", "What helps", "Conclusion")]

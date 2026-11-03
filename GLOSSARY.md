@@ -78,6 +78,22 @@ _Avoid_: Silent downgrade, invisible fallback, cheap avatar fallback
 
 **Pre-flight Quota Check**:
 A verification probe executed prior to dispatching GPU-heavy generation stages that queries provider balance endpoints, preventing the creation of partial or unfinishable video batches.
+
+**World Setting Spec**:
+A structured metadata specification generated during Stage 1 Research defining the temporal era, physical environmental conditions (e.g. war ruins vs pristine city), canonical interior/exterior architecture, and cast ensemble parameters across all scenes.
+_Avoid_: Era notes, history prompt, background context
+
+**Anachronism Guard**:
+An automated prompt conditioning and negative constraint engine that purges chronologically impossible objects, modern infrastructure, and conflicting demographics from historical image generation prompts.
+_Avoid_: Era filter, anti-modern prompt, negative check
+
+**Footage Keyword Domain-Gating**:
+A boundary enforcement mechanism ensuring real-world stock media search rules only evaluate within semantically matching topic classifications, preventing accidental substring collisions across unrelated genres.
+_Avoid_: Regex isolation, keyword barrier, domain blacklist
+
+**Smart World Setting Preservation**:
+A non-destructive pipeline lifecycle policy ensuring user-edited historical constraints, architectural locations, and ensemble specs are preserved across Stage 1 re-runs while providing an on-demand reset mechanism to generate fresh AI suggestions.
+_Avoid_: Config lock, freeze schema, sticky world setting
 _Avoid_: Late credit check, runtime billing probe, mid-job balance test
 
 **Split-Angle Dialogue Cut**:
@@ -107,3 +123,71 @@ _Avoid_: Random outfit variation, costume drift, unmanaged dress change
 **Primary Setting Anchor**:
 The default architectural and environmental space profile derived from the drama formula and story premise (e.g. high-rise CEO office, modern police interrogation room) that binds background scenes across the video episode.
 _Avoid_: Random background, floating location, prompt backdrop
+
+**Narrative Movement**:
+A distinct emotional and thematic musical phase within a documentary timeline (such as Opening Context, Deep Tension, or Climax Resolution) mapped to script chapters and paced dynamically across the video.
+_Avoid_: Music clip, audio chunk, BGM cut, loop segment
+
+**Ambient Music Stage**:
+A dedicated pipeline inspection and tuning stage in Documentary Stage Studio situated prior to final video rendering that analyzes narration pacing, selects and crossfades multi-movement tracks, and exposes audio audition controls.
+_Avoid_: BGM setting, audio tab, music toggle, render option
+
+**Music Vibe Profile**:
+A multi-dimensional acoustic classification encompassing narrative genre, emotional valence, pacing tempo, and instrumentation texture, governing how audio atmosphere is mapped to video themes.
+_Avoid_: Music tag, sound label, audio type, song category
+
+**Sonic Grounding**:
+The semantic alignment process that analyzes script dramatic tone, research topic, and chapter sentiment to select harmonized musical tracks from the catalog, preventing tonal mismatch and acoustic dissonance.
+_Avoid_: Folder shuffle, hash pick, random BGM, generic track choice
+
+**Batch Track Ingestion**:
+The concurrent uploading and automatic catalog indexing of multiple audio assets into designated vibe folders with instantaneous metadata enrichment.
+_Avoid_: Bulk song drop, mass upload, loose audio dump
+
+**Tactile Blueprint Aesthetic**:
+A documentary visual language combining dark slate technical grids, SVG path drawing strokes, paper cutout drop shadows with subtle rotational imperfection, and high-contrast kinetic typography with vibrant telemetry accents.
+_Avoid_: SaaS card UI, flat corporate slide, generic glassmorphism
+
+**Branch Pathway Graphic**:
+A documentary motion graphic archetype visualizing competing technical routes, historical lineages, or strategic choices through branching SVG nodes, highlighting the chosen path while dimming or crossing out alternatives.
+_Avoid_: Comparison table, split box, VS card
+
+**Leader Callout Graphic**:
+A high-precision technical motion graphic that animates an origin anchor point, an elbow connecting line, and a floating telemetry badge pointing to anatomical layers or mechanical components on an underlying image.
+_Avoid_: Arrow pointer, popup badge, floating text box
+
+**Scale Loupe Comparison**:
+A dual-tier visual benchmark graphic that pairs microscopic elements against macroscopic everyday objects with an animated metric ruler to convey extreme proportions and precision.
+_Avoid_: Simple stat bar, ratio card, size table
+
+**Evidence Document Highlight**:
+An investigative motion graphic displaying an archival patent, paper clipping, or official record with a dynamic highlighter ink sweep across crucial phrases.
+_Avoid_: Text zoom, quote box, highlighted subtitle
+
+**Motion Graphic Director**:
+A dedicated semantic analysis stage where an LLM inspects script chapters to identify high-cognitive-load explanatory beats, choosing appropriate visual archetypes and populating structured coordinate and comparison props.
+_Avoid_: Regex keyword trigger, metric card picker, random graphic generator
+
+**Two-Pass Motion Graphic Lifecycle**:
+An orchestration architecture where narrative intent and structured props are authored during Stage 3 Storyboarding, then exact audio-duration frame counts and background image paths are conformed during Stage 8 Animation rendering.
+_Avoid_: Runtime generation, late script generation, uncoupled animation rendering
+
+**Three-Phase Dramatic Progression**:
+A structured Remotion animation timeline divided into Staggered Entrance (0–30%), Elimination & Selection (30–65%), and Focused Telemetry Zoom (65–100%) to build narrative tension in documentary motion graphics.
+_Avoid_: Static card display, linear fade-in, single-state diagram
+
+**Normalized Anchor Coordinate**:
+A relative coordinate pair $(x, y) \in [0.1, 0.9]$ specifying visual feature focal points on background images, accompanied by deterministic golden-ratio fallback slots when coordinates are unspecified.
+_Avoid_: Pixel coordinates, absolute offsets, floating alignment
+
+**Documentary Style Gallery**:
+A centralized configuration and audition interface situated in Global Settings and Stage Studio that allows creators to select, audition, and override default motion graphic archetypes with live Remotion preview cards.
+_Avoid_: Card picker, theme selector, template tab
+
+**Celebrity Portrait Grounding**:
+The automated pipeline mechanism that identifies real-world historical, political, scientific, and corporate figures from documentary narration, resolving their canonical international identities and binding authentic biographical infobox or Wikimedia portraits into scene media assets rather than synthetic diffusion imagery.
+_Avoid_: Celebrity face swap, deepfake portrait, generic AI avatar, hallucinated face generation
+
+**Wikipedia Infobox Resolver**:
+A zero-key biographical image retrieval probe querying the Wikipedia Page Summary API to fetch curated, high-resolution public domain biographical portraits and infobox photography for verified public figures.
+_Avoid_: Google web scrape, Bing image scraper, random photo crawler

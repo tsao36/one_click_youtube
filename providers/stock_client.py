@@ -19,6 +19,68 @@ log = logging.getLogger(__name__)
 USER_AGENT = "OneClickYouTube/1.0 (https://github.com/tsao36/one_click_youtube; contact@tsao36.ai) python-requests/2.31"
 
 
+# ---------------- Wikipedia Biographical Infobox Resolver ----------------
+def resolve_wikipedia_portrait(entity_name: str) -> dict[str, Any] | None:
+    """Fetch high-resolution biographical portrait from Wikipedia infobox for real figures."""
+    if not entity_name or not entity_name.strip():
+        return None
+
+    clean_name = re.sub(
+        r"\s*(?:interview|keynote|speech|speechs|lecture|portrait|photo|photos|demo|meeting)\b",
+        "",
+        entity_name,
+        flags=re.IGNORECASE,
+    ).strip()
+    if not clean_name:
+        return None
+
+    headers = {"User-Agent": USER_AGENT}
+    endpoints = [
+        f"https://en.wikipedia.org/api/rest_v1/page/summary/{urllib.parse.quote(clean_name)}",
+        f"https://zh.wikipedia.org/api/rest_v1/page/summary/{urllib.parse.quote(clean_name)}"
+    ]
+
+    for ep in endpoints:
+        try:
+            r = requests.get(ep, headers=headers, timeout=10)
+            if r.status_code != 200:
+                continue
+            data = r.json()
+            if data.get("type") == "disambiguation":
+                continue
+
+            orig = data.get("originalimage") or {}
+            thumb = data.get("thumbnail") or {}
+            img_url = orig.get("source") or thumb.get("source")
+            if not img_url:
+                continue
+
+            width = orig.get("width") or thumb.get("width") or 1920
+            height = orig.get("height") or thumb.get("height") or 1080
+
+            if width < 300 or height < 300:
+                continue
+
+            return {
+                "id": f"wikipedia_{data.get('pageid', clean_name)}",
+                "title": data.get("title", clean_name),
+                "type": "image",
+                "source": "wikipedia",
+                "thumbnail_url": thumb.get("source") or img_url,
+                "media_url": img_url,
+                "width": width,
+                "height": height,
+                "duration": None,
+                "author": "Wikipedia Contributors",
+                "license": "Public Domain / CC-BY-SA",
+                "description": data.get("description", "")
+            }
+        except Exception as e:
+            log.debug("Wikipedia infobox resolve error for '%s' on %s: %s", clean_name, ep, e)
+
+    return None
+
+
 # ---------------- Wikimedia Commons (100% Free, No Key Required) ----------------
 def search_wikimedia(query: str, media_type: str = "all", limit: int = 15) -> list[dict[str, Any]]:
     """Search Wikimedia Commons for public domain & Creative Commons images and video clips."""

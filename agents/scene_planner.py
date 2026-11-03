@@ -240,7 +240,7 @@ def visual_bible(topic: str, script_text: str, client: LLMClient) -> dict:
               "List the recurring visual entities (people, places, objects, eras) that appear in several scenes and "
               "must look consistent. Give each a short fixed visual description (appearance, colours, clothing, materials). "
               'Return JSON: {"entities": [{"name": "short name", "description": "fixed visual description"}]} '
-              "with at most 8 entities. Use generic people (no celebrities).")
+              "with at most 8 entities. Use generic descriptions for fictional roles, but extract verified historical, political, scientific, or corporate figures with their canonical search name when explicitly mentioned in the narration.")
     try:
         data = client.json(prompt, SYSTEM, temperature=0.4)
         ents = [e for e in data.get("entities", []) if e.get("name") and e.get("description")][:8]
@@ -304,63 +304,68 @@ def extract_phase_turn_text(section_name: str, narration: str, topic: str = "") 
     return "關鍵轉折：核心真相解析"
 
 
-# Real-world authentic media pattern mapping
-# Format: (pattern, query, preferred_source)
-# preferred_source: "youtube_snippet" | "wikimedia"
-REAL_MEDIA_PATTERNS: list[tuple[str, str, str]] = [
-    # Key Tech Personalities & Leaders (prefer authentic YouTube keynotes/interviews)
-    (r"(?:Yann LeCun|楊立昆|LeCun)", "Yann LeCun interview", "youtube_snippet"),
-    (r"(?:Jensen Huang|黃仁勳)", "Jensen Huang Computex keynote", "youtube_snippet"),
-    (r"(?:Sam Altman|奧特曼)", "Sam Altman interview", "youtube_snippet"),
-    (r"(?:Elon Musk|馬斯克)", "Elon Musk interview", "youtube_snippet"),
-    (r"(?:Demis Hassabis|哈薩比斯)", "Demis Hassabis DeepMind", "youtube_snippet"),
-    (r"(?:Ilya Sutskever)", "Ilya Sutskever SSI interview", "youtube_snippet"),
-    (r"(?:Geoffrey Hinton|辛頓)", "Geoffrey Hinton interview", "youtube_snippet"),
-    (r"(?:Mark Zuckerberg|祖克柏|扎克伯格)", "Mark Zuckerberg Meta keynote interview", "youtube_snippet"),
-    (r"(?:Satya Nadella|納德拉)", "Satya Nadella Microsoft keynote", "youtube_snippet"),
-    (r"(?:Tim Cook|庫克)", "Tim Cook Apple keynote", "youtube_snippet"),
-    (r"(?:Lisa Su|蘇姿丰)", "Lisa Su AMD Computex keynote", "youtube_snippet"),
-    (r"(?:Morris Chang|張忠謀)", "Morris Chang TSMC interview", "youtube_snippet"),
-    (r"(?:Steve Jobs|賈伯斯)", "Steve Jobs keynote iPhone", "youtube_snippet"),
-    (r"(?:Andrew Ng|吳恩達)", "Andrew Ng AI lecture", "youtube_snippet"),
-    (r"(?:Fei-Fei Li|李飛飛)", "Fei-Fei Li World Labs AI keynote", "youtube_snippet"),
+# Domain-specific tech hardware & software patterns (only evaluated for tech hardware topics)
+TECH_HARDWARE_PATTERNS: list[tuple[str, str, str]] = [
+    # Key Tech Personalities & Leaders (authentic biographical portraits)
+    (r"(?:Yann LeCun|楊立昆|LeCun)", "Yann LeCun", "stock_portrait"),
+    (r"(?:Jensen Huang|黃仁勳)", "Jensen Huang", "stock_portrait"),
+    (r"(?:Sam Altman|奧特曼)", "Sam Altman", "stock_portrait"),
+    (r"(?:Elon Musk|馬斯克)", "Elon Musk", "stock_portrait"),
+    (r"(?:Demis Hassabis|哈薩比斯)", "Demis Hassabis", "stock_portrait"),
+    (r"(?:Ilya Sutskever)", "Ilya Sutskever", "stock_portrait"),
+    (r"(?:Geoffrey Hinton|辛頓)", "Geoffrey Hinton", "stock_portrait"),
+    (r"(?:Mark Zuckerberg|祖克柏|扎克伯格)", "Mark Zuckerberg", "stock_portrait"),
+    (r"(?:Satya Nadella|納德拉)", "Satya Nadella", "stock_portrait"),
+    (r"(?:Tim Cook|庫克)", "Tim Cook", "stock_portrait"),
+    (r"(?:Lisa Su|蘇姿丰)", "Lisa Su", "stock_portrait"),
+    (r"(?:Morris Chang|張忠謀)", "Morris Chang", "stock_portrait"),
+    (r"(?:Steve Jobs|賈伯斯)", "Steve Jobs", "stock_portrait"),
+    (r"(?:Andrew Ng|吳恩達)", "Andrew Ng", "stock_portrait"),
+    (r"(?:Fei-Fei Li|李飛飛)", "Fei-Fei Li", "stock_portrait"),
+    (r"(?:Linus Torvalds|李納斯|托瓦茲)", "Linus Torvalds", "stock_portrait"),
+    (r"(?:Sundar Pichai|皮查伊)", "Sundar Pichai", "stock_portrait"),
+    (r"(?:Jeff Bezos|貝佐斯)", "Jeff Bezos", "stock_portrait"),
+    (r"(?:Bill Gates|比爾蓋茲|比爾·蓋茨)", "Bill Gates", "stock_portrait"),
 
     # Robotics, Autonomous Vehicles & Live Product Demos (prefer YouTube clips)
-    (r"(?:Sora|OpenAI Sora)", "OpenAI Sora demo", "youtube_snippet"),
+    (r"(?:Sora|OpenAI Sora)", "OpenAI Sora demo", "youtube_snippet"),
     (r"(?:Boston Dynamics|波士頓動力|Atlas robot)", "Boston Dynamics Atlas robot demo", "youtube_snippet"),
-    (r"(?:Tesla Optimus|Optimus|特斯拉機器人)", "Tesla Optimus robot demo", "youtube_snippet"),
-    (r"(?:Tesla Cybercab|Cybercab|Robotaxi|特斯拉無人計程車)", "Tesla Cybercab Robotaxi unveil", "youtube_snippet"),
-    (r"(?:Waymo|自駕車|自動駕駛)", "Waymo autonomous vehicle drive", "youtube_snippet"),
+    (r"(?:Tesla Optimus|Optimus|特斯拉機器人)", "Tesla Optimus robot demo", "youtube_snippet"),
+    (r"(?:Tesla Cybercab|Cybercab|Robotaxi|特斯拉無人計程車)", "Tesla Cybercab Robotaxi unveil", "youtube_snippet"),
+    (r"(?:Waymo|自駕車|自動駕駛)", "Waymo autonomous vehicle drive", "youtube_snippet"),
     (r"(?:Figure 01|Figure 02)", "Figure 01 humanoid robot demo", "youtube_snippet"),
     (r"(?:Unitree|宇樹科技|宇樹機器人)", "Unitree humanoid robot demo", "youtube_snippet"),
     (r"(?:Apple Vision Pro|Vision Pro)", "Apple Vision Pro demo review", "youtube_snippet"),
     (r"(?:Neuralink|腦機介面)", "Neuralink patient demo", "youtube_snippet"),
     (r"(?:SpaceX Starship|星艦)", "SpaceX Starship launch", "youtube_snippet"),
-    (r"(?:World Model|世界模型|V-JEPA|JEPA)", "World Models AI Yann LeCun JEPA", "youtube_snippet"),
+    (r"(?:World Model|世界模型|V-JEPA|JEPA)", "World Models AI Yann LeCun JEPA", "youtube_snippet"),
 
     # Networking, Wi-Fi, Routers & Telecom (prefer authentic Wikimedia Commons photos)
     (r"(?:Wi-Fi 8|802\.11bn|WiFi 8)", "Wi-Fi router antenna wireless technology", "wikimedia"),
     (r"(?:Wi-Fi 7|802\.11be|WiFi 7)", "Wi-Fi 7 wireless router hardware", "wikimedia"),
     (r"(?:Wi-Fi 6E|Wi-Fi 6|802\.11ax)", "Wi-Fi router antenna", "wikimedia"),
-    (r"(?:路由器|無線路由器|Wi-Fi AP|無線AP|Router)", "wireless router hardware network", "wikimedia"),
+    (r"(?:路由器|無線路由器|Wi-Fi AP|無線AP|Router)", "wireless router hardware network", "wikimedia"),
     (r"(?:基地台|5G基地台|通訊塔|行動基地台)", "cellular base station antenna tower", "wikimedia"),
     (r"(?:光纖|光纖電纜|海底電纜)", "fiber optic cable telecommunication glowing", "wikimedia"),
     (r"(?:低軌衛星|通訊衛星|Starlink|星鏈)", "communications satellite solar array space", "wikimedia"),
 
     # Semiconductor, Chips & Hardware (prefer authentic Wikimedia Commons photos)
-    (r"(?:ASML|High-NA EUV|微影機|光刻機)", "ASML EUV machine cleanroom lithography", "wikimedia"),
-    (r"(?:TSMC|台積電|晶圓代工)", "TSMC semiconductor wafer cleanroom fab", "wikimedia"),
-    (r"(?:矽晶圓|半導體晶圓|Wafer)", "semiconductor silicon wafer cleanroom", "wikimedia"),
-    (r"(?:Blackwell|GB200|B200|H100|H200|Nvidia GPU)", "Nvidia GPU processor board chip", "wikimedia"),
+    (r"(?:ASML|High-NA EUV|微影機|光刻機)", "ASML EUV machine cleanroom lithography", "wikimedia"),
+    (r"(?:TSMC|台積電|晶圓代工)", "TSMC semiconductor wafer cleanroom fab", "wikimedia"),
+    (r"(?:矽晶圓|半導體晶圓|Wafer)", "semiconductor silicon wafer cleanroom", "wikimedia"),
+    (r"(?:Blackwell|GB200|B200|H100|H200|Nvidia GPU)", "Nvidia GPU processor board chip", "wikimedia"),
     (r"(?:Apple M4|Apple M3|Apple Silicon|M4晶片|M3晶片)", "Apple silicon processor chip die", "wikimedia"),
-    (r"(?:微處理器|中央處理器|CPU晶片|晶片架構)", "microprocessor integrated circuit silicon die", "wikimedia"),
+    (r"(?:微處理器|中央處理器|CPU晶片|晶片架構)", "microprocessor integrated circuit silicon die", "wikimedia"),
     (r"(?:量子電腦|超導量子|IBM Quantum)", "IBM quantum computer cryostat dilution", "wikimedia"),
     (r"(?:伺服器機房|資料中心|機房伺服器|Server rack)", "data center server rack row interior", "wikimedia"),
     (r"(?:液冷散熱|水冷伺服器|浸沒式冷卻)", "liquid cooling computer heat sink radiator", "wikimedia"),
     (r"(?:太陽能板|太陽能發電|光伏)", "solar photovoltaic panel array renewable", "wikimedia"),
     (r"(?:風力發電機|風力發電|風力發電廠)", "wind turbine wind farm renewable energy", "wikimedia"),
-    (r"(?:大型強子對撞機|粒子加速器|CERN)", "Large Hadron Collider CERN particle detector", "wikimedia"),
+    (r"(?:大型強子對撞機|粒子加速器|CERN)", "Large Hadron Collider CERN particle detector", "wikimedia"),
+]
 
+# General, Historical, Political & Geographic patterns (evaluated across all documentary topics)
+GENERAL_AND_HISTORY_PATTERNS: list[tuple[str, str, str]] = [
     # Historical Events, Treaties, Figures & Landmarks (prefer authentic Wikimedia Commons photos)
     (r"(?:臺北公會堂|中山堂)", "Taipei Zhongshan Hall Public Hall", "wikimedia"),
     (r"(?:受降典禮|受降儀式|臺灣省受降|受降)", "Surrender ceremony Japan Taiwan 1945", "wikimedia"),
@@ -376,35 +381,35 @@ REAL_MEDIA_PATTERNS: list[tuple[str, str, str]] = [
     (r"(?:麥克阿瑟|一般命令第一號)", "General Douglas MacArthur 1945", "wikimedia"),
     (r"(?:蔣介石|蔣中正)", "Chiang Kai-shek portrait", "wikimedia"),
     (r"(?:日本投降|終戰|玉音放送)", "Japanese surrender 1945", "wikimedia"),
-    (r"(?:孫中山|國父)", "Sun Yat-sen", "wikimedia"),
-    (r"(?:李登輝)", "Lee Teng-hui", "wikimedia"),
+    (r"(?:孫中山|國父)", "Sun Yat-sen", "stock_portrait"),
+    (r"(?:李登輝)", "Lee Teng-hui", "stock_portrait"),
     (r"(?:白色恐怖)", "White Terror Taiwan memorial", "wikimedia"),
-    (r"(?:邱吉爾|Churchill)", "Winston Churchill", "wikimedia"),
-    (r"(?:羅斯福|Roosevelt)", "Franklin D Roosevelt", "wikimedia"),
-    (r"(?:愛因斯坦|Einstein)", "Albert Einstein", "wikimedia"),
+    (r"(?:邱吉爾|Churchill)", "Winston Churchill", "stock_portrait"),
+    (r"(?:羅斯福|Roosevelt)", "Franklin D Roosevelt", "stock_portrait"),
+    (r"(?:愛因斯坦|Einstein)", "Albert Einstein", "stock_portrait"),
     (r"(?:奧本海默|Oppenheimer|曼哈頓計畫)", "J Robert Oppenheimer Manhattan Project", "wikimedia"),
-    (r"(?:圖靈|Alan Turing)", "Alan Turing", "wikimedia"),
+    (r"(?:圖靈|Alan Turing)", "Alan Turing", "stock_portrait"),
     (r"(?:阿波羅計畫|登月|Apollo 11)", "Apollo 11 Moon landing NASA", "wikimedia"),
-    (r"(?:NASA|甘迺迪太空中心)", "NASA Kennedy Space Center", "wikimedia"),
+    (r"(?:NASA|甘迺迪太空中心)", "NASA Kennedy Space Center", "wikimedia"),
     (r"(?:白宮|White House)", "White House Washington DC", "wikimedia"),
     (r"(?:聯合國|United Nations)", "United Nations Headquarters New York", "wikimedia"),
 
     # Taiwanese & Contemporary Political, Civic & Academic figures & institutions
     (r"(?:沈柏洋|沈伯洋|Puma Shen)", "Puma Shen", "wikimedia"),
     (r"(?:黑熊學院|Kuma Academy)", "Kuma Academy Puma Shen", "wikimedia"),
-    (r"(?:黃國昌)", "黃國昌", "wikimedia"),
-    (r"(?:柯文哲)", "柯文哲", "wikimedia"),
-    (r"(?:賴清德)", "賴清德", "wikimedia"),
-    (r"(?:蕭美琴)", "蕭美琴", "wikimedia"),
-    (r"(?:蔡英文)", "蔡英文", "wikimedia"),
-    (r"(?:馬英九)", "馬英九", "wikimedia"),
+    (r"(?:黃國昌)", "黃國昌", "stock_portrait"),
+    (r"(?:柯文哲)", "柯文哲", "stock_portrait"),
+    (r"(?:賴清德)", "賴清德", "stock_portrait"),
+    (r"(?:蕭美琴)", "蕭美琴", "stock_portrait"),
+    (r"(?:蔡英文)", "蔡英文", "stock_portrait"),
+    (r"(?:馬英九)", "馬英九", "stock_portrait"),
     (r"(?:蔣萬安)", "蔣萬安", "wikimedia"),
     (r"(?:陳水扁)", "陳水扁", "wikimedia"),
     (r"(?:韓國瑜)", "韓國瑜", "wikimedia"),
     (r"(?:蘇貞昌)", "蘇貞昌", "wikimedia"),
     (r"(?:游錫堃)", "游錫堃", "wikimedia"),
-    (r"(?:郭台銘)", "郭台銘", "wikimedia"),
-    (r"(?:曹興誠)", "曹興誠", "wikimedia"),
+    (r"(?:郭台銘)", "郭台銘", "stock_portrait"),
+    (r"(?:曹興誠)", "曹興誠", "stock_portrait"),
     (r"(?:立法院|立法院議場|國會議場)", "立法院議場", "wikimedia"),
     (r"(?:行政院)", "行政院", "wikimedia"),
     (r"(?:總統府|臺灣總統府)", "Taiwan Presidential Office Building", "wikimedia"),
@@ -416,13 +421,29 @@ REAL_MEDIA_PATTERNS: list[tuple[str, str, str]] = [
     (r"(?:中研院|中央研究院)", "Academia Sinica Taiwan", "wikimedia"),
 
     # International Leaders & Contemporary Public Figures
-    (r"(?:川普|特朗普|Donald Trump)", "Donald Trump", "wikimedia"),
-    (r"(?:拜登|Joe Biden)", "Joe Biden", "wikimedia"),
-    (r"(?:賀錦麗|Kamala Harris)", "Kamala Harris", "wikimedia"),
-    (r"(?:歐巴馬|Barack Obama)", "Barack Obama", "wikimedia"),
-    (r"(?:習近平|Xi Jinping)", "Xi Jinping", "wikimedia"),
-    (r"(?:普丁|普京|Putin)", "Vladimir Putin", "wikimedia"),
+    (r"(?:川普|特朗普|Donald Trump)", "Donald Trump", "stock_portrait"),
+    (r"(?:拜登|Joe Biden)", "Joe Biden", "stock_portrait"),
+    (r"(?:賀錦麗|Kamala Harris)", "Kamala Harris", "stock_portrait"),
+    (r"(?:歐巴馬|Barack Obama)", "Barack Obama", "stock_portrait"),
+    (r"(?:習近平|Xi Jinping)", "Xi Jinping", "stock_portrait"),
+    (r"(?:普丁|普京|Putin)", "Vladimir Putin", "stock_portrait"),
 ]
+
+# Combined real media patterns
+REAL_MEDIA_PATTERNS: list[tuple[str, str, str]] = TECH_HARDWARE_PATTERNS + GENERAL_AND_HISTORY_PATTERNS
+
+TECH_HARDWARE_KEYWORDS = re.compile(
+    r"(?:晶片|半導體|AI|人工智慧|硬體|科技|Wi-Fi|WiFi|路由器|製程|GPU|CPU|伺服器|機器人|自駕|對撞機|加速器|高能物理|量子|光刻|微影|散熱|算力|LLM|模型|電子|通訊|晶圓|ASML|TSMC|Nvidia|Intel|AMD|OpenAI|CERN)",
+    re.IGNORECASE,
+)
+
+
+def is_tech_hardware_topic(topic: str) -> bool:
+    """Return True if topic is related to technology, electronics, semiconductors or hardware."""
+    if not topic:
+        return False
+    return bool(TECH_HARDWARE_KEYWORDS.search(topic))
+
 
 # Legacy backward-compatibility alias
 REAL_ENTITY_PATTERNS = [(p[0], p[1]) for p in REAL_MEDIA_PATTERNS]
@@ -432,7 +453,9 @@ PERSON_ENTITY_REGEX = re.compile(
     r"(?:Yann LeCun|楊立昆|LeCun|Jensen Huang|黃仁勳|Sam Altman|奧特曼|Elon Musk|馬斯克|"
     r"Demis Hassabis|哈薩比斯|Ilya Sutskever|Geoffrey Hinton|辛頓|Mark Zuckerberg|祖克柏|扎克伯格|"
     r"Satya Nadella|納德拉|Tim Cook|庫克|Lisa Su|蘇姿丰|Morris Chang|張忠謀|Steve Jobs|賈伯斯|"
-    r"Andrew Ng|吳恩達|Fei-Fei Li|李飛飛|安藤利吉|陳儀|林獻堂|丘念臺|麥克阿瑟|"
+    r"Andrew Ng|吳恩達|Fei-Fei Li|李飛飛|Linus Torvalds|李納斯|Sundar Pichai|皮查伊|Jeff Bezos|貝佐斯|"
+    r"Bill Gates|比爾蓋茲|比爾·蓋茨|Richard Feynman|費曼|Max Planck|普朗克|Niels Bohr|波耳|"
+    r"安藤利吉|陳儀|林獻堂|丘念臺|麥克阿瑟|"
     r"蔣介石|蔣中正|孫中山|國父|李登輝|邱吉爾|Churchill|羅斯福|Roosevelt|愛因斯坦|Einstein|"
     r"奧本海默|Oppenheimer|曼哈頓計畫|圖靈|Alan Turing|"
     r"沈柏洋|沈伯洋|Puma Shen|黃國昌|柯文哲|賴清德|蕭美琴|蔡英文|馬英九|蔣萬安|陳水扁|"
@@ -479,7 +502,9 @@ def detect_real_world_footage_target(narration: str, visual_desc: str = "", mode
     comb_text = f"{narration} {visual_desc}".strip()
 
     # 1. Check curated high-precision real entity patterns
-    for pattern, query, pref_source in REAL_MEDIA_PATTERNS:
+    # Domain Gating: only evaluate tech hardware patterns if topic is tech/hardware related
+    patterns_to_check = (TECH_HARDWARE_PATTERNS if is_tech_hardware_topic(topic) else []) + GENERAL_AND_HISTORY_PATTERNS
+    for pattern, query, pref_source in patterns_to_check:
         if re.search(pattern, comb_text, flags=re.IGNORECASE):
             # Guard A: If entity is a person, but visual_desc is an inanimate object/macro shot without depicting a person
             if PERSON_ENTITY_REGEX.search(pattern) and visual_desc:
@@ -500,6 +525,8 @@ def detect_real_world_footage_target(narration: str, visual_desc: str = "", mode
             elif mode == "wikimedia_only":
                 return query, "wikimedia"
             else:
+                if PERSON_ENTITY_REGEX.search(pattern) and pref_source != "youtube_snippet":
+                    return query, "stock_portrait"
                 return query, pref_source
 
     # 2. Dynamic Topic-Subject Extraction: If project topic specifies a real person or institution
@@ -535,14 +562,32 @@ def detect_real_world_footage_target(narration: str, visual_desc: str = "", mode
 
 
 def direct_scenes(topic: str, raw: list[dict], bible: dict, settings: dict, client: LLMClient,
-                  progress=None) -> list[Scene]:
+                  progress=None, world_setting: dict | None = None) -> list[Scene]:
     batch = int(settings.get("scenes", {}).get("llm_batch_size", 8))
     ent_names = [e["name"] for e in bible.get("entities", [])]
     directions: dict[int, dict] = {}
     for b in range(0, len(raw), batch):
         chunk = raw[b:b + batch]
         lines = "\n".join(f'{s["scene_id"]}. [{s["section"]}] {s["narration"]}' for s in chunk)
-        prompt = (f"Video topic: {topic}\nRecurring entities: {ent_names}\n\nScenes:\n{lines}\n\n"
+        world_ctx = ""
+        if world_setting:
+            era = world_setting.get("temporal_era", "")
+            env = world_setting.get("environment_reality", "")
+            settings_desc = world_setting.get("key_settings", "")
+            ensembles = world_setting.get("ensemble_specs", "")
+            negatives = world_setting.get("negative_anachronisms", [])
+            neg_str = ", ".join(negatives) if isinstance(negatives, list) else str(negatives)
+            world_ctx = (
+                f"\n[WORLD SETTING & HISTORICAL ACCURACY CONSTRAINTS]\n"
+                f"- Era / Time Period: {era}\n"
+                f"- Physical Environment & Damage Reality: {env}\n"
+                f"- Key Settings & Architectural Locations: {settings_desc}\n"
+                f"- Ensemble & Demographic Specifications: {ensembles}\n"
+                f"- Forbidden Anachronisms: {neg_str}\n"
+                f"CRITICAL: All visual descriptions MUST strictly obey the above era, architectural, and demographic constraints.\n\n"
+            )
+
+        prompt = (f"Video topic: {topic}\n{world_ctx}Recurring entities: {ent_names}\n\nScenes:\n{lines}\n\n"
                   "For EVERY scene id return a visual plan. JSON shape:\n"
                   '{"scenes": [{"id": 1, "visual_description": "one concrete photographable shot: subject, action, setting", '
                   '"visual_type": "image or diagram", "importance": 0.0-1.0, "motion_potential": 0.0-1.0, '
@@ -591,7 +636,7 @@ def direct_scenes(topic: str, raw: list[dict], bible: dict, settings: dict, clie
             if auto_kw:
                 search_kw = auto_kw
                 media_src = auto_src
-        if search_kw and media_src not in ("youtube_snippet", "youtube_screenshot", "wikimedia", "stock"):
+        if search_kw and media_src not in ("youtube_snippet", "youtube_screenshot", "stock_portrait", "wikimedia", "stock"):
             media_src = "wikimedia" if auto_stock_mode == "wikimedia_only" else "youtube_snippet"
 
         scenes.append(Scene(

@@ -7,10 +7,10 @@ from pydantic import BaseModel, Field, model_validator
 
 
 class SceneType(str, Enum):
-    TITLE = "TitleScene"
-    GRID_COMPARE = "GridCompareScene"
-    K_CURVE = "KCurveScene"
-    STAT_NUMBER = "StatNumberScene"
+    BRANCH_PATHWAY = "BranchPathwayScene"
+    LEADER_CALLOUT = "LeaderCalloutScene"
+    SCALE_COMPARE = "ScaleCompareScene"
+    EVIDENCE_HIGHLIGHT = "EvidenceHighlightScene"
 
 
 class LayoutType(str, Enum):
@@ -20,61 +20,103 @@ class LayoutType(str, Enum):
     BACKGROUND = "background"
 
 
-# 1. TitleScene Props
-class TitleSceneProps(BaseModel):
+# Base Scene Props
+class BaseSceneProps(BaseModel):
+    bg_src: Optional[str] = Field(default="", alias="bgSrc")
+    dim: Optional[float] = Field(default=0.75, ge=0.0, le=1.0)
+    accent_color: Optional[str] = Field(default="#00F5FF", alias="accentColor")
+    badge: Optional[str] = Field(default="INVESTIGATIVE ANALYSIS")
+
+    model_config = {"populate_by_name": True}
+
+
+# 1. BranchPathwayScene Props
+class PathwayNode(BaseModel):
+    id: str = Field(...)
+    name: str = Field(..., min_length=1, max_length=100)
+    category: Optional[str] = Field(default="", max_length=50)
+    detail: str = Field(..., max_length=200)
+    status: Literal["eliminated", "selected", "neutral"] = Field(default="neutral")
+    elimination_reason: Optional[str] = Field(default="", max_length=150, alias="eliminationReason")
+    highlight_tag: Optional[str] = Field(default="", max_length=50, alias="highlightTag")
+
+    model_config = {"populate_by_name": True}
+
+
+class BranchPathwaySceneProps(BaseSceneProps):
     title: str = Field(..., min_length=1, max_length=120)
-    subtitle: Optional[str] = Field(default="", max_length=160)
-    category: Optional[str] = Field(default="重點結論", max_length=50)
-    accent_color: Optional[str] = Field(default="#3B82F6", alias="accentColor")
-    animation_style: Optional[str] = Field(default="fade_slide", alias="animationStyle")
+    subtitle: Optional[str] = Field(default="", max_length=200)
+    paths: List[PathwayNode] = Field(..., min_length=2, max_length=6)
+    selected_id: Optional[str] = Field(default="", alias="selectedId")
 
     model_config = {"populate_by_name": True}
 
 
-# 2. GridCompareScene Props
-class GridCompareSceneProps(BaseModel):
-    left_title: str = Field(..., min_length=1, max_length=60, alias="leftTitle")
-    left_body: str = Field(..., min_length=1, max_length=160, alias="leftBody")
-    right_title: str = Field(..., min_length=1, max_length=60, alias="rightTitle")
-    right_body: str = Field(..., min_length=1, max_length=160, alias="rightBody")
-    comparison_label: Optional[str] = Field(default="VS", max_length=30, alias="comparisonLabel")
-    left_color: Optional[str] = Field(default="#3B82F6", alias="leftColor")
-    right_color: Optional[str] = Field(default="#EF4444", alias="rightColor")
-
-    model_config = {"populate_by_name": True}
-
-
-# 3. KCurveScene Props
-class KCurveSceneProps(BaseModel):
-    title: Optional[str] = Field(default="K 型兩極分化趨勢", max_length=80)
-    upper_text: str = Field(..., min_length=1, max_length=80, alias="upperText")
-    lower_text: str = Field(..., min_length=1, max_length=80, alias="lowerText")
-    fork_progress: Optional[float] = Field(default=0.35, ge=0.1, le=0.8, alias="forkProgress")
-    upper_color: Optional[str] = Field(default="#10B981", alias="upperColor")
-    lower_color: Optional[str] = Field(default="#EF4444", alias="lowerColor")
-
-    model_config = {"populate_by_name": True}
-
-
-# 4. StatNumberScene Props
-class StatNumberSceneProps(BaseModel):
-    value: float = Field(...)
-    prefix: Optional[str] = Field(default="", max_length=30)
-    suffix: Optional[str] = Field(default="", max_length=30)
-    unit: Optional[str] = Field(default="", max_length=30)
+# 2. LeaderCalloutScene Props
+class CalloutPoint(BaseModel):
+    id: str = Field(...)
     label: str = Field(..., min_length=1, max_length=100)
-    subtext: Optional[str] = Field(default="", max_length=160)
-    decimals: Optional[int] = Field(default=0, ge=0, le=4)
-    accent_color: Optional[str] = Field(default="#F59E0B", alias="accentColor")
+    sublabel: Optional[str] = Field(default="", max_length=150)
+    anchor_x: float = Field(default=0.4, ge=0.05, le=0.95, alias="anchorX")
+    anchor_y: float = Field(default=0.4, ge=0.05, le=0.95, alias="anchorY")
+    box_x: float = Field(default=0.7, ge=0.05, le=0.95, alias="boxX")
+    box_y: float = Field(default=0.4, ge=0.05, le=0.95, alias="boxY")
+    metric: Optional[str] = Field(default="", max_length=50)
+    status: Literal["active", "normal", "warning"] = Field(default="normal")
+
+    model_config = {"populate_by_name": True}
+
+
+class LeaderCalloutSceneProps(BaseSceneProps):
+    title: str = Field(..., min_length=1, max_length=120)
+    subtitle: Optional[str] = Field(default="", max_length=200)
+    callouts: List[CalloutPoint] = Field(..., min_length=1, max_length=6)
+
+    model_config = {"populate_by_name": True}
+
+
+# 3. ScaleCompareScene Props
+class ScaleCompareSceneProps(BaseSceneProps):
+    title: str = Field(..., min_length=1, max_length=120)
+    subtitle: Optional[str] = Field(default="", max_length=200)
+    macro_label: str = Field(..., min_length=1, max_length=100, alias="macroLabel")
+    macro_value: str = Field(..., min_length=1, max_length=50, alias="macroValue")
+    macro_desc: Optional[str] = Field(default="", max_length=200, alias="macroDesc")
+    micro_label: str = Field(..., min_length=1, max_length=100, alias="microLabel")
+    micro_value: str = Field(..., min_length=1, max_length=50, alias="microValue")
+    micro_desc: Optional[str] = Field(default="", max_length=200, alias="microDesc")
+    ratio_multiplier: str = Field(default="20×", max_length=50, alias="ratioMultiplier")
+    ratio_label: Optional[str] = Field(default="尺度極限差距", max_length=100, alias="ratioLabel")
+    magnification_factor: Optional[str] = Field(default="20X ZOOM", max_length=50, alias="magnificationFactor")
+
+    model_config = {"populate_by_name": True}
+
+
+# 4. EvidenceHighlightScene Props
+class TelemetryStat(BaseModel):
+    label: str = Field(..., max_length=80)
+    value: str = Field(..., max_length=80)
+    badge: Optional[str] = Field(default="", max_length=50)
+
+    model_config = {"populate_by_name": True}
+
+
+class EvidenceHighlightSceneProps(BaseSceneProps):
+    title: str = Field(..., min_length=1, max_length=120)
+    doc_header: Optional[str] = Field(default="ARCHIVAL RECORD / CLINICAL PROTOCOL", max_length=100, alias="docHeader")
+    doc_date: Optional[str] = Field(default="", max_length=50, alias="docDate")
+    document_excerpt: str = Field(..., min_length=1, max_length=800, alias="documentExcerpt")
+    highlight_phrase: str = Field(..., min_length=1, max_length=400, alias="highlightPhrase")
+    telemetry_stats: List[TelemetryStat] = Field(default_factory=list, alias="telemetryStats")
 
     model_config = {"populate_by_name": True}
 
 
 PROPS_SCHEMA_MAP = {
-    SceneType.TITLE: TitleSceneProps,
-    SceneType.GRID_COMPARE: GridCompareSceneProps,
-    SceneType.K_CURVE: KCurveSceneProps,
-    SceneType.STAT_NUMBER: StatNumberSceneProps,
+    SceneType.BRANCH_PATHWAY: BranchPathwaySceneProps,
+    SceneType.LEADER_CALLOUT: LeaderCalloutSceneProps,
+    SceneType.SCALE_COMPARE: ScaleCompareSceneProps,
+    SceneType.EVIDENCE_HIGHLIGHT: EvidenceHighlightSceneProps,
 }
 
 
@@ -102,7 +144,7 @@ class MotionGraphicScene(BaseModel):
 
 
 class MotionGraphicsTimeline(BaseModel):
-    schema_version: str = Field(default="1.0", alias="schemaVersion")
+    schema_version: str = Field(default="2.0", alias="schemaVersion")
     video_id: str = Field(default="", alias="videoId")
     fps: int = Field(default=30)
     duration_seconds: float = Field(default=0.0, alias="durationSeconds")

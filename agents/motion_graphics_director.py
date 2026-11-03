@@ -21,20 +21,24 @@ from core.motion_graphics_schema import (
 )
 from providers.llm import LLMClient
 
-DIRECTOR_SYSTEM_PROMPT = """你是一位專門為台灣知識型/深度解說 YouTube 頻道服務的專業 Motion Graphics 視覺導演 (Motion Graphics Director)。
+DIRECTOR_SYSTEM_PROMPT = """你是一位專門為深度解說/科學歷史紀錄片服務的專業 Motion Graphics 視覺導演 (Motion Graphics Director)。
 
 你的任務是分析旁白文案，並在合適的關鍵節點，挑選最能提升觀眾理解度的動態圖卡 (Motion Graphics)。
 你「絕對不需要寫程式碼」，你只需要輸出符合指定 JSON Schema 的結構化資料。
 
 可挑選的受控組件類型 (Scene Types)：
-1. TitleScene：重大命題、核心結論、轉折定調 (包含 title, subtitle, category, accentColor)。
-2. GridCompareScene：兩相對立概念、新舊對比、優勢與劣勢對決 (包含 leftTitle, leftBody, rightTitle, rightBody, comparisonLabel, leftColor, rightColor)。
-3. KCurveScene：兩極分化、K型走向、贏家與輸家分道揚鑣 (包含 title, upperText, lowerText, forkProgress, upperColor, lowerColor)。
-4. StatNumberScene：關鍵數據、百分比、金額、倍數增長 (包含 value [純數字], prefix, suffix, unit, label, subtext, decimals, accentColor)。
+1. BranchPathwayScene：多路線取捨、演進分支、淘汰排除分析。適用於 2-6 條技術路徑或戰略選擇對比，具備淘汰標記 (eliminated/selected)。
+   包含: title, subtitle, paths (陣列，每項含 id, name, category, detail, status ["eliminated"|"selected"|"neutral"], eliminationReason, highlightTag), selectedId。
+2. LeaderCalloutScene：底圖特徵標註、解剖層次、HUD 引線標籤。適用於指出圖中核心構造或細節。
+   包含: title, subtitle, callouts (陣列，每項含 id, label, sublabel, anchorX [0.05-0.95], anchorY [0.05-0.95], boxX, boxY, metric, status ["normal"|"active"|"warning"])。
+3. ScaleCompareScene：微觀與宏觀極限尺度對比 (同心圓 20X 放大鏡與微米尺規)。適用於奈米 vs 頭髮、微米 vs 肉眼、微觀尺度震撼對比。
+   包含: title, subtitle, macroLabel, macroValue, macroDesc, microLabel, microValue, microDesc, ratioMultiplier, ratioLabel, magnificationFactor。
+4. EvidenceHighlightScene：實體紙本文獻、專利或調查檔案剪報，配合螢光筆動態劃記與遙測數據卡。適用於關鍵引言、核心數據、解密報告或歷史檔案揭露。
+   包含: title, docHeader, docDate, documentExcerpt, highlightPhrase, telemetryStats (陣列，每項含 label, value, badge)。
 
 核心守則：
 1. 寧缺勿濫：動態圖卡只在「能大幅提升理解」時使用。不是每一句都要配圖表。
-2. 絕對不可憑空編造數據：StatNumberScene 的數值必須來自旁白中真實提及的數字（例如提到 2000 億美元，value 就填 2000，unit 填 "億美元"）。
+2. 絕對不可憑空編造數據：必須忠於旁白內容。
 3. 嚴格使用台灣繁體中文 (zh-TW)，避免中國大陸用語（如：視頻->影片、內存->記憶體、芯片->晶片）。
 4. 密度控制：通常一支 5-10 分鐘的影片，最多挑選 3 到 6 個最值得視覺化的關鍵節點，且不可連續兩個節點都放圖卡。
 5. 輸出格式：必須輸出合法的純 JSON 格式，包含一個 "scenes" 陣列。
@@ -44,19 +48,21 @@ JSON 格式示範：
   "scenes": [
     {
       "scene_id": 2,
-      "sceneType": "StatNumberScene",
+      "sceneType": "EvidenceHighlightScene",
       "layout": "overlay",
       "priority": 1,
       "confidence": 0.95,
-      "reason": "旁白提及四大巨頭突破2000億美元資本支出",
+      "reason": "旁白提及核心數據與指標突破",
       "props": {
-        "value": 2000,
-        "prefix": "突破",
-        "unit": "億美元",
-        "label": "雲端巨頭年度資本支出合計",
-        "subtext": "微軟、谷歌、亞馬遜與 Meta 創下歷史新高",
-        "decimals": 0,
-        "accentColor": "#F59E0B"
+        "title": "關鍵數據考證",
+        "docHeader": "TECHNICAL TELEMETRY & INVESTIGATION",
+        "docDate": "2024.10",
+        "documentExcerpt": "受試者在植入高密度微電極陣列後，神經訊號傳導延遲顯著降低，達成雙向即時通訊。",
+        "highlightPhrase": "神經訊號傳導延遲顯著降低",
+        "telemetryStats": [
+          {"label": "通道數量", "value": "1024 點", "badge": "ACTIVE"},
+          {"label": "延遲時間", "value": "< 15 ms", "badge": "VERIFIED"}
+        ]
       }
     }
   ]
@@ -239,7 +245,7 @@ class MotionGraphicsDirector:
             scene_duration_frames[s.scene_id] = dur_f
             accum_frames += dur_f
 
-        # 1. Look for numeric metrics in narration
+        # 1. Look for numeric metrics in narration -> EvidenceHighlightScene
         metric_re = re.compile(
             r"(\d[\d,.]*)\s*(超過|突破|達|約)?\s*([億萬千百]?\s*(?:%|％|倍|美元|美金|台幣|元|nm|奈米|GB|TB|Gbps|Mbps|GHz|MHz|人|家|台|顆))",
             re.IGNORECASE,
@@ -259,22 +265,25 @@ class MotionGraphicsDirector:
                     val = float(val_str)
                     unit = m.group(3).strip()
                     prefix = m.group(2) or ""
+                    metric_full = f"{prefix}{val_str} {unit}".strip()
+                    phrase = s.narration[:40] if len(s.narration) > 40 else s.narration
                     mg_scene = MotionGraphicScene(
-                        id=f"stat-{sid:03d}",
+                        id=f"evidence-{sid:03d}",
                         scene_id=sid,
-                        sceneType=SceneType.STAT_NUMBER,
+                        sceneType=SceneType.EVIDENCE_HIGHLIGHT,
                         layout=LayoutType.OVERLAY,
                         startFrame=scene_start_frames[sid],
                         durationInFrames=scene_duration_frames[sid],
-                        reason=f"自動提取數據指標: {val} {unit}",
+                        reason=f"自動提取文獻與數據劃記: {metric_full}",
                         props={
-                            "value": val,
-                            "prefix": prefix,
-                            "unit": unit,
-                            "label": s.section or "核心關鍵指標",
-                            "subtext": s.narration[:60] + "..." if len(s.narration) > 60 else s.narration,
-                            "decimals": 1 if "." in val_str else 0,
-                            "accentColor": "#F59E0B",
+                            "title": s.section or "核心文獻與數據考證",
+                            "docHeader": "ARCHIVAL RECORD / CRITICAL METRIC",
+                            "docDate": "RECORDED DATA",
+                            "documentExcerpt": s.narration or "指標審查紀錄",
+                            "highlightPhrase": phrase or "關鍵數據",
+                            "telemetryStats": [
+                                {"label": s.section or "關鍵指標", "value": f"{val_str} {unit}", "badge": "DATA"}
+                            ],
                         },
                     )
                     out_scenes.append(mg_scene)
@@ -283,47 +292,75 @@ class MotionGraphicsDirector:
                 except ValueError:
                     pass
 
-            # 2. Check for contrast words (VS / 對比)
-            if any(k in (s.narration or "") for k in ("對比", "相較於", "不同於", "一邊是", "另一邊")):
+            # 2. Look for extreme scale keywords -> ScaleCompareScene
+            if any(k in (s.narration or "") for k in ("奈米", "nm", "微米", "μm", "極限", "尺度", "比例", "極小")):
                 mg_scene = MotionGraphicScene(
-                    id=f"compare-{sid:03d}",
+                    id=f"scale-{sid:03d}",
                     scene_id=sid,
-                    sceneType=SceneType.GRID_COMPARE,
+                    sceneType=SceneType.SCALE_COMPARE,
                     layout=LayoutType.OVERLAY,
                     startFrame=scene_start_frames[sid],
                     durationInFrames=scene_duration_frames[sid],
-                    reason="自動識別對比論述",
+                    reason="自動識別微觀尺度極限對比",
                     props={
-                        "leftTitle": "傳統模式",
-                        "leftBody": "依賴既有架構，擴展成本高且效率受限。",
-                        "rightTitle": "新世代解方",
-                        "rightBody": "導入全新技術框架，吞吐量大幅躍升。",
-                        "comparisonLabel": "VS",
-                        "leftColor": "#3B82F6",
-                        "rightColor": "#EF4444",
+                        "title": s.section or "極限尺度對比",
+                        "subtitle": "微觀量測 vs 宏觀基準",
+                        "macroLabel": "宏觀參照物",
+                        "macroValue": "100 μm",
+                        "macroDesc": "人體毛髮基準直徑",
+                        "microLabel": "核心微結構",
+                        "microValue": "5 μm",
+                        "microDesc": "超微感測線路截面",
+                        "ratioMultiplier": "20×",
+                        "ratioLabel": "尺度極限差距",
+                        "magnificationFactor": "20X ZOOM",
                     },
                 )
                 out_scenes.append(mg_scene)
                 chosen_ids.add(sid)
                 continue
 
-            # 3. Check for K-curve / divergence words
-            if any(k in (s.narration or "") for k in ("K型", "兩極分化", "差距拉大", "分化", "脫鉤")):
+            # 3. Check for branching / technical path keywords -> BranchPathwayScene
+            if any(k in (s.narration or "") for k in ("路線", "路徑", "方案", "分支", "選擇", "對比", "相較於", "不同於", "抉擇")):
                 mg_scene = MotionGraphicScene(
-                    id=f"kcurve-{sid:03d}",
+                    id=f"branch-{sid:03d}",
                     scene_id=sid,
-                    sceneType=SceneType.K_CURVE,
+                    sceneType=SceneType.BRANCH_PATHWAY,
                     layout=LayoutType.OVERLAY,
                     startFrame=scene_start_frames[sid],
                     durationInFrames=scene_duration_frames[sid],
-                    reason="自動識別兩極分化趨勢",
+                    reason="自動識別多路徑分支與技術淘汰",
                     props={
-                        "title": "趨勢分化軌跡",
-                        "upperText": "領先族群 (加速成長)",
-                        "lowerText": "落後族群 (持續承壓)",
-                        "forkProgress": 0.35,
-                        "upperColor": "#10B981",
-                        "lowerColor": "#EF4444",
+                        "title": s.section or "架構路徑決策分析",
+                        "subtitle": "關鍵演進分支與可行性淘汰評估",
+                        "paths": [
+                            {"id": "p1", "name": "傳統路徑 (常規方案)", "category": "基礎方案", "detail": "依賴既有架構，擴展成本高且效能受限", "status": "eliminated", "eliminationReason": "無法突破架構瓶頸"},
+                            {"id": "p2", "name": "新世代深層方案", "category": "突破架構", "detail": "導入全自動流線化設計，實現跨世代躍升", "status": "selected", "highlightTag": "核心突破選擇"},
+                        ],
+                        "selectedId": "p2",
+                    },
+                )
+                out_scenes.append(mg_scene)
+                chosen_ids.add(sid)
+                continue
+
+            # 4. Check for structure / anatomical HUD keywords -> LeaderCalloutScene
+            if any(k in (s.narration or "") for k in ("構造", "結構", "內部", "組件", "晶片", "部位", "層次", "電路", "解剖")):
+                mg_scene = MotionGraphicScene(
+                    id=f"callout-{sid:03d}",
+                    scene_id=sid,
+                    sceneType=SceneType.LEADER_CALLOUT,
+                    layout=LayoutType.OVERLAY,
+                    startFrame=scene_start_frames[sid],
+                    durationInFrames=scene_duration_frames[sid],
+                    reason="自動識別結構引線與遙測標註",
+                    props={
+                        "title": s.section or "精密結構與遙測標記",
+                        "subtitle": "核心組件引線與運作狀態",
+                        "callouts": [
+                            {"id": "c1", "label": "核心處理單元", "sublabel": "高吞吐量即時運算陣列", "anchorX": 0.38, "anchorY": 0.45, "boxX": 0.72, "boxY": 0.35, "status": "active"},
+                            {"id": "c2", "label": "訊號隔離基底", "sublabel": "超低噪聲實體屏蔽層", "anchorX": 0.38, "anchorY": 0.65, "boxX": 0.72, "boxY": 0.65, "status": "normal"},
+                        ],
                     },
                 )
                 out_scenes.append(mg_scene)

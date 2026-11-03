@@ -7,7 +7,7 @@ from typing import Any
 log = logging.getLogger(__name__)
 
 # Standard stages
-STAGES = ["research", "script", "scenes", "prompts", "images", "voice", "animation", "subtitles", "render"]
+STAGES = ["research", "script", "scenes", "prompts", "images", "voice", "music", "animation", "subtitles", "render"]
 
 STAGE_META = {
     "research": {"title": "Stage 1: Research", "icon": "🔬", "category": "LLM & Search"},
@@ -16,7 +16,8 @@ STAGE_META = {
     "prompts": {"title": "Stage 4: Visual Prompts", "icon": "🎨", "category": "LLM Prompting"},
     "images": {"title": "Stage 5: Image Generation", "icon": "🖼️", "category": "Image Diffusion"},
     "voice": {"title": "Stage 6: Voice Synthesis (TTS)", "icon": "🎙️", "category": "Audio & Speech"},
-    "animation": {"title": "Stage 7: Animation & Clips", "icon": "✨", "category": "Motion & Video"},
+    "music": {"title": "Stage 7: Ambient Music", "icon": "🎶", "category": "Audio Atmosphere"},
+    "animation": {"title": "Stage 8: Animation & Clips", "icon": "✨", "category": "Motion & Video"},
     "presenter": {"title": "Stage 7 (Avatar): Virtual Presenter", "icon": "🎭", "category": "Talking Avatar (Lip-Sync)"},
     "subtitles": {"title": "Stage 8: Subtitle Generation", "icon": "📝", "category": "Transcription"},
     "render": {"title": "Stage 9: Video Rendering", "icon": "⚡", "category": "FFmpeg Encoding"},

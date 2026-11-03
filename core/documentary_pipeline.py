@@ -150,6 +150,19 @@ class DocumentaryPipeline(BasePipeline):
 
 
 
+        # Smart World Setting Preservation: check if user previously customized world_setting
+        existing_res = self.p.read_json("research/research.json", {})
+        existing_ws = existing_res.get("world_setting") if isinstance(existing_res, dict) else None
+        has_custom_ws = bool(
+            existing_ws and any([
+                existing_ws.get("temporal_era", "").strip() not in ("", "Contemporary"),
+                existing_ws.get("environment_reality", "").strip() not in ("", "Realistic authentic environment"),
+                existing_ws.get("key_settings", "").strip(),
+                existing_ws.get("ensemble_specs", "").strip(),
+                existing_ws.get("negative_anachronisms"),
+            ])
+        )
+
         try:
 
 
@@ -194,6 +207,8 @@ class DocumentaryPipeline(BasePipeline):
 
 
 
+            if has_custom_ws and existing_ws:
+                res["world_setting"] = existing_ws
             self.p.write_json("research/research.json", res)
 
 
@@ -483,22 +498,13 @@ class DocumentaryPipeline(BasePipeline):
 
 
         def on_prog(done, total):
-
-
-
             self.p.progress("scenes", done, total)
 
-
-
-
-
-
+        res_data = self.p.read_json("research/research.json", {})
+        world_setting = res_data.get("world_setting") if isinstance(res_data, dict) else None
 
         try:
-
-
-
-            scenes = direct_scenes(self.p.data.topic, raw, bible, cfg, client, progress=on_prog)
+            scenes = direct_scenes(self.p.data.topic, raw, bible, cfg, client, progress=on_prog, world_setting=world_setting)
 
 
 
@@ -663,22 +669,13 @@ class DocumentaryPipeline(BasePipeline):
 
 
         def on_prog(done, total):
-
-
-
             self.p.progress("prompts", done, total)
 
-
-
-
-
-
+        res_data = self.p.read_json("research/research.json", {})
+        world_setting = res_data.get("world_setting") if isinstance(res_data, dict) else None
 
         try:
-
-
-
-            prompts = generate_prompts(scenes, style, bible, client, batch=int(cfg.get("scenes", {}).get("llm_batch_size", 8)), progress=on_prog, topic=self.p.data.topic)
+            prompts = generate_prompts(scenes, style, bible, client, batch=int(cfg.get("scenes", {}).get("llm_batch_size", 8)), progress=on_prog, topic=self.p.data.topic, world_setting=world_setting)
 
 
 
@@ -1216,6 +1213,57 @@ class DocumentaryPipeline(BasePipeline):
 
 
                                  s.scene_id, dyn_kw, dyn_src)
+                # 0. Sourcing authentic biographical portrait (Wikipedia Infobox -> Wikimedia)
+                is_portrait = bool(getattr(s, "search_keyword", None) and getattr(s, "media_source", "ai") in ("stock_portrait", "celebrity_portrait"))
+                if is_portrait and not generated:
+                    person_name = s.search_keyword
+                    self.p.activity(f"Stage 5/9: Resolving authentic portrait for '{person_name}' (scene {s.scene_id})...")
+                    try:
+                        from providers.stock_client import resolve_wikipedia_portrait, search_wikimedia, download_media_file, format_stock_image
+                        w_target = int(self.p.settings.get("images", {}).get("width", 1920))
+                        h_target = int(self.p.settings.get("images", {}).get("height", 1080))
+
+                        portrait_info = resolve_wikipedia_portrait(person_name)
+                        if not portrait_info:
+                            wiki_res = search_wikimedia(person_name, media_type="image", limit=5)
+                            if wiki_res:
+                                portrait_info = wiki_res[0]
+
+                        if portrait_info and portrait_info.get("media_url"):
+                            temp_dl = img_path.with_name(f"{img_path.stem}_portrait_raw.jpg")
+                            download_media_file(portrait_info["media_url"], temp_dl)
+                            format_stock_image(temp_dl, img_path, target_w=w_target, target_h=h_target)
+                            if temp_dl.exists():
+                                try:
+                                    temp_dl.unlink()
+                                except Exception:
+                                    pass
+
+                            if img_path.exists() and img_path.stat().st_size > 1000:
+                                merged_meta = dict(existing_img_meta)
+                                merged_meta.update({
+                                    "provider": portrait_info.get("source", "wikipedia"),
+                                    "search_keyword": person_name,
+                                    "title": portrait_info.get("title"),
+                                    "url": portrait_info.get("media_url"),
+                                    "author": portrait_info.get("author", "Wikipedia / Wikimedia Commons"),
+                                    "license": portrait_info.get("license", "Public Domain / CC"),
+                                    "media_source": "stock_portrait",
+                                    "is_stock": True,
+                                })
+                                merged_meta["takes"] = prev_img_takes
+                                s.image.status = Status.COMPLETED
+                                s.image.path = self.p.rel(img_path)
+                                s.image.meta = merged_meta
+                                s.image.error = None
+                                generated = True
+                                log.info("Scene %d successfully grounded authentic portrait for '%s' from %s: %s",
+                                         s.scene_id, person_name, portrait_info.get("source"), portrait_info.get("title"))
+                    except Exception as port_err:
+                        log.warning("Portrait resolution failed for scene %d ('%s'): %s; falling back",
+                                    s.scene_id, person_name, port_err)
+
+
 
 
 
@@ -1427,7 +1475,7 @@ class DocumentaryPipeline(BasePipeline):
 
 
 
-                is_wiki = bool(getattr(s, "search_keyword", None) and getattr(s, "media_source", "ai") in ("wikimedia", "stock", "stock_photos"))
+                is_wiki = bool(getattr(s, "search_keyword", None) and getattr(s, "media_source", "ai") in ("wikimedia", "stock", "stock_photos", "stock_portrait"))
 
 
 
@@ -2837,7 +2885,81 @@ class DocumentaryPipeline(BasePipeline):
 
 
 
-    # ---------------- Stage 7: Animation ----------------
+    # ---------------- Stage 7: Ambient Music ----------------
+    def _run_music(self) -> None:
+        t0 = time.perf_counter()
+        st = self.p.stage("music")
+        if st.status == Status.COMPLETED:
+            if self.p.path("music/music_plan.json").exists():
+                return
+
+        self.p.set_stage("music", Status.RUNNING, done=0, total=1)
+        self.p.activity("Planning multi-movement ambient soundtrack...")
+
+        try:
+            from generators.music import plan_music_timeline
+            from rendering.ffmpeg_renderer import project_timeline
+            from rendering.transitions import total_length
+
+            scenes, slots = project_timeline(self.p)
+            total = total_length(slots)
+            m = self.p.settings.get("music", {})
+            pref = self.p.settings.get("music_preference") or m.get("track")
+            topic = getattr(self.p, "topic", None) or (self.p.data.topic if hasattr(self.p, "data") and self.p.data else None)
+
+            chapters = None
+            chap_file = self.p.path("scenes/chapters.json")
+            if chap_file.exists():
+                try:
+                    chapters = json.loads(chap_file.read_text(encoding="utf-8"))
+                except Exception as e:
+                    log.warning("Could not load chapters for music stage: %s", e)
+
+            # Extract context text from script or research for semantic grounding
+            context_text = ""
+            scr_file = self.p.path("script/script.md")
+            if scr_file.exists():
+                try:
+                    context_text = scr_file.read_text(encoding="utf-8")[:1200]
+                except Exception:
+                    pass
+            if not context_text:
+                res_file = self.p.path("research/research.json")
+                if res_file.exists():
+                    try:
+                        context_text = str(json.loads(res_file.read_text(encoding="utf-8")))[:1200]
+                    except Exception:
+                        pass
+
+            music_plan = plan_music_timeline(
+                directory=m.get("directory", "data/music"),
+                key=self.p.id,
+                preferred=pref,
+                topic=topic,
+                context_text=context_text,
+                total_duration=total,
+                scenes=scenes,
+                slots=slots,
+                chapters=chapters,
+                music_settings=m,
+            )
+
+            # Persist plan to music/music_plan.json
+            plan_dicts = [seg.to_dict() for seg in music_plan]
+            self.p.write_json("music/music_plan.json", plan_dicts)
+            log.info("Planned and saved ambient music with %d segments to music/music_plan.json", len(plan_dicts))
+
+            elapsed = round(time.perf_counter() - t0, 2)
+            self.p.set_stage("music", Status.COMPLETED, done=1, total=1)
+            self.p.stage("music").duration_seconds = elapsed
+            self.p.save()
+        except Exception as e:
+            self.p.stage("music").error = str(e)
+            self.p.set_stage("music", Status.FAILED)
+            log.error("Failed to plan ambient music: %s", e, exc_info=True)
+            raise
+
+    # ---------------- Stage 8: Animation ----------------
 
     def _run_animation(self) -> None:
 
@@ -3035,15 +3157,19 @@ class DocumentaryPipeline(BasePipeline):
                 log.info("AI Motion Graphics rendered for scenes %s in %.1fs (others use Ken Burns)", done_ids, elapsed)
                 return
 
-            # Legacy single-card Remotion mode
+            # Remotion documentary motion graphic mode
             from generators.remotion_cards import render_critical_scene_cards, select_critical_scenes
-            comp = "TechCard"
-            if anim_prov_name in ("remotion_minimalist", "minimalist"):
-                comp = "MinimalistCard"
-            elif anim_prov_name in ("remotion_cinema", "cinema"):
-                comp = "CinemaImpactCard"
+            comp = "EvidenceHighlightScene"
+            if anim_prov_name in ("remotion_pathway", "pathway", "branch"):
+                comp = "BranchPathwayScene"
+            elif anim_prov_name in ("remotion_callout", "callout", "leader"):
+                comp = "LeaderCalloutScene"
+            elif anim_prov_name in ("remotion_scale", "scale", "loupe"):
+                comp = "ScaleCompareScene"
+            elif anim_prov_name in ("remotion_evidence", "evidence", "highlight"):
+                comp = "EvidenceHighlightScene"
             elif anim_prov_name == "remotion":
-                comp = (self.p.data.settings or {}).get("remotion_style", "TechCard")
+                comp = (self.p.data.settings or {}).get("remotion_style", "EvidenceHighlightScene")
 
             targets = [s for s in select_critical_scenes(non_presenter_scenes)
                        if not (s.animation.status == Status.COMPLETED

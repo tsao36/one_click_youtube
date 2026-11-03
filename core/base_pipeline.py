@@ -403,7 +403,9 @@ class BasePipeline:
 
             if self._check_stop("voice"): return
 
-
+            if getattr(self.p, "project_mode", "documentary") != "short_drama":
+                self._run_music()
+                if self._check_stop("music"): return
 
             self._run_animation()
 
@@ -538,6 +540,8 @@ class BasePipeline:
             "images": self._run_images,
 
             "voice": self._run_voice,
+
+            "music": self._run_music,
 
             "animation": self._run_animation,
 
@@ -1736,6 +1740,9 @@ class BasePipeline:
 
     def _run_voice(self) -> None:
         raise NotImplementedError
+
+    def _run_music(self) -> None:
+        pass
 
     def _run_animation(self) -> None:
         raise NotImplementedError

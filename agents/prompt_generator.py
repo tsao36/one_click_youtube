@@ -55,10 +55,62 @@ def project_style(settings: dict, seed: int) -> dict:
             "aspect_ratio": v.get("aspect_ratio", "16:9"), "consistency_seed": seed}
 
 
-def compose(parts: dict, style: dict, entity_desc: list[str], visual_type: str) -> str:
-    pieces = [parts.get("subject"), parts.get("environment"), *entity_desc, parts.get("composition"),
-              parts.get("lighting") or style["lighting"], style["style"], style["lens"] if visual_type != "diagram" else "",
-              parts.get("mood") or style["mood"]]
+def compose(parts: dict, style: dict, entity_desc: list[str], visual_type: str, world_setting: dict | None = None, is_cloud: bool = False) -> str:
+    style_str = style.get("style", "")
+    mood_str = parts.get("mood") or style.get("mood", "")
+
+    era_anchor = ""
+    env_anchor = ""
+    era_constraints = ""
+
+    if world_setting:
+        era = (world_setting.get("temporal_era") or "").strip()
+        env = (world_setting.get("environment_reality") or "").strip()
+        negatives = world_setting.get("negative_anachronisms") or []
+
+        # Anachronism Guard: Style Keyword Conflict Stripping
+        is_ruins_or_war = any(
+            w in (env + " " + era).lower()
+            for w in [
+                "ruin", "bomb", "destruction", "rubble", "war", "devastation", "charred",
+                "廢墟", "轟炸", "殘破", "摧毀", "瓦礫", "戰後"
+            ]
+        )
+        if is_ruins_or_war:
+            conflicting_patterns = [
+                r"\bpristine(?:\s+urban)?\s+streets\b",
+                r"\bpristine\s+nature\b",
+                r"\bclean\s+modern\s+streets\b",
+                r"\bmodern\s+glass\s+reflections\b",
+                r"\bsleek\s+modern\b",
+                r"\bvivid\s+saturated\s+azure\s+and\s+cerulean\s+hues\b",
+                r"\bsunny\s+vibrant\s+metropolis\b",
+            ]
+            for pat in conflicting_patterns:
+                style_str = re.sub(pat, "", style_str, flags=re.IGNORECASE)
+                mood_str = re.sub(pat, "", mood_str, flags=re.IGNORECASE)
+
+        if era and era.lower() != "contemporary":
+            era_anchor = f"authentic historical setting: {era}"
+        if env and env.lower() != "realistic authentic environment":
+            env_anchor = f"historical environment reality: {env}"
+
+        if negatives:
+            neg_list_str = ", ".join(negatives) if isinstance(negatives, list) else str(negatives)
+            era_constraints = f"CRITICAL ERA CONSTRAINTS: Must strictly depict {era or 'the designated historical era'}; absolutely NO {neg_list_str}"
+
+    pieces = [
+        era_anchor,
+        env_anchor,
+        parts.get("subject"),
+        parts.get("environment"),
+        *entity_desc,
+        parts.get("composition"),
+        parts.get("lighting") or style.get("lighting"),
+        style_str,
+        style.get("lens", "") if visual_type != "diagram" else "",
+        mood_str,
+    ]
     
     style_key = (style.get("key") or "").lower()
     is_political_explainer = any(k in style_key for k in ["political_explainer", "taiwan_political", "see_world"])
@@ -79,6 +131,8 @@ def compose(parts: dict, style: dict, entity_desc: list[str], visual_type: str) 
             pieces.append("anatomically correct, natural ergonomic posture, plausible body proportions")
             if any(w in subj_str for w in ["people", "crowd", "audience", "workers", "team", "soldiers", "men", "women", "group"]):
                 pieces.append("distinct individual faces with diverse varied features and unique facial appearances")
+    if era_constraints:
+        pieces.append(era_constraints)
     pieces.append("16:9 widescreen composition, high detail")
     seen, out = set(), []
     for p in pieces:
@@ -93,7 +147,7 @@ def compose(parts: dict, style: dict, entity_desc: list[str], visual_type: str) 
 
 
 def generate_prompts(scenes: list[Scene], style: dict, bible: dict, client: LLMClient, batch: int = 8,
-                     progress=None, topic: str = "") -> list[dict]:
+                     progress=None, topic: str = "", world_setting: dict | None = None) -> list[dict]:
     ents = {e["name"]: e["description"] for e in bible.get("entities", [])}
     style_key = (style.get("key") or "").lower()
     is_political_explainer = any(k in style_key for k in ["political_explainer", "taiwan_political", "see_world"])
@@ -147,8 +201,27 @@ def generate_prompts(scenes: list[Scene], style: dict, bible: dict, client: LLMC
             )
         shots_block = "\n\n".join(shot_lines)
 
+        world_ctx = ""
+        if world_setting:
+            era = world_setting.get("temporal_era", "")
+            env = world_setting.get("environment_reality", "")
+            settings_desc = world_setting.get("key_settings", "")
+            ensembles = world_setting.get("ensemble_specs", "")
+            negatives = world_setting.get("negative_anachronisms", [])
+            neg_str = ", ".join(negatives) if isinstance(negatives, list) else str(negatives)
+            world_ctx = (
+                f"\n[WORLD SETTING & HISTORICAL ACCURACY CONSTRAINTS]\n"
+                f"- Temporal Era: {era}\n"
+                f"- Physical Environment & Damage Reality: {env}\n"
+                f"- Key Settings & Architectural Locations: {settings_desc}\n"
+                f"- Ensemble Demographics & Specifications: {ensembles}\n"
+                f"- Forbidden Anachronisms: {neg_str}\n"
+                f"CRITICAL: All generated prompt fields ('subject', 'environment') MUST strictly adhere to the above historical era, architectural reality, and demographic constraints.\n\n"
+            )
+
         prompt = (
             f"Overarching Video Topic / Subject Context: {topic or 'Educational Documentary'}\n"
+            f"{world_ctx}"
             f"Global visual style: {style['style']}; lighting: {style['lighting']}; mood: {style['mood']}.\n"
             f"Entity reference (keep consistent): {ents}\n\n"
             f"Shots to prompt:\n{shots_block}\n\n"
@@ -183,13 +256,15 @@ def generate_prompts(scenes: list[Scene], style: dict, bible: dict, client: LLMC
         parts = results.get(s.scene_id) or {"subject": s.visual_description}
         s_ents = getattr(s, "entities", None) or []
         entity_desc = [ents[e] for e in s_ents if e in ents]
-        s.prompt = compose(parts, style, entity_desc, s.visual_type)
+        s.prompt = compose(parts, style, entity_desc, s.visual_type, world_setting=world_setting)
         base_neg = (style.get("negative") or "").strip()
         anti_clone_tokens = "multiple people with the same face, cloned faces, identical faces, duplicate faces, identical twins, clone army, copy-paste faces, repeated facial features across different people"
-        if "cloned faces" not in base_neg.lower():
-            s.negative_prompt = f"{base_neg}, {anti_clone_tokens}".strip(", ")
-        else:
-            s.negative_prompt = base_neg
+        neg_parts = [base_neg] if "cloned faces" in base_neg.lower() else [base_neg, anti_clone_tokens]
+        if world_setting and world_setting.get("negative_anachronisms"):
+            negs = world_setting["negative_anachronisms"]
+            negs_str = ", ".join(negs) if isinstance(negs, list) else str(negs)
+            neg_parts.append(negs_str)
+        s.negative_prompt = ", ".join([p for p in neg_parts if p]).strip(", ")
         s.seed = int(style["consistency_seed"]) + s.scene_id * 101
         out.append({"scene_id": s.scene_id, "prompt": s.prompt, "negative": s.negative_prompt, "seed": s.seed,
                     "parts": parts})
