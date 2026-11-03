@@ -120,3 +120,45 @@ def test_smart_world_setting_preservation_detection():
         ])
     )
     assert has_custom_user, "User custom world setting must be detected for smart preservation"
+
+
+def test_translate_world_setting_to_english():
+    from agents.researcher import translate_world_setting_to_english
+
+    # 1. Already English: zero LLM call
+    english_ws = {
+        "temporal_era": "1946 Post-WWII",
+        "environment_reality": "Post-war ruins",
+        "key_settings": "Courtroom dais",
+        "ensemble_specs": "11 judges",
+        "negative_anachronisms": ["modern skyscrapers"]
+    }
+    class FailClient:
+        def json(self, *args, **kwargs):
+            raise AssertionError("Should not call LLM when world_setting is already English")
+
+    res = translate_world_setting_to_english(english_ws, client=FailClient())
+    assert res == english_ws
+
+    # 2. Chinese world setting: translates to English via client
+    chinese_ws = {
+        "temporal_era": "2020年代都市生活",
+        "environment_reality": "現代高鐵與辦公大樓",
+        "key_settings": "會議室",
+        "ensemble_specs": "6名專業人士",
+        "negative_anachronisms": ["古代服飾"]
+    }
+    class MockClient:
+        def json(self, prompt, sys, **kwargs):
+            return {
+                "temporal_era": "2020s urban lifestyle",
+                "environment_reality": "Modern high-speed rail and office buildings",
+                "key_settings": "Conference room",
+                "ensemble_specs": "6 professionals",
+                "negative_anachronisms": ["ancient costumes"]
+            }
+
+    translated = translate_world_setting_to_english(chinese_ws, client=MockClient())
+    assert translated["temporal_era"] == "2020s urban lifestyle"
+    assert translated["negative_anachronisms"] == ["ancient costumes"]
+

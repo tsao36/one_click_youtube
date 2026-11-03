@@ -23,6 +23,7 @@ llm:
     script:            {provider: ollama}
     scene_planning:    {provider: ollama}
     prompt_generation: {provider: ollama}
+    prompt_translation: {provider: openai_compat}
   # used automatically when the configured provider is not reachable
   fallback_order: [ollama, gemini, openai_compat]
 

@@ -1548,6 +1548,8 @@ def generate_world_setting_endpoint(project_id: str):
     sys_msg = (
         "You are an expert historical and documentary world setting specialist. "
         "Extract or infer the authoritative World Setting Spec for image and scene generation. "
+        "CRITICAL: All fields ('temporal_era', 'environment_reality', 'key_settings', 'ensemble_specs', 'negative_anachronisms') "
+        "MUST be written strictly in vivid ENGLISH visual descriptors for text-to-image models (SDXL/FLUX). "
         "Ensure rigorous factual accuracy: accurate era, authentic environmental damage/condition, "
         "exact indoor/outdoor architectural locations, demographic ensemble rules (exact numbers, gender, nationality), "
         "and explicit negative anachronisms. Output ONLY valid JSON matching the schema."
@@ -1587,6 +1589,9 @@ def generate_world_setting_endpoint(project_id: str):
             "ensemble_specs": "",
             "negative_anachronisms": []
         }
+
+    from agents.researcher import translate_world_setting_to_english
+    ws = translate_world_setting_to_english(ws, client)
 
     res_data["world_setting"] = ws
     p.write_json("research/research.json", res_data)

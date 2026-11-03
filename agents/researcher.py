@@ -1,6 +1,9 @@
 """Stage 1 - topic analysis / research. Produces structured JSON."""
 from __future__ import annotations
 
+import json
+import re
+
 from core.config import load_providers
 from core.logging_setup import log
 from core.taiwan_mandarin import is_taiwan_mandarin, normalize_to_taiwan_mandarin
@@ -63,6 +66,60 @@ def _normalize_obj_taiwan(obj):
     elif isinstance(obj, dict):
         return {k: _normalize_obj_taiwan(v) for k, v in obj.items()}
     return obj
+
+
+def translate_world_setting_to_english(
+    ws: dict,
+    client: LLMClient | None = None,
+    provider_override: str | None = None,
+) -> dict:
+    """Ensures all fields in world_setting are translated into English for SDXL/FLUX image models in Stage 1.
+    Uses the selected stage model (cloud or local LLM).
+    """
+    if not isinstance(ws, dict):
+        return ws
+
+    ws_str = json.dumps(ws, ensure_ascii=False)
+    if not re.search(r"[\u4e00-\u9fff]", ws_str):
+        # Already pure English, no translation needed
+        return ws
+
+    try:
+        if not client:
+            client = LLMClient("research", provider_override=provider_override)
+
+        sys_msg = (
+            "You are an expert AI prompt engineer and documentary visual setting specialist for text-to-image models (SDXL, FLUX). "
+            "Translate the entire World Setting specification from Chinese into concise, vivid, accurate ENGLISH visual keywords and descriptions. "
+            "Every field ('temporal_era', 'environment_reality', 'key_settings', 'ensemble_specs', 'negative_anachronisms') "
+            "MUST be in pure English with zero Chinese characters so image generation diffusion models can parse them accurately. "
+            "Output strictly valid JSON matching the exact input structure."
+        )
+
+        prompt = (
+            "Translate this World Setting Spec into pure English visual keywords for text-to-image generation:\n"
+            f"{ws_str}\n\n"
+            "Return JSON with the exact same structure and keys: "
+            "'temporal_era', 'environment_reality', 'key_settings', 'ensemble_specs', 'negative_anachronisms'."
+        )
+
+        def _val(d):
+            if not isinstance(d, dict):
+                raise ValueError("Expected dict")
+            return d
+
+        translated = client.json(prompt, sys_msg, temperature=0.3, validate=_val)
+        if isinstance(translated, dict):
+            translated.setdefault("temporal_era", ws.get("temporal_era", "Contemporary"))
+            translated.setdefault("environment_reality", ws.get("environment_reality", "Realistic authentic environment"))
+            translated.setdefault("key_settings", ws.get("key_settings", ""))
+            translated.setdefault("ensemble_specs", ws.get("ensemble_specs", ""))
+            translated.setdefault("negative_anachronisms", ws.get("negative_anachronisms", []))
+            return translated
+    except Exception as e:
+        log.warning("World setting English translation failed (%s); keeping existing", e)
+
+    return ws
 
 
 def research(
@@ -139,10 +196,18 @@ def research(
     prompt = (f"Video topic: {topic}\nNarration language: {lang_desc}\n{struct_instruction}\n{tw_extra}"
               f"{research_context}{user_guidance}"
               f"\nAnalyse the topic and return JSON exactly in this shape:\n{SCHEMA}\n"
-              "Provide 4-8 items for each list. Section titles must be specific to the topic.")
+              "Provide 4-8 items for each list. Section titles must be specific to the topic.\n"
+              "CRITICAL FOR WORLD SETTING: All fields inside 'world_setting' ('temporal_era', 'environment_reality', 'key_settings', 'ensemble_specs', 'negative_anachronisms') "
+              "MUST be written strictly in ENGLISH descriptive visual keywords for text-to-image models (SDXL/FLUX), even when narration language is Chinese. "
+              "All other fields (main_question, audience, key_concepts, interesting_facts, narrative_structure) must be in the specified narration language.")
     data = client.json(prompt, SYSTEM, temperature=0.5, validate=_validate)
+    if data.get("world_setting"):
+        data["world_setting"] = translate_world_setting_to_english(data["world_setting"], client=client)
     if is_tw:
+        ws_saved = data.get("world_setting")
         data = _normalize_obj_taiwan(data)
+        if ws_saved:
+            data["world_setting"] = ws_saved
     data["mode"] = mode
     if has_user_research:
         data["user_research"] = user_research.strip()

@@ -210,6 +210,11 @@ class DocumentaryPipeline(BasePipeline):
 
             if has_custom_ws and existing_ws:
                 res["world_setting"] = existing_ws
+            if res.get("world_setting"):
+                from agents.researcher import translate_world_setting_to_english
+                from providers.llm import LLMClient
+                res_client = LLMClient("research", self._track_llm_request, provider_override=res_prov)
+                res["world_setting"] = translate_world_setting_to_english(res["world_setting"], client=res_client)
             self.p.write_json("research/research.json", res)
 
 

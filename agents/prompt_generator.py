@@ -32,13 +32,14 @@ SYSTEM = (
 )
 
 
-def translate_to_english_for_sdxl(prompt: str) -> str:
+def translate_to_english_for_sdxl(prompt: str, client: LLMClient | None = None) -> str:
     """Translates Chinese or non-English prompt text into English visual keywords for SDXL."""
     if not prompt or not re.search(r"[\u4e00-\u9fff]", prompt):
         return prompt
     try:
-        from providers.llm import LLMClient
-        client = LLMClient("prompt_translation")
+        if not client:
+            from providers.llm import LLMClient
+            client = LLMClient("prompt_translation")
         sys_msg = (
             "You are an expert AI prompt engineer for SDXL. "
             "Translate any Chinese or non-English text into concise, vivid English descriptive keywords and visual tags suitable for SDXL image generation. "
@@ -63,7 +64,7 @@ def project_style(settings: dict, seed: int) -> dict:
             "aspect_ratio": v.get("aspect_ratio", "16:9"), "consistency_seed": seed}
 
 
-def compose(parts: dict, style: dict, entity_desc: list[str], visual_type: str, world_setting: dict | None = None, is_cloud: bool = False) -> str:
+def compose(parts: dict, style: dict, entity_desc: list[str], visual_type: str, world_setting: dict | None = None, is_cloud: bool = False, client: LLMClient | None = None) -> str:
     style_str = style.get("style", "")
     mood_str = parts.get("mood") or style.get("mood", "")
 
@@ -172,7 +173,7 @@ def compose(parts: dict, style: dict, entity_desc: list[str], visual_type: str, 
             out.append(p)
     res = ", ".join(out)
     if re.search(r"[\u4e00-\u9fff]", res):
-        res = translate_to_english_for_sdxl(res)
+        res = translate_to_english_for_sdxl(res, client=client)
     return res
 
 
@@ -271,6 +272,9 @@ def generate_prompts(scenes: list[Scene], style: dict, bible: dict, client: LLMC
             items = d.get("prompts", []) if isinstance(d, dict) else (d if isinstance(d, list) else [])
             got = {int(x.get("id", -1)): x for x in items if isinstance(x, dict)}
             if not any(i in got for i in chunk_ids):
+                # When LLM outputs relative 1-based indices (e.g. 1..8) instead of scene_ids (e.g. 9..16)
+                if len(items) == len(chunk):
+                    return {s.scene_id: x for s, x in zip(chunk, items) if isinstance(x, dict)}
                 raise ValueError("no matching ids")
             return got
 
@@ -286,7 +290,7 @@ def generate_prompts(scenes: list[Scene], style: dict, bible: dict, client: LLMC
         parts = results.get(s.scene_id) or {"subject": s.visual_description}
         s_ents = getattr(s, "entities", None) or []
         entity_desc = [ents[e] for e in s_ents if e in ents]
-        s.prompt = compose(parts, style, entity_desc, s.visual_type, world_setting=world_setting)
+        s.prompt = compose(parts, style, entity_desc, s.visual_type, world_setting=world_setting, client=client)
         base_neg = (style.get("negative") or "").strip()
         negs = []
         if world_setting and world_setting.get("negative_anachronisms"):
