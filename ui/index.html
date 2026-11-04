@@ -1191,7 +1191,15 @@
               </select>
             </div>
             <div class="form-group">
-              <label id="label-stage-model-animation">Stage 7: Animation & AI Video</label>
+              <label id="label-stage-model-music">Stage 7: Ambient Music & Soundtrack (配樂風格與多樂章演進)</label>
+              <select id="model-stage-music" onchange="onStageModelChange('music')">
+                <option value="narrative_evolving" selected>🌟 多樂章劇情演進 (3-Movement Progression · Auto Grounding)</option>
+                <option value="single_loop">🔄 單曲循環 (Single Track Loop)</option>
+                <option value="none">🔇 靜音 (No Background Music)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label id="label-stage-model-animation">Stage 8: Animation & AI Video</label>
               <select id="model-stage-animation" onchange="onStageModelChange('animation')">
                 <option value="remotion_evidence">📑 Remotion: Evidence Highlight 文獻劃記 (+ Ken Burns)</option>
                 <option value="remotion_pathway">🔀 Remotion: Branch Pathway 分支決策 (+ Ken Burns)</option>
@@ -1232,7 +1240,7 @@
               </div>
             </div>
             <div class="form-group">
-              <label>Stage 8: Subtitles</label>
+              <label>Stage 9: Subtitles</label>
               <select id="model-stage-subtitles" onchange="onStageModelChange('subtitles')">
                 <option value="local" selected>Local: Built-in Subtitle Engine</option>
               </select>
@@ -10599,6 +10607,56 @@
       });
     }
 
+    function onInspectorMusicTrackChange(segIdx, selEl) {
+      if (!inspectedStageData || !inspectedStageData.music_plan || !inspectedStageData.music_plan[segIdx]) return;
+      const opt = selEl.options[selEl.selectedIndex];
+      const newPath = selEl.value;
+      const newUrl = opt.getAttribute('data-url') || '';
+      const newCat = opt.getAttribute('data-cat') || '';
+      const seg = inspectedStageData.music_plan[segIdx];
+      seg.track = newPath;
+      seg.name = newPath.split(/[\/\\]/).pop();
+      seg.category = newCat;
+      seg.audio_url = newUrl;
+      const audioEl = document.getElementById(`insp-music-audio-${segIdx}`);
+      if (audioEl) {
+        audioEl.src = newUrl;
+        audioEl.load();
+      }
+      const nameEl = document.getElementById(`insp-music-name-${segIdx}`);
+      if (nameEl) nameEl.textContent = seg.name;
+      if (typeof showToast === 'function') showToast(`✓ 已更換樂章 ${segIdx + 1} 曲目為: ${seg.name}`);
+    }
+
+    function onInspectorMusicOffsetChange(segIdx, val) {
+      if (!inspectedStageData || !inspectedStageData.music_plan || !inspectedStageData.music_plan[segIdx]) return;
+      inspectedStageData.music_plan[segIdx].start_offset = parseFloat(val) || 0;
+    }
+
+    async function onInspectorMusicVibeChange(val) {
+      if (!inspectedStageData) return;
+      inspectedStageData.current_vibe = val;
+      inspectedStageData.music_settings = inspectedStageData.music_settings || {};
+      inspectedStageData.music_settings.vibe = val;
+      try {
+        await fetch(`/api/projects/${currentProjectId}/stage_data/music`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ vibe: val, music_settings: inspectedStageData.music_settings })
+        });
+        if (typeof showToast === 'function') showToast(`✓ 配樂氛圍已設為: ${val}`);
+      } catch (e) {
+        console.error("Failed to save music vibe", e);
+      }
+    }
+
+    async function reMatchInspectorMusicVibe() {
+      const vibeEl = document.getElementById('insp-music-vibe-select');
+      const chosenVibe = vibeEl ? vibeEl.value : (inspectedStageData?.current_vibe || 'auto');
+      await onInspectorMusicVibeChange(chosenVibe);
+      runSingleStage('music');
+    }
+
     let inspectedStageName = null;
     let inspectedStageData = null;
 
@@ -11325,6 +11383,132 @@
           <button class="btn-sec" onclick="runSingleStage('voice')">▶ Re-run Voice Stage Only</button>
           <button class="btn-primary" style="background: linear-gradient(135deg, #059669 0%, #047857 100%); font-weight: 700;" onclick="closeStageInspector(); openRerenderVoiceModal();">🎙️🔄 Re-render Voice & Update Final Video</button>
         `;
+      } else if (stageName === 'music') {
+        const plan = data.music_plan || [];
+        const mSettings = data.music_settings || {};
+        const availTracks = data.available_tracks || [];
+        const totalDur = data.total_duration || 0;
+        const topic = data.topic || '';
+
+        const movementNames = [
+          { title: "Movement 1: 引言與氛圍鋪墊 (Opening Context & Atmosphere)", defaultEnergy: "LOW / MID", desc: "引導觀眾進入紀錄片核心主題，營造沉浸式宏觀背景氣氛。" },
+          { title: "Movement 2: 深入探討與張力起伏 (Deep Dive & Rising Stakes)", defaultEnergy: "MID / HIGH", desc: "隨劇情深入探討核心衝突、技術困境或調查轉折，節奏張力遞增。" },
+          { title: "Movement 3: 終章昇華與未來啟示 (Outlook & Climax Resolution)", defaultEnergy: "HIGH / UPLIFTING", desc: "收尾結語、總結思考與願景展望，激昂或沉穩昇華觀眾情緒。" }
+        ];
+        const currentVibe = data.current_vibe || (mSettings && mSettings.vibe) || 'auto';
+
+        bodyHtml = `
+          <!-- Ambient Music Overview Card in Inspector -->
+          <div style="background: linear-gradient(135deg, rgba(14, 27, 49, 0.95) 0%, rgba(10, 15, 30, 0.95) 100%); border: 1px solid rgba(59, 130, 246, 0.35); border-radius: 10px; padding: 18px 20px; margin-bottom: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 12px;">
+              <div>
+                <div style="font-size: 16px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px;">
+                  <span>🎶</span> 紀錄片背景配樂與音軌管理 (Ambient Music Studio)
+                </div>
+                <div style="font-size: 12.5px; color: #94a3b8; margin-top: 5px;">
+                  主題：<b style="color: #60a5fa;">${topic || '紀錄片主題'}</b> | 總片長：<b style="color: #cbd5e1;">${totalDur > 0 ? totalDur.toFixed(1) + 's' : '自動估算中'}</b> | 目前樂章數：<b style="color: #34d399;">${plan.length}</b>
+                </div>
+              </div>
+              <div style="display: flex; gap: 8px;">
+                <button class="btn-sec" onclick="reMatchInspectorMusicVibe()" style="font-size: 12px; padding: 6px 14px; background: rgba(59,130,246,0.15); border: 1px solid #3b82f6; color: #93c5fd; font-weight: 600;">🎲 依風格重新匹配</button>
+              </div>
+            </div>
+
+            <!-- Vibe Override -->
+            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding-top: 10px; border-top: 1px solid rgba(59, 130, 246, 0.2);">
+              <label style="font-size: 12.5px; font-weight: 700; color: #cbd5e1; margin: 0; display: flex; align-items: center; gap: 5px;">
+                <span>🎭</span> 配樂基調 (Music Vibe):
+              </label>
+              <select id="insp-music-vibe-select" style="min-width: 240px; padding: 6px 12px; font-size: 12px; border-radius: var(--radius-sm); background: #040814; color: #60a5fa; border: 1px solid #3b82f6; font-weight: 600;" onchange="onInspectorMusicVibeChange(this.value)">
+                <option value="auto" ${(!currentVibe || currentVibe === 'auto') ? 'selected' : ''}>🤖 自動語意推論 (Auto Semantic Grounding)</option>
+                <option value="tech_futuristic" ${currentVibe === 'tech_futuristic' ? 'selected' : ''}>🔬 科技未來 (Tech & Sci-Fi)</option>
+                <option value="cinematic_documentary" ${currentVibe === 'cinematic_documentary' ? 'selected' : ''}>🏛️ 歷史紀錄 (Cinematic Documentary)</option>
+                <option value="dramatic_tension" ${currentVibe === 'dramatic_tension' ? 'selected' : ''}>⚡ 衝突危機 (Dramatic Tension)</option>
+                <option value="mystery_cosmic" ${currentVibe === 'mystery_cosmic' ? 'selected' : ''}>🌌 宇宙未解 (Dark Mystery & Space)</option>
+                <option value="uplifting_inspirational" ${currentVibe === 'uplifting_inspirational' ? 'selected' : ''}>✨ 勵志突破 (Uplifting & Wonder)</option>
+                <option value="calm_focus" ${currentVibe === 'calm_focus' ? 'selected' : ''}>🧘 平靜沉思 (Calm & Focus)</option>
+              </select>
+            </div>
+          </div>
+        `;
+
+        if (!plan.length) {
+          bodyHtml += `
+            <div style="text-align: center; padding: 50px 20px; background: #080d16; border: 1px dashed rgba(124, 145, 182, 0.3); border-radius: 8px;">
+              <div style="font-size: 32px; margin-bottom: 12px;">🎶</div>
+              <h4 style="color: #fff; margin: 0 0 8px 0;">尚未規劃配樂時間軸</h4>
+              <p style="font-size: 13px; color: var(--text-muted); max-width: 460px; margin: 0 auto 16px auto;">
+                點擊下方按鈕，系統將自動為影片引言、探討、結尾三段匹配高音質背景音樂並計算交叉淡入淡出。
+              </p>
+              <button class="btn-primary" onclick="runSingleStage('music')">▶ 立即規劃環境配樂 (Plan Ambient Music)</button>
+            </div>
+          `;
+        } else {
+          bodyHtml += `<div style="display: flex; flex-direction: column; gap: 14px;">`;
+          plan.forEach((seg, idx) => {
+            const mvMeta = movementNames[idx] || { title: `Movement ${idx + 1}`, defaultEnergy: "MID" };
+            const dur = (seg.end_time - seg.start_time).toFixed(1);
+
+            let trackOptionsHtml = '';
+            availTracks.forEach(tr => {
+              const isSelected = (tr.name === seg.name || tr.path.endsWith(seg.name));
+              trackOptionsHtml += `<option value="${tr.path}" data-url="${tr.url}" data-cat="${tr.category}" ${isSelected ? 'selected' : ''}>[${tr.category}] ${tr.name}</option>`;
+            });
+
+            bodyHtml += `
+              <div style="background: #080d16; border: 1px solid rgba(124, 145, 182, 0.2); border-radius: 8px; padding: 16px;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px; margin-bottom: 10px;">
+                  <div>
+                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                      <span style="font-size: 14px; font-weight: 700; color: #fff;">${mvMeta.title}</span>
+                      <span style="font-size: 11px; background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid rgba(59,130,246,0.3); border-radius: 4px; padding: 2px 6px;">${seg.category || 'auto'}</span>
+                      <span style="font-size: 11px; background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.3); border-radius: 4px; padding: 2px 6px;">⚡ 能量: ${mvMeta.defaultEnergy}</span>
+                    </div>
+                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+                      時間範圍：<b style="color: #93c5fd;">${seg.start_time.toFixed(1)}s ➔ ${seg.end_time.toFixed(1)}s</b> (${dur}s) | 淡入: ${seg.crossfade_in || 2}s | 淡出: ${seg.crossfade_out || 2}s
+                    </div>
+                  </div>
+                  <div style="font-size: 12px; color: #a7f3d0; background: rgba(5,150,105,0.15); border: 1px solid #059669; border-radius: 4px; padding: 3px 8px;">
+                    🔊 音量: <b>${seg.volume_db || -16} dB</b>
+                  </div>
+                </div>
+
+                <!-- Audio Preview Player -->
+                <div style="background: #04070e; border: 1px solid #1e293b; border-radius: 6px; padding: 10px 12px; margin-bottom: 12px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <span style="font-size: 12px; font-weight: 600; color: #cbd5e1;">🎧 當前選定曲目：<b id="insp-music-name-${idx}" style="color: #60a5fa;">${seg.name}</b></span>
+                  </div>
+                  <audio id="insp-music-audio-${idx}" controls src="${seg.audio_url || ''}" style="width: 100%; height: 32px;"></audio>
+                </div>
+
+                <!-- Track Selector & Controls -->
+                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                  <label style="font-size: 12px; font-weight: 600; color: #94a3b8; margin: 0;">更換此樂章曲目：</label>
+                  <select id="insp-music-select-${idx}" style="flex: 1; min-width: 260px; padding: 6px 10px; font-size: 12px; border-radius: var(--radius-sm); background: var(--bg-canvas); color: var(--text-primary); border: 1px solid var(--border-muted);" onchange="onInspectorMusicTrackChange(${idx}, this)">
+                    ${trackOptionsHtml}
+                  </select>
+                  <button type="button" class="btn-sec" onclick="openStudioClassicalPicker(${idx})" style="padding: 6px 12px; font-size: 12px; font-weight: 700; color: #f59e0b; border-color: #f59e0b; background: rgba(245,158,11,0.1); cursor: pointer;" title="從 OpenOpus 古典名曲曲庫中挑選並指定至此樂章">
+                    🏛️ 選用古典名曲
+                  </button>
+                </div>
+
+                <!-- Start Offset Scrubber -->
+                <div style="display: flex; align-items: center; gap: 8px; margin-top: 8px; flex-wrap: wrap; background: #050a14; padding: 6px 10px; border-radius: 6px; border: 1px solid rgba(59,130,246,0.2);">
+                  <label style="font-size: 12px; font-weight: 600; color: #93c5fd; margin: 0;">⏱️ 起播偏移 (Start Offset):</label>
+                  <input type="number" id="insp-music-offset-${idx}" min="0" step="1" value="${seg.start_offset || 0}" style="width: 80px; padding: 4px 8px; font-size: 12px; border-radius: 4px; background: #040814; color: #60a5fa; border: 1px solid #3b82f6; font-weight: 700;" onchange="onInspectorMusicOffsetChange(${idx}, this.value)" placeholder="0">
+                  <span style="font-size: 11px; color: #64748b;">秒 (跳過引言靜音或切換至高潮片段)</span>
+                </div>
+              </div>
+            `;
+          });
+          bodyHtml += `</div>`;
+        }
+
+        actionButtons = `
+          <button class="btn-sec" onclick="runSingleStage('music')">▶ 重新規劃配樂 (Re-Plan Music)</button>
+          <button class="btn-primary" style="background: linear-gradient(135deg, #059669 0%, #047857 100%); font-weight: 700;" onclick="saveInspectedStage('music')">💾 儲存配樂變更 (Save Music Plan)</button>
+        `;
+
       } else if (stageName === 'animation') {
         const scenes = data.scenes || [];
         if (isDrama) {
@@ -11509,6 +11693,9 @@
         payload.script_md = document.getElementById('insp-script-md').value;
       } else if (stageName === 'scenes' || stageName === 'prompts' || stageName === 'animation') {
         payload.scenes = inspectedStageData.scenes;
+      } else if (stageName === 'music') {
+        payload.music_plan = inspectedStageData.music_plan;
+        payload.music_settings = inspectedStageData.music_settings;
       } else if (stageName === 'subtitles') {
         payload.srt = document.getElementById('insp-srt').value;
         const mcEl = document.getElementById('insp-motion-callouts');
@@ -12687,7 +12874,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       set('studio-mode-badge', drama ? '9:16 Short Drama' : '16:9 Documentary');
       set('studio-mode-desc', drama
         ? 'Work on each short-drama stage independently: storyboard, character dialogue, scene casting, action prompts, actor video, voices, lip-sync, subtitles and master render.'
-        : 'Play around with each documentary stage independently: research, script, scenes, prompts, images, voice, animation, subtitles and render.');
+        : 'Play around with each documentary stage independently: research, script, scenes, prompts, images, voice, ambient music, animation, subtitles and render.');
       const card = document.getElementById('tab-studio') && document.querySelector('#tab-studio > .card');
       if (card) card.style.borderColor = drama ? '#7c3aed' : '#2b456b';
       const badge = document.getElementById('studio-mode-badge');

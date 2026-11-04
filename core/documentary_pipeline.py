@@ -97,7 +97,7 @@ class DocumentaryPipeline(BasePipeline):
 
 
 
-        self.p.activity("Stage 1/9: Analyzing topic & researching...")
+        self.p.activity("Stage 1/10: Analyzing topic & researching...")
 
 
 
@@ -275,7 +275,7 @@ class DocumentaryPipeline(BasePipeline):
 
 
 
-        self.p.activity("Stage 2/9: Generating narration script...")
+        self.p.activity("Stage 2/10: Generating narration script...")
 
 
 
@@ -403,7 +403,7 @@ class DocumentaryPipeline(BasePipeline):
 
 
 
-        self.p.activity("Stage 3/9: Storyboarding & scene segmentation...")
+        self.p.activity("Stage 3/10: Storyboarding & scene segmentation...")
 
 
 
@@ -595,7 +595,7 @@ class DocumentaryPipeline(BasePipeline):
 
 
 
-        self.p.activity("Stage 4/9: Creating image generation prompts...")
+        self.p.activity("Stage 4/10: Creating image generation prompts...")
 
 
 
@@ -889,7 +889,7 @@ class DocumentaryPipeline(BasePipeline):
 
 
 
-                    self.p.activity(f"Stage 5/9: Switching engine to {latest_model_name} for scene {s.scene_id}...")
+                    self.p.activity(f"Stage 5/10: Switching engine to {latest_model_name} for scene {s.scene_id}...")
 
 
 
@@ -965,7 +965,7 @@ class DocumentaryPipeline(BasePipeline):
 
 
 
-                self.p.activity(f"Stage 5/9: Generating image {s.scene_id}/{total} ({provider.name})...")
+                self.p.activity(f"Stage 5/10: Generating image {s.scene_id}/{total} ({provider.name})...")
 
 
 
@@ -1200,7 +1200,7 @@ class DocumentaryPipeline(BasePipeline):
                 is_portrait = bool(getattr(s, "search_keyword", None) and getattr(s, "media_source", "ai") in ("stock_portrait", "celebrity_portrait"))
                 if is_portrait and not generated:
                     person_name = s.search_keyword
-                    self.p.activity(f"Stage 5/9: Resolving authentic portrait for '{person_name}' (scene {s.scene_id})...")
+                    self.p.activity(f"Stage 5/10: Resolving authentic portrait for '{person_name}' (scene {s.scene_id})...")
                     try:
                         from providers.stock_client import resolve_wikipedia_portrait, search_wikimedia, download_media_file, format_stock_image
                         w_target = int(self.p.settings.get("images", {}).get("width", 1920))
@@ -1274,7 +1274,7 @@ class DocumentaryPipeline(BasePipeline):
 
 
 
-                    self.p.activity(f"Stage 5/9: Fetching YouTube {'clip' if as_clip else 'screenshot'} for '{s.search_keyword}' (scene {s.scene_id})...")
+                    self.p.activity(f"Stage 5/10: Fetching YouTube {'clip' if as_clip else 'screenshot'} for '{s.search_keyword}' (scene {s.scene_id})...")
 
 
 
@@ -1470,7 +1470,7 @@ class DocumentaryPipeline(BasePipeline):
 
 
 
-                    self.p.activity(f"Stage 5/9: Fetching Wikimedia photo for '{search_term}' (scene {s.scene_id})...")
+                    self.p.activity(f"Stage 5/10: Fetching Wikimedia photo for '{search_term}' (scene {s.scene_id})...")
 
 
 
@@ -1810,7 +1810,7 @@ class DocumentaryPipeline(BasePipeline):
 
 
 
-                            self.p.activity(f"Stage 5/9: Scene {s.scene_id} {provider.name} failed ({err_short}) → falling back to ComfyUI (GPU)...")
+                            self.p.activity(f"Stage 5/10: Scene {s.scene_id} {provider.name} failed ({err_short}) → falling back to ComfyUI (GPU)...")
 
 
 
@@ -1906,7 +1906,7 @@ class DocumentaryPipeline(BasePipeline):
 
 
 
-                                self.p.activity(f"Stage 5/9: Scene {s.scene_id} falling back to {candidate}...")
+                                self.p.activity(f"Stage 5/10: Scene {s.scene_id} falling back to {candidate}...")
 
 
 
@@ -2273,7 +2273,7 @@ class DocumentaryPipeline(BasePipeline):
                 return
 
         self.p.set_stage("music", Status.RUNNING, done=0, total=1)
-        self.p.activity("Planning multi-movement ambient soundtrack...")
+        self.p.activity("Stage 7/10: Planning multi-movement ambient soundtrack & matching tracks...")
 
         try:
             from generators.music import plan_music_timeline
@@ -2393,7 +2393,7 @@ class DocumentaryPipeline(BasePipeline):
         presenter_scenes = [s for s in scenes if (getattr(s, "is_presenter", False) or s.visual_type == "talking_head")]
 
         if presenter_scenes:
-            self.p.activity(f"Stage 7/9: Generating talking avatar presenter clips for {len(presenter_scenes)} scene(s)...")
+            self.p.activity(f"Stage 8/10: Generating talking avatar presenter clips for {len(presenter_scenes)} scene(s)...")
             avatar_turned_off = False
 
             for ps in presenter_scenes:
@@ -2428,7 +2428,7 @@ class DocumentaryPipeline(BasePipeline):
                     log.warning("No avatar profile found for presenter scene %d", ps.scene_id)
                     continue
 
-                self.p.activity(f"Stage 7/9: Generating talking avatar clip for Scene {ps.scene_id} ({av_prof.get('name')})...")
+                self.p.activity(f"Stage 8/10: Generating talking avatar clip for Scene {ps.scene_id} ({av_prof.get('name')})...")
                 out_clip = self.p.path("animation", f"{ps.tag}.mp4")
 
                 try:
@@ -2458,7 +2458,7 @@ class DocumentaryPipeline(BasePipeline):
                             "Fal.ai balance depleted (%s). Turning off avatar altogether in the video and continuing video making.",
                             ex
                         )
-                        self.p.activity("Stage 7/9: ⚠️ Fal.ai 額度已耗盡，已全面關閉影片中的虛擬人出鏡，繼續以全畫面分鏡視覺製作影片...")
+                        self.p.activity("Stage 8/10: ⚠️ Fal.ai 額度已耗盡，已全面關閉影片中的虛擬人出鏡，繼續以全畫面分鏡視覺製作影片...")
                         turn_off_project_avatar(self.p)
                         avatar_turned_off = True
                         break
@@ -2509,7 +2509,7 @@ class DocumentaryPipeline(BasePipeline):
             # Check if AI Motion Graphics Director mode (default for remotion or motion_graphics)
             use_ai_director = anim_prov_name in ("remotion", "motion_graphics", "ai_motion_graphics")
             if use_ai_director:
-                self.p.activity("Stage 7/9: AI Motion Graphics Director analyzing narration & selecting scene components...")
+                self.p.activity("Stage 8/10: AI Motion Graphics Director analyzing narration & selecting scene components...")
                 from agents.motion_graphics_director import MotionGraphicsDirector
                 from generators.motion_graphics_renderer import render_timeline_motion_graphics
 
@@ -2519,7 +2519,7 @@ class DocumentaryPipeline(BasePipeline):
 
                 targets_count = len(timeline.scenes)
                 self.p.set_stage("animation", Status.RUNNING, done=0, total=max(1, targets_count))
-                self.p.activity(f"Stage 7/9: Rendering {targets_count} AI Motion Graphics scene(s) via Remotion...")
+                self.p.activity(f"Stage 8/10: Rendering {targets_count} AI Motion Graphics scene(s) via Remotion...")
 
                 done_ids = render_timeline_motion_graphics(
                     self.p,
@@ -2563,7 +2563,7 @@ class DocumentaryPipeline(BasePipeline):
                                and (s.animation.meta or {}).get("composition") == comp)]
 
             self.p.set_stage("animation", Status.RUNNING, done=0, total=max(1, len(targets)))
-            self.p.activity(f"Stage 7/9: Rendering {len(targets)} Remotion [{comp}] motion-graphic card(s) for critical scenes...")
+            self.p.activity(f"Stage 8/10: Rendering {len(targets)} Remotion [{comp}] motion-graphic card(s) for critical scenes...")
 
             done_ids = render_critical_scene_cards(
                 self.p, targets,
@@ -2709,7 +2709,7 @@ class DocumentaryPipeline(BasePipeline):
 
 
 
-            self.p.activity(f"Stage 7/9: Generating AI video clip {i + 1}/{total_anim} (scene {s.scene_id}, {anim_prov_name})...")
+            self.p.activity(f"Stage 8/10: Generating AI video clip {i + 1}/{total_anim} (scene {s.scene_id}, {anim_prov_name})...")
 
 
 

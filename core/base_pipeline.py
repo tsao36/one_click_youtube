@@ -1842,7 +1842,8 @@ class BasePipeline:
                 if prof_prov:
                     self._stage_models_override["voice"] = prof_prov
                     self.p.data.settings.setdefault("stage_models", {})["voice"] = prof_prov
-                self.p.activity(f"Stage 6/9: Generating voice {s.scene_id}/{total} ({scene_p_name} / {current_provider})...")
+                tot_st = 9 if (getattr(self.p, "project_mode", "documentary") == "short_drama") else 10
+                self.p.activity(f"Stage 6/{tot_st}: Generating voice {s.scene_id}/{total} ({scene_p_name} / {current_provider})...")
                 s.audio.status = Status.RUNNING
                 self.p.save_scenes()
                 existing_audio_meta = dict(s.audio.meta or {})
@@ -1903,7 +1904,8 @@ class BasePipeline:
     def _run_subtitles(self, *, frame_aware: bool = False, callouts_allowed: bool = True, watermark_default: bool = False) -> None:
         if self._cancel_flag: raise PipelineCancelled()
         t0 = time.perf_counter()
-        self.p.activity("Stage 8/9: Building subtitles...")
+        tot_st = 9 if (getattr(self.p, "project_mode", "documentary") == "short_drama") else 10
+        self.p.activity(f"Stage {8 if tot_st == 9 else 9}/{tot_st}: Building subtitles...")
         self.p.set_stage("subtitles", Status.RUNNING)
         cfg = self.p.settings
         sub_cfg = cfg.get("subtitles", {})
@@ -1949,7 +1951,8 @@ class BasePipeline:
         if getattr(self.p, "project_mode", "documentary") != "short_drama":
             self.ensure_consistent_project_voice()
         t0 = time.perf_counter()
-        self.p.activity("Stage 9/9: Assembling final video with FFmpeg...")
+        tot_st = 9 if (getattr(self.p, "project_mode", "documentary") == "short_drama") else 10
+        self.p.activity(f"Stage {tot_st}/{tot_st}: Assembling final video with FFmpeg...")
         self.p.set_stage("render", Status.RUNNING)
         def on_prog(done, total, msg):
             self.p.progress("render", done, total, activity=f"Rendering: {msg} ({done}/{total})")
