@@ -33,7 +33,9 @@ def apply_presenter_placement(
 
     placement: str = "none",
 
-    default_avatar: Optional[str] = None
+    default_avatar: Optional[str] = None,
+
+    project_voice_profile: Optional[str] = None
 
 ) -> list[Scene]:
 
@@ -147,7 +149,9 @@ def apply_presenter_placement(
 
                     if av_obj and av_obj.get("voice_profile"):
 
-                        sc.voice_profile = av_obj["voice_profile"]
+                        if not sc.voice_profile and not project_voice_profile:
+
+                            sc.voice_profile = av_obj["voice_profile"]
 
                 except Exception:
 
@@ -162,6 +166,22 @@ def apply_presenter_placement(
                 if sc.visual_type == "talking_head":
 
                     sc.visual_type = "image"
+
+                if default_avatar:
+
+                    try:
+
+                        from generators.avatar_generator import load_avatar
+
+                        av_obj = load_avatar(default_avatar)
+
+                        if av_obj and sc.voice_profile == av_obj.get("voice_profile"):
+
+                            sc.voice_profile = project_voice_profile or None
+
+                    except Exception:
+
+                        pass
 
 
 
@@ -1784,6 +1804,19 @@ class BasePipeline:
             for s in scenes:
                 if self._cancel_flag: raise PipelineCancelled()
                 audio_path = self.p.path("audio", f"{s.tag}.wav")
+                # In documentary / single-narrator mode, if a project-level voice is configured,
+                # do not let an avatar's default voice profile override the narrator voice.
+                is_drama = getattr(self.p, "project_mode", "documentary") == "short_drama"
+                if not is_drama and default_p_name:
+                    av_name = getattr(s, "avatar_profile", None) or (self.p.data.settings or {}).get("default_avatar")
+                    if av_name and s.voice_profile:
+                        try:
+                            from generators.avatar_generator import load_avatar
+                            av_obj = load_avatar(av_name)
+                            if av_obj and s.voice_profile == av_obj.get("voice_profile"):
+                                s.voice_profile = default_p_name
+                        except Exception:
+                            pass
                 # Dynamic check: did the user switch the voice model between scenes?
                 scene_p_name = s.voice_profile or default_p_name
                 # Only fall back to avatar profile's voice if neither the scene nor project has a configured voice profile
@@ -1913,6 +1946,8 @@ class BasePipeline:
 
     def _run_render(self) -> None:
         if self._cancel_flag: raise PipelineCancelled()
+        if getattr(self.p, "project_mode", "documentary") != "short_drama":
+            self.ensure_consistent_project_voice()
         t0 = time.perf_counter()
         self.p.activity("Stage 9/9: Assembling final video with FFmpeg...")
         self.p.set_stage("render", Status.RUNNING)

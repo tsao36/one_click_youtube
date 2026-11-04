@@ -4589,10 +4589,12 @@ def apply_project_presenter_placement(project_id: str, req: ApplyPresenterPlacem
     if req.avatar_profile:
         p.data.settings["default_avatar"] = req.avatar_profile
 
+    proj_vp = p.data.settings.get("voice_profile") or p.settings.get("voice_profile")
     updated_scenes = apply_presenter_placement(
         scenes,
         req.placement,
-        req.avatar_profile or p.data.settings.get("default_avatar")
+        req.avatar_profile or p.data.settings.get("default_avatar"),
+        project_voice_profile=proj_vp,
     )
     p.set_scenes(updated_scenes)
     p.set_stage("animation", Status.PENDING)

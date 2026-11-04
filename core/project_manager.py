@@ -193,11 +193,22 @@ class Project:
 
             scenes = self.scenes
             for sc in scenes:
-                was_presenter = getattr(sc, "is_presenter", False) or sc.visual_type in ("talking_head", "talking_actor")
+                was_presenter = getattr(sc, "is_presenter", False) or sc.visual_type in ("talking_head", "talking_actor") or bool(getattr(sc, "avatar_profile", None))
                 if was_presenter:
                     sc.is_presenter = False
                     sc.visual_type = "image"
                     changed = True
+                    av_name = getattr(sc, "avatar_profile", None)
+                    if av_name:
+                        try:
+                            from generators.avatar_generator import load_avatar
+                            av_obj = load_avatar(av_name)
+                            if av_obj and sc.voice_profile == av_obj.get("voice_profile"):
+                                proj_vp = (self.data.settings or {}).get("voice_profile") if hasattr(self, "data") else None
+                                sc.voice_profile = proj_vp or None
+                        except Exception:
+                            pass
+                        sc.avatar_profile = None
                     if sc.animation:
                         anim_meta = sc.animation.meta or {}
                         prov = str(anim_meta.get("provider", ""))
@@ -235,9 +246,20 @@ class Project:
         with self.lock:
             if not self.is_avatar_enabled():
                 for s in self.scenes:
-                    if getattr(s, "is_presenter", False) or s.visual_type in ("talking_head", "talking_actor"):
+                    if getattr(s, "is_presenter", False) or s.visual_type in ("talking_head", "talking_actor") or bool(getattr(s, "avatar_profile", None)):
                         s.is_presenter = False
                         s.visual_type = "image"
+                        av_name = getattr(s, "avatar_profile", None)
+                        if av_name:
+                            try:
+                                from generators.avatar_generator import load_avatar
+                                av_obj = load_avatar(av_name)
+                                if av_obj and s.voice_profile == av_obj.get("voice_profile"):
+                                    proj_vp = (self.data.settings or {}).get("voice_profile") if hasattr(self, "data") else None
+                                    s.voice_profile = proj_vp or None
+                            except Exception:
+                                pass
+                            s.avatar_profile = None
                         if s.animation and (s.animation.meta or {}).get("provider") in (
                             "fal-ai/latentsync", "fal-ai/sadtalker",
                             "fal-ai/kling-video/v1/standard/ai-avatar",

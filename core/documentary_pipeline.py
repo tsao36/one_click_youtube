@@ -519,14 +519,11 @@ class DocumentaryPipeline(BasePipeline):
 
 
             def_avatar = self.p.data.settings.get("default_avatar")
-
-
+            proj_vp = self.p.data.settings.get("voice_profile") or self.p.settings.get("voice_profile")
 
             if placement:
 
-
-
-                scenes = apply_presenter_placement(scenes, placement, def_avatar)
+                scenes = apply_presenter_placement(scenes, placement, def_avatar, project_voice_profile=proj_vp)
 
 
 
