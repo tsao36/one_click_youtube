@@ -22,6 +22,7 @@ YOUTUBE_DIR = DATA_DIR / "youtube"
 ENV_FILE = ROOT / ".env"
 
 _lock = threading.RLock()
+_yaml_cache: dict[Path, tuple[tuple[int, int], dict]] = {}
 
 
 def deep_merge(base: dict, override: dict | None) -> dict:
@@ -37,9 +38,16 @@ def deep_merge(base: dict, override: dict | None) -> dict:
 
 def _read_yaml(path: Path) -> dict:
     if not path.exists():
+        _yaml_cache.pop(path, None)
         return {}
-    with open(path, "r", encoding="utf-8") as f:
-        return yaml.safe_load(f) or {}
+    stat = path.stat()
+    stamp = (stat.st_mtime_ns, stat.st_size)
+    cached = _yaml_cache.get(path)
+    if cached is None or cached[0] != stamp:
+        with open(path, "r", encoding="utf-8") as f:
+            data = yaml.safe_load(f) or {}
+        _yaml_cache[path] = (stamp, data)
+    return copy.deepcopy(_yaml_cache[path][1])
 
 
 def load_settings() -> dict:
@@ -59,6 +67,7 @@ def save_yaml(name: str, data: dict) -> None:
         with open(tmp, "w", encoding="utf-8") as f:
             yaml.safe_dump(data, f, sort_keys=False, allow_unicode=True)
         os.replace(tmp, path)
+        _yaml_cache.pop(path, None)
 
 
 def load_env() -> None:

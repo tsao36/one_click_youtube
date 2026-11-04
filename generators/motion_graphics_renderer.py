@@ -6,12 +6,6 @@ Guarantees zero-crash fallback: any card failure gracefully falls back to Ken Bu
 """
 from __future__ import annotations
 
-import json
-import logging
-import shutil
-import subprocess
-import sys
-import uuid
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
@@ -21,11 +15,6 @@ from core.models import Scene, Status
 from core.motion_graphics_schema import MotionGraphicScene, MotionGraphicsTimeline
 
 REMOTION_DIR = ROOT / "remotion-video"
-PUBLIC_BG_DIR = REMOTION_DIR / "public" / "bg"
-
-
-def _npx() -> str:
-    return "npx.cmd" if sys.platform == "win32" else "npx"
 
 
 def render_motion_graphic_clip(
@@ -40,68 +29,11 @@ def render_motion_graphic_clip(
     timeout: int = 300,
 ) -> Path:
     """Render a single Remotion motion graphic scene clip."""
-    if not REMOTION_DIR.exists():
-        raise RuntimeError(f"Remotion directory not found at {REMOTION_DIR}")
-
-    run_id = uuid.uuid4().hex[:10]
-    bg_rel = ""
-    bg_copy: Optional[Path] = None
-
-    if bg_image and Path(bg_image).exists():
-        PUBLIC_BG_DIR.mkdir(parents=True, exist_ok=True)
-        bg_copy = PUBLIC_BG_DIR / f"bg_{run_id}{Path(bg_image).suffix.lower() or '.png'}"
-        shutil.copy2(bg_image, bg_copy)
-        bg_rel = f"bg/{bg_copy.name}"
-
-    full_props = {**props, "bgSrc": bg_rel, "dim": dim}
-    props_file = REMOTION_DIR / f"props_{run_id}.json"
-    props_file.write_text(json.dumps(full_props, ensure_ascii=False), encoding="utf-8")
-
-    out_path = Path(out_path).resolve()
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-
-    frames = max(30, duration_frames)
-    cmd = [
-        _npx(), "remotion", "render", scene_type, str(out_path),
-        f"--props={props_file.name}",
-        f"--duration={frames}", f"--frames=0-{frames - 1}",
-        "--concurrency=1",
-        "--overwrite",
-    ]
-    if use_gpu_gl:
-        cmd.append("--gl=angle")
-
-    try:
-        proc = subprocess.run(
-            cmd,
-            cwd=str(REMOTION_DIR),
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            timeout=timeout,
-            shell=(sys.platform == "win32"),
-        )
-        if proc.returncode != 0 and use_gpu_gl:
-            log.warning("Remotion render with --gl=angle failed; retrying without angle: %s", (proc.stderr or proc.stdout)[-300:])
-            cmd.remove("--gl=angle")
-            proc = subprocess.run(
-                cmd,
-                cwd=str(REMOTION_DIR),
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                timeout=timeout,
-                shell=(sys.platform == "win32"),
-            )
-        if proc.returncode != 0 or not out_path.exists():
-            raise RuntimeError(f"Remotion render failed ({proc.returncode}): {(proc.stderr or proc.stdout)[-400:]}")
-        return out_path
-    finally:
-        props_file.unlink(missing_ok=True)
-        if bg_copy and bg_copy.exists():
-            bg_copy.unlink(missing_ok=True)
+    from rendering.remotion_cli import render_composition
+    return render_composition(
+        REMOTION_DIR, scene_type, props, out_path, duration_frames,
+        bg_image=bg_image, dim=dim, use_gpu_gl=use_gpu_gl, timeout=timeout,
+    )
 
 
 def render_timeline_motion_graphics(

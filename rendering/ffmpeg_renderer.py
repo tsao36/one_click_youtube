@@ -86,35 +86,42 @@ def project_timeline(project: Project) -> tuple[list[Scene], list[Slot]]:
     return expanded_scenes, slots
 
 
-def _clip_key(sc: Scene, slot: Slot, w: int, h: int, fps: int, project: Project) -> str:
+def _clip_key(sc: Scene, slot: Slot, w: int, h: int, fps: int, project: Project,
+              settings: dict | None = None, draft: bool = False) -> str:
+    settings = settings if settings is not None else project.settings
+    animation = settings.get("animation", {})
+    motion_key = json.dumps({"animation": animation, "draft": draft,
+                             "intermediate": INTERMEDIATE}, sort_keys=True)
     if sc.visual_type == "phase_turn_card":
         txt = getattr(sc, "phase_turn_text", None) or sc.section
-        return hashlib.md5(f"phase_turn|{txt}|{slot.clip_length:.3f}|{w}x{h}@{fps}".encode()).hexdigest()[:10]
+        return hashlib.md5(f"phase_turn|{txt}|{slot.clip_length:.3f}|{w}x{h}@{fps}|{motion_key}".encode()).hexdigest()[:10]
     is_drama = bool(
-        project.settings.get("project_mode") == "short_drama"
+        settings.get("project_mode") == "short_drama"
         or (hasattr(project, "data") and project.data and project.data.settings.get("project_mode") == "short_drama")
     )
     avatar_allowed = project.is_avatar_enabled() if hasattr(project, "is_avatar_enabled") else bool(
-        project.settings.get("avatar_enabled", True) and project.settings.get("presenter_placement") not in ("none", "off", "disabled", False)
+        settings.get("avatar_enabled", True) and settings.get("presenter_placement") not in ("none", "off", "disabled", False)
     )
     prov = str((sc.animation.meta or {}).get("provider", ""))
     is_avatar = is_drama or ("hedra" in prov) or (avatar_allowed and (getattr(sc, "is_presenter", False) or sc.visual_type in ("talking_head", "talking_actor")))
     lead_s = max(0.0, float(slot.audio_start - slot.start)) if is_avatar else 0.0
     v_type = "image" if (not avatar_allowed and not is_drama and sc.visual_type in ("talking_head", "talking_actor")) else sc.visual_type
-    parts = [v_type, sc.camera_motion, f"{slot.clip_length:.3f}", f"lead={lead_s:.3f}", f"{w}x{h}@{fps}", f"av_allowed={avatar_allowed}", f"is_drama={is_drama}"]
+    parts = [v_type, sc.camera_motion, f"{slot.clip_length:.3f}", f"lead={lead_s:.3f}", f"{w}x{h}@{fps}", f"av_allowed={avatar_allowed}", f"is_drama={is_drama}", motion_key,
+             str((sc.animation.meta or {}).get("provider", ""))]
     for asset in (sc.image, sc.animation):
         p = project.abs(asset.path) if asset.status == Status.COMPLETED else None
         parts.append(f"{asset.path}:{p.stat().st_mtime_ns if p and p.exists() else 0}")
     if sc.visual_type == "title":
-        parts.append(sc.visual_description)
+        parts.append(sc.visual_description or project.data.title or project.data.topic)
     return hashlib.md5("|".join(parts).encode()).hexdigest()[:10]
 
 
-def render_scene_clip(project: Project, sc: Scene, slot: Slot, w: int, h: int, fps: int, draft: bool) -> Path:
-    s = project.settings
+def render_scene_clip(project: Project, sc: Scene, slot: Slot, w: int, h: int, fps: int, draft: bool,
+                      settings: dict | None = None) -> Path:
+    s = settings if settings is not None else project.settings
     clips_dir = project.path("temp", f"clips_{w}x{h}")
     tag = getattr(sc, "_phase_tag", None) or sc.tag
-    out = clips_dir / f"{tag}_{_clip_key(sc, slot, w, h, fps, project)}.mp4"
+    out = clips_dir / f"{tag}_{_clip_key(sc, slot, w, h, fps, project, s, draft)}.mp4"
     if out.exists() and out.stat().st_size > 8192:
         return out
     for old in clips_dir.glob(f"{tag}_*.mp4"):
@@ -138,11 +145,11 @@ def render_scene_clip(project: Project, sc: Scene, slot: Slot, w: int, h: int, f
         img = project.abs(sc.image.path) if sc.image.status == Status.COMPLETED else None
 
         is_drama = bool(
-            project.settings.get("project_mode") == "short_drama"
+            s.get("project_mode") == "short_drama"
             or (hasattr(project, "data") and project.data and project.data.settings.get("project_mode") == "short_drama")
         )
         avatar_allowed = project.is_avatar_enabled() if hasattr(project, "is_avatar_enabled") else bool(
-            project.settings.get("avatar_enabled", True) and project.settings.get("presenter_placement") not in ("none", "off", "disabled", False)
+            s.get("avatar_enabled", True) and s.get("presenter_placement") not in ("none", "off", "disabled", False)
         )
         vid = project.abs(sc.animation.path) if sc.animation.status == Status.COMPLETED else None
         prov = str((sc.animation.meta or {}).get("provider", "")) if (vid and vid.exists()) else ""
@@ -428,7 +435,7 @@ def render_project(project: Project, draft: bool = False, progress: Callable[[in
         if cancel and cancel():
             raise RenderError("Render cancelled by user")
         say(i, steps, f"Rendering clip {i + 1}/{len(scenes)}")
-        clips.append(render_scene_clip(project, sc, sl, w, h, fps, draft))
+        clips.append(render_scene_clip(project, sc, sl, w, h, fps, draft, settings=s))
 
     if cancel and cancel():
         raise RenderError("Render cancelled by user")
@@ -479,7 +486,9 @@ def render_project(project: Project, draft: bool = False, progress: Callable[[in
     args += ["-map", "0:v", "-map", "1:a"]
     if soft:
         args += ["-map", "2:s", "-c:s", "mov_text"]
-    args += video_encoder_args(s, draft) + ["-r", str(fps), "-c:a", "aac", "-b:a", r.get("audio_bitrate", "192k"),
+    encoder_start = len(args)
+    encoder_args = video_encoder_args(s, draft)
+    args += encoder_args + ["-r", str(fps), "-c:a", "aac", "-b:a", r.get("audio_bitrate", "192k"),
                                             "-t", f"{total:.3f}", "-movflags", "+faststart",
                                             out.relative_to(project.dir).as_posix()]
     try:
@@ -489,9 +498,10 @@ def render_project(project: Project, draft: bool = False, progress: Callable[[in
             raise RenderError("Render cancelled by user")
         if "h264_amf" in args:
             log.warning("Hardware encode failed; retrying with libx264")
-            i = args.index("-c:v")
-            args[i:i + 2] = ["-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-threads", "2", "-x264-params", "rc-lookahead=6:threads=2:sync-lookahead=2"]
-            args = [a for a in args if a not in ("-quality", "quality", "-rc", "cqp", "-qp_i", "20", "-qp_p", "22")]
+            args[encoder_start:encoder_start + len(encoder_args)] = [
+                "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-threads", "2",
+                "-x264-params", "rc-lookahead=6:threads=2:sync-lookahead=2", "-pix_fmt", "yuv420p",
+            ]
             run_ffmpeg(args, cwd=project.dir, cancel=cancel)
         else:
             raise

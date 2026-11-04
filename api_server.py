@@ -10,8 +10,9 @@ import shutil
 import subprocess
 import sys
 import time
+import threading
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, Callable
 
 from fastapi import BackgroundTasks, FastAPI, File, Form, HTTPException, Query, UploadFile
 from typing import List
@@ -73,6 +74,69 @@ app.add_middleware(
 
 # Active pipeline registry
 active_pipelines: dict[str, Pipeline] = {}
+_jobs_lock = threading.RLock()
+
+
+def get_project(project_id: str) -> Project:
+    """Use the job's live state instead of a competing disk snapshot."""
+    with _jobs_lock:
+        pipeline = active_pipelines.get(project_id)
+        if pipeline is not None:
+            return pipeline.p
+        if not (PROJECTS_DIR / project_id / "project.json").is_file():
+            raise HTTPException(status_code=404, detail="Project not found")
+        return Project(project_id)
+
+
+def queue_pipeline_job(p: Project, background_tasks: BackgroundTasks, work: Callable,
+                       *, prepare: Callable | None = None, stop_at: str | None = None,
+                       success_state: str = "completed") -> bool:
+    """Reserve a project before scheduling, and release it on every exit path."""
+    with _jobs_lock, p.lock:
+        if p.id in active_pipelines:
+            return False
+        if prepare:
+            prepare(p)
+        pipeline = Pipeline(p, stop_at=stop_at)
+        p.data.state, p.data.error = "running", None
+        p.save()
+        active_pipelines[p.id] = pipeline
+
+        def run_job():
+            try:
+                if pipeline.is_cancelled():
+                    raise PipelineCancelled()
+                work(pipeline)
+                if p.data.state == "running":
+                    p.data.state = success_state
+                    p.save()
+            except PipelineCancelled:
+                p.data.state = "paused"
+                p.activity("Cancelled by user")
+            except Exception as exc:
+                if pipeline.is_cancelled() or "cancel" in str(exc).lower() or "stopped" in str(exc).lower():
+                    p.data.state, p.data.error = "paused", None
+                    p.activity("Cancelled by user")
+                else:
+                    p.data.state, p.data.error = "failed", str(exc)
+                    p.save()
+                    log.exception("Background job failed for project %s", p.id)
+            finally:
+                with _jobs_lock:
+                    if active_pipelines.get(p.id) is pipeline:
+                        active_pipelines.pop(p.id, None)
+
+        try:
+            if background_tasks is None:
+                threading.Thread(target=run_job, daemon=True).start()
+            else:
+                background_tasks.add_task(run_job)
+        except Exception:
+            active_pipelines.pop(p.id, None)
+            p.data.state = "paused"
+            p.save()
+            raise
+        return True
 
 
 # ---------------- Models ----------------
@@ -542,9 +606,7 @@ def create_project(req: CreateProjectRequest, background_tasks: BackgroundTasks)
     p.save()
 
     if req.start_now:
-        pipeline = Pipeline(p)
-        active_pipelines[p.id] = pipeline
-        background_tasks.add_task(pipeline.run)
+        queue_pipeline_job(p, background_tasks, lambda pipeline: pipeline.run())
 
     return {"project_id": p.id, "status": "created"}
 
@@ -720,8 +782,7 @@ def update_project_stage_models(project_id: str, req: UpdateStageModelsRequest):
         active_pipelines[project_id].update_stage_models(req.stage_models)
         p = active_pipelines[project_id].p
     else:
-        p = Project(project_id)
-        p.reload()
+        p = get_project(project_id)
         p.data.settings.setdefault("stage_models", {}).update(req.stage_models)
         if "images" in req.stage_models:
             model_val = req.stage_models["images"]
@@ -771,8 +832,7 @@ def update_project_stage_models(project_id: str, req: UpdateStageModelsRequest):
 def get_project_details(project_id: str):
     if not (PROJECTS_DIR / project_id).exists():
         raise HTTPException(status_code=404, detail="Project not found")
-    p = Project(project_id)
-    p.reload()
+    p = get_project(project_id)
     if p.data.state == "running" and project_id not in active_pipelines:
         p.data.state = "paused"
         if not p.data.activity or "interrupted" not in p.data.activity.lower():
@@ -816,7 +876,7 @@ def get_project_details(project_id: str):
 def open_project_video_folder(project_id: str):
     if not (PROJECTS_DIR / project_id).exists():
         raise HTTPException(status_code=404, detail="Project not found")
-    p = Project(project_id)
+    p = get_project(project_id)
     final_rel = (p.data.outputs.get("final") if p.data.outputs else None) or f"final/{project_id}.mp4"
     final_abs = p.path(final_rel).resolve()
     final_dir = final_abs.parent if final_abs.exists() else p.path("final").resolve()
@@ -845,8 +905,7 @@ def open_project_video_folder(project_id: str):
 def get_project_costs(project_id: str):
     if not (PROJECTS_DIR / project_id).exists():
         raise HTTPException(status_code=404, detail="Project not found")
-    p = Project(project_id)
-    p.reload()
+    p = get_project(project_id)
     from core.pricing import calculate_and_update_project_costs
     return calculate_and_update_project_costs(p)
 
@@ -1049,7 +1108,9 @@ async def upload_openopus_work(
                 "-vn", "-ar", "44100", "-ac", "2", "-b:a", "192k",
                 str(final_mp3)
             ]
-            subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+            await asyncio.to_thread(
+                subprocess.run, cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True
+            )
         except Exception as conv_e:
             log.warning("FFmpeg convert uploaded track fallback: %s", conv_e)
             if tmp_raw.exists():
@@ -1068,7 +1129,10 @@ async def upload_openopus_work(
                 "ffprobe", "-v", "error", "-show_entries", "format=duration",
                 "-of", "default=noprint_wrappers=1:nokey=1", str(final_mp3)
             ]
-            duration = float(subprocess.check_output(probe_cmd, stderr=subprocess.STDOUT).decode("utf-8").strip())
+            raw_duration = await asyncio.to_thread(
+                subprocess.check_output, probe_cmd, stderr=subprocess.STDOUT
+            )
+            duration = float(raw_duration.decode("utf-8").strip())
         except Exception:
             pass
 
@@ -1262,8 +1326,7 @@ def get_bluemagpie_status(auto_start: bool = True):
 def update_project_music(project_id: str, req: UpdateProjectMusicRequest):
     if not (PROJECTS_DIR / project_id).exists():
         raise HTTPException(status_code=404, detail="Project not found")
-    p = Project(project_id)
-    p.reload()
+    p = get_project(project_id)
     with p.lock:
         m = p.data.settings.setdefault("music", {})
         if req.track is not None:
@@ -1282,45 +1345,32 @@ def update_project_music(project_id: str, req: UpdateProjectMusicRequest):
 
 @app.post("/api/projects/{project_id}/start")
 def start_project_pipeline(project_id: str, background_tasks: BackgroundTasks, stop_at: Optional[str] = None):
-    p = Project(project_id)
-    p.reload()
-
-    if p.id in active_pipelines and p.data.state == "running":
+    p = get_project(project_id)
+    if not queue_pipeline_job(p, background_tasks, lambda pipeline: pipeline.run(), stop_at=stop_at):
         return {"status": "already_running"}
-
-    pipeline = Pipeline(p, stop_at=stop_at)
-    active_pipelines[p.id] = pipeline
-    background_tasks.add_task(pipeline.run)
     return {"status": "started", "stop_at": stop_at}
 
 
 @app.post("/api/projects/{project_id}/run_stage/{stage_name}")
 def run_stage_endpoint(project_id: str, stage_name: str, background_tasks: BackgroundTasks):
-    p = Project(project_id)
-    p.reload()
+    p = get_project(project_id)
     if stage_name not in STAGES:
         raise HTTPException(status_code=400, detail=f"Invalid stage name '{stage_name}'")
 
-    if p.id in active_pipelines and p.data.state == "running":
+    def prepare(project: Project):
+        project.set_stage(stage_name, Status.PENDING)
+
+    if not queue_pipeline_job(
+        p, background_tasks, lambda pipeline: pipeline.run_stage(stage_name), prepare=prepare
+    ):
         return {"status": "already_running"}
-
-    # Invalidate stage so it generates fresh
-    p.set_stage(stage_name, Status.PENDING)
-
-    pipeline = Pipeline(p)
-    active_pipelines[p.id] = pipeline
-    background_tasks.add_task(pipeline.run_stage, stage_name)
     return {"status": "started_stage", "stage": stage_name}
 
 
 
 @app.post("/api/projects/{project_id}/run_cascade/{from_stage}")
 def run_cascade_endpoint(project_id: str, from_stage: str, background_tasks: BackgroundTasks):
-    p = Project(project_id)
-    p.reload()
-
-    if p.id in active_pipelines and p.data.state == "running":
-        return {"status": "already_running"}
+    p = get_project(project_id)
 
     if from_stage == "script":
         cascade_stages = ["script", "scenes", "prompts", "images", "voice", "music", "animation", "subtitles", "render"]
@@ -1329,42 +1379,32 @@ def run_cascade_endpoint(project_id: str, from_stage: str, background_tasks: Bac
     else:
         raise HTTPException(status_code=400, detail=f"Unsupported cascade start stage '{from_stage}'")
 
-    for st in cascade_stages:
-        p.set_stage(st, Status.PENDING)
+    def prepare(project: Project):
+        for stage in cascade_stages:
+            project.set_stage(stage, Status.PENDING)
+        project.data.activity = f"Cascading generation from {from_stage} through to final video..."
 
-    p.data.state = "running"
-    p.data.error = None
-    p.save()
-
-    pipeline = Pipeline(p)
-    active_pipelines[p.id] = pipeline
-    p.activity(f"Cascading generation from {from_stage} through to final video...")
-    background_tasks.add_task(pipeline.run)
+    if not queue_pipeline_job(p, background_tasks, lambda pipeline: pipeline.run(), prepare=prepare):
+        return {"status": "already_running"}
     return {"status": "started_cascade", "from_stage": from_stage, "stages": cascade_stages}
 
 @app.post("/api/projects/{project_id}/assemble")
 def assemble_project_pipeline(project_id: str, background_tasks: BackgroundTasks):
-    p = Project(project_id)
-    p.reload()
+    p = get_project(project_id)
 
-    if p.id in active_pipelines and p.data.state == "running":
+    def prepare(project: Project):
+        project.set_stage("subtitles", Status.PENDING)
+        project.set_stage("render", Status.PENDING)
+        project.data.activity = "Stringing all stages together into final video..."
+
+    if not queue_pipeline_job(p, background_tasks, lambda pipeline: pipeline.run(), prepare=prepare):
         return {"status": "already_running"}
-
-    # Invalidate subtitles and render so they update with current assets
-    p.set_stage("subtitles", Status.PENDING)
-    p.set_stage("render", Status.PENDING)
-
-    pipeline = Pipeline(p)
-    active_pipelines[p.id] = pipeline
-    p.activity("Stringing all stages together into final video...")
-    background_tasks.add_task(pipeline.run)
     return {"status": "assembling"}
 
 
 @app.get("/api/projects/{project_id}/stage_data/{stage_name}")
 def get_stage_data_endpoint(project_id: str, stage_name: str):
-    p = Project(project_id)
-    p.reload()
+    p = get_project(project_id)
     ret = {}
     if stage_name == "research":
         ret = {"research": p.read_json("research/research.json", {})}
@@ -1380,7 +1420,6 @@ def get_stage_data_endpoint(project_id: str, stage_name: str):
         elif stage_name == "voice":
             for sc in p.scenes:
                 ensure_initial_voice_take(p, sc.scene_id)
-        p.reload()
         voice_prof_name = p.settings.get("voice_profile") or p.settings.get("voice", {}).get("profile", "default_local")
         prof = None
         try:
@@ -1519,8 +1558,7 @@ def get_stage_data_endpoint(project_id: str, stage_name: str):
 
 @app.post("/api/projects/{project_id}/generate_world_setting")
 def generate_world_setting_endpoint(project_id: str):
-    p = Project(project_id)
-    p.reload()
+    p = get_project(project_id)
     topic = p.data.topic
     res_data = p.read_json("research/research.json", {})
     notes_parts = []
@@ -1590,15 +1628,13 @@ def generate_world_setting_endpoint(project_id: str):
 
 @app.get("/api/projects/{project_id}/stages/{stage_name}/versions")
 def get_versions_endpoint(project_id: str, stage_name: str):
-    p = Project(project_id)
-    p.reload()
+    p = get_project(project_id)
     return get_stage_versions(p, stage_name)
 
 
 @app.post("/api/projects/{project_id}/stages/{stage_name}/versions/switch/{target_version}")
 def switch_version_endpoint(project_id: str, stage_name: str, target_version: int):
-    p = Project(project_id)
-    p.reload()
+    p = get_project(project_id)
     return switch_stage_version(p, stage_name, target_version)
 
 
@@ -1607,8 +1643,7 @@ def switch_image_take_endpoint(project_id: str, scene_id: int, target_take: int)
     if project_id in active_pipelines:
         p = active_pipelines[project_id].p
     else:
-        p = Project(project_id)
-        p.reload()
+        p = get_project(project_id)
     return switch_scene_image_take(p, scene_id, target_take)
 
 
@@ -1617,8 +1652,7 @@ def switch_voice_take_endpoint(project_id: str, scene_id: int, target_take: int)
     if project_id in active_pipelines:
         p = active_pipelines[project_id].p
     else:
-        p = Project(project_id)
-        p.reload()
+        p = get_project(project_id)
     return switch_scene_voice_take(p, scene_id, target_take)
 
 
@@ -1627,8 +1661,7 @@ def delete_scene_image_endpoint(project_id: str, scene_id: int):
     if project_id in active_pipelines:
         p = active_pipelines[project_id].p
     else:
-        p = Project(project_id)
-        p.reload()
+        p = get_project(project_id)
     return delete_scene_image_take(p, scene_id, target_take=None)
 
 
@@ -1637,8 +1670,7 @@ def delete_image_take_endpoint(project_id: str, scene_id: int, target_take: int)
     if project_id in active_pipelines:
         p = active_pipelines[project_id].p
     else:
-        p = Project(project_id)
-        p.reload()
+        p = get_project(project_id)
     return delete_scene_image_take(p, scene_id, target_take=target_take)
 
 
@@ -1647,8 +1679,7 @@ def delete_scene_voice_endpoint(project_id: str, scene_id: int):
     if project_id in active_pipelines:
         p = active_pipelines[project_id].p
     else:
-        p = Project(project_id)
-        p.reload()
+        p = get_project(project_id)
     return delete_scene_voice_take(p, scene_id, target_take=None)
 
 
@@ -1657,8 +1688,7 @@ def delete_voice_take_endpoint(project_id: str, scene_id: int, target_take: int)
     if project_id in active_pipelines:
         p = active_pipelines[project_id].p
     else:
-        p = Project(project_id)
-        p.reload()
+        p = get_project(project_id)
     return delete_scene_voice_take(p, scene_id, target_take=target_take)
 
 
@@ -1703,8 +1733,7 @@ def parse_script_markdown_to_sections(md_text: str) -> tuple[str, list[dict], in
 
 @app.put("/api/projects/{project_id}/stage_data/{stage_name}")
 def update_stage_data_endpoint(project_id: str, stage_name: str, payload: dict[str, Any]):
-    p = Project(project_id)
-    p.reload()
+    p = get_project(project_id)
     p.sync_avatar_disabled_state()
     if stage_name == "research":
         if "research" in payload:
@@ -1793,8 +1822,7 @@ def update_stage_data_endpoint(project_id: str, stage_name: str, payload: dict[s
 @app.get("/api/projects/{project_id}/export_script")
 def export_project_script_endpoint(project_id: str, format: str = "md"):
     """Export Stage 2 script in Markdown (.md), clean proofreading text (.txt), or structured JSON (.json)."""
-    p = Project(project_id)
-    p.reload()
+    p = get_project(project_id)
     fmt = format.lower().strip()
     script_data = p.read_json("script/script.json", {})
     script_md = p.read_text("script/script.md", "")
@@ -1844,8 +1872,7 @@ async def import_project_script_endpoint(
     format: Optional[str] = Form("md")
 ):
     """Import an edited/proofread script (.md, .txt, .json, or raw text) into Stage 2."""
-    p = Project(project_id)
-    p.reload()
+    p = get_project(project_id)
 
     raw_text = ""
     filename = ""
@@ -1919,34 +1946,27 @@ def regenerate_from_script_endpoint(
     payload: Optional[dict[str, Any]] = None
 ):
     """Save the proofread/edited script and automatically re-run the pipeline from Stage 3 (Scenes -> Video)."""
-    p = Project(project_id)
-    p.reload()
+    p = get_project(project_id)
 
-    if p.id in active_pipelines and p.data.state == "running":
+    def prepare(project: Project):
+        if payload and "script_md" in payload:
+            md_text = payload["script_md"]
+            project.write_text("script/script.md", md_text)
+            title, sections, word_count = parse_script_markdown_to_sections(md_text)
+            if title:
+                project.data.title = title
+            existing_scr = project.read_json("script/script.json", {})
+            existing_scr["title"] = title or existing_scr.get(
+                "title", project.data.title or project.data.topic
+            )
+            existing_scr["sections"] = sections
+            existing_scr["word_count"] = word_count
+            project.write_json("script/script.json", existing_scr)
+        project.invalidate("scenes")
+        project.data.activity = "Stage 3/9: Re-segmenting storyboard scenes from proofread script..."
+
+    if not queue_pipeline_job(p, background_tasks, lambda pipeline: pipeline.run(), prepare=prepare):
         return {"status": "already_running"}
-
-    # If payload provided, save script first
-    if payload and "script_md" in payload:
-        md_text = payload["script_md"]
-        p.write_text("script/script.md", md_text)
-        title, sections, word_count = parse_script_markdown_to_sections(md_text)
-        if title:
-            p.data.title = title
-        existing_scr = p.read_json("script/script.json", {})
-        existing_scr["title"] = title or existing_scr.get("title", p.data.title or p.data.topic)
-        existing_scr["sections"] = sections
-        existing_scr["word_count"] = word_count
-        p.write_json("script/script.json", existing_scr)
-
-    # Invalidate Stage 3 onwards
-    p.invalidate("scenes")
-    p.data.state = "running"
-    p.activity("Stage 3/9: Re-segmenting storyboard scenes from proofread script...")
-    p.save()
-
-    pipeline = Pipeline(p)
-    active_pipelines[p.id] = pipeline
-    background_tasks.add_task(pipeline.run)
 
     return {"status": "started", "from_stage": "scenes"}
 
@@ -2188,8 +2208,7 @@ def perform_project_text_replace(
 @app.post("/api/projects/{project_id}/text_replace/preview")
 def preview_text_replace_endpoint(project_id: str, req: TextReplaceRequest):
     """Preview occurrences of text across project stages (Stage 1, 2, 3, Prompts, Subtitles) without modifying files."""
-    p = Project(project_id)
-    p.reload()
+    p = get_project(project_id)
     return perform_project_text_replace(
         p=p,
         find_str=req.find,
@@ -2206,8 +2225,7 @@ def execute_text_replace_endpoint(project_id: str, req: TextReplaceRequest):
     """Atomically search and replace text across Stage 1 (Research), Stage 2 (Script), Stage 3 (Scenes),
     Stage 4 (Prompts), Subtitles, and Project metadata. Automatically marks affected scenes for voice re-synthesis.
     """
-    p = Project(project_id)
-    p.reload()
+    p = get_project(project_id)
     result = perform_project_text_replace(
         p=p,
         find_str=req.find,
@@ -2217,19 +2235,12 @@ def execute_text_replace_endpoint(project_id: str, req: TextReplaceRequest):
         auto_invalidate_voice=req.auto_invalidate_voice,
         dry_run=False,
     )
-    # If project is active in memory, reload its internal project state
-    if project_id in active_pipelines:
-        try:
-            active_pipelines[project_id].p.reload()
-        except Exception:
-            pass
     return result
 
 
 @app.put("/api/projects/{project_id}/subtitle_settings")
 def update_project_subtitle_settings(project_id: str, req: ProjectSubtitleSettingsRequest):
-    p = Project(project_id)
-    p.reload()
+    p = get_project(project_id)
     sub_s = p.data.settings.setdefault("subtitles", {})
     if req.motion_graphics_callouts is not None:
         sub_s["motion_graphics_callouts"] = req.motion_graphics_callouts
@@ -2253,7 +2264,7 @@ def cancel_project_pipeline(project_id: str):
         except Exception:
             pass
         return {"status": "cancelling", "killed_ffmpeg": killed_ffmpeg}
-    p = Project(project_id)
+    p = get_project(project_id)
     p.data.state = "paused"
     p.data.activity = "Pipeline cancelled by user"
     p.save()
@@ -2268,10 +2279,7 @@ def stop_render_endpoint(project_id: str):
             active_pipelines[project_id].cancel()
         except Exception:
             pass
-        active_pipelines.pop(project_id, None)
-
-    p = Project(project_id)
-    p.reload()
+    p = get_project(project_id)
     p.data.state = "paused"
     p.data.activity = "Rendering stopped by user"
     if p.data.stages.get("render", {}).status == Status.RUNNING:
@@ -2287,7 +2295,7 @@ def clear_project_cache_endpoint(project_id: str):
     pdir = PROJECTS_DIR / project_id
     if not pdir.exists():
         raise HTTPException(status_code=404, detail="Project not found")
-    p = Project(project_id)
+    p = get_project(project_id)
     cleared = p.clear_video_cache()
     return {"status": "cleared", "project_id": project_id, "cleared_bytes": cleared, "cleared_mb": round(cleared / (1024 * 1024), 2)}
 
@@ -2299,7 +2307,7 @@ def delete_project_endpoint(project_id: str):
             active_pipelines[project_id].cancel()
         except Exception:
             pass
-        active_pipelines.pop(project_id, None)
+        raise HTTPException(status_code=409, detail="Project is still stopping; delete it after the job exits.")
 
     # Stop any ffmpeg processes that may hold open file handles to clips
     try:
@@ -2322,7 +2330,7 @@ def delete_project_endpoint(project_id: str):
 # ---------------- Scene Management ----------------
 @app.put("/api/projects/{project_id}/scenes")
 def update_scenes(project_id: str, scenes: list[Scene]):
-    p = Project(project_id)
+    p = get_project(project_id)
     p.set_scenes(scenes)
     p.sync_avatar_disabled_state()
     p.clear_clips_cache()
@@ -2336,8 +2344,7 @@ def update_scenes(project_id: str, scenes: list[Scene]):
 
 @app.patch("/api/projects/{project_id}/scenes/{scene_id}")
 def patch_scene(project_id: str, scene_id: int, payload: dict[str, Any]):
-    p = Project(project_id)
-    p.reload()
+    p = get_project(project_id)
     for sc in p.scenes:
         if sc.scene_id == scene_id:
             if "narration" in payload:
@@ -2458,8 +2465,7 @@ def get_image_live_status():
 
 @app.put("/api/projects/{project_id}/image_settings")
 def update_project_image_settings(project_id: str, req: ProjectImageSettingsRequest):
-    p = Project(project_id)
-    p.reload()
+    p = get_project(project_id)
     video_s = p.data.settings.setdefault("video", {})
     images_s = p.data.settings.setdefault("images", {})
     stage_models = p.data.settings.setdefault("stage_models", {})
@@ -2513,7 +2519,7 @@ def update_project_image_settings(project_id: str, req: ProjectImageSettingsRequ
 
 @app.post("/api/projects/{project_id}/scenes/{scene_id}/regenerate_image")
 def regenerate_scene_image(project_id: str, scene_id: int, req_body: Optional[RegenImageRequest] = None):
-    p = Project(project_id)
+    p = get_project(project_id)
     s = p.scene(scene_id)
     cfg = p.settings
     img_cfg = cfg.get("images", {})
@@ -2666,7 +2672,7 @@ def regenerate_scene_image(project_id: str, scene_id: int, req_body: Optional[Re
 
 @app.post("/api/projects/{project_id}/scenes/{scene_id}/regenerate_voice")
 def regenerate_scene_voice(project_id: str, scene_id: int, req_body: Optional[RegenVoiceRequest] = None):
-    p = Project(project_id)
+    p = get_project(project_id)
     s = p.scene(scene_id)
     if not s:
         raise HTTPException(status_code=404, detail=f"Scene {scene_id} not found")
@@ -2743,27 +2749,18 @@ def rerender_voice_and_video_endpoint(
 ):
     if not (PROJECTS_DIR / project_id).exists():
         raise HTTPException(status_code=404, detail="Project not found")
-    p = Project(project_id)
-    p.reload()
+    p = get_project(project_id)
 
-    if p.id in active_pipelines and p.data.state == "running":
-        return {"status": "already_running"}
-
-    pipeline = Pipeline(p)
-    active_pipelines[p.id] = pipeline
-
-    def do_work():
-        try:
-            pipeline.rerender_voice_and_video(
+    def do_work(pipeline: Pipeline):
+        pipeline.rerender_voice_and_video(
                 voice_profile=req.voice_profile,
                 tts_provider=req.tts_provider,
                 scope=req.scope,
                 scene_ids=req.scene_ids,
             )
-        finally:
-            active_pipelines.pop(p.id, None)
 
-    background_tasks.add_task(do_work)
+    if not queue_pipeline_job(p, background_tasks, do_work):
+        return {"status": "already_running"}
     return {
         "status": "started",
         "project_id": p.id,
@@ -2790,28 +2787,19 @@ def rerender_avatar_clips_endpoint(
 ):
     if not (PROJECTS_DIR / project_id).exists():
         raise HTTPException(status_code=404, detail="Project not found")
-    p = Project(project_id)
-    p.reload()
+    p = get_project(project_id)
 
-    if p.id in active_pipelines and p.data.state == "running":
-        return {"status": "already_running"}
-
-    pipeline = Pipeline(p)
-    active_pipelines[p.id] = pipeline
-
-    def do_work():
-        try:
-            pipeline.rerender_avatar_clips_and_video(
+    def do_work(pipeline: Pipeline):
+        pipeline.rerender_avatar_clips_and_video(
                 avatar_profile=req.avatar_profile,
                 scene_ids=req.scene_ids,
                 engine=req.engine,
                 voice_profile=req.voice_profile,
                 voice_scope=req.voice_scope or "all",
             )
-        finally:
-            active_pipelines.pop(p.id, None)
 
-    background_tasks.add_task(do_work)
+    if not queue_pipeline_job(p, background_tasks, do_work):
+        return {"status": "already_running"}
     return {
         "status": "started",
         "project_id": p.id,
@@ -2831,7 +2819,7 @@ async def upload_scene_avatar_clip(
     update_video: bool = Form(True),
     background_tasks: BackgroundTasks = None,
 ):
-    p = Project(project_id)
+    p = get_project(project_id)
     s = p.scene(scene_id)
     if not s:
         raise HTTPException(status_code=404, detail="Scene not found")
@@ -2878,33 +2866,21 @@ async def upload_scene_avatar_clip(
     p.save_scenes()
     p.set_stage("render", Status.PENDING)
 
+    video_updating = False
     if update_video:
-        pipeline = Pipeline(p)
-        active_pipelines[p.id] = pipeline
+        def do_render(pipeline: Pipeline):
+            pipeline.ensure_consistent_project_voice()
+            pipeline._run_render()
+            p.data.activity = f"Scene {scene_id} avatar clip updated & 1080p video refreshed!"
 
-        def do_render():
-            try:
-                pipeline.ensure_consistent_project_voice()
-                pipeline._run_render()
-                with p.lock:
-                    p.data.state = "completed"
-                    p.data.activity = f"Scene {scene_id} avatar clip updated & 1080p video refreshed!"
-                    p.save()
-            finally:
-                active_pipelines.pop(p.id, None)
-
-        if background_tasks:
-            background_tasks.add_task(do_render)
-        else:
-            import threading
-            threading.Thread(target=do_render, daemon=True).start()
+        video_updating = queue_pipeline_job(p, background_tasks, do_render)
 
     return {
         "status": "ok",
         "scene_id": scene_id,
         "clip_url": f"/media/{project_id}/{s.animation.path}",
         "image_url": f"/media/{project_id}/{s.image.path}",
-        "video_updating": update_video
+        "video_updating": video_updating
     }
 
 
@@ -2918,34 +2894,22 @@ def rerender_single_scene_avatar_clip(
     update_video: bool = True,
     background_tasks: BackgroundTasks = None,
 ):
-    p = Project(project_id)
+    p = get_project(project_id)
     s = p.scene(scene_id)
     if not s:
         raise HTTPException(status_code=404, detail="Scene not found")
 
-    if p.id in active_pipelines and p.data.state == "running":
-        return {"status": "already_running"}
-
-    pipeline = Pipeline(p)
-    active_pipelines[p.id] = pipeline
-
-    def do_work():
-        try:
-            pipeline.rerender_avatar_clips_and_video(
+    def do_work(pipeline: Pipeline):
+        pipeline.rerender_avatar_clips_and_video(
                 avatar_profile=avatar_profile,
                 scene_ids=[scene_id],
                 engine=engine,
                 voice_profile=voice_profile,
                 voice_scope="presenter",
             )
-        finally:
-            active_pipelines.pop(p.id, None)
 
-    if background_tasks:
-        background_tasks.add_task(do_work)
-    else:
-        import threading
-        threading.Thread(target=do_work, daemon=True).start()
+    if not queue_pipeline_job(p, background_tasks, do_work):
+        return {"status": "already_running"}
 
     return {"status": "started", "scene_id": scene_id, "avatar_profile": avatar_profile}
 
@@ -2973,7 +2937,7 @@ def apply_stock_media(project_id: str, scene_id: int, req: ApplyStockMediaReques
     from rendering.ffmpeg_utils import run_ffmpeg
     from providers.stock_client import download_media_file, format_stock_image, format_stock_video
 
-    p = Project(project_id)
+    p = get_project(project_id)
     s = p.scene(scene_id)
     if not s:
         raise HTTPException(status_code=404, detail="Scene not found")
@@ -3082,7 +3046,7 @@ def run_batch_quick_stock_job(project_id: str, scope: str = "all", source: str =
     from providers.youtube_snippet_client import search_youtube_videos, download_youtube_thumbnail
     from core.models import Status
 
-    p = Project(project_id)
+    p = get_project(project_id)
     cfg = p.settings
     auto_mode = cfg.get("images", {}).get("auto_stock_mode", "balanced")
     w = int(cfg.get("video", {}).get("width") or cfg.get("images", {}).get("width") or 1920)
@@ -3319,7 +3283,7 @@ def batch_quick_stock_endpoint(project_id: str, req: BatchQuickStockRequest, bac
             "state": batch_quick_stock_state
         }
 
-    p = Project(project_id)
+    p = get_project(project_id)
     scenes = p.active_scenes()
     total = len(scenes)
 
@@ -3362,7 +3326,7 @@ def search_youtube_endpoint(q: str = Query(..., description="Search query"), lim
 
 @app.post("/api/projects/{project_id}/scenes/{scene_id}/youtube_footage")
 def apply_youtube_footage(project_id: str, scene_id: int, req: YouTubeFootageRequest):
-    p = Project(project_id)
+    p = get_project(project_id)
     s = p.scene(scene_id)
     if not s:
         raise HTTPException(status_code=404, detail=f"Scene {scene_id} not found")
@@ -3462,8 +3426,7 @@ def apply_remotion_to_scene(project_id: str, req: RemotionRenderRequest):
     from generators.remotion_cards import extract_card_props, render_scene_card
     if req.scene_id is None:
         raise HTTPException(status_code=400, detail="scene_id is required")
-    p = Project(project_id)
-    p.reload()
+    p = get_project(project_id)
     s = p.get_scene(req.scene_id)
     if not s:
         raise HTTPException(status_code=404, detail=f"Scene {req.scene_id} not found")
@@ -3487,8 +3450,7 @@ def apply_remotion_to_scene(project_id: str, req: RemotionRenderRequest):
 def get_remotion_scene_props(project_id: str, scene_id: int):
     """Auto-extracted card text for one scene."""
     from generators.remotion_cards import extract_card_props
-    p = Project(project_id)
-    p.reload()
+    p = get_project(project_id)
     s = p.get_scene(scene_id)
     if not s:
         raise HTTPException(status_code=404, detail=f"Scene {scene_id} not found")
@@ -3499,8 +3461,7 @@ def get_remotion_scene_props(project_id: str, scene_id: int):
 def preview_remotion_critical_scenes(project_id: str):
     """Which scenes would get a card, and with what text (no rendering)."""
     from generators.remotion_cards import extract_card_props, select_critical_scenes
-    p = Project(project_id)
-    p.reload()
+    p = get_project(project_id)
     return {"scenes": [{"scene_id": s.scene_id, "props": extract_card_props(s)}
                        for s in select_critical_scenes(p.active_scenes())]}
 
@@ -3510,134 +3471,73 @@ def auto_remotion_critical_scenes(project_id: str, background_tasks: BackgroundT
                                   composition: str = "EvidenceHighlightScene"):
     """Render cards for all critical scenes in the background."""
     from generators.remotion_cards import render_critical_scene_cards, select_critical_scenes
-    p = Project(project_id)
-    p.reload()
+    p = get_project(project_id)
     picked = select_critical_scenes(p.active_scenes())
 
-    def work():
-        p.activity(f"Rendering {len(picked)} Remotion {composition} card(s) for critical scenes...")
+    def work(_pipeline: Pipeline):
         ids = render_critical_scene_cards(p, picked, select=False, composition=composition)
         p.save_scenes()
         p.set_stage("render", Status.PENDING)
-        p.activity(f"Remotion {composition} cards ready for scenes {ids}")
+        p.data.activity = f"Remotion {composition} cards ready for scenes {ids}"
 
-    background_tasks.add_task(work)
+    def prepare(project: Project):
+        project.data.activity = f"Rendering {len(picked)} Remotion {composition} card(s) for critical scenes..."
+
+    if not queue_pipeline_job(p, background_tasks, work, prepare=prepare, success_state="idle"):
+        return {"status": "already_running"}
     return {"status": "started", "scene_ids": [s.scene_id for s in picked], "composition": composition}
 
 
 # ---------------- Preview & Rendering ----------------
 @app.post("/api/projects/{project_id}/render_draft")
 def render_draft(project_id: str, background_tasks: BackgroundTasks):
-    p = Project(project_id)
-    p.reload()
-    if p.id in active_pipelines and p.data.state == "running":
+    p = get_project(project_id)
+    def prepare(project: Project):
+        project.data.activity = "Rendering low-resolution draft preview..."
+
+    def do_render(pipeline: Pipeline):
+        render_project(p, draft=True, cancel=pipeline.is_cancelled)
+        p.data.activity = "Draft render ready"
+        p.data.outputs["draft"] = "final/draft_preview.mp4"
+
+    if not queue_pipeline_job(
+        p, background_tasks, do_render, prepare=prepare, success_state="idle"
+    ):
         return {"status": "already_running"}
-
-    pipeline = Pipeline(p)
-    active_pipelines[p.id] = pipeline
-    p.data.state = "running"
-    p.activity("Rendering low-resolution draft preview...")
-    p.save()
-
-    def do_render():
-        try:
-            render_project(p, draft=True, cancel=pipeline.is_cancelled)
-            p.activity("Draft render ready")
-            p.data.state = "idle"
-            p.data.outputs["draft"] = "final/draft_preview.mp4"
-            p.save()
-        except Exception as e:
-            if pipeline.is_cancelled() or "cancelled" in str(e).lower():
-                p.activity("Draft render stopped by user")
-                p.data.state = "paused"
-            else:
-                p.activity(f"Draft render failed: {e}")
-                p.data.state = "failed"
-            p.save()
-        finally:
-            active_pipelines.pop(p.id, None)
-
-    background_tasks.add_task(do_render)
     return {"status": "rendering_draft"}
 
 
 @app.post("/api/projects/{project_id}/fast_rerender_video")
 def fast_rerender_video_endpoint(project_id: str, background_tasks: BackgroundTasks):
     """Fast re-render: re-conforms ONLY modified/uploaded scene clips, reuses all cached scenes, and updates final 1080p MP4."""
-    p = Project(project_id)
-    p.reload()
-    if p.id in active_pipelines and p.data.state == "running":
+    p = get_project(project_id)
+    def prepare(project: Project):
+        project.data.activity = "Fast re-render: Updating modified scenes & re-stitching 1080p video..."
+
+    def do_render(pipeline: Pipeline):
+        pipeline.ensure_consistent_project_voice()
+        pipeline._run_subtitles()
+        pipeline._run_render()
+        p.data.activity = "Final 1080p video successfully updated! Replaced modified scenes."
+
+    if not queue_pipeline_job(p, background_tasks, do_render, prepare=prepare):
         return {"status": "already_running"}
-
-    pipeline = Pipeline(p)
-    active_pipelines[p.id] = pipeline
-    p.data.state = "running"
-    p.activity("Fast re-render: Updating modified scenes & re-stitching 1080p video...")
-    p.save()
-
-    def do_render():
-        try:
-            pipeline.ensure_consistent_project_voice()
-            pipeline._run_subtitles()
-            pipeline._run_render()
-            p.data.state = "completed"
-            p.activity("Final 1080p video successfully updated! Replaced modified scenes.")
-            p.save()
-        except PipelineCancelled:
-            p.data.state = "paused"
-            p.activity("Rendering stopped by user")
-            p.save()
-        except Exception as e:
-            if pipeline.is_cancelled() or "cancelled" in str(e).lower():
-                p.data.state = "paused"
-                p.activity("Rendering stopped by user")
-            else:
-                p.data.state = "failed"
-                p.activity(f"Render failed: {e}")
-            p.save()
-        finally:
-            active_pipelines.pop(p.id, None)
-
-    background_tasks.add_task(do_render)
     return {"status": "started", "project_id": project_id}
 
 
 @app.post("/api/projects/{project_id}/render_final")
 def render_final(project_id: str, background_tasks: BackgroundTasks):
-    p = Project(project_id)
-    p.reload()
-    if p.id in active_pipelines and p.data.state == "running":
+    p = get_project(project_id)
+    def prepare(project: Project):
+        project.data.activity = "Starting final video assembly & rendering..."
+
+    def do_render(pipeline: Pipeline):
+        pipeline._run_subtitles()
+        pipeline._run_render()
+        p.data.activity = "Final 1080p video render complete!"
+
+    if not queue_pipeline_job(p, background_tasks, do_render, prepare=prepare):
         return {"status": "already_running"}
-
-    pipeline = Pipeline(p)
-    active_pipelines[p.id] = pipeline
-    p.data.state = "running"
-    p.activity("Starting final video assembly & rendering...")
-    p.save()
-
-    def do_render():
-        try:
-            pipeline._run_subtitles()
-            pipeline._run_render()
-            p.data.state = "completed"
-            p.activity("Final 1080p video render complete!")
-            p.save()
-        except PipelineCancelled:
-            p.data.state = "paused"
-            p.activity("Rendering stopped by user")
-            p.save()
-        except Exception as e:
-            if pipeline.is_cancelled() or "cancelled" in str(e).lower():
-                p.data.state = "paused"
-                p.activity("Rendering stopped by user")
-            else:
-                p.data.state = "failed"
-                p.activity(f"Render failed: {e}")
-            p.save()
-        finally:
-            active_pipelines.pop(p.id, None)
-
-    background_tasks.add_task(do_render)
     return {"status": "rendering_final"}
 
 
@@ -3775,7 +3675,13 @@ async def create_voice(
         existing = DATA_DIR / "voices" / re.sub(r"[^a-zA-Z0-9_\-]", "_", name.strip()) / "reference.wav"
         if not existing.exists():
             raise HTTPException(status_code=400, detail=f"{provider} needs a reference voice clip (3–15 s of clean speech)")
-    prof = save_profile(name, data, reference_wav=ref_bytes, ref_filename=reference_file.filename if reference_file else "ref.wav")
+    prof = await asyncio.to_thread(
+        save_profile,
+        name,
+        data,
+        reference_wav=ref_bytes,
+        ref_filename=reference_file.filename if reference_file else "ref.wav",
+    )
     return prof
 
 
@@ -3800,10 +3706,18 @@ async def replace_voice_reference(
     data: dict[str, Any] = {}
     if reference_text.strip():
         data["reference_text"] = reference_text.strip()
-    prof = save_profile(name, data, reference_wav=await reference_file.read(), ref_filename=reference_file.filename or "ref.wav")
+    ref_bytes = await reference_file.read()
+    prof = await asyncio.to_thread(
+        save_profile,
+        name,
+        data,
+        reference_wav=ref_bytes,
+        ref_filename=reference_file.filename or "ref.wav",
+    )
     if auto_transcribe and not reference_text.strip():
         try:
-            prof = save_profile(name, {"reference_text": _transcribe_reference(prof)})
+            transcript = await asyncio.to_thread(_transcribe_reference, prof)
+            prof = await asyncio.to_thread(save_profile, name, {"reference_text": transcript})
         except Exception as e:
             prof["transcribe_error"] = str(e)
     return prof
@@ -4143,13 +4057,13 @@ def youtube_disconnect():
 
 @app.get("/api/projects/{project_id}/youtube_metadata")
 def youtube_metadata(project_id: str):
-    p = Project(project_id)
+    p = get_project(project_id)
     return generate_youtube_metadata(p)
 
 
 @app.post("/api/projects/{project_id}/youtube_upload")
 def youtube_upload(project_id: str, req: YouTubeUploadRequest):
-    p = Project(project_id)
+    p = get_project(project_id)
     return start_video_upload(
         project_id=p.id,
         title=req.title,
@@ -4257,7 +4171,7 @@ def get_project_thumbnail(project_id: str):
         get_default_thumbnail_config,
         render_project_thumbnail,
     )
-    p = Project(project_id)
+    p = get_project(project_id)
     thumb_file = p.path("output", "thumbnail.png")
     if not thumb_file.exists():
         render_project_thumbnail(p)
@@ -4292,7 +4206,7 @@ def get_project_thumbnail(project_id: str):
 @app.post("/api/projects/{project_id}/thumbnail/auto-copy")
 def generate_project_thumbnail_copy(project_id: str):
     from generators.thumbnail_generator import generate_thumbnail_copy_zh_tw
-    p = Project(project_id)
+    p = get_project(project_id)
     copy_zh = generate_thumbnail_copy_zh_tw(p, use_llm=True)
     return {"status": "ok", "copy": copy_zh}
 
@@ -4300,7 +4214,7 @@ def generate_project_thumbnail_copy(project_id: str):
 @app.post("/api/projects/{project_id}/thumbnail/render")
 def render_custom_project_thumbnail(project_id: str, req: ThumbnailRenderRequest):
     from generators.thumbnail_generator import COLOR_PRESETS, render_project_thumbnail
-    p = Project(project_id)
+    p = get_project(project_id)
     opts = req.model_dump(exclude_none=True)
     if req.random_color or req.color_preset == "random":
         opts["primary_color"] = None
@@ -4336,7 +4250,7 @@ def render_custom_project_thumbnail(project_id: str, req: ThumbnailRenderRequest
 async def upload_project_thumbnail_bg(project_id: str, file: UploadFile = File(...)):
     from PIL import Image
     import io
-    p = Project(project_id)
+    p = get_project(project_id)
     raw = await file.read()
     out_dir = p.path("output")
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -4594,7 +4508,10 @@ async def test_avatar_generation(name: str, engine: Optional[str] = None):
     if not portrait.exists() and base_vid.exists():
         from rendering.ffmpeg_utils import run_ffmpeg
         try:
-            run_ffmpeg(["-ss", "0.5", "-i", str(base_vid), "-vframes", "1", "-q:v", "2", "-y", str(portrait)])
+            await asyncio.to_thread(
+                run_ffmpeg,
+                ["-ss", "0.5", "-i", str(base_vid), "-vframes", "1", "-q:v", "2", "-y", str(portrait)],
+            )
         except Exception:
             pass
 
@@ -4608,7 +4525,7 @@ async def test_avatar_generation(name: str, engine: Optional[str] = None):
     out_sample = out_dir / (f"test_sample__{engine}.mp4" if engine else "test_sample.mp4")
 
     # Use real speech audio for realistic lip-sync phoneme detection (preferring avatar's bound voice)
-    speech_wav = get_avatar_test_speech_audio(av.get("voice_profile"))
+    speech_wav = await asyncio.to_thread(get_avatar_test_speech_audio, av.get("voice_profile"))
     if not speech_wav.exists():
         raise HTTPException(status_code=500, detail="Could not obtain speech audio for lip-sync test")
 
@@ -4625,7 +4542,7 @@ async def test_avatar_generation(name: str, engine: Optional[str] = None):
 
 @app.post("/api/projects/{project_id}/scenes/{scene_id}/toggle_presenter")
 def toggle_scene_presenter(project_id: str, scene_id: int, req: Optional[TogglePresenterRequest] = None):
-    p = Project(project_id)
+    p = get_project(project_id)
     s = p.scene(scene_id)
     if not s:
         raise HTTPException(status_code=404, detail="Scene not found")
@@ -4662,7 +4579,7 @@ class ApplyPresenterPlacementRequest(BaseModel):
 @app.post("/api/projects/{project_id}/apply_presenter_placement")
 def apply_project_presenter_placement(project_id: str, req: ApplyPresenterPlacementRequest):
     from core.pipeline import apply_presenter_placement
-    p = Project(project_id)
+    p = get_project(project_id)
     scenes = p.scenes
     if not scenes:
         raise HTTPException(status_code=400, detail="No scenes found for this project")
@@ -4779,8 +4696,7 @@ class SceneActionAssignRequest(BaseModel):
 def assign_scene_gesture(project_id: str, scene_id: int, req: SceneActionAssignRequest):
     """Assign or override specific gesture tag to a scene."""
     from core.action_registry import get_gesture_by_tag
-    p = Project(project_id)
-    p.reload()
+    p = get_project(project_id)
     s = p.get_scene(scene_id)
     if not s:
         raise HTTPException(status_code=404, detail=f"Scene {scene_id} not found")
@@ -4803,8 +4719,7 @@ class SceneVideoGenerateRequest(BaseModel):
 @app.post("/api/projects/{project_id}/scenes/{scene_id}/generate_video")
 def generate_scene_video_endpoint(project_id: str, scene_id: int, req: SceneVideoGenerateRequest):
     """Generate dynamic video clip for a scene using MiniMax Video-01 or Hedra."""
-    p = Project(project_id)
-    p.reload()
+    p = get_project(project_id)
     s = p.get_scene(scene_id)
     if not s:
         raise HTTPException(status_code=404, detail=f"Scene {scene_id} not found")

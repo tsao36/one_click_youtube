@@ -5,12 +5,7 @@ the manual/auto `callout_text`, metrics found in the narration, and the section 
 """
 from __future__ import annotations
 
-import json
 import re
-import shutil
-import subprocess
-import sys
-import uuid
 from pathlib import Path
 from typing import Any, Callable
 
@@ -19,9 +14,6 @@ from core.logging_setup import log
 from core.models import Scene, Status
 
 REMOTION_DIR = ROOT / "remotion-video"
-PUBLIC_BG_DIR = REMOTION_DIR / "public" / "bg"
-# Renders are kept OUTSIDE public/: Remotion copies public/ into every bundle.
-RENDERS_DIR = REMOTION_DIR / "out" / "renders"
 
 _METRIC_RE = re.compile(
     r"(\d[\d,.]*\s*(?:[億萬千百]\s*)?(?:%|％|倍|美元|美金|台幣|元|歐元|nm|奈米|GB|TB|Gbps|Mbps|GHz|MHz|"
@@ -290,61 +282,17 @@ def _normalize_props_for_composition(comp: str, raw: dict[str, Any]) -> dict[str
 
 
 # ---------------------------------------------------------------- rendering
-def _npx() -> str:
-    return "npx.cmd" if sys.platform == "win32" else "npx"
-
-
 def render_card(props: dict[str, Any], out_path: Path, seconds: float, bg_image: Path | None = None,
                 fps: int = 30, composition: str = "TechCard", dim: float = 0.65,
                 use_gpu_gl: bool = True, timeout: int = 300) -> Path:
-    """Render one Remotion card clip. `bg_image` is copied into public/bg for the render, then removed."""
-    if not REMOTION_DIR.exists():
-        raise RuntimeError(f"Remotion project not found at {REMOTION_DIR}")
-    run_id = uuid.uuid4().hex[:10]
-    bg_rel = ""
-    bg_copy: Path | None = None
-    if bg_image and Path(bg_image).exists():
-        PUBLIC_BG_DIR.mkdir(parents=True, exist_ok=True)
-        bg_copy = PUBLIC_BG_DIR / f"bg_{run_id}{Path(bg_image).suffix.lower() or '.png'}"
-        shutil.copy2(bg_image, bg_copy)
-        bg_rel = f"bg/{bg_copy.name}"
-
+    """Render one Remotion card clip through the shared CLI executor."""
+    from rendering.remotion_cli import render_composition
     card_props = _normalize_props_for_composition(composition, props)
-
-    full_props = {**card_props, "bgSrc": bg_rel, "dim": dim}
-    props_file = REMOTION_DIR / f"props_{run_id}.json"
-    props_file.write_text(json.dumps(full_props, ensure_ascii=False), encoding="utf-8")
-
     frames = max(30, int(round(seconds * fps)))
-    out_path = Path(out_path).resolve()
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    cmd = [
-        _npx(), "remotion", "render", composition, str(out_path),
-        f"--props={props_file.name}",
-        f"--duration={frames}", f"--frames=0-{frames - 1}",
-        "--concurrency=1",  # higher concurrency hit EPIPE on this Windows box
-        "--overwrite",
-    ]
-    if use_gpu_gl:
-        cmd.append("--gl=angle")  # lets Chrome composite (blur/scale) on the GPU via D3D11
-    try:
-        proc = subprocess.run(cmd, cwd=str(REMOTION_DIR), capture_output=True, text=True,
-                              encoding="utf-8", errors="replace", timeout=timeout,
-                              shell=(sys.platform == "win32"))
-        if proc.returncode != 0 and use_gpu_gl:
-            log.warning("Remotion render with --gl=angle failed; retrying with default GL. %s",
-                        (proc.stderr or proc.stdout)[-300:])
-            cmd.remove("--gl=angle")
-            proc = subprocess.run(cmd, cwd=str(REMOTION_DIR), capture_output=True, text=True,
-                                  encoding="utf-8", errors="replace", timeout=timeout,
-                                  shell=(sys.platform == "win32"))
-        if proc.returncode != 0 or not out_path.exists():
-            raise RuntimeError(f"Remotion render failed ({proc.returncode}): {(proc.stderr or proc.stdout)[-400:]}")
-        return out_path
-    finally:
-        props_file.unlink(missing_ok=True)
-        if bg_copy:
-            bg_copy.unlink(missing_ok=True)
+    return render_composition(
+        REMOTION_DIR, composition, card_props, out_path, frames,
+        bg_image=bg_image, dim=dim, use_gpu_gl=use_gpu_gl, timeout=timeout,
+    )
 
 
 def render_scene_card(project, sc: Scene, props: dict[str, Any] | None = None, fps: int = 30,

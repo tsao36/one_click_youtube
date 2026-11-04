@@ -544,6 +544,20 @@ def record_scene_voice_take(project: Project, scene_id: int, active_rel_path: st
         if highest_path.exists():
             try:
                 if filecmp.cmp(str(highest_path), str(src), shallow=False):
+                    existing = next(
+                        (take for take in takes if int(take.get("take", -1)) == highest), None
+                    )
+                    if existing is not None:
+                        existing.update({
+                            "voice": voice_used or meta.get("voice", ""),
+                            "duration_seconds": s.audio_duration or meta.get("duration", 0.0),
+                            "narration_hash": meta.get("narration_hash"),
+                            "voice_config_hash": meta.get("voice_config_hash"),
+                            "provider": meta.get("provider"),
+                        })
+                        meta["active_take"] = highest
+                        s.audio.meta = meta
+                        project.save_scenes()
                     log.info("Scene %d voice take %d already matches audio on disk; skipping duplicate take recording", scene_id, highest)
                     return {"status": "already_recorded", "active_take": highest, "total_takes": len(takes)}
             except Exception:
@@ -566,6 +580,9 @@ def record_scene_voice_take(project: Project, scene_id: int, active_rel_path: st
         "created_at": now(),
         "voice": voice_used or meta.get("voice", ""),
         "duration_seconds": s.audio_duration or (s.audio.meta or {}).get("duration", 0.0),
+        "narration_hash": meta.get("narration_hash"),
+        "voice_config_hash": meta.get("voice_config_hash"),
+        "provider": meta.get("provider"),
     }
     takes.append(new_take)
     takes.sort(key=lambda t: int(t.get("take", 1)))
@@ -604,6 +621,17 @@ def switch_scene_voice_take(project: Project, scene_id: int, target_take: int) -
             s.voice_profile = take_entry.get("voice")
             meta["voice"] = take_entry.get("voice")
         meta["active_take"] = target_take
+        for key in ("narration_hash", "voice_config_hash", "provider"):
+            if take_entry.get(key):
+                meta[key] = take_entry[key]
+            else:
+                meta.pop(key, None)
+        from generators.voice_generator import narration_fingerprint
+        if meta.get("narration_hash") == narration_fingerprint(s.narration):
+            meta.pop("text_outdated", None)
+            meta.pop("previous_narration", None)
+        elif meta.get("narration_hash"):
+            meta["text_outdated"] = True
         s.audio.meta = meta
         project.save_scenes()
         project.set_stage("subtitles", Status.PENDING)

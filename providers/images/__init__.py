@@ -153,6 +153,54 @@ class ComfyUIImageProvider(ImageProvider):
 
         self.client.free()
 
+def _generate_openai_image(req: ImageRequest, attempts: list[dict], key: str,
+                           provider: str, cancel: Callable[[], bool] | None = None) -> dict:
+    """Execute OpenAI-compatible image attempts and persist the first valid result."""
+    import base64
+    import requests
+
+    if not key:
+        raise RuntimeError("OPENAI_API_KEY not set in .env")
+    headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+    last_error = "no models attempted"
+    for body in attempts:
+        if cancel and cancel():
+            raise RuntimeError("Image generation cancelled")
+        model = body["model"]
+        try:
+            response = requests.post(
+                "https://api.openai.com/v1/images/generations",
+                json=body, headers=headers, timeout=180,
+            )
+        except Exception as exc:
+            last_error = str(exc)
+            continue
+        if response.status_code == 429:
+            raise RuntimeError("OpenAI image API failed: credit balance exhausted or quota exceeded.")
+        if response.status_code != 200:
+            last_error = f"{model} failed ({response.status_code}): {response.text[:200]}"
+            continue
+        item = response.json()["data"][0]
+        if item.get("b64_json"):
+            image_bytes = base64.b64decode(item["b64_json"])
+        elif item.get("url"):
+            download = requests.get(item["url"], timeout=60)
+            download.raise_for_status()
+            image_bytes = download.content
+        else:
+            last_error = "OpenAI response missing image data"
+            continue
+        req.output.parent.mkdir(parents=True, exist_ok=True)
+        req.output.write_bytes(image_bytes)
+        _check_not_blank(req.output)
+        return {
+            "provider": provider, "model": model, "seed": req.seed,
+            "width": req.width, "height": req.height, "prompt": req.prompt,
+            "revised_prompt": item.get("revised_prompt", req.prompt), "is_cloud": True,
+        }
+    raise RuntimeError(f"OpenAI {provider} generation failed: {last_error}")
+
+
 class GptImage1Provider(ImageProvider):
 
     name = "gpt-image-1"
@@ -213,241 +261,41 @@ class GptImage1Provider(ImageProvider):
 
         ]
 
-        last_error = None
+        return _generate_openai_image(req, attempts, self.key, self.name, cancel)
 
-        for body in attempts:
-
-            m = body["model"]
-
-            try:
-
-                r = requests.post(url, json=body, headers=headers, timeout=5)
-
-            except Exception as e:
-
-                last_error = str(e)
-
-                continue
-
-            if r.status_code == 200:
-
-                data = r.json()
-
-                item = data["data"][0]
-
-                if item.get("b64_json"):
-
-                    img_bytes = base64.b64decode(item["b64_json"])
-
-                elif item.get("url"):
-
-                    u_resp = requests.get(item["url"], timeout=60)
-
-                    img_bytes = u_resp.content
-
-                else:
-
-                    last_error = "OpenAI response missing image data"
-
-                    continue
-
-                req.output.parent.mkdir(parents=True, exist_ok=True)
-
-                req.output.write_bytes(img_bytes)
-
-                _check_not_blank(req.output)
-
-                revised = item.get("revised_prompt", req.prompt)
-
-                return {
-
-                    "provider": "gpt-image-1",
-
-                    "model": m,
-
-                    "seed": req.seed,
-
-                    "width": req.width,
-
-                    "height": req.height,
-
-                    "prompt": req.prompt,
-
-                    "revised_prompt": revised,
-
-                    "is_cloud": True,
-
-                }
-
-            elif r.status_code == 429:
-
-                raise RuntimeError("OpenAI image API failed: credit balance exhausted or quota exceeded.")
-
-            else:
-
-                last_error = f"{m} failed ({r.status_code}): {r.text[:200]}"
-
-        raise RuntimeError(f"OpenAI gpt-image-1 generation failed: {last_error}")
 
 class DallE3ImageProvider(ImageProvider):
-
     name = "dalle3"
-
     is_cloud = True
 
     def __init__(self, settings: dict):
-
         self.s = settings.get("images", {})
 
     @property
-
     def key(self) -> str:
-
         from core.config import get_secret
-
         return get_secret("OPENAI_API_KEY")
 
     def available(self) -> tuple[bool, str]:
-
         return (True, "OpenAI API key configured") if self.key else (False, "OPENAI_API_KEY not set in .env")
 
     def generate(self, req: ImageRequest, cancel: Callable[[], bool] | None = None) -> dict:
-
-        import base64
-
-        import requests
-
-        if cancel and cancel():
-
-            raise RuntimeError("Image generation cancelled")
-
-        if not self.key:
-
-            raise RuntimeError("OPENAI_API_KEY not set in .env")
-
-        url = "https://api.openai.com/v1/images/generations"
-
-        headers = {
-
-            "Authorization": f"Bearer {self.key}",
-
-            "Content-Type": "application/json"
-
-        }
-
         is_landscape = req.width >= req.height
-
-        models_to_try = ["dall-e-3", "gpt-image-1", "gpt-image-1-mini"]
-
-        last_error = None
-
-        for m in models_to_try:
-
-            if m.startswith("gpt-image") or m.startswith("chatgpt"):
-
-                size = "1536x1024" if is_landscape else "1024x1536"
-
-                body = {
-
-                    "model": m,
-
-                    "prompt": req.prompt,
-
-                    "n": 1,
-
-                    "size": size,
-
-                }
-
+        attempts = []
+        for model in ("dall-e-3", "gpt-image-1", "gpt-image-1-mini"):
+            if model.startswith(("gpt-image", "chatgpt")):
+                attempts.append({
+                    "model": model, "prompt": req.prompt, "n": 1,
+                    "size": "1536x1024" if is_landscape else "1024x1536",
+                })
             else:
+                attempts.append({
+                    "model": model, "prompt": req.prompt, "n": 1,
+                    "size": "1792x1024" if is_landscape else "1024x1792",
+                    "quality": "standard", "response_format": "b64_json",
+                })
+        return _generate_openai_image(req, attempts, self.key, self.name, cancel)
 
-                size = "1792x1024" if is_landscape else "1024x1792"
-
-                body = {
-
-                    "model": m,
-
-                    "prompt": req.prompt,
-
-                    "n": 1,
-
-                    "size": size,
-
-                    "quality": "standard",
-
-                    "response_format": "b64_json",
-
-                }
-
-            try:
-
-                r = requests.post(url, json=body, headers=headers, timeout=180)
-
-            except Exception as e:
-
-                last_error = str(e)
-
-                continue
-
-            if r.status_code == 200:
-
-                data = r.json()
-
-                item = data["data"][0]
-
-                if item.get("b64_json"):
-
-                    img_bytes = base64.b64decode(item["b64_json"])
-
-                elif item.get("url"):
-
-                    u_resp = requests.get(item["url"], timeout=60)
-
-                    img_bytes = u_resp.content
-
-                else:
-
-                    last_error = "OpenAI response missing image data"
-
-                    continue
-
-                req.output.parent.mkdir(parents=True, exist_ok=True)
-
-                req.output.write_bytes(img_bytes)
-
-                _check_not_blank(req.output)
-
-                revised = item.get("revised_prompt", req.prompt)
-
-                return {
-
-                    "provider": "dalle3",
-
-                    "model": m,
-
-                    "seed": req.seed,
-
-                    "width": req.width,
-
-                    "height": req.height,
-
-                    "prompt": req.prompt,
-
-                    "revised_prompt": revised,
-
-                    "is_cloud": True
-
-                }
-
-            elif r.status_code == 429:
-
-                raise RuntimeError("OpenAI image API failed: credit balance exhausted or quota exceeded.")
-
-            else:
-
-                last_error = f"{m} failed ({r.status_code}): {r.text[:200]}"
-
-        raise RuntimeError(f"OpenAI image generation failed: {last_error}")
 
 class Imagen302ImageProvider(ImageProvider):
 

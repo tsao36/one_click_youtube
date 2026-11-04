@@ -145,8 +145,9 @@ class Project:
 
     def is_avatar_enabled(self) -> bool:
         """Return True if avatar/presenter is enabled at project level."""
-        s1 = self.settings.get("avatar_enabled")
-        p1 = self.settings.get("presenter_placement")
+        settings = self.settings
+        s1 = settings.get("avatar_enabled")
+        p1 = settings.get("presenter_placement")
         data_s = getattr(self.data, "settings", {}) or {}
         s2 = data_s.get("avatar_enabled")
         p2 = data_s.get("presenter_placement")
@@ -311,10 +312,12 @@ class Project:
             st.updated_at = current_time
             self.save()
 
-    def progress(self, name: str, done: int, total: int) -> None:
+    def progress(self, name: str, done: int, total: int, activity: str | None = None) -> None:
         with self.lock:
             st = self.stage(name)
             st.done, st.total = done, total
+            if activity is not None:
+                self.data.activity = activity
             self.save()
 
     def invalidate(self, *stages: str) -> None:

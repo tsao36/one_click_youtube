@@ -2868,5 +2868,4 @@ class DocumentaryPipeline(BasePipeline):
         if self._cancel_flag:
             raise PipelineCancelled()
         self.p.sync_avatar_disabled_state()
-        self.p.clear_clips_cache()
         super()._run_render()

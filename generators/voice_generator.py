@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import re
 import shutil
 from pathlib import Path
@@ -10,6 +11,34 @@ from core.config import ROOT, VOICES_DIR
 from core.logging_setup import log
 from providers.tts import TTSError, get_tts_provider
 from rendering.ffmpeg_utils import duration, run_ffmpeg
+
+
+def narration_fingerprint(text: str) -> str:
+    return hashlib.sha256(text.strip().encode("utf-8")).hexdigest()
+
+
+def voice_fingerprint(profile: dict, settings: dict | None = None) -> str:
+    config = {k: v for k, v in profile.items()
+              if k not in ("display_name", "has_test_sample", "is_default")}
+    ref = profile.get("reference_wav")
+    if ref and (ROOT / ref).is_file():
+        stat = (ROOT / ref).stat()
+        config["reference_stamp"] = (stat.st_mtime_ns, stat.st_size)
+    return hashlib.sha256(json.dumps([config, settings or {}], sort_keys=True, default=str).encode()).hexdigest()
+
+
+def audio_is_current(scene, path: Path | None, voice: str | None = None,
+                     provider: str | None = None, config_hash: str | None = None) -> bool:
+    meta = scene.audio.meta or {}
+    if scene.audio.status != "COMPLETED" or not path or not path.is_file() or path.stat().st_size <= 1000:
+        return False
+    if meta.get("text_outdated") or (meta.get("narration_hash") and meta["narration_hash"] != narration_fingerprint(scene.narration)):
+        return False
+    if voice and (meta.get("voice") or meta.get("profile") or scene.voice_profile) != voice:
+        return False
+    if provider and meta.get("provider") != provider:
+        return False
+    return not (config_hash and meta.get("voice_config_hash") and meta["voice_config_hash"] != config_hash)
 
 
 # ---------------- voice profiles ----------------
@@ -322,5 +351,7 @@ def synthesize(text: str, profile: dict, out_wav: Path, settings: dict, provider
     norm_wav.unlink(missing_ok=True)
     meta["duration"] = round(duration(out_wav), 3)
     meta["profile"] = profile.get("name")
+    meta["narration_hash"] = narration_fingerprint(text)
+    meta["voice_config_hash"] = voice_fingerprint(profile, vs)
     meta["is_cloud"] = provider.is_cloud
     return meta

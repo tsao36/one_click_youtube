@@ -3991,6 +3991,18 @@
   <script>
     let currentProjectId = null;
     let pollInterval = null;
+    let pollGeneration = 0;
+    let pollController = null;
+
+    async function apiRequest(url, options = {}) {
+      const response = await fetch(url, options);
+      if (response.ok) return response;
+      const body = await response.json().catch(() => ({}));
+      const detail = Array.isArray(body.detail)
+        ? body.detail.map(item => item.msg || JSON.stringify(item)).join('; ')
+        : (body.detail || body.message);
+      throw new Error(detail || `Request failed (${response.status})`);
+    }
     let timerInterval = null;
     let cachedRerenderVoices = [];
 
@@ -7361,18 +7373,29 @@
     }
 
     function startPolling() {
-      if (pollInterval) clearInterval(pollInterval);
-      pollInterval = setInterval(pollProject, 1500);
-      pollProject();
+      const generation = ++pollGeneration;
+      const projectId = currentProjectId;
+      if (pollInterval) clearTimeout(pollInterval);
+      if (pollController) pollController.abort();
+      const tick = async () => {
+        const keepPolling = await pollProject(generation, projectId);
+        if (keepPolling && generation === pollGeneration && projectId === currentProjectId) {
+          pollInterval = setTimeout(tick, 1500);
+        }
+      };
+      tick();
       startTimer();
     }
 
-    async function pollProject() {
-      if (!currentProjectId) return;
+    async function pollProject(generation = pollGeneration, projectId = currentProjectId) {
+      if (!projectId || generation !== pollGeneration || projectId !== currentProjectId) return false;
+      const controller = new AbortController();
+      pollController = controller;
       try {
-        const res = await fetch('/api/projects/' + currentProjectId);
-        if (!res.ok) return;
+        const res = await fetch('/api/projects/' + projectId, { signal: controller.signal });
+        if (!res.ok) throw new Error(`Project status request failed (${res.status})`);
         const d = await res.json();
+        if (generation !== pollGeneration || projectId !== currentProjectId) return false;
         const p = d.project;
 
         const isRunning = p.state === 'running';
@@ -7784,8 +7807,12 @@
         if (p.state === 'completed' || p.state === 'failed') {
           stopTimer();
         }
+        return p.state === 'running' || Boolean(studioStageRunning);
       } catch (e) {
-        console.error("Polling error", e);
+        if (e.name !== 'AbortError') console.error("Polling error", e);
+        return e.name !== 'AbortError';
+      } finally {
+        if (pollController === controller) pollController = null;
       }
     }
 
@@ -8314,40 +8341,46 @@
     }
 
     async function regenImage(sid) {
-      await fetch(`/api/projects/${currentProjectId}/scenes/${sid}/regenerate_image`, { method: 'POST' });
+      await apiRequest(`/api/projects/${currentProjectId}/scenes/${sid}/regenerate_image`, { method: 'POST' });
       loadScenesForEditor();
     }
 
     async function regenVoice(sid) {
-      await fetch(`/api/projects/${currentProjectId}/scenes/${sid}/regenerate_voice`, { method: 'POST' });
+      await apiRequest(`/api/projects/${currentProjectId}/scenes/${sid}/regenerate_voice`, { method: 'POST' });
       loadScenesForEditor();
     }
 
-    async function saveScenesToServer() {
-      await fetch(`/api/projects/${currentProjectId}/scenes`, {
+    async function saveScenesToServer(showConfirmation = true) {
+      await apiRequest(`/api/projects/${currentProjectId}/scenes`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(currentScenes)
       });
-      alert("Scenes saved!");
+      if (showConfirmation) alert("Scenes saved!");
     }
 
-    function deleteScene(sid) {
+    async function deleteScene(sid) {
+      const previousScenes = currentScenes;
       currentScenes = currentScenes.filter(s => s.scene_id !== sid);
-      saveScenesToServer();
-      loadScenesForEditor();
+      try {
+        await saveScenesToServer(false);
+        await loadScenesForEditor();
+      } catch (error) {
+        currentScenes = previousScenes;
+        alert(`Could not delete scene: ${error.message}`);
+      }
     }
 
     async function renderDraftNow() {
       if (!currentProjectId) return;
-      await fetch(`/api/projects/${currentProjectId}/render_draft`, { method: 'POST' });
+      await apiRequest(`/api/projects/${currentProjectId}/render_draft`, { method: 'POST' });
       alert("Draft preview render queued!");
       startPolling();
     }
 
     async function renderFinalNow() {
       if (!currentProjectId) return;
-      await fetch(`/api/projects/${currentProjectId}/render_final`, { method: 'POST' });
+      await apiRequest(`/api/projects/${currentProjectId}/render_final`, { method: 'POST' });
       alert("Final 1080p render started!");
       startPolling();
     }
@@ -12226,12 +12259,12 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       }
     }
 
-    async function saveImageSettings(applyToPrompts = false) {
+    async function saveImageSettingsFor(prefix, applyToPrompts, onSaved) {
       if (!currentProjectId) return;
-      const styleEl = document.getElementById('insp-img-style');
-      const modelEl = document.getElementById('insp-img-model');
-      const stepsEl = document.getElementById('insp-img-steps');
-      const cfgEl = document.getElementById('insp-img-cfg');
+      const styleEl = document.getElementById(`${prefix}-img-style`);
+      const modelEl = document.getElementById(`${prefix}-img-model`);
+      const stepsEl = document.getElementById(`${prefix}-img-steps`);
+      const cfgEl = document.getElementById(`${prefix}-img-cfg`);
 
       const payload = {
         visual_style: styleEl ? styleEl.value : null,
@@ -12242,17 +12275,24 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       };
 
       try {
-        const res = await fetch(`/api/projects/${currentProjectId}/image_settings`, {
+        await apiRequest(`/api/projects/${currentProjectId}/image_settings`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
-        if (!res.ok) throw new Error("Failed to save image settings");
-        alert(applyToPrompts ? "Image style & model saved and applied to all scene prompts!" : "Image style & model saved successfully!");
-        openStageInspector(inspectedStageName || 'images');
+        await onSaved();
+        return true;
       } catch (e) {
         alert("Error saving settings: " + e.message);
+        return false;
       }
+    }
+
+    async function saveImageSettings(applyToPrompts = false) {
+      return saveImageSettingsFor('insp', applyToPrompts, async () => {
+        alert(applyToPrompts ? "Image style & model saved and applied to all scene prompts!" : "Image style & model saved successfully!");
+        openStageInspector(inspectedStageName || 'images');
+      });
     }
 
     async function applyStyleFromPromptsTab() {
@@ -15753,32 +15793,10 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
     }
 
     async function saveStudioImageSettings(applyToPrompts = false) {
-      if (!currentProjectId) return;
-      const styleEl = document.getElementById('studio-img-style');
-      const modelEl = document.getElementById('studio-img-model');
-      const stepsEl = document.getElementById('studio-img-steps');
-      const cfgEl = document.getElementById('studio-img-cfg');
-
-      const payload = {
-        visual_style: styleEl ? styleEl.value : null,
-        checkpoint: modelEl ? modelEl.value : null,
-        steps: stepsEl ? parseInt(stepsEl.value) : null,
-        cfg: cfgEl ? parseFloat(cfgEl.value) : null,
-        apply_to_prompts: applyToPrompts
-      };
-
-      try {
-        const res = await fetch(`/api/projects/${currentProjectId}/image_settings`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        if (!res.ok) throw new Error("Failed to save image settings");
+      return saveImageSettingsFor('studio', applyToPrompts, async () => {
         if (applyToPrompts) alert("Image style & model saved and applied to all scene prompts!");
         loadStageStudio('images');
-      } catch (e) {
-        alert("Error saving settings: " + e.message);
-      }
+      });
     }
 
     async function runStudioImagesWithSave(forceStock = false) {
@@ -15787,8 +15805,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
         const modelEl = document.getElementById('studio-img-model');
         if (modelEl) modelEl.value = 'stock';
       }
-      await saveStudioImageSettings(false);
-      runStudioStageOnly('images');
+      if (await saveStudioImageSettings(false)) runStudioStageOnly('images');
     }
 
     async function applyStudioStyleFromPromptsTab() {

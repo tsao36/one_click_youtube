@@ -16,7 +16,8 @@ from core.models import STAGES, Asset, Scene, Status
 from core.project_manager import Project, now
 from core.versioning import record_stage_version
 from generators.subtitle_generator import build_cues, write_ass, write_srt
-from generators.voice_generator import default_profile_name, load_profile, synthesize
+from generators.voice_generator import (default_profile_name, load_profile, synthesize,
+                                       audio_is_current, narration_fingerprint, voice_fingerprint)
 from providers.llm.base import LLMProvider
 from rendering.ffmpeg_renderer import project_timeline, render_project
 
@@ -1124,6 +1125,7 @@ class BasePipeline:
         from generators.voice_generator import load_profile
 
         vp_obj = load_profile(target)
+        config_hash = voice_fingerprint(vp_obj, self.p.settings.get("voice", {}))
 
         target_provider = (
 
@@ -1168,9 +1170,7 @@ class BasePipeline:
 
 
 
-            is_text_outdated = bool((meta or {}).get("text_outdated"))
-
-            is_valid = audio_f and audio_f.exists() and audio_f.stat().st_size > 1000 and cur_voice == target and (cur_prov == target_provider or not target_provider) and not is_text_outdated
+            is_valid = audio_is_current(sc, audio_f, target, target_provider, config_hash)
 
             if not is_valid:
 
@@ -1182,7 +1182,9 @@ class BasePipeline:
 
                 for tk in reversed(takes):
 
-                    if tk.get("voice") == target:
+                    if (tk.get("voice") == target
+                            and tk.get("narration_hash") == narration_fingerprint(sc.narration)
+                            and tk.get("voice_config_hash") == config_hash):
 
                         tk_path = self.p.abs(tk.get("path"))
 
@@ -1225,6 +1227,10 @@ class BasePipeline:
                     meta["profile"] = target
 
                     meta["provider"] = matching_take.get("provider", target_provider)
+                    meta["narration_hash"] = matching_take["narration_hash"]
+                    meta["voice_config_hash"] = matching_take["voice_config_hash"]
+                    meta.pop("text_outdated", None)
+                    meta.pop("previous_narration", None)
 
                     sc.audio.meta = meta
 
@@ -1727,12 +1733,7 @@ class BasePipeline:
     def _run_voice(self) -> None:
         scenes = self.p.active_scenes()
         total = len(scenes)
-        done = sum(1 for s in scenes if s.audio.status == Status.COMPLETED and self.p.abs(s.audio.path) and self.p.abs(s.audio.path).exists())
-        if done == total and total > 0:
-            st = self.p.stage("voice")
-            if st.status != Status.COMPLETED:
-                self.p.set_stage("voice", Status.COMPLETED, done=total, total=total, duration_override=st.duration_seconds or None)
-            return
+        done = sum(1 for s in scenes if audio_is_current(s, self.p.abs(s.audio.path)))
         t0 = time.perf_counter()
         prev_dur = self.p.stage("voice").duration_seconds if done > 0 else 0.0
         self.p.set_stage("voice", Status.RUNNING, done=done, total=total)
@@ -1783,8 +1784,6 @@ class BasePipeline:
             for s in scenes:
                 if self._cancel_flag: raise PipelineCancelled()
                 audio_path = self.p.path("audio", f"{s.tag}.wav")
-                if s.audio.status == Status.COMPLETED and audio_path.exists() and audio_path.stat().st_size > 1000 and not (s.audio.meta or {}).get("text_outdated"):
-                    continue
                 # Dynamic check: did the user switch the voice model between scenes?
                 scene_p_name = s.voice_profile or default_p_name
                 # Only fall back to avatar profile's voice if neither the scene nor project has a configured voice profile
@@ -1804,6 +1803,9 @@ class BasePipeline:
                 # Ensure provider is aligned with the voice profile's configured provider
                 prof_prov = scene_profile.get("provider")
                 current_provider = prof_prov or stage_provider or "bluemagpie"
+                config_hash = voice_fingerprint(scene_profile, cfg.get("voice", {}))
+                if audio_is_current(s, self.p.abs(s.audio.path), scene_p_name, current_provider, config_hash):
+                    continue
                 if prof_prov:
                     self._stage_models_override["voice"] = prof_prov
                     self.p.data.settings.setdefault("stage_models", {})["voice"] = prof_prov
@@ -1819,6 +1821,10 @@ class BasePipeline:
                     merged_audio_meta["voice"] = scene_p_name
                     merged_audio_meta["provider"] = meta.get("provider", current_provider)
                     merged_audio_meta["takes"] = prev_audio_takes
+                    merged_audio_meta["narration_hash"] = narration_fingerprint(s.narration)
+                    merged_audio_meta["voice_config_hash"] = config_hash
+                    merged_audio_meta.pop("text_outdated", None)
+                    merged_audio_meta.pop("previous_narration", None)
                     s.audio.status = Status.COMPLETED
                     s.audio.path = self.p.rel(audio_path)
                     s.audio.meta = merged_audio_meta
@@ -1911,8 +1917,7 @@ class BasePipeline:
         self.p.activity("Stage 9/9: Assembling final video with FFmpeg...")
         self.p.set_stage("render", Status.RUNNING)
         def on_prog(done, total, msg):
-            self.p.activity(f"Rendering: {msg} ({done}/{total})")
-            self.p.progress("render", done, total)
+            self.p.progress("render", done, total, activity=f"Rendering: {msg} ({done}/{total})")
         try:
             render_model = self.get_stage_model("render")
             if render_model:
