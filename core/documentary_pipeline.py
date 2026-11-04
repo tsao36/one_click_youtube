@@ -2537,8 +2537,16 @@ class DocumentaryPipeline(BasePipeline):
 
             # Remotion documentary motion graphic mode
             from generators.remotion_cards import render_critical_scene_cards, select_critical_scenes
-            comp = "EvidenceHighlightScene"
-            if anim_prov_name in ("remotion_pathway", "pathway", "branch"):
+            comp = "FoxHeaderScene"
+            if anim_prov_name in ("remotion_foxheader", "foxheader", "header"):
+                comp = "FoxHeaderScene"
+            elif anim_prov_name in ("remotion_foxmetric", "foxmetric", "metric"):
+                comp = "FoxMetricScene"
+            elif anim_prov_name in ("remotion_foxdatalist", "foxdatalist", "datalist"):
+                comp = "FoxDataListScene"
+            elif anim_prov_name in ("remotion_foxtimeline", "foxtimeline", "timeline"):
+                comp = "FoxTimelineScene"
+            elif anim_prov_name in ("remotion_pathway", "pathway", "branch"):
                 comp = "BranchPathwayScene"
             elif anim_prov_name in ("remotion_callout", "callout", "leader"):
                 comp = "LeaderCalloutScene"
@@ -2547,7 +2555,7 @@ class DocumentaryPipeline(BasePipeline):
             elif anim_prov_name in ("remotion_evidence", "evidence", "highlight"):
                 comp = "EvidenceHighlightScene"
             elif anim_prov_name == "remotion":
-                comp = (self.p.data.settings or {}).get("remotion_style", "EvidenceHighlightScene")
+                comp = (self.p.data.settings or {}).get("remotion_style", "FoxHeaderScene")
 
             targets = [s for s in select_critical_scenes(non_presenter_scenes)
                        if not (s.animation.status == Status.COMPLETED

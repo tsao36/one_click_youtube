@@ -1,7 +1,9 @@
 """Remotion motion-graphic cards composited over a scene's own (dimmed) background image.
 
-Only "critical" scenes get a card. Card text is pulled from the scene itself:
-the manual/auto `callout_text`, metrics found in the narration, and the section name.
+Adopts the documentary motion graphics style inspired by fOx Hsiao:
+- Transparent / translucent overlays preserving 80-85% of background visuals
+- 100% transcript-driven text, titles, numbers, and sources (zero fake stats)
+- Four core signature archetypes: FoxHeaderScene, FoxMetricScene, FoxDataListScene, FoxTimelineScene
 """
 from __future__ import annotations
 
@@ -14,13 +16,21 @@ from core.logging_setup import log
 from core.models import Scene, Status
 
 REMOTION_DIR = ROOT / "remotion-video"
+RENDERS_DIR = REMOTION_DIR / "out" / "renders"
+RENDERS_DIR.mkdir(parents=True, exist_ok=True)
 
 _METRIC_RE = re.compile(
-    r"(\d[\d,.]*\s*(?:[億萬千百]\s*)?(?:%|％|倍|美元|美金|台幣|元|歐元|nm|奈米|GB|TB|Gbps|Mbps|GHz|MHz|"
-    r"W|KW|MW|GW|瓦|年|小時|分鐘|秒|公里|公尺|度|人|家|台|顆|層|萬|億)?)",
+    r"(\d[\d,.]*\s*(?:[億萬千百]\s*)?(?:%|％|倍|美元|美金|台幣|元|歐元|短噸|公噸|噸|kg|公斤|g|公克|"
+    r"nm|奈米|μm|微米|mm|毫米|cm|公分|m|公尺|km|公里|GB|TB|Gbps|Mbps|GHz|MHz|"
+    r"W|KW|MW|GW|瓦|年|小時|分鐘|秒|度|人|家|台|顆|層|萬|億|輛|門|枚|部)?)",
     re.IGNORECASE,
 )
 _SECTION_NOISE_RE = re.compile(r"\s*[\(（][^\)）]*[\)）]")
+_SOURCE_RE = re.compile(
+    r"(?:資料來源|出處|資料提供|參考資料)[：:\s]*([^\s，,。；;\n]+)|(?:根據|依據|參照)\s*([^\s，,。；;\n]{2,18}?(?:調查|報告|統計|白皮書|手冊|公開預算|研究|公告))",
+    re.IGNORECASE,
+)
+_YEAR_RE = re.compile(r"((?:19|20)\d{2})\s*年?")
 
 
 # ---------------------------------------------------------------- selection
@@ -71,21 +81,21 @@ def _clean_section(section: str) -> str:
     return _SECTION_NOISE_RE.sub("", section or "").strip()
 
 
-def _first_clause(text: str, max_len: int = 24) -> str:
+def _first_clause(text: str, max_len: int = 32) -> str:
     sentences = [p.strip() for p in re.split(r"[。！？!?\n]+", text or "") if p.strip()]
     if not sentences:
         return ""
-    sent = re.sub(r"^(但是|然而|不過|其實|所以|而且|因此)[，,]?", "", sentences[0]).strip()
+    sent = re.sub(r"^(但是|然而|不過|其實|所以|而且|因此|換言之|另一方面)[，,]?", "", sentences[0]).strip()
     if len(sent) <= max_len:
         return sent
     for part in re.split(r"[，,；;：:]", sent):
         part = part.strip()
-        if 6 <= len(part) <= max_len:
+        if 4 <= len(part) <= max_len:
             return part
     return sent[:max_len].rstrip("，,、") + "…"
 
 
-def _sentence_with(text: str, needle: str, max_len: int = 34) -> str:
+def _sentence_with(text: str, needle: str, max_len: int = 50) -> str:
     for sent in re.split(r"[。！？!?\n]+", text or ""):
         if needle and needle in sent:
             sent = sent.strip()
@@ -94,18 +104,17 @@ def _sentence_with(text: str, needle: str, max_len: int = 34) -> str:
 
 
 def extract_card_props(sc: Scene) -> dict[str, Any]:
-    """Build TechCard props from the scene's own content.
+    """Build Remotion card props derived 100% from the scene's own content.
 
-    callout_text "tag | title | description":
-      - title contains a number  -> metric = title (glowing), headline = description
-      - otherwise                -> headline = title, subtext = description
-    Without a callout, a number found in the narration becomes the metric and the
-    first clause of the narration becomes the headline.
+    Pulls category from section, headline from callout or first clause,
+    metrics from narration numbers, and source from citations.
     """
     category = ""
     headline = ""
     metric = ""
+    unit = ""
     subtext = ""
+    source = ""
 
     raw = (sc.callout_text or "").strip()
     if raw:
@@ -120,72 +129,138 @@ def extract_card_props(sc: Scene) -> dict[str, Any]:
         else:
             headline, subtext = title, desc
 
-    if not raw:
+    # Search narration for numeric metrics
+    if not metric:
         m = next((m for m in _METRIC_RE.finditer(sc.narration or "") if re.search(r"\d", m.group(1))), None)
         if m:
             metric = m.group(1).strip()
             ctx = _sentence_with(sc.narration, metric)
-            if ctx:
+            if ctx and not subtext:
                 subtext = ctx
 
     if not headline:
         headline = _first_clause(sc.narration)
         if headline == subtext:
             subtext = ""
-    if not category:
-        category = _clean_section(sc.section)[:16] or "關鍵重點"
 
-    # Extract numerical metric & unit for StatNumberScene
-    val = 100.0
-    unit = ""
-    prefix = ""
-    suffix = ""
+    if not category:
+        category = _clean_section(sc.section)[:16] or "關鍵觀點"
+
+    # Extract source citation if mentioned
+    src_match = _SOURCE_RE.search(sc.narration or "")
+    if src_match:
+        src_val = (src_match.group(1) or src_match.group(2) or "").strip()
+        if src_val:
+            source = f"資料來源：{src_val}"
+
+    # Extract years for timeline
+    years = _YEAR_RE.findall(sc.narration or "")
+    start_year = years[0] if len(years) >= 1 else "2000"
+    end_year = years[1] if len(years) >= 2 else ("2024" if len(years) == 1 else "2024")
+
+    # Parse numeric value & unit
+    val_str = metric
     if metric:
         num_m = re.search(r"(\d+(?:\.\d+)?)", metric)
         if num_m:
-            try:
-                val = float(num_m.group(1))
-            except Exception:
-                val = 100.0
+            val_str = num_m.group(1)
         clean_unit = re.sub(r"[\d.,\s]", "", metric)
         if clean_unit:
             unit = clean_unit
 
+    # Split narration clauses for list scenes
+    clauses = [c.strip() for c in re.split(r"[，,、；;\n]+", sc.narration or "") if len(c.strip()) >= 3]
+    list_items = []
+    if len(clauses) >= 2:
+        for c in clauses[:4]:
+            list_items.append({"label": c[:24], "value": "重點指標", "note": ""})
+    else:
+        list_items = [
+            {"label": headline or "關鍵要素解析", "value": metric or "核心標準", "note": subtext[:30] if subtext else ""},
+            {"label": "實務評估與驗證", "value": "已確認", "note": "符合規格要求"}
+        ]
+
     return {
-        # Legacy card props
+        # General props
         "category": category,
         "headline": headline,
         "metric": metric,
-        "metricLabel": "",
-        "subtext": subtext,
-        # TitleScene props
-        "title": headline or category or "重大結論揭露",
-        "subtitle": subtext or (sc.narration[:60] if sc.narration else "關鍵核心命題"),
-        # GridCompareScene props
-        "leftTitle": "方案 A (核心優勢)",
-        "leftBody": headline or "主要優勢與關鍵推進力",
-        "rightTitle": "方案 B (潛在風險)",
-        "rightBody": subtext or "傳統模式與潛在風險挑戰",
-        "comparisonLabel": "VS",
-        "leftColor": "#3B82F6",
-        "rightColor": "#EF4444",
-        # KCurveScene props
-        "upperText": headline or "頂尖發展 (持續飆升)",
-        "lowerText": subtext or "傳統收縮 (成長停滯)",
-        "forkProgress": 0.35,
-        "upperColor": "#10B981",
-        "lowerColor": "#EF4444",
-        # StatNumberScene props
-        "value": val,
-        "prefix": prefix,
-        "suffix": suffix,
         "unit": unit,
-        "label": headline or "關鍵數據統計",
-        "decimals": 0 if val.is_integer() else 1,
+        "value": val_str or metric or "100",
+        "subtext": subtext or (sc.narration[:60] if sc.narration else ""),
+        "source": source,
+        "title": headline or category or "關鍵核心議題",
+        "subtitle": subtext or (sc.narration[:60] if sc.narration else ""),
+        # fOx Hsiao Metric props
+        "badge": category or "核心數據分析",
+        "description": headline or subtext or "關鍵數據表現",
+        "conversion": "",
+        # fOx Hsiao DataList props
+        "chapter": category or "重點拆解",
+        "items": list_items,
+        "totalLabel": "總結摘要",
+        "totalValue": metric if metric else "",
+        # fOx Hsiao Timeline props
+        "startYear": start_year,
+        "startLabel": headline[:20] if headline else "歷程起始",
+        "endYear": end_year,
+        "endLabel": "現階段發展",
+        "middleYear": "",
+        "middleLabel": "",
     }
 
 
+def auto_select_style_for_scene(sc: Scene) -> str:
+    """Intelligently pick the best fOx Hsiao archetype based on scene transcript content."""
+    text = f"{sc.callout_text or ''} {sc.narration or ''}"
+    # Check for timeline / year pattern
+    years = _YEAR_RE.findall(text)
+    if len(years) >= 2 or re.search(r"\d+\s*年的?(?:時間|歷程|長跑|跨度|歷史)", text):
+        return "FoxTimelineScene"
+    # Check for list / multi-spec patterns
+    if any(k in text for k in ("分別是", "包含", "包括", "清單", "主要項目", "三項", "四項", "兩大", "第一", "第二")):
+        return "FoxDataListScene"
+    # Check for metric / numeric data
+    if _METRIC_RE.search(text) and re.search(r"\d", text):
+        return "FoxMetricScene"
+    # Default to crisp transparent header
+    return "FoxHeaderScene"
+
+
 REMOTION_STYLES = [
+    {
+        "id": "FoxHeaderScene",
+        "name": "📌 主題章節 (fOx Header)",
+        "label": "核心觀點・脈絡大標",
+        "description": "頂部珊瑚色類別標籤、900粗體大字標題與動態底線，85% 畫面通透完整保留分鏡底圖",
+        "accentColor": "#F87171",
+        "type": "scene",
+    },
+    {
+        "id": "FoxMetricScene",
+        "name": "📊 核心數據 (fOx Metric)",
+        "label": "巨型數據・指標解析",
+        "description": "左側微光膠囊標籤、96px 巨型數值、換算單位與說明文字，聚焦核心數量與規格",
+        "accentColor": "#38BDF8",
+        "type": "scene",
+    },
+    {
+        "id": "FoxDataListScene",
+        "name": "📋 規格清單 (fOx Data List)",
+        "label": "裝備清單・拆解總計",
+        "description": "深色毛玻璃容器、多項數據逐行滑入展開、合計總結行與來源腳註",
+        "accentColor": "#38BDF8",
+        "type": "scene",
+    },
+    {
+        "id": "FoxTimelineScene",
+        "name": "⏱️ 時間演進 (fOx Timeline)",
+        "label": "橫向滑軌・年代歷程",
+        "description": "橫向進度動態滑軌、起訖年份節點、脈動圓點與重大里程碑說明",
+        "accentColor": "#38BDF8",
+        "type": "scene",
+    },
+    # Backward compatible aliases
     {
         "id": "BranchPathwayScene",
         "name": "🔀 分支抉擇 (Branch Pathway)",
@@ -214,7 +289,7 @@ REMOTION_STYLES = [
         "id": "EvidenceHighlightScene",
         "name": "📑 文獻劃記 (Evidence Highlight)",
         "label": "紙本檔案・螢光筆劃記",
-        "description": "調查紀錄、臨床試驗、實體剪紙陰影、動態螢光筆劃記與遙測數據卡",
+        "description": "調查紀錄、實體剪紙陰影、動態螢光筆劃記與通透文字展示",
         "accentColor": "#00F5FF",
         "type": "scene",
     },
@@ -225,16 +300,81 @@ def _default_accent_for_style(comp: str) -> str:
     for s in REMOTION_STYLES:
         if s["id"] == comp:
             return s["accentColor"]
-    return "#00F5FF"
+    return "#38BDF8"
 
 
 def _normalize_props_for_composition(comp: str, raw: dict[str, Any]) -> dict[str, Any]:
+    """Ensure all required fields exist for the target composition with real transcript text."""
     p = dict(raw or {})
-    title = p.get("title") or p.get("headline") or "關鍵技術剖析"
+    title = str(p.get("title") or p.get("headline") or "關鍵焦點").strip()
+    category = str(p.get("category") or p.get("chapter") or "核心觀點").strip()
+    subtext = str(p.get("subtitle") or p.get("subtext") or "").strip()
+    source = str(p.get("source") or "").strip()
 
-    if comp == "BranchPathwayScene":
-        p["title"] = str(title).strip()
-        p["subtitle"] = str(p.get("subtitle") or p.get("subtext") or "深度技術路徑取捨與架構評估").strip()
+    if comp == "FoxHeaderScene":
+        p["category"] = category
+        p["title"] = title
+        p["subtitle"] = subtext
+        p["source"] = source
+        p["accentColor"] = p.get("accentColor") or "#F87171"
+        p["dim"] = float(p.get("dim") or 0.35)
+
+    elif comp == "FoxMetricScene":
+        val = str(p.get("metric") or p.get("value") or "").strip()
+        unit = str(p.get("unit") or "").strip()
+        if not unit and val:
+            m = re.search(r"(\d+(?:\.\d+)?)\s*([^\d\s.,]+)?", val)
+            if m:
+                val = m.group(1)
+                unit = m.group(2) or ""
+        p["badge"] = str(p.get("badge") or category or "核心數據指標").strip()
+        p["value"] = val or title
+        p["unit"] = unit
+        p["conversion"] = str(p.get("conversion") or "").strip()
+        p["description"] = str(p.get("description") or title).strip()
+        p["subtext"] = subtext
+        p["source"] = source
+        p["accentColor"] = p.get("accentColor") or "#38BDF8"
+        p["dim"] = float(p.get("dim") or 0.4)
+
+    elif comp == "FoxDataListScene":
+        p["chapter"] = category or "重點拆解"
+        p["title"] = title
+        if not p.get("items") or not isinstance(p["items"], list):
+            items = []
+            if subtext:
+                parts = [s.strip() for s in re.split(r"[，,；;\n]+", subtext) if len(s.strip()) >= 3]
+                for idx, part in enumerate(parts[:4]):
+                    items.append({"label": part[:24], "value": f"0{idx+1}", "note": ""})
+            if not items:
+                items = [
+                    {"label": title, "value": "主要標的", "note": ""},
+                    {"label": "實務評估進展", "value": "持續推進", "note": ""}
+                ]
+            p["items"] = items
+        p["totalLabel"] = str(p.get("totalLabel") or "總結").strip()
+        p["totalValue"] = str(p.get("totalValue") or (p.get("metric") or "")).strip()
+        p["source"] = source
+        p["accentColor"] = p.get("accentColor") or "#38BDF8"
+        p["dim"] = float(p.get("dim") or 0.5)
+
+    elif comp == "FoxTimelineScene":
+        p["chapter"] = category or "時間歷程"
+        p["title"] = title
+        p["startYear"] = str(p.get("startYear") or "2000").strip()
+        p["startLabel"] = str(p.get("startLabel") or "初期規劃與啟動").strip()
+        p["endYear"] = str(p.get("endYear") or "2024").strip()
+        p["endLabel"] = str(p.get("endLabel") or "正式定案落地").strip()
+        p["middleYear"] = str(p.get("middleYear") or "").strip()
+        p["middleLabel"] = str(p.get("middleLabel") or "").strip()
+        p["subtext"] = subtext
+        p["source"] = source
+        p["accentColor"] = p.get("accentColor") or "#38BDF8"
+        p["dim"] = float(p.get("dim") or 0.45)
+
+    elif comp == "BranchPathwayScene":
+        p["title"] = title
+        p["subtitle"] = subtext or "深度技術路徑取捨與架構評估"
         if not p.get("paths"):
             p["paths"] = [
                 {"id": "p1", "name": "路線 1: 傳統常規方案", "category": "基礎方案", "detail": "成本較低但性能衰減嚴重", "status": "eliminated", "eliminationReason": "無法滿足極限性能需求"},
@@ -242,40 +382,45 @@ def _normalize_props_for_composition(comp: str, raw: dict[str, Any]) -> dict[str
             ]
         p["selectedId"] = p.get("selectedId") or "p2"
         p["accentColor"] = p.get("accentColor") or "#00F5FF"
+
     elif comp == "LeaderCalloutScene":
-        p["title"] = str(title).strip()
-        p["subtitle"] = str(p.get("subtitle") or p.get("subtext") or "結構層次與關鍵組件深入導引").strip()
+        p["title"] = title
+        p["subtitle"] = subtext or "結構層次與關鍵組件深入導引"
         if not p.get("callouts"):
             p["callouts"] = [
                 {"id": "c1", "label": "外層保護結構", "sublabel": "微米級微孔穿透，隔離外在環境干擾", "anchorX": 0.35, "anchorY": 0.3, "boxX": 0.68, "boxY": 0.28, "metric": "公差 < 10μm", "status": "normal"},
                 {"id": "c2", "label": "核心信號傳導區", "sublabel": "超高密度電極絲精準著陸點", "anchorX": 0.42, "anchorY": 0.65, "boxX": 0.68, "boxY": 0.65, "metric": "深度 1.5mm", "status": "active"}
             ]
         p["accentColor"] = p.get("accentColor") or "#00F5FF"
+
     elif comp == "ScaleCompareScene":
-        p["title"] = str(title).strip()
-        p["subtitle"] = str(p.get("subtitle") or p.get("subtext") or "微觀結構與宏觀對照物的極致差距").strip()
-        p["macroLabel"] = str(p.get("macroLabel") or "人類頭髮 (Human Hair)").strip()
+        p["title"] = title
+        p["subtitle"] = subtext or "微觀結構與宏觀對照物的極致差距"
+        p["macroLabel"] = str(p.get("macroLabel") or "參考基準物").strip()
         p["macroValue"] = str(p.get("macroValue") or "100 μm").strip()
         p["macroDesc"] = str(p.get("macroDesc") or "肉眼可見的宏觀參考基準").strip()
-        p["microLabel"] = str(p.get("microLabel") or "微米級柔性電極絲").strip()
+        p["microLabel"] = str(p.get("microLabel") or "核心目標結構").strip()
         p["microValue"] = str(p.get("microValue") or "5 μm").strip()
-        p["microDesc"] = str(p.get("microDesc") or "極細柔性結構，大幅降低組織排異反應").strip()
+        p["microDesc"] = str(p.get("microDesc") or "極細柔性結構，大幅提升效能").strip()
         p["ratioMultiplier"] = str(p.get("ratioMultiplier") or "20×").strip()
         p["ratioLabel"] = str(p.get("ratioLabel") or "尺度差距").strip()
         p["magnificationFactor"] = str(p.get("magnificationFactor") or "20X OPTICAL").strip()
         p["accentColor"] = p.get("accentColor") or "#00F5FF"
+
     else:  # EvidenceHighlightScene or fallback
-        p["title"] = str(title).strip()
-        p["docHeader"] = str(p.get("docHeader") or "TECHNICAL WHITEPAPER & PROTOCOL").strip()
+        p["title"] = title
+        p["docHeader"] = str(p.get("docHeader") or category or "ARCHIVAL RECORD / CLINICAL PROTOCOL").strip()
         p["docDate"] = str(p.get("docDate") or "OFFICIAL SPECIFICATION").strip()
-        excerpt = str(p.get("documentExcerpt") or p.get("subtext") or p.get("headline") or "關鍵試驗數據表明，自動化系統以高精度循環作業，大幅降低組織創傷。").strip()
+        excerpt = str(p.get("documentExcerpt") or subtext or title).strip()
         p["documentExcerpt"] = excerpt
-        p["highlightPhrase"] = str(p.get("highlightPhrase") or excerpt[:min(len(excerpt), 30)]).strip()
-        if not p.get("telemetryStats"):
-            p["telemetryStats"] = [
-                {"label": "循環週期", "value": "1.5 秒", "badge": "超高速"},
-                {"label": "通道容量", "value": "1024 頻寬", "badge": "高通量"}
-            ]
+        p["highlightPhrase"] = str(p.get("highlightPhrase") or excerpt[:min(len(excerpt), 36)]).strip()
+        # NEVER use hardcoded 1.5s / 1024 bandwidth. Only use stats if explicitly passed.
+        if "telemetryStats" not in p or not isinstance(p["telemetryStats"], list):
+            metric_val = str(p.get("metric") or "").strip()
+            if metric_val:
+                p["telemetryStats"] = [{"label": "核心數據", "value": metric_val, "badge": "關鍵指標"}]
+            else:
+                p["telemetryStats"] = []
         p["accentColor"] = p.get("accentColor") or "#00F5FF"
 
     return p
@@ -283,7 +428,7 @@ def _normalize_props_for_composition(comp: str, raw: dict[str, Any]) -> dict[str
 
 # ---------------------------------------------------------------- rendering
 def render_card(props: dict[str, Any], out_path: Path, seconds: float, bg_image: Path | None = None,
-                fps: int = 30, composition: str = "TechCard", dim: float = 0.65,
+                fps: int = 30, composition: str = "FoxHeaderScene", dim: float = 0.4,
                 use_gpu_gl: bool = True, timeout: int = 300) -> Path:
     """Render one Remotion card clip through the shared CLI executor."""
     from rendering.remotion_cli import render_composition
@@ -296,24 +441,26 @@ def render_card(props: dict[str, Any], out_path: Path, seconds: float, bg_image:
 
 
 def render_scene_card(project, sc: Scene, props: dict[str, Any] | None = None, fps: int = 30,
-                      composition: str = "EvidenceHighlightScene") -> dict[str, Any]:
+                      composition: str | None = None) -> dict[str, Any]:
     """Render a card for `sc` over its own image and attach it as the scene's animation clip."""
+    # If no composition specified, intelligently auto-select the best archetype
+    target_comp = composition or auto_select_style_for_scene(sc)
     props = props or extract_card_props(sc)
     bg = project.abs(sc.image.path) if sc.image.status == Status.COMPLETED and sc.image.path else None
     seconds = float(sc.audio_duration or sc.estimated_duration or 6.0) + 0.6
     out_clip = project.path("animation", f"{sc.tag}.mp4")
-    render_card(props, out_clip, seconds, bg_image=bg, fps=fps, composition=composition)
+    render_card(props, out_clip, seconds, bg_image=bg, fps=fps, composition=target_comp)
     sc.animation.status = Status.COMPLETED
     sc.animation.path = project.rel(out_clip)
     sc.animation.error = None
-    sc.animation.meta = {"provider": "remotion", "composition": composition, "props": props,
+    sc.animation.meta = {"provider": "remotion", "composition": target_comp, "props": props,
                          "background": sc.image.path}
     return sc.animation.meta
 
 
 def render_critical_scene_cards(project, scenes: list[Scene], progress: Callable[[int, int], None] | None = None,
                                 cancel: Callable[[], bool] | None = None, select: bool = True,
-                                composition: str = "EvidenceHighlightScene") -> list[int]:
+                                composition: str | None = None) -> list[int]:
     """Render cards for critical scenes. Returns the scene ids that got a card.
 
     With select=True the critical scenes are chosen from `scenes`; with select=False

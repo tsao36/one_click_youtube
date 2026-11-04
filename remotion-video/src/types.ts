@@ -83,3 +83,75 @@ export const EvidenceHighlightSceneSchema = BaseScenePropsSchema.extend({
   telemetryStats: z.array(TelemetryStatSchema).optional().default([]),
 });
 export type EvidenceHighlightSceneProps = z.input<typeof EvidenceHighlightSceneSchema>;
+
+
+// ==========================================
+// 5. fOx Hsiao Style Documentary Archetypes
+// ==========================================
+
+// 5.1 FoxHeaderScene Schema
+export const FoxHeaderSceneSchema = z.object({
+  category: z.string().optional().default(""),
+  title: z.string().min(1).max(120),
+  subtitle: z.string().max(200).optional().default(""),
+  source: z.string().max(100).optional().default(""),
+  bgSrc: z.string().optional().default(""),
+  dim: z.number().min(0).max(1).optional().default(0.35),
+  accentColor: z.string().optional().default("#F87171"),
+});
+export type FoxHeaderSceneProps = z.input<typeof FoxHeaderSceneSchema>;
+
+// 5.2 FoxMetricScene Schema
+export const FoxMetricSceneSchema = z.object({
+  badge: z.string().max(80).optional().default(""),
+  value: z.string().min(1).max(60),
+  unit: z.string().max(40).optional().default(""),
+  conversion: z.string().max(60).optional().default(""),
+  description: z.string().max(160).optional().default(""),
+  subtext: z.string().max(240).optional().default(""),
+  source: z.string().max(100).optional().default(""),
+  bgSrc: z.string().optional().default(""),
+  dim: z.number().min(0).max(1).optional().default(0.4),
+  accentColor: z.string().optional().default("#38BDF8"),
+});
+export type FoxMetricSceneProps = z.input<typeof FoxMetricSceneSchema>;
+
+// 5.3 FoxDataListScene Schema
+export const FoxDataListItemSchema = z.object({
+  label: z.string().min(1).max(80),
+  value: z.string().min(1).max(60),
+  note: z.string().max(100).optional().default(""),
+  highlight: z.boolean().optional().default(false),
+});
+export type FoxDataListItem = z.infer<typeof FoxDataListItemSchema>;
+
+export const FoxDataListSceneSchema = z.object({
+  chapter: z.string().max(80).optional().default(""),
+  title: z.string().min(1).max(120),
+  items: z.array(FoxDataListItemSchema).min(1).max(8),
+  totalLabel: z.string().max(60).optional().default(""),
+  totalValue: z.string().max(80).optional().default(""),
+  source: z.string().max(100).optional().default(""),
+  bgSrc: z.string().optional().default(""),
+  dim: z.number().min(0).max(1).optional().default(0.5),
+  accentColor: z.string().optional().default("#38BDF8"),
+});
+export type FoxDataListSceneProps = z.input<typeof FoxDataListSceneSchema>;
+
+// 5.4 FoxTimelineScene Schema
+export const FoxTimelineSceneSchema = z.object({
+  chapter: z.string().max(80).optional().default(""),
+  title: z.string().min(1).max(120),
+  startYear: z.string().min(1).max(30),
+  startLabel: z.string().min(1).max(100),
+  endYear: z.string().min(1).max(30),
+  endLabel: z.string().min(1).max(100),
+  middleYear: z.string().max(30).optional().default(""),
+  middleLabel: z.string().max(100).optional().default(""),
+  subtext: z.string().max(240).optional().default(""),
+  source: z.string().max(100).optional().default(""),
+  bgSrc: z.string().optional().default(""),
+  dim: z.number().min(0).max(1).optional().default(0.45),
+  accentColor: z.string().optional().default("#38BDF8"),
+});
+export type FoxTimelineSceneProps = z.input<typeof FoxTimelineSceneSchema>;

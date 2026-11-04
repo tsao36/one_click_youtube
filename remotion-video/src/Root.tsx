@@ -4,11 +4,19 @@ import { BranchPathwayScene } from "./BranchPathwayScene";
 import { LeaderCalloutScene } from "./LeaderCalloutScene";
 import { ScaleCompareScene } from "./ScaleCompareScene";
 import { EvidenceHighlightScene } from "./EvidenceHighlightScene";
+import { FoxHeaderScene } from "./FoxHeaderScene";
+import { FoxMetricScene } from "./FoxMetricScene";
+import { FoxDataListScene } from "./FoxDataListScene";
+import { FoxTimelineScene } from "./FoxTimelineScene";
 import {
   BranchPathwaySceneSchema,
   LeaderCalloutSceneSchema,
   ScaleCompareSceneSchema,
   EvidenceHighlightSceneSchema,
+  FoxHeaderSceneSchema,
+  FoxMetricSceneSchema,
+  FoxDataListSceneSchema,
+  FoxTimelineSceneSchema,
 } from "./types";
 
 const videoDimensions = { fps: 30, width: 1920, height: 1080 };
@@ -302,6 +310,87 @@ export const RemotionRoot: React.FC = () => {
             accentColor: "#00F5FF",
           }}
         />
+        {/* 2. fOx Hsiao Signature Archetypes */}
+        <Folder name="Fox-Hsiao-Archetypes">
+          <Composition
+            id="FoxHeaderScene"
+            component={FoxHeaderScene}
+            schema={FoxHeaderSceneSchema}
+            durationInFrames={150}
+            {...videoDimensions}
+            defaultProps={{
+              category: "背景脈絡",
+              title: "為什麼要買新戰車？",
+              subtitle: "既有戰車服役已超過半世紀，裝甲與射控早已無法因應現代戰場威脅",
+              source: "資料來源：國防部公開預算書",
+              accentColor: "#F87171",
+              dim: 0.35,
+            }}
+          />
+
+          <Composition
+            id="FoxMetricScene"
+            component={FoxMetricScene}
+            schema={FoxMetricSceneSchema}
+            durationInFrames={150}
+            {...videoDimensions}
+            defaultProps={{
+              badge: "美軍 M1A2 SEPv3 戰鬥重量",
+              value: "73.6",
+              unit: "美制短噸",
+              conversion: "≈ 66.8 公噸",
+              description: "實際重量遠超國軍現役戰車，已逼近台灣多數公路與橋樑設計極限",
+              subtext: "美制短噸 (Short Ton) 約為 907 公斤，換算公噸後仍高達 66.8 噸",
+              source: "資料：美國陸軍武器手冊 / 國防安全研究院",
+              accentColor: "#38BDF8",
+              dim: 0.4,
+            }}
+          />
+
+          <Composition
+            id="FoxDataListScene"
+            component={FoxDataListScene}
+            schema={FoxDataListSceneSchema}
+            durationInFrames={150}
+            {...videoDimensions}
+            defaultProps={{
+              chapter: "採購清單與預算",
+              title: "台灣陸軍 M1A2T 採購案主要裝備",
+              items: [
+                { label: "M1A2T 艾布蘭主力戰車", value: "108 輛", note: "最新客製化防護與數位射控系統" },
+                { label: "M88A2 重型裝甲救濟車", value: "14 輛", note: "70 噸級戰場拖救能力" },
+                { label: "M1070A1 重型裝備運輸拖車", value: "16 輛", note: "公路高速機動運載" },
+              ],
+              totalLabel: "總採購預算",
+              totalValue: "約 20 億美元（405 億台幣）",
+              source: "資料來源：國防部公開採購決標公告",
+              accentColor: "#38BDF8",
+              dim: 0.5,
+            }}
+          />
+
+          <Composition
+            id="FoxTimelineScene"
+            component={FoxTimelineScene}
+            schema={FoxTimelineSceneSchema}
+            durationInFrames={150}
+            {...videoDimensions}
+            defaultProps={{
+              chapter: "採購歷程",
+              title: "長達 20 年的換車長跑歷程",
+              startYear: "2000",
+              startLabel: "陸軍首度提出採購新戰車需求",
+              middleYear: "2011",
+              middleLabel: "評估採購美軍庫存 M1A1",
+              endYear: "2019",
+              endLabel: "正式簽署發價書 (LOA)",
+              subtext: "橫跨近二十年漫長建案評估，最終拍板採購全新 M1A2T",
+              source: "資料來源：立法院國防委員會專題報告",
+              accentColor: "#38BDF8",
+              dim: 0.45,
+            }}
+          />
+        </Folder>
       </Folder>
     </>
   );

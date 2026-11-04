@@ -3433,7 +3433,7 @@ def apply_remotion_to_scene(project_id: str, req: RemotionRenderRequest):
 
     auto = extract_card_props(s)
     props = {**auto, **{k: v for k, v in (req.props or {}).items() if v not in (None, "")}}
-    comp = req.composition or "EvidenceHighlightScene"
+    comp = req.composition or "FoxHeaderScene"
     try:
         render_scene_card(p, s, props=props, fps=int(req.fps or 30), composition=comp)
     except Exception as e:
@@ -3468,7 +3468,7 @@ def preview_remotion_critical_scenes(project_id: str):
 
 @app.post("/api/projects/{project_id}/remotion/auto")
 def auto_remotion_critical_scenes(project_id: str, background_tasks: BackgroundTasks,
-                                  composition: str = "EvidenceHighlightScene"):
+                                  composition: str = "FoxHeaderScene"):
     """Render cards for all critical scenes in the background."""
     from generators.remotion_cards import render_critical_scene_cards, select_critical_scenes
     p = get_project(project_id)
