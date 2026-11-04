@@ -279,6 +279,12 @@ class Project:
                 return s
         raise KeyError(f"scene {scene_id} not found")
 
+    def get_scene(self, scene_id: int) -> Optional[Scene]:
+        for s in self.scenes:
+            if s.scene_id == scene_id:
+                return s
+        return None
+
     def active_scenes(self) -> list[Scene]:
         return [s for s in self.scenes if s.enabled]
 
