@@ -689,9 +689,7 @@ class NanoBanana21ImageProvider(ImageProvider):
             clean_prompt = clean_prompt[:1200]
 
         # Prevent clone faces / identical people across scenes (critical for multi-character & crowd shots)
-        anti_clone_neg = UNIVERSAL_QUALITY_NEGATIVE
-        user_neg = (req.negative or "").strip()
-        full_neg = f"{anti_clone_neg}, {user_neg}".strip(", ")
+        full_neg = merge_negative_prompts(UNIVERSAL_QUALITY_NEGATIVE, req.negative)
 
         enhanced_prompt = f"{clean_prompt}. {aspect_desc}. Ensure all human subjects have natural anatomy with strictly two arms and two hands, clear detailed facial features, and distinct individual faces with diverse appearances. Avoid: {full_neg}."
 
@@ -853,9 +851,7 @@ class Imagen3ImageProvider(ImageProvider):
 
         last_error = None
 
-        anti_clone_neg = UNIVERSAL_QUALITY_NEGATIVE
-        user_neg = (req.negative or "").strip()
-        full_neg = f"{anti_clone_neg}, {user_neg}".strip(", ")
+        full_neg = merge_negative_prompts(UNIVERSAL_QUALITY_NEGATIVE, req.negative)
         img_prompt = f"Generate an image: {req.prompt}. Ensure all human subjects have natural anatomy with strictly two arms and two hands, clear detailed facial features, and distinct individual faces with diverse appearances. Avoid: {full_neg}."
 
         for m in models_to_try:

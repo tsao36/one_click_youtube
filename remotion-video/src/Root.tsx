@@ -11,6 +11,8 @@ import {
   EvidenceHighlightSceneSchema,
 } from "./types";
 
+const videoDimensions = { fps: 30, width: 1920, height: 1080 };
+
 export const RemotionRoot: React.FC = () => {
   return (
     <>
@@ -18,12 +20,10 @@ export const RemotionRoot: React.FC = () => {
       <Folder name="Documentary-Archetypes">
         <Composition
           id="BranchPathwayScene"
-          component={BranchPathwayScene as any}
-          schema={BranchPathwaySceneSchema as any}
+          component={BranchPathwayScene}
+          schema={BranchPathwaySceneSchema}
           durationInFrames={150}
-          fps={30}
-          width={1920}
-          height={1080}
+          {...videoDimensions}
           defaultProps={{
             title: "大腦訊號讀取的四條技術路線",
             subtitle: "從非侵入式到深層皮層植入的極限抉擇",
@@ -68,12 +68,10 @@ export const RemotionRoot: React.FC = () => {
 
         <Composition
           id="LeaderCalloutScene"
-          component={LeaderCalloutScene as any}
-          schema={LeaderCalloutSceneSchema as any}
+          component={LeaderCalloutScene}
+          schema={LeaderCalloutSceneSchema}
           durationInFrames={150}
-          fps={30}
-          width={1920}
-          height={1080}
+          {...videoDimensions}
           defaultProps={{
             title: "大腦皮層穿透深度與解剖層次",
             subtitle: "手術機器人如何避開微血管，將電極送入皮質錐體神經元",
@@ -118,12 +116,10 @@ export const RemotionRoot: React.FC = () => {
 
         <Composition
           id="ScaleCompareScene"
-          component={ScaleCompareScene as any}
-          schema={ScaleCompareSceneSchema as any}
+          component={ScaleCompareScene}
+          schema={ScaleCompareSceneSchema}
           durationInFrames={150}
-          fps={30}
-          width={1920}
-          height={1080}
+          {...videoDimensions}
           defaultProps={{
             title: "極致尺度對比：柔性電極絲 vs 人類頭髮",
             subtitle: "直徑相差近 20 倍的微米級聚合物工藝",
@@ -142,12 +138,10 @@ export const RemotionRoot: React.FC = () => {
 
         <Composition
           id="EvidenceHighlightScene"
-          component={EvidenceHighlightScene as any}
-          schema={EvidenceHighlightSceneSchema as any}
+          component={EvidenceHighlightScene}
+          schema={EvidenceHighlightSceneSchema}
           durationInFrames={150}
-          fps={30}
-          width={1920}
-          height={1080}
+          {...videoDimensions}
           defaultProps={{
             title: "手術機器人縫紉機臨床數據",
             docHeader: "NEURALINK R-1 SURGICAL ROBOT PROTOCOL",
@@ -170,12 +164,10 @@ export const RemotionRoot: React.FC = () => {
       <Folder name="Neuralink-Previews">
         <Composition
           id="Preview-BranchPathway"
-          component={BranchPathwayScene as any}
-          schema={BranchPathwaySceneSchema as any}
+          component={BranchPathwayScene}
+          schema={BranchPathwaySceneSchema}
           durationInFrames={180}
-          fps={30}
-          width={1920}
-          height={1080}
+          {...videoDimensions}
           defaultProps={{
             title: "從大腦讀訊號的四條路：為什麼選最深的那條？",
             subtitle: "Neuralink 權衡訊號解析度與手術代價的關鍵抉擇",
@@ -220,12 +212,10 @@ export const RemotionRoot: React.FC = () => {
 
         <Composition
           id="Preview-LeaderCallout"
-          component={LeaderCalloutScene as any}
-          schema={LeaderCalloutSceneSchema as any}
+          component={LeaderCalloutScene}
+          schema={LeaderCalloutSceneSchema}
           durationInFrames={180}
-          fps={30}
-          width={1920}
-          height={1080}
+          {...videoDimensions}
           defaultProps={{
             title: "運動皮質第 IV/V 層穿透標註",
             subtitle: "手術縫紉機避開血管穿透各層大腦組織的動態引線",
@@ -270,12 +260,10 @@ export const RemotionRoot: React.FC = () => {
 
         <Composition
           id="Preview-ScaleCompare"
-          component={ScaleCompareScene as any}
-          schema={ScaleCompareSceneSchema as any}
+          component={ScaleCompareScene}
+          schema={ScaleCompareSceneSchema}
           durationInFrames={180}
-          fps={30}
-          width={1920}
-          height={1080}
+          {...videoDimensions}
           defaultProps={{
             title: "極致尺度對比：5 微米柔性絲 vs 100 微米頭髮",
             subtitle: "為什麼電極絲必須比頭髮還細 20 倍？",
@@ -294,12 +282,10 @@ export const RemotionRoot: React.FC = () => {
 
         <Composition
           id="Preview-EvidenceHighlight"
-          component={EvidenceHighlightScene as any}
-          schema={EvidenceHighlightSceneSchema as any}
+          component={EvidenceHighlightScene}
+          schema={EvidenceHighlightSceneSchema}
           durationInFrames={180}
-          fps={30}
-          width={1920}
-          height={1080}
+          {...videoDimensions}
           defaultProps={{
             title: "手術機器人縫紉機：一秒半插一根線",
             docHeader: "SURGICAL TELEMETRY SPECIFICATION",

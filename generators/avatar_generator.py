@@ -301,10 +301,6 @@ def turn_off_project_avatar(project) -> list[int]:
                     sc.ai_video = False
 
     # Update project settings
-    if isinstance(project.settings, dict):
-        project.settings["presenter_placement"] = "none"
-        project.settings["auto_presenter"] = False
-        project.settings["avatar_enabled"] = False
     if hasattr(project, "data") and isinstance(project.data.settings, dict):
         project.data.settings["presenter_placement"] = "none"
         project.data.settings["auto_presenter"] = False

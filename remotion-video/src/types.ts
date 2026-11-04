@@ -27,7 +27,7 @@ export const BranchPathwaySceneSchema = BaseScenePropsSchema.extend({
   paths: z.array(PathwayNodeSchema).min(2).max(6),
   selectedId: z.string().optional().default(""),
 });
-export type BranchPathwaySceneProps = z.infer<typeof BranchPathwaySceneSchema>;
+export type BranchPathwaySceneProps = z.input<typeof BranchPathwaySceneSchema>;
 
 // 2. LeaderCalloutScene Schema
 export const CalloutPointSchema = z.object({
@@ -48,7 +48,7 @@ export const LeaderCalloutSceneSchema = BaseScenePropsSchema.extend({
   subtitle: z.string().max(160).optional().default(""),
   callouts: z.array(CalloutPointSchema).min(1).max(6),
 });
-export type LeaderCalloutSceneProps = z.infer<typeof LeaderCalloutSceneSchema>;
+export type LeaderCalloutSceneProps = z.input<typeof LeaderCalloutSceneSchema>;
 
 // 3. ScaleCompareScene Schema
 export const ScaleCompareSceneSchema = BaseScenePropsSchema.extend({
@@ -64,7 +64,7 @@ export const ScaleCompareSceneSchema = BaseScenePropsSchema.extend({
   ratioLabel: z.string().max(80).optional().default("尺度極限差距"),
   magnificationFactor: z.string().max(40).optional().default("20X ZOOM"),
 });
-export type ScaleCompareSceneProps = z.infer<typeof ScaleCompareSceneSchema>;
+export type ScaleCompareSceneProps = z.input<typeof ScaleCompareSceneSchema>;
 
 // 4. EvidenceHighlightScene Schema
 export const TelemetryStatSchema = z.object({
@@ -82,4 +82,4 @@ export const EvidenceHighlightSceneSchema = BaseScenePropsSchema.extend({
   highlightPhrase: z.string().min(1).max(300),
   telemetryStats: z.array(TelemetryStatSchema).optional().default([]),
 });
-export type EvidenceHighlightSceneProps = z.infer<typeof EvidenceHighlightSceneSchema>;
+export type EvidenceHighlightSceneProps = z.input<typeof EvidenceHighlightSceneSchema>;

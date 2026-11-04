@@ -44,6 +44,7 @@ class LLMClient:
         llm = pc.get("llm", {})
         job_cfg = llm.get("jobs", {}).get(self.job, {})
         preferred = self.provider_override or job_cfg.get("provider", "ollama")
+        preferred = {"gemini_search": "gemini"}.get(preferred, preferred)
         order = [preferred] + [p for p in llm.get("fallback_order", []) if p != preferred]
         reasons = []
         for i, name in enumerate(order):

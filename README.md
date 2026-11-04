@@ -115,3 +115,15 @@ projects/airport_wifi/
 └── final/airport_wifi.mp4    # Broadcast-ready final video
 ```
 If the app stops at scene 42 out of 70, simply restart: it picks up from scene 43 without re-generating completed assets.
+
+## Development checks
+
+Install test dependencies with `python -m pip install -r requirements-dev.txt`.
+Run `python -m pytest tests/test_review_regressions.py -q` for the isolated settings,
+translation, prompt mapping, and shared pipeline regressions. `python -m pytest`
+collects only from `tests/`; some existing integration tests require live services,
+API credits, local voice models, or media assets.
+
+Run `npm run lint` from `remotion-video/` to check ESLint and TypeScript.
+Project configuration edits belong in `project.data.settings`, followed by
+`project.save()`; `project.settings` returns a merged snapshot for reading.

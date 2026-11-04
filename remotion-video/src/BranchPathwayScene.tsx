@@ -115,7 +115,6 @@ export const BranchPathwayScene: React.FC<BranchPathwaySceneProps> = ({
                 borderRadius: 12,
                 padding: "24px 20px",
                 backdropFilter: "blur(12px)",
-                transition: "border 0.2s ease",
               }}
             >
               {/* Elimination Strike-Through Line */}

@@ -6214,13 +6214,6 @@
       // Documentary target duration changed
     }
 
-    function updateDramaScriptButtonText(sec) {
-      const btn = document.getElementById('btn-gen-drama-script');
-      if (btn) {
-        btn.innerHTML = `✨ 依時長生成劇本 (${sec}s)`;
-      }
-    }
-
     function syncDurationOptionsForMode(mode) {
       const durEl = document.getElementById('duration');
       const durLabel = document.getElementById('creator-duration-label');

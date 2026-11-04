@@ -106,16 +106,18 @@ def translate_world_setting_to_english(
         def _val(d):
             if not isinstance(d, dict):
                 raise ValueError("Expected dict")
+            for field in ("temporal_era", "environment_reality", "key_settings", "ensemble_specs"):
+                if not isinstance(d.get(field), str):
+                    raise ValueError(f"Expected string for {field}")
+            negatives = d.get("negative_anachronisms")
+            if not isinstance(negatives, list) or not all(isinstance(x, str) for x in negatives):
+                raise ValueError("Expected list of strings for negative_anachronisms")
+            if re.search(r"[\u4e00-\u9fff]", json.dumps(d, ensure_ascii=False)):
+                raise ValueError("World setting translation still contains Chinese characters")
             return d
 
         translated = client.json(prompt, sys_msg, temperature=0.3, validate=_val)
-        if isinstance(translated, dict):
-            translated.setdefault("temporal_era", ws.get("temporal_era", "Contemporary"))
-            translated.setdefault("environment_reality", ws.get("environment_reality", "Realistic authentic environment"))
-            translated.setdefault("key_settings", ws.get("key_settings", ""))
-            translated.setdefault("ensemble_specs", ws.get("ensemble_specs", ""))
-            translated.setdefault("negative_anachronisms", ws.get("negative_anachronisms", []))
-            return translated
+        return translated
     except Exception as e:
         log.warning("World setting English translation failed (%s); keeping existing", e)
 
@@ -131,6 +133,7 @@ def research(
     provider_override: str | None = None,
     user_research: str | None = None,
     research_mode: str = "auto",
+    world_setting_override: dict | None = None,
 ) -> dict:
     notes = ""
     mode = "llm_only"
@@ -201,6 +204,8 @@ def research(
               "MUST be written strictly in ENGLISH descriptive visual keywords for text-to-image models (SDXL/FLUX), even when narration language is Chinese. "
               "All other fields (main_question, audience, key_concepts, interesting_facts, narrative_structure) must be in the specified narration language.")
     data = client.json(prompt, SYSTEM, temperature=0.5, validate=_validate)
+    if world_setting_override is not None:
+        data["world_setting"] = world_setting_override
     if data.get("world_setting"):
         data["world_setting"] = translate_world_setting_to_english(data["world_setting"], client=client)
     if is_tw:

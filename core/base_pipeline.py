@@ -18,6 +18,7 @@ from core.versioning import record_stage_version
 from generators.subtitle_generator import build_cues, write_ass, write_srt
 from generators.voice_generator import default_profile_name, load_profile, synthesize
 from providers.llm.base import LLMProvider
+from rendering.ffmpeg_renderer import project_timeline, render_project
 
 
 class PipelineCancelled(Exception):
@@ -199,7 +200,6 @@ class BasePipeline:
 
             with self.p.lock:
 
-                self.p.settings.setdefault("stage_models", {}).update(new_models)
 
                 self.p.data.settings.setdefault("stage_models", {}).update(new_models)
 
@@ -209,13 +209,11 @@ class BasePipeline:
 
                     if model_val not in ("stock", "stock_photos", "placeholder"):
 
-                        self.p.settings.setdefault("images", {})["checkpoint"] = model_val
 
                         self.p.data.settings.setdefault("images", {})["checkpoint"] = model_val
 
                     else:
 
-                        self.p.settings.setdefault("images", {})["provider"] = model_val
 
                         self.p.data.settings.setdefault("images", {})["provider"] = model_val
 
@@ -225,7 +223,6 @@ class BasePipeline:
 
                     if v_val not in ("bluemagpie", "elevenlabs", "edge", "sapi", "openai_tts", "http_clone", "voai"):
 
-                        self.p.settings["voice_profile"] = v_val
 
                         self.p.data.settings["voice_profile"] = v_val
 
@@ -241,7 +238,6 @@ class BasePipeline:
 
                                 self._stage_models_override["voice"] = vp_prov
 
-                                self.p.settings.setdefault("stage_models", {})["voice"] = vp_prov
 
                                 self.p.data.settings.setdefault("stage_models", {})["voice"] = vp_prov
 
@@ -273,7 +269,6 @@ class BasePipeline:
 
                                 if vp.get("provider") == v_val:
 
-                                    self.p.settings["voice_profile"] = vp["name"]
 
                                     self.p.data.settings["voice_profile"] = vp["name"]
 
@@ -281,7 +276,7 @@ class BasePipeline:
 
                 if "render" in new_models:
 
-                    self.p.settings.setdefault("rendering", {})["encoder"] = new_models["render"]
+                    self.p.data.settings.setdefault("rendering", {})["encoder"] = new_models["render"]
 
                 self.p.save()
 
@@ -763,7 +758,6 @@ class BasePipeline:
 
             if voice_profile:
 
-                self.p.settings["voice_profile"] = voice_profile
 
                 self.p.data.settings["voice_profile"] = voice_profile
 
@@ -779,7 +773,6 @@ class BasePipeline:
 
                             voice_profile = vp_obj["name"]
 
-                            self.p.settings["voice_profile"] = voice_profile
 
                             self.p.data.settings["voice_profile"] = voice_profile
 
@@ -793,7 +786,6 @@ class BasePipeline:
 
                 self._stage_models_override["voice"] = tts_provider
 
-                self.p.settings.setdefault("stage_models", {})["voice"] = tts_provider
 
                 self.p.data.settings.setdefault("stage_models", {})["voice"] = tts_provider
 
@@ -1124,9 +1116,8 @@ class BasePipeline:
 
 
 
-        self.p.data.settings["voice_profile"] = target
 
-        self.p.settings["voice_profile"] = target
+        self.p.data.settings["voice_profile"] = target
 
 
 
@@ -1146,9 +1137,8 @@ class BasePipeline:
 
         )
 
-        self.p.data.settings.setdefault("stage_models", {})["voice"] = target_provider
 
-        self.p.settings.setdefault("stage_models", {})["voice"] = target_provider
+        self.p.data.settings.setdefault("stage_models", {})["voice"] = target_provider
 
 
 
@@ -1308,7 +1298,6 @@ class BasePipeline:
 
             if avatar_profile:
 
-                self.p.settings["default_avatar"] = avatar_profile
 
                 self.p.data.settings["default_avatar"] = avatar_profile
 
@@ -1320,7 +1309,6 @@ class BasePipeline:
 
             if has_voice_update:
 
-                self.p.settings["voice_profile"] = voice_profile
 
                 self.p.data.settings["voice_profile"] = voice_profile
 
@@ -1334,7 +1322,6 @@ class BasePipeline:
 
                         tts_prov = vp_obj["provider"]
 
-                        self.p.settings.setdefault("stage_models", {})["voice"] = tts_prov
 
                         self.p.data.settings.setdefault("stage_models", {})["voice"] = tts_prov
 
@@ -1350,9 +1337,8 @@ class BasePipeline:
 
                 if project_voice_profile:
 
-                    self.p.data.settings["voice_profile"] = project_voice_profile
 
-                    self.p.settings["voice_profile"] = project_voice_profile
+                    self.p.data.settings["voice_profile"] = project_voice_profile
 
 
 
@@ -1739,7 +1725,135 @@ class BasePipeline:
         raise NotImplementedError
 
     def _run_voice(self) -> None:
-        raise NotImplementedError
+        scenes = self.p.active_scenes()
+        total = len(scenes)
+        done = sum(1 for s in scenes if s.audio.status == Status.COMPLETED and self.p.abs(s.audio.path) and self.p.abs(s.audio.path).exists())
+        if done == total and total > 0:
+            st = self.p.stage("voice")
+            if st.status != Status.COMPLETED:
+                self.p.set_stage("voice", Status.COMPLETED, done=total, total=total, duration_override=st.duration_seconds or None)
+            return
+        t0 = time.perf_counter()
+        prev_dur = self.p.stage("voice").duration_seconds if done > 0 else 0.0
+        self.p.set_stage("voice", Status.RUNNING, done=done, total=total)
+        cfg = self.p.settings
+        stage_provider = self.get_stage_model("voice") or cfg.get("voice", {}).get("provider", "bluemagpie")
+        # Resolve project-level voice profile (timbre / reference audio)
+        default_p_name = self.p.data.settings.get("voice_profile")
+        PROVIDER_NAMES = ("bluemagpie", "cosyvoice", "cozyvoice", "http_clone", "elevenlabs", "voai", "edge", "sapi", "openai_tts")
+        from generators.voice_generator import list_profiles
+        all_vps = list_profiles()
+        vp_names = [vp["name"] for vp in all_vps]
+        if not default_p_name or default_p_name in PROVIDER_NAMES or default_p_name not in vp_names:
+            if stage_provider in ("cosyvoice", "cozyvoice"):
+                for vp in all_vps:
+                    if vp.get("provider") in ("cosyvoice", "cozyvoice"):
+                        default_p_name = vp["name"]
+                        break
+            elif stage_provider == "http_clone":
+                for vp in all_vps:
+                    if vp.get("provider") == "http_clone":
+                        default_p_name = vp["name"]
+                        break
+            elif stage_provider == "bluemagpie":
+                for vp in all_vps:
+                    if vp.get("provider") == "bluemagpie":
+                        default_p_name = vp["name"]
+                        break
+            elif stage_provider == "elevenlabs":
+                for vp in all_vps:
+                    if vp.get("provider") == "elevenlabs" and (vp.get("voice_id") or vp.get("voice")):
+                        default_p_name = vp["name"]
+                        break
+            elif stage_provider == "voai":
+                for vp in all_vps:
+                    if vp.get("provider") == "voai":
+                        default_p_name = vp["name"]
+                        break
+            if not default_p_name or default_p_name in PROVIDER_NAMES or default_p_name not in vp_names:
+                lang = self.p.data.settings.get("video", {}).get("language", "")
+                if "chinese" in lang.lower() or "taiwan" in lang.lower() or "trad" in lang.lower():
+                    for vp in all_vps:
+                        if "chinese" in vp.get("language", "").lower() or "tw" in vp.get("language", "").lower() or vp.get("reference_wav"):
+                            default_p_name = vp["name"]
+                            break
+            if not default_p_name or default_p_name in PROVIDER_NAMES or default_p_name not in vp_names:
+                default_p_name = default_profile_name(cfg)
+        try:
+            for s in scenes:
+                if self._cancel_flag: raise PipelineCancelled()
+                audio_path = self.p.path("audio", f"{s.tag}.wav")
+                if s.audio.status == Status.COMPLETED and audio_path.exists() and audio_path.stat().st_size > 1000 and not (s.audio.meta or {}).get("text_outdated"):
+                    continue
+                # Dynamic check: did the user switch the voice model between scenes?
+                scene_p_name = s.voice_profile or default_p_name
+                # Only fall back to avatar profile's voice if neither the scene nor project has a configured voice profile
+                if not s.voice_profile and not self.p.data.settings.get("voice_profile") and (getattr(s, "is_presenter", False) or s.visual_type == "talking_head"):
+                    av_name = getattr(s, "avatar_profile", None) or (self.p.data.settings or {}).get("default_avatar")
+                    if av_name:
+                        try:
+                            from generators.avatar_generator import load_avatar
+                            av_obj = load_avatar(av_name)
+                            if av_obj and av_obj.get("voice_profile"):
+                                scene_p_name = av_obj["voice_profile"]
+                        except Exception:
+                            pass
+                if scene_p_name in PROVIDER_NAMES or scene_p_name not in vp_names:
+                    scene_p_name = default_p_name
+                scene_profile = load_profile(scene_p_name)
+                # Ensure provider is aligned with the voice profile's configured provider
+                prof_prov = scene_profile.get("provider")
+                current_provider = prof_prov or stage_provider or "bluemagpie"
+                if prof_prov:
+                    self._stage_models_override["voice"] = prof_prov
+                    self.p.data.settings.setdefault("stage_models", {})["voice"] = prof_prov
+                self.p.activity(f"Stage 6/9: Generating voice {s.scene_id}/{total} ({scene_p_name} / {current_provider})...")
+                s.audio.status = Status.RUNNING
+                self.p.save_scenes()
+                existing_audio_meta = dict(s.audio.meta or {})
+                prev_audio_takes = list(existing_audio_meta.get("takes", []))
+                try:
+                    meta = synthesize(s.narration, scene_profile, audio_path, cfg, provider_override=current_provider)
+                    merged_audio_meta = dict(existing_audio_meta)
+                    merged_audio_meta.update(meta)
+                    merged_audio_meta["voice"] = scene_p_name
+                    merged_audio_meta["provider"] = meta.get("provider", current_provider)
+                    merged_audio_meta["takes"] = prev_audio_takes
+                    s.audio.status = Status.COMPLETED
+                    s.audio.path = self.p.rel(audio_path)
+                    s.audio.meta = merged_audio_meta
+                    s.audio_duration = meta.get("duration", 0.0)
+                    s.audio.error = None
+                    try:
+                        from core.versioning import record_scene_voice_take
+                        record_scene_voice_take(self.p, s.scene_id, s.audio.path, scene_p_name)
+                    except Exception as vt_err:
+                        log.debug("Voice take record note: %s", vt_err)
+                    if meta.get("is_cloud"):
+                        chars = int(meta.get("cloud_chars", len(s.narration)))
+                        with self.p.lock:
+                            self.p.data.usage.tts_cloud_chars += chars
+                            rate = float(load_providers().get("pricing", {}).get("tts_cloud_per_1k_chars_usd", 0.0)) / 1000.0
+                            self.p.data.usage.estimated_cost_usd += chars * rate
+                            self.p.save()
+                except Exception as e:
+                    log.error("TTS failed for scene %d: %s", s.scene_id, e)
+                    s.audio.status = Status.FAILED
+                    s.audio.error = str(e)
+                    self.p.save_scenes()
+                    raise RuntimeError(f"Voice generation failed on scene {s.scene_id}: {e}")
+                self.p.save_scenes()
+                done = sum(1 for sc in scenes if sc.audio.status == Status.COMPLETED)
+                self.p.progress("voice", done, total)
+            elapsed = round(prev_dur + max(0.1, time.perf_counter() - t0), 1)
+            self.p.set_stage("voice", Status.COMPLETED, done=total, total=total, duration_override=elapsed)
+            log.info("Voice generation complete: %d clips in %.1fs", total, elapsed)
+        except Exception as e:
+            with self.p.lock:
+                self.p.stage("voice").duration_seconds = round(prev_dur + max(0.0, time.perf_counter() - t0), 1)
+            if not isinstance(e, PipelineCancelled):
+                self.p.set_stage("voice", Status.FAILED, error=str(e))
+            raise
 
     def _run_music(self) -> None:
         pass
@@ -1747,9 +1861,78 @@ class BasePipeline:
     def _run_animation(self) -> None:
         raise NotImplementedError
 
-    def _run_subtitles(self) -> None:
-        raise NotImplementedError
+    def _run_subtitles(self, *, frame_aware: bool = False, callouts_allowed: bool = True, watermark_default: bool = False) -> None:
+        if self._cancel_flag: raise PipelineCancelled()
+        t0 = time.perf_counter()
+        self.p.activity("Stage 8/9: Building subtitles...")
+        self.p.set_stage("subtitles", Status.RUNNING)
+        cfg = self.p.settings
+        sub_cfg = cfg.get("subtitles", {})
+        scenes, slots = project_timeline(self.p)
+        pairs = [(sc.narration, sl) for sc, sl in zip(scenes, slots)]
+        layout = {"frame_width": int(cfg["video"]["width"]), "frame_height": int(cfg["video"]["height"]), "style": sub_cfg.get("style", "youtube_standard")} if frame_aware else {}
+        cues = build_cues(
+            pairs,
+            max_chars_per_line=int(sub_cfg.get("max_chars_per_line", 42)),
+            max_lines=int(sub_cfg.get("max_lines", 2)),
+            **layout,
+        )
+        srt_file = self.p.path("subtitles", "subtitles.srt")
+        ass_file = self.p.path("subtitles", "subtitles.ass")
+        write_srt(cues, srt_file)
+        # Check if fOx Hsiao style motion graphics callouts are enabled (toggleable)
+        enabled_motion_callouts = bool(
+            callouts_allowed and sub_cfg.get("motion_graphics_callouts", True)
+            and sub_cfg.get("motion_graphics", True)
+            and sub_cfg.get("callouts_enabled", True)
+            and self.p.data.settings.get("motion_callouts", True)
+        )
+        callouts = None
+        if enabled_motion_callouts:
+            from generators.motion_callout_generator import extract_motion_callouts
+            callouts = extract_motion_callouts(scenes, slots)
+        write_ass(
+            cues, ass_file,
+            style=sub_cfg.get("style", "youtube_standard"),
+            width=int(cfg["video"]["width"]),
+            height=int(cfg["video"]["height"]),
+            callouts=callouts,
+            font_override=sub_cfg.get("font"),
+            ai_watermark=bool(sub_cfg.get("ai_watermark", watermark_default)),
+        )
+        elapsed = round(max(0.1, time.perf_counter() - t0), 1)
+        callouts_info = f" with {len(callouts)} motion graphic cards" if callouts else " (motion callouts disabled)"
+        self.p.set_stage("subtitles", Status.COMPLETED, done=len(cues), total=len(cues), duration_override=elapsed)
+        log.info("Subtitles generated in %.1fs: %d dialogue cues%s", elapsed, len(cues), callouts_info)
 
     def _run_render(self) -> None:
-        raise NotImplementedError
+        if self._cancel_flag: raise PipelineCancelled()
+        t0 = time.perf_counter()
+        self.p.activity("Stage 9/9: Assembling final video with FFmpeg...")
+        self.p.set_stage("render", Status.RUNNING)
+        def on_prog(done, total, msg):
+            self.p.activity(f"Rendering: {msg} ({done}/{total})")
+            self.p.progress("render", done, total)
+        try:
+            render_model = self.get_stage_model("render")
+            if render_model:
+                self.p.data.settings.setdefault("rendering", {})["encoder"] = render_model
+            mp4_path = render_project(self.p, draft=False, progress=on_prog, cancel=self.is_cancelled)
+            self.p.data.outputs["final"] = self.p.rel(mp4_path)
+            try:
+                thumb_file = self.p.path("output", "thumbnail.png")
+                if not thumb_file.exists():
+                    from generators.thumbnail_generator import render_project_thumbnail
+                    render_project_thumbnail(self.p)
+            except Exception as th_err:
+                log.warning("Auto thumbnail generation skipped: %s", th_err)
+            elapsed = round(max(0.1, time.perf_counter() - t0), 1)
+            self.p.set_stage("render", Status.COMPLETED, done=1, total=1, duration_override=elapsed)
+            log.info("Final video rendered in %.1fs: %s", elapsed, mp4_path)
+        except Exception as e:
+            if isinstance(e, PipelineCancelled) or self._cancel_flag or "cancelled" in str(e).lower():
+                self.p.set_stage("render", Status.PENDING)
+                raise PipelineCancelled()
+            self.p.set_stage("render", Status.FAILED, error=str(e))
+            raise
 

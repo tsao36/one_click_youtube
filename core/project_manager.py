@@ -107,6 +107,7 @@ class Project:
     # ---------- settings ----------
     @property
     def settings(self) -> dict:
+        """Effective settings snapshot. Persist edits through data.settings, then save()."""
         return deep_merge(load_settings(), self.data.settings)
 
     # ---------- paths ----------
@@ -182,12 +183,6 @@ class Project:
 
         changed = False
         with self.lock:
-            if isinstance(self.settings, dict):
-                if self.settings.get("presenter_placement") != "none" or self.settings.get("avatar_enabled") is not False:
-                    self.settings["presenter_placement"] = "none"
-                    self.settings["auto_presenter"] = False
-                    self.settings["avatar_enabled"] = False
-                    changed = True
             if hasattr(self, "data") and isinstance(self.data.settings, dict):
                 if self.data.settings.get("presenter_placement") != "none" or self.data.settings.get("avatar_enabled") is not False:
                     self.data.settings["presenter_placement"] = "none"

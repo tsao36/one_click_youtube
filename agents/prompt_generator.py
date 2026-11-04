@@ -270,13 +270,16 @@ def generate_prompts(scenes: list[Scene], style: dict, bible: dict, client: LLMC
 
         def val(d):
             items = d.get("prompts", []) if isinstance(d, dict) else (d if isinstance(d, list) else [])
-            got = {int(x.get("id", -1)): x for x in items if isinstance(x, dict)}
-            if not any(i in got for i in chunk_ids):
-                # When LLM outputs relative 1-based indices (e.g. 1..8) instead of scene_ids (e.g. 9..16)
-                if len(items) == len(chunk):
-                    return {s.scene_id: x for s, x in zip(chunk, items) if isinstance(x, dict)}
-                raise ValueError("no matching ids")
-            return got
+            if len(items) != len(chunk) or not all(isinstance(x, dict) for x in items):
+                raise ValueError("Expected one prompt per scene")
+            got = {int(x.get("id", -1)): x for x in items}
+            if len(got) != len(items):
+                raise ValueError("Duplicate prompt ids")
+            if set(got) == chunk_ids:
+                return got
+            if set(got) == set(range(1, len(chunk) + 1)):
+                return {s.scene_id: got[i] for i, s in enumerate(chunk, 1)}
+            raise ValueError("Prompt ids do not cover the batch")
 
         try:
             results.update(client.json(prompt, SYSTEM, temperature=0.5, validate=val))

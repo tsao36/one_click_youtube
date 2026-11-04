@@ -16,7 +16,7 @@ from typing import Any, Optional
 from fastapi import BackgroundTasks, FastAPI, File, Form, HTTPException, Query, UploadFile
 from typing import List
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse, Response
+from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -45,7 +45,6 @@ from generators.voice_generator import delete_profile, list_profiles, load_profi
 from providers.comfy_client import ComfyClient
 from providers.images import ImageRequest, get_image_provider
 from providers.llm.ollama_provider import OllamaProvider
-from rendering.ffmpeg_renderer import render_project
 from core.youtube_uploader import (
     get_youtube_status,
     save_client_secrets_data,
@@ -723,28 +722,22 @@ def update_project_stage_models(project_id: str, req: UpdateStageModelsRequest):
     else:
         p = Project(project_id)
         p.reload()
-        p.settings.setdefault("stage_models", {}).update(req.stage_models)
         p.data.settings.setdefault("stage_models", {}).update(req.stage_models)
         if "images" in req.stage_models:
             model_val = req.stage_models["images"]
             if model_val not in ("stock", "stock_photos", "placeholder"):
-                p.settings.setdefault("images", {})["checkpoint"] = model_val
                 p.data.settings.setdefault("images", {})["checkpoint"] = model_val
             else:
-                p.settings.setdefault("images", {})["provider"] = model_val
                 p.data.settings.setdefault("images", {})["provider"] = model_val
         if "voice" in req.stage_models:
             v_val = req.stage_models["voice"]
             if v_val not in ("bluemagpie", "cosyvoice", "elevenlabs", "voai", "edge", "sapi", "openai_tts", "http_clone"):
-                p.settings["voice_profile"] = v_val
                 p.data.settings["voice_profile"] = v_val
-                p.settings.setdefault("voice", {})["profile"] = v_val
                 p.data.settings.setdefault("voice", {})["profile"] = v_val
                 try:
                     prof_obj = load_profile(v_val)
                     prof_prov = prof_obj.get("provider")
                     if prof_prov:
-                        p.settings.setdefault("stage_models", {})["voice"] = prof_prov
                         p.data.settings.setdefault("stage_models", {})["voice"] = prof_prov
                 except Exception:
                     pass
@@ -752,7 +745,6 @@ def update_project_stage_models(project_id: str, req: UpdateStageModelsRequest):
                     sc.voice_profile = v_val
                 p.save_scenes()
             else:
-                p.settings.setdefault("stage_models", {})["voice"] = v_val
                 p.data.settings.setdefault("stage_models", {})["voice"] = v_val
                 cur_prof = p.data.settings.get("voice_profile")
                 cur_prov = None
@@ -764,14 +756,13 @@ def update_project_stage_models(project_id: str, req: UpdateStageModelsRequest):
                 if cur_prov != v_val:
                     for vp in list_profiles():
                         if vp.get("provider") == v_val:
-                            p.settings["voice_profile"] = vp["name"]
                             p.data.settings["voice_profile"] = vp["name"]
                             for sc in p.scenes:
                                 sc.voice_profile = vp["name"]
                             p.save_scenes()
                             break
         if "render" in req.stage_models:
-            p.settings.setdefault("rendering", {})["encoder"] = req.stage_models["render"]
+            p.data.settings.setdefault("rendering", {})["encoder"] = req.stage_models["render"]
         p.save()
     return {"status": "updated", "stage_models": p.settings.get("stage_models", {}), "voice_profile": p.settings.get("voice_profile")}
 
@@ -1274,7 +1265,7 @@ def update_project_music(project_id: str, req: UpdateProjectMusicRequest):
     p = Project(project_id)
     p.reload()
     with p.lock:
-        m = p.settings.setdefault("music", {})
+        m = p.data.settings.setdefault("music", {})
         if req.track is not None:
             m["track"] = req.track
             if req.track.lower() in ("none", "off", "disabled", "false", "no_music"):
@@ -1776,11 +1767,9 @@ def update_stage_data_endpoint(project_id: str, stage_name: str, payload: dict[s
             p.set_stage("music", Status.COMPLETED)
         if "music_settings" in payload:
             m_up = payload["music_settings"]
-            p.settings.setdefault("music", {}).update(m_up)
             p.data.settings.setdefault("music", {}).update(m_up)
             p.save()
         if "vibe" in payload:
-            p.settings.setdefault("music", {})["vibe"] = payload["vibe"]
             p.data.settings.setdefault("music", {})["vibe"] = payload["vibe"]
             p.save()
         p.invalidate("render")
@@ -1789,8 +1778,6 @@ def update_stage_data_endpoint(project_id: str, stage_name: str, payload: dict[s
             p.write_text("subtitles/subtitles.srt", payload["srt"])
         if "motion_graphics_callouts" in payload:
             val = bool(payload["motion_graphics_callouts"])
-            p.settings.setdefault("subtitles", {})["motion_graphics_callouts"] = val
-            p.settings.setdefault("subtitles", {})["callouts_enabled"] = val
             p.data.settings.setdefault("subtitles", {})["motion_graphics_callouts"] = val
             p.data.settings.setdefault("subtitles", {})["callouts_enabled"] = val
             p.save()
@@ -2244,18 +2231,13 @@ def update_project_subtitle_settings(project_id: str, req: ProjectSubtitleSettin
     p = Project(project_id)
     p.reload()
     sub_s = p.data.settings.setdefault("subtitles", {})
-    sub_cfg = p.settings.setdefault("subtitles", {})
     if req.motion_graphics_callouts is not None:
         sub_s["motion_graphics_callouts"] = req.motion_graphics_callouts
         sub_s["callouts_enabled"] = req.motion_graphics_callouts
-        sub_cfg["motion_graphics_callouts"] = req.motion_graphics_callouts
-        sub_cfg["callouts_enabled"] = req.motion_graphics_callouts
     if req.style is not None:
         sub_s["style"] = req.style
-        sub_cfg["style"] = req.style
     if req.font is not None:
         sub_s["font"] = req.font
-        sub_cfg["font"] = req.font
     p.save()
     p.set_stage("subtitles", Status.PENDING)
     p.invalidate("render")
