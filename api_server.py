@@ -3478,7 +3478,7 @@ def auto_remotion_critical_scenes(project_id: str, background_tasks: BackgroundT
         ids = render_critical_scene_cards(p, picked, select=False, composition=composition)
         p.save_scenes()
         p.set_stage("render", Status.PENDING)
-        p.data.activity = f"Remotion {composition} cards ready for scenes {ids}"
+        p.data.activity = f"Remotion {composition} cards ready for scenes {ids} - 請點擊 Stage 9 的「Render Final Video」以合成最新影片"
 
     def prepare(project: Project):
         project.data.activity = f"Rendering {len(picked)} Remotion {composition} card(s) for critical scenes..."

@@ -12117,7 +12117,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
         if (btn) btn.disabled = true;
         const res = await fetch(`/api/projects/${currentProjectId}/remotion/auto?composition=${encodeURIComponent(comp)}`, { method: 'POST' });
         if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || '啟動失敗');
-        if (st) { st.style.color = '#38bdf8'; st.textContent = `⏳ 背景渲染中 (${comp})：Scene ${ids.join(', ')}。完成後重新渲染影片即可看到效果（進度見上方活動列）。`; }
+        if (st) { st.style.color = '#38bdf8'; st.textContent = `⏳ 背景渲染中 (${comp})：Scene ${ids.join(', ')}。完成後請點擊 Stage 9 的「Render Final Video」以合成最新影片（進度見上方活動列）。`; }
       } catch (e) {
         if (st) { st.style.color = '#f87171'; st.textContent = '❌ ' + e.message; }
       } finally {
@@ -12168,7 +12168,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
         const data = await res.json();
         if (statusText) {
           statusText.style.color = '#34d399';
-          statusText.innerHTML = `✓ 已套用 [${comp}] 至 Scene #${sceneIdVal}。重新渲染影片即可看到效果。`;
+          statusText.innerHTML = `✓ 已套用 [${comp}] 至 Scene #${sceneIdVal}。請點擊 Stage 9 的「Render Final Video」以合成最新影片。`;
         }
         if (previewBox && previewVideo && data.clip?.mp4_url) {
           previewBox.style.display = 'block';
