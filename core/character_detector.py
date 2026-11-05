@@ -164,87 +164,196 @@ def _heuristic_character_extraction(research_data: dict[str, Any], topic: str) -
     return candidates
 
 
+def clean_character_search_keywords(char: dict[str, Any], extra_queries: Optional[list[str]] = None) -> list[str]:
+    """Clean, split, and prioritize search terms for a character to avoid cross-language phonetic bleed."""
+    keywords: list[str] = []
+    seen: set[str] = set()
+
+    def _add(term: str):
+        if not term:
+            return
+        t = term.strip()
+        t = t.strip("\"'「」()（）")
+        if len(t) >= 2 and t.lower() not in seen:
+            seen.add(t.lower())
+            keywords.append(t)
+
+    raw_candidates: list[str] = []
+    if extra_queries:
+        raw_candidates.extend(extra_queries)
+
+    # 1. Primary clean name (split compound slashes like 'Name / English Name')
+    name = (char.get("name") or "").strip()
+    if name:
+        for p in re.split(r"\s*[/|｜]\s*|\s*[（(]([^）)]+)[）)]", name):
+            if p and p.strip():
+                raw_candidates.append(p.strip())
+
+    # 2. Original/foreign name (also split compound slashes)
+    orig = (char.get("original_name") or "").strip()
+    if orig and orig != name:
+        for p in re.split(r"\s*[/|｜]\s*|\s*[（(]([^）)]+)[）)]", orig):
+            if p and p.strip():
+                raw_candidates.append(p.strip())
+
+    # 3. Explicit search keywords
+    for sk in char.get("search_keywords", []):
+        if sk and isinstance(sk, str) and sk.strip():
+            raw_candidates.append(sk.strip())
+
+    for rc in raw_candidates:
+        _add(rc)
+
+    # 4. Contextual domain anchor for Chinese biographical names (e.g. 李茂生 -> 李茂生 法律 / 李茂生 教授)
+    core_name = (char.get("name") or "").split("/")[0].split("(")[0].split("（")[0].strip()
+    role_text = f"{char.get('role', '')} {char.get('suggested_topics', '')}"
+    if core_name and 2 <= len(core_name) <= 4 and re.match(r"^[\u4e00-\u9fff]+$", core_name):
+        anchors = []
+        for a in ["法律", "教授", "刑法", "學者", "台大", "導演", "演員", "製作人", "特攝"]:
+            if a in role_text:
+                anchors.append(a)
+        for a in anchors[:2]:
+            _add(f"{core_name} {a}")
+
+    # Special foreign sequels / franchise terms
+    for k in list(keywords):
+        if any(term in k for term in ("ライオン丸", "獅子丸")) and "風雲ライオン丸" not in keywords:
+            _add("風雲ライオン丸")
+
+    return keywords
+
+
+def is_media_relevant_for_character(char: dict[str, Any], title: str, description: str = "") -> bool:
+    """Validate that fetched media truly refers to the character and reject confusable homophones/imposters.
+
+    Example:
+      If target character is 李茂生, rejects any media referencing 李茂山 or pop songs,
+      preventing phonetic confusion between Taiwanese professor 李茂生 and singer 李茂山.
+    """
+    name = (char.get("name") or "").split("/")[0].split("(")[0].split("（")[0].strip()
+    orig = (char.get("original_name") or "").split("/")[0].split("(")[0].split("（")[0].strip()
+    text = f"{title or ''} {description or ''}".lower()
+
+    if not name:
+        return True
+
+    # 1. Negative Homophone & Confusable Name Filter
+    # Check for 1-character suffix or prefix substitution imposters
+    if 2 <= len(name) <= 4 and re.match(r"^[\u4e00-\u9fff]+$", name):
+        prefix = name[:-1]  # e.g. "李茂" for "李茂生"
+        target_last_char = name[-1]  # e.g. "生"
+        imposter_matches = re.findall(re.escape(prefix) + r"([\u4e00-\u9fff])", text)
+        for found_char in imposter_matches:
+            if found_char != target_last_char:
+                log.info("Rejecting media '%s': confusable imposter detected '%s%s' (target: %s)", title, prefix, found_char, name)
+                return False
+
+    # 2. Pop Music / Entertainment Noise Filter for Academic, Legal, or Serious Historical Figures
+    role_text = f"{char.get('role', '')} {char.get('suggested_topics', '')}"
+    is_academic = any(w in role_text for w in ["學者", "教授", "法律", "刑法", "犯罪學", "歷史學", "博士", "研究員"])
+    if is_academic:
+        pop_noise = ["經典老拘", "懷舊歌曲", "專輯mv", "官方完整版mv", "情歌對唱", "卡拉ok", "伴唱帶", "演唱會live", "金曲獎", "lagu mandarin"]
+        if any(noise in text for noise in pop_noise) and name.lower() not in text:
+            log.info("Rejecting media '%s': pop music noise for academic figure %s", title, name)
+            return False
+
+    # 3. Positive Name Match Validation
+    valid_tokens = [name.lower()]
+    if orig and orig.lower() != name.lower():
+        valid_tokens.append(orig.lower())
+    for sk in char.get("search_keywords", []):
+        sk_clean = sk.split("/")[0].split("(")[0].strip().lower()
+        if len(sk_clean) >= 2 and sk_clean not in valid_tokens:
+            valid_tokens.append(sk_clean)
+
+    return any(tok in text for tok in valid_tokens)
+
+
 def fetch_online_media_for_character(char: dict[str, Any], extra_queries: Optional[list[str]] = None) -> dict[str, Any]:
     """Retrieve online authentic Wikipedia portraits, Wikimedia images, and YouTube clips."""
     images: list[dict[str, Any]] = []
     clips: list[dict[str, Any]] = []
     seen_urls: set[str] = set()
 
-    keywords = []
-    candidates = (extra_queries or []) + [char.get("original_name"), char.get("name")] + char.get("search_keywords", [])
-    for k in candidates:
-        if k and isinstance(k, str) and k.strip() and k.strip() not in keywords:
-            keywords.append(k.strip())
-            # For foreign/Japanese terms, add helpful variant terms if not present
-            if any(term in k for term in ("ライオン丸", "獅子丸")) and "風雲ライオン丸" not in keywords:
-                keywords.append("風雲ライオン丸")
+    keywords = clean_character_search_keywords(char, extra_queries)
 
-    for kw in keywords[:5]:
+    for kw in keywords[:6]:
         # 1. Wikipedia portrait infobox
         try:
             wiki_p = resolve_wikipedia_portrait(kw)
             if wiki_p and wiki_p.get("media_url") and wiki_p["media_url"] not in seen_urls:
-                seen_urls.add(wiki_p["media_url"])
-                images.append({
-                    "id": wiki_p["id"],
-                    "title": wiki_p.get("title") or kw,
-                    "source": "Wikipedia",
-                    "url": wiki_p["media_url"],
-                    "thumbnail_url": wiki_p.get("thumbnail_url") or wiki_p["media_url"],
-                    "width": wiki_p.get("width", 1920),
-                    "height": wiki_p.get("height", 1080),
-                    "author": wiki_p.get("author", "Wikipedia Contributors"),
-                    "license": wiki_p.get("license", "CC-BY-SA / Public Domain"),
-                    "description": wiki_p.get("description", "")
-                })
+                p_title = wiki_p.get("title") or kw
+                if is_media_relevant_for_character(char, p_title, wiki_p.get("description", "")):
+                    seen_urls.add(wiki_p["media_url"])
+                    images.append({
+                        "id": wiki_p["id"],
+                        "title": p_title,
+                        "source": "Wikipedia",
+                        "url": wiki_p["media_url"],
+                        "thumbnail_url": wiki_p.get("thumbnail_url") or wiki_p["media_url"],
+                        "width": wiki_p.get("width", 1920),
+                        "height": wiki_p.get("height", 1080),
+                        "author": wiki_p.get("author", "Wikipedia Contributors"),
+                        "license": wiki_p.get("license", "CC-BY-SA / Public Domain"),
+                        "description": wiki_p.get("description", "")
+                    })
         except Exception as e:
             log.debug("Wikipedia portrait lookup failed for '%s': %s", kw, e)
 
         # 2. Wikimedia Commons Images
         try:
-            wm_imgs = search_wikimedia(kw, media_type="image", limit=3)
+            wm_imgs = search_wikimedia(kw, media_type="image", limit=4)
             for item in wm_imgs:
                 m_url = item.get("media_url")
                 if m_url and m_url not in seen_urls:
-                    seen_urls.add(m_url)
-                    images.append({
-                        "id": item.get("id"),
-                        "title": item.get("title") or kw,
-                        "source": "Wikimedia Commons",
-                        "url": m_url,
-                        "thumbnail_url": item.get("thumbnail_url") or m_url,
-                        "width": item.get("width", 1920),
-                        "height": item.get("height", 1080),
-                        "author": item.get("author", "Wikimedia"),
-                        "license": item.get("license", "Public Domain"),
-                        "description": item.get("description", "")
-                    })
+                    i_title = item.get("title") or kw
+                    i_desc = item.get("description", "")
+                    if is_media_relevant_for_character(char, i_title, i_desc):
+                        seen_urls.add(m_url)
+                        images.append({
+                            "id": item.get("id"),
+                            "title": i_title,
+                            "source": "Wikimedia Commons",
+                            "url": m_url,
+                            "thumbnail_url": item.get("thumbnail_url") or m_url,
+                            "width": item.get("width", 1920),
+                            "height": item.get("height", 1080),
+                            "author": item.get("author", "Wikimedia"),
+                            "license": item.get("license", "Public Domain"),
+                            "description": i_desc
+                        })
         except Exception as e:
             log.debug("Wikimedia search failed for '%s': %s", kw, e)
 
-        # 3. YouTube authentic video clips & thumbnails
+        # 3. YouTube authentic video clips & thumbnails (with strict title verification)
         try:
-            yt_videos = search_youtube_videos(kw, limit=3)
+            yt_videos = search_youtube_videos(kw, limit=4)
             for v in yt_videos:
+                v_title = v.get("title") or kw
+                v_desc = v.get("description", "") or v_title
+                # Strict validation: reject confusable imposters and unverified videos
+                if not is_media_relevant_for_character(char, v_title, v_desc):
+                    continue
+
                 v_url = v.get("url")
                 thumb = v.get("thumbnail_url")
                 if v_url and v_url not in seen_urls:
                     seen_urls.add(v_url)
                     clips.append({
                         "id": v.get("id"),
-                        "title": v.get("title") or kw,
+                        "title": v_title,
                         "source": "YouTube",
                         "url": v_url,
                         "video_id": v.get("id"),
                         "thumbnail_url": thumb,
                         "duration": v.get("duration", 0.0),
                     })
-                # Also treat high-res YouTube video thumbnail as an authentic portrait/still image candidate
+                # Treat high-res YouTube video thumbnail as an authentic portrait/still image candidate
                 if thumb and thumb not in seen_urls:
                     seen_urls.add(thumb)
                     images.append({
                         "id": f"yt_thumb_{v.get('id')}",
-                        "title": f"劇照/縮圖: {v.get('title')}",
+                        "title": f"劇照/縮圖: {v_title}",
                         "source": "YouTube Footage Still",
                         "url": thumb,
                         "thumbnail_url": thumb,
@@ -253,7 +362,7 @@ def fetch_online_media_for_character(char: dict[str, Any], extra_queries: Option
                         "height": 720,
                         "author": "YouTube Video Broadcast",
                         "license": "Fair Use Historical Archival",
-                        "description": v.get("title", "")
+                        "description": v_title
                     })
         except Exception as e:
             log.debug("YouTube footage lookup failed for '%s': %s", kw, e)

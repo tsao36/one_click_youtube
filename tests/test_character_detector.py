@@ -9,6 +9,8 @@ from core.character_detector import (
     match_scenes_for_character,
     get_main_character,
     enforce_main_character_real_image_ratio,
+    is_media_relevant_for_character,
+    clean_character_search_keywords,
 )
 
 
@@ -75,3 +77,36 @@ def test_get_main_character():
     main_char = get_main_character(proj)
     assert main_char is not None
     assert "獅子丸" in main_char["name"]
+
+
+def test_is_media_relevant_for_character_rejects_homophone_imposters():
+    char_target = {
+        "name": "李茂生",
+        "original_name": "李茂生 / Mao-Sheng Lee",
+        "role": "國立臺灣大學法律學院名譽教授",
+        "search_keywords": ["李茂生", "台大法律 李茂生", "刑法"]
+    }
+    # Imposters of singer 李茂山
+    assert not is_media_relevant_for_character(char_target, "【80-90年代的懷舊歌曲】李茂山 - Li Maoshan")
+    assert not is_media_relevant_for_character(char_target, "李茂山-碎心戀 (官方完整版MV)")
+    assert not is_media_relevant_for_character(char_target, "李茂山 無言的結局 卡拉OK")
+    # Positive authentic media for professor 李茂生
+    assert is_media_relevant_for_character(char_target, "Lawsnote介紹－李茂生教授")
+    assert is_media_relevant_for_character(char_target, "台大法律系教授李茂生專訪 談死刑與刑法思想")
+
+
+def test_clean_character_search_keywords_splits_slashes():
+    char = {
+        "name": "李茂生",
+        "original_name": "李茂生 / Mao-Sheng Lee",
+        "role": "國立臺灣大學法律學院名譽教授",
+        "search_keywords": ["李茂生", "台大法律 李茂生"]
+    }
+    kws = clean_character_search_keywords(char)
+    # Must NOT contain compound slashed string '李茂生 / Mao-Sheng Lee'
+    assert "李茂生 / Mao-Sheng Lee" not in kws
+    assert "李茂生" in kws
+    assert "Mao-Sheng Lee" in kws
+    # Context anchors
+    assert any("法律" in k or "教授" in k for k in kws)
+
