@@ -15,7 +15,7 @@ SYSTEM = (
     "CRITICAL HUMAN ANATOMY & ERGONOMICS: When human subjects appear, enforce natural human ergonomics and biologically plausible biomechanics. "
     "Describe strictly ONE coherent physical action per character at a time with exactly two natural arms and two hands (never contradictory, overlapping gestures that generate 4 hands or extra limbs). "
     "CRITICAL FACIAL CLARITY & NON-IDENTICAL DIVERSITY: All human figures must have clear, detailed, recognizable facial features. "
-    "When multiple people, crowds, or ensembles appear, explicitly depict distinct individual faces with diverse varied features, unique facial structures, and varied appearances (strictly NO identical faces, no cloned faces, no duplicate twins). "
+    "When multiple people, children, crowds, or ensembles appear, explicitly depict distinct individual faces with diverse varied features, unique facial structures, different hairstyles, and varied appearances (strictly NO identical faces, no cloned faces, no duplicate twins or triplets, no same face syndrome). Each individual person must have a distinct facial structure, different haircut, and personal expression. "
     "Never ask for readable text, captions, logos or UI in images. "
     "CRITICAL: All visual_description fields MUST be written strictly in ENGLISH even if narration is in Chinese or other languages, because the image generation models (SDXL) require English. "
     "Output only JSON."
@@ -601,7 +601,7 @@ def direct_scenes(topic: str, raw: list[dict], bible: dict, settings: dict, clie
                   '"entities": ["names from recurring entities used in this shot"], '
                   '"callout_text": "for scenes with a key metric, technical term, or core insight, a concise fOx Hsiao style kinetic callout card in Traditional Chinese formatted as TAG | KEY_TERM_OR_NUMBER | SHORT_CONTEXT (e.g. 📊 關鍵規模數據 | 八千尊陶俑 | 秦始皇陵地下軍團奇蹟), or empty string", '
                   '"phase_turn_text": "for the opening scene of a new section/phase, a dramatic 8-18 character critical turning title or question in Traditional Chinese that foretells the next phase of the story (e.g. 關鍵真相：客廳 AI 革命), otherwise empty string"}]}\n'
-                  "Vary shot sizes (wide, medium, close-up, macro, aerial). For any people, ensure strictly two arms and two hands, clear detailed facial features, and distinct non-identical faces for multiple people. Never request readable text or logos on images. "
+                  "Vary shot sizes (wide, medium, close-up, macro, aerial). For any people, ensure strictly two arms and two hands, clear detailed facial features, and distinct non-identical faces for multiple people (strictly no duplicate faces or cloned lookalikes). Never request readable text or logos on images. "
                   "Use phase_turn_text at key section turns to foretell the dramatic direction of the next phase.")
 
         def val(d, ids=[s["scene_id"] for s in chunk]):

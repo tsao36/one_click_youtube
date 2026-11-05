@@ -121,3 +121,43 @@ def test_generate_prompts_enforces_universal_negative():
     assert "blurry face" in neg
     assert "identical faces" in neg
     assert "cloned faces" in neg
+
+
+def test_build_image_system_prompt_and_anti_clone_negatives():
+    from agents.prompts_common import build_image_system_prompt, UNIVERSAL_ANTI_CLONE_NEGATIVE
+
+    # Verify extended anti-cloning tokens to avoid triplets / same face syndrome (Scene 5)
+    assert "triplets" in UNIVERSAL_ANTI_CLONE_NEGATIVE
+    assert "same face syndrome" in UNIVERSAL_ANTI_CLONE_NEGATIVE
+    assert "cloned children" in UNIVERSAL_ANTI_CLONE_NEGATIVE
+    assert "identical hairstyles" in UNIVERSAL_ANTI_CLONE_NEGATIVE
+
+    sys_prompt = build_image_system_prompt("blurry, watermark")
+    assert "CRITICAL SYSTEM DIRECTIVES & STRICT NEGATIVE CONSTRAINTS" in sys_prompt
+    assert "STRICTLY NO IDENTICAL FACES / ANTI-CLONING" in sys_prompt
+    assert "triplets" in sys_prompt
+    assert "same face syndrome" in sys_prompt
+    assert "blurry" in sys_prompt
+    assert "watermark" in sys_prompt
+
+
+def test_compose_scene5_children_anti_clone():
+    style = {
+        "style": "photorealistic 35mm",
+        "lighting": "daylight",
+        "lens": "50mm",
+        "mood": "nostalgia",
+    }
+    parts = {
+        "subject": "Energetic Japanese children with distinct lively facial features, striking transformation poses",
+        "environment": "Bustling 1971 Tokyo street corner, colorful vintage toy store windows",
+        "composition": "wide shot",
+    }
+    prompt = compose(parts, style, [], "image")
+
+    assert "strictly two arms and two hands only" in prompt
+    assert "detailed clear facial features" in prompt
+    assert "distinct individual faces" in prompt
+    assert "absolutely no identical faces" in prompt
+    assert "no cloned triplets" in prompt
+

@@ -31,13 +31,39 @@ UNIVERSAL_FACE_QUALITY_NEGATIVE = (
 
 UNIVERSAL_ANTI_CLONE_NEGATIVE = (
     "multiple people with the same face, cloned faces, identical faces, duplicate faces, "
-    "identical twins, clone army, copy-paste faces, repeated facial features across different people, "
-    "cloned crowd, identical facial structure"
+    "identical twins, triplets, clone army, copy-paste faces, identical hairstyles, "
+    "identical clothing, identical expressions, repeated facial features across different people, "
+    "cloned crowd, identical facial structure, lookalike group, uniform faces, identical siblings, "
+    "cloned children, identical boy faces, same face syndrome"
 )
 
 UNIVERSAL_QUALITY_NEGATIVE = (
     f"{UNIVERSAL_ANATOMY_NEGATIVE}, {UNIVERSAL_FACE_QUALITY_NEGATIVE}, {UNIVERSAL_ANTI_CLONE_NEGATIVE}"
 )
+
+
+def build_image_system_prompt(negative_prompt: str | list[str] | None = None) -> str:
+    """Builds a strict system prompt instruction for image generation backends (Gemini, Imagen, etc.).
+    
+    Explicitly enforces anti-cloning negative constraints, distinct individual facial diversity,
+    and biologically accurate anatomy.
+    """
+    full_neg = merge_negative_prompts(UNIVERSAL_QUALITY_NEGATIVE, negative_prompt)
+    return (
+        "You are an expert cinematic visual director and photorealistic image generator.\n"
+        "CRITICAL SYSTEM DIRECTIVES & STRICT NEGATIVE CONSTRAINTS:\n"
+        "1. STRICTLY NO IDENTICAL FACES / ANTI-CLONING:\n"
+        "   - When multiple people, children, groups, or crowds appear in the scene, EVERY SINGLE individual "
+        "MUST have a distinct, unique facial appearance, individual bone structure, different eye shape, "
+        "distinct haircut or hairstyle, varied skin tone/texture, and individual personal facial expressions.\n"
+        "   - NEVER generate cloned faces, identical lookalikes, duplicate triplets/twins, copy-paste features, "
+        "or same face syndrome across different people in the same frame.\n"
+        "2. BIOLOGICALLY ACCURATE ANATOMY:\n"
+        "   - Every human figure must have strictly and exactly two natural arms, two natural hands, "
+        "five fingers per hand, and natural ergonomic posture.\n"
+        f"3. NEGATIVE PROMPT (STRICTLY AVOID AND EXCLUDE):\n"
+        f"   {full_neg}\n"
+    )
 
 
 def merge_negative_prompts(*prompts: str | list[str] | None) -> str:

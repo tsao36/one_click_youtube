@@ -2710,10 +2710,8 @@ def regenerate_scene_image(project_id: str, scene_id: int, req_body: Optional[Re
         except Exception:
             pass
 
-    anti_clone_tokens = "multiple people with the same face, cloned faces, identical faces, duplicate faces, identical twins, clone army, copy-paste faces, repeated facial features"
-    curr_neg = (s.negative_prompt or "").strip()
-    if "cloned faces" not in curr_neg.lower():
-        curr_neg = f"{curr_neg}, {anti_clone_tokens}".strip(", ")
+    from agents.prompts_common import UNIVERSAL_QUALITY_NEGATIVE, merge_negative_prompts
+    curr_neg = merge_negative_prompts((s.negative_prompt or "").strip(), UNIVERSAL_QUALITY_NEGATIVE)
 
     used_stock_keys = set()
     for other_s in p.scenes:

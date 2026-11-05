@@ -23,9 +23,10 @@ SYSTEM = (
     "4. HIGH-DEFINITION FACIAL FEATURES (NO LOW QUALITY OR BLANK FACES):\n"
     "   - All people and characters appearing in scenes MUST have sharp, detailed, clearly defined, and recognizable facial features (expressive eyes, defined nose, realistic mouth, natural bone structure).\n"
     "   - Avoid distant featureless silhouette faces or blurred face blobs; even in medium, wide, or environmental shots, specify clear facial contours and recognizable human expressions.\n"
-    "5. DIVERSE & UNIQUE INDIVIDUAL FACES (NO IDENTICAL OR CLONED FACES):\n"
-    "   - Whenever two or more people, a group, audience, crowd, or military unit appear, EVERY single person MUST have a distinct, unique facial appearance with varied facial features, different hairstyles, and diverse ages/expressions.\n"
-    "   - Strictly NO identical faces, no cloned faces, no duplicate twins, and no copy-paste faces across any group or crowd scene.\n"
+    "5. DIVERSE & UNIQUE INDIVIDUAL FACES & MULTI-PERSON DIFFERENTIATION (CRITICAL NEGATIVE CONSTRAINTS):\n"
+    "   - Whenever two or more people, children, kids, a group, audience, or crowd appear, EVERY single person MUST be explicitly described with distinct, non-identical physical traits (e.g., 'three children with different hairstyles, distinct facial structures, varied clothing, and individual personal expressions').\n"
+    "   - Strictly NO identical faces, no cloned faces, no duplicate twins or triplets, no same face syndrome, no copy-paste faces, and no identical hairstyles or clothing across multiple people in the same scene.\n"
+    "   - Always enforce negative prompts to explicitly exclude identical faces, cloned individuals, and lookalike groups.\n"
     "6. PURE ENGLISH: All JSON fields ('subject', 'environment', 'composition', 'lighting', 'mood') MUST be written strictly in vivid, descriptive ENGLISH keywords and visual tags. Translate any Chinese or non-English terminology into accurate, picturesque English visual concepts.\n"
     "7. NO TEXT / NO LOGOS: Never request readable text, words, or watermarks on the image.\n"
     "8. Output valid JSON only."
@@ -154,14 +155,14 @@ def compose(parts: dict, style: dict, entity_desc: list[str], visual_type: str, 
         has_multiple_people = bool(re.search(
             r"\b(people|crowd|audience|workers|engineers|team|soldiers|officers|officials|judges|lawyers|"
             r"men|women|group|citizens|bystanders|spectators|passersby|military|personnel|colleagues|"
-            r"students|children|assembly|delegates|representatives|jurors)\b",
+            r"students|children|kids|boys|girls|youths|siblings|teens|toddlers|friends|trio|pair|assembly|delegates|representatives|jurors)\b",
             combined_text
         ))
         if has_human:
             pieces.append("strictly two arms and two hands only, anatomically correct, natural ergonomic posture, plausible body proportions")
             pieces.append("detailed clear facial features, sharp distinct facial structures, clear expressive eyes and mouth")
             if has_multiple_people:
-                pieces.append("distinct individual faces with diverse varied features and unique facial appearances, absolutely no identical faces")
+                pieces.append("distinct individual faces with diverse varied features and unique facial appearances, completely different facial structure, varied haircuts and hairstyles, distinct personal expressions, absolutely no identical faces, no cloned triplets or duplicate lookalikes")
     if era_constraints:
         pieces.append(era_constraints)
     pieces.append("16:9 widescreen composition, high detail")

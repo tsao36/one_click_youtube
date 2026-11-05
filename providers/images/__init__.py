@@ -15,7 +15,12 @@ from pathlib import Path
 from typing import Any, Callable
 
 from core.config import ROOT, get_secret, load_providers
-from agents.prompts_common import UNIVERSAL_QUALITY_NEGATIVE, merge_negative_prompts
+from agents.prompts_common import (
+    UNIVERSAL_QUALITY_NEGATIVE,
+    UNIVERSAL_ANTI_CLONE_NEGATIVE,
+    merge_negative_prompts,
+    build_image_system_prompt,
+)
 
 from providers.comfy_client import ComfyClient
 
@@ -99,9 +104,13 @@ class ComfyUIImageProvider(ImageProvider):
 
         scheduler = req.extra.get("scheduler") or self.s.get("scheduler", "karras")
 
+        full_neg = merge_negative_prompts(UNIVERSAL_QUALITY_NEGATIVE, req.negative)
+
+
         values = {
 
-            "POSITIVE": req.prompt, "NEGATIVE": req.negative, "SEED": int(req.seed),
+
+            "POSITIVE": req.prompt, "NEGATIVE": full_neg, "SEED": int(req.seed),
 
             "WIDTH": int(req.width), "HEIGHT": int(req.height), "STEPS": int(req.steps),
 
@@ -163,7 +172,15 @@ def _generate_openai_image(req: ImageRequest, attempts: list[dict], key: str,
         raise RuntimeError("OPENAI_API_KEY not set in .env")
     headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
     last_error = "no models attempted"
+    full_neg = merge_negative_prompts(UNIVERSAL_QUALITY_NEGATIVE, req.negative)
+    anti_clone_directive = (
+        "Ensure biologically plausible anatomy with strictly two arms and two hands. "
+        "When multiple people appear, each person must have distinct unique facial features, "
+        "different hairstyles, and varied individual expressions. Strictly avoid identical faces, "
+        f"cloned individuals, or same face syndrome. Avoid: {full_neg}."
+    )
     for body in attempts:
+        body["prompt"] = f"{body['prompt']}. {anti_clone_directive}"
         if cancel and cancel():
             raise RuntimeError("Image generation cancelled")
         model = body["model"]
@@ -337,6 +354,8 @@ class Imagen302ImageProvider(ImageProvider):
 
         last_error = None
 
+        full_neg = merge_negative_prompts(UNIVERSAL_QUALITY_NEGATIVE, req.negative)
+        system_prompt = build_image_system_prompt(full_neg)
         # 1. Try dedicated Imagen 3.0 (:predict endpoint)
 
         for m in ["imagen-3.0-generate-002", "imagen-3.0-generate-001"]:
@@ -359,9 +378,7 @@ class Imagen302ImageProvider(ImageProvider):
 
             }
 
-            if req.negative:
-
-                body["parameters"]["negativePrompt"] = req.negative
+            body["parameters"]["negativePrompt"] = full_neg
 
             try:
 
@@ -423,8 +440,10 @@ class Imagen302ImageProvider(ImageProvider):
 
             headers = {"Content-Type": "application/json"}
 
-            neg_suffix = f". Avoid and exclude: {req.negative}" if req.negative else ""
-            body = {"contents": [{"parts": [{"text": f"Generate a {aspect} image: {req.prompt}{neg_suffix}"}]}]}
+            body = {
+                "systemInstruction": {"parts": [{"text": system_prompt}]},
+                "contents": [{"parts": [{"text": f"Generate a {aspect} image: {req.prompt}. Avoid: {full_neg}"}]}],
+            }
 
             try:
 
@@ -538,8 +557,15 @@ class NanoBanana21ImageProvider(ImageProvider):
 
         # Prevent clone faces / identical people across scenes (critical for multi-character & crowd shots)
         full_neg = merge_negative_prompts(UNIVERSAL_QUALITY_NEGATIVE, req.negative)
+        system_prompt = build_image_system_prompt(full_neg)
 
-        enhanced_prompt = f"{clean_prompt}. {aspect_desc}. Ensure all human subjects have natural anatomy with strictly two arms and two hands, clear detailed facial features, and distinct individual faces with diverse appearances. Avoid: {full_neg}."
+        enhanced_prompt = (
+            f"{clean_prompt}. {aspect_desc}. "
+            f"Ensure all human subjects have natural anatomy with strictly two arms and two hands, "
+            f"clear detailed facial features, and completely distinct individual faces with diverse varied appearances, "
+            f"different hairstyles, and unique personal expressions. Absolutely no identical faces or cloned people. "
+            f"Avoid: {full_neg}."
+        )
 
         last_error = None
 
@@ -550,6 +576,10 @@ class NanoBanana21ImageProvider(ImageProvider):
             headers = {"Content-Type": "application/json"}
 
             body = {
+
+                "systemInstruction": {
+                    "parts": [{"text": system_prompt}]
+                },
 
                 "contents": [{"parts": [{"text": enhanced_prompt}]}],
 
@@ -700,7 +730,12 @@ class Imagen3ImageProvider(ImageProvider):
         last_error = None
 
         full_neg = merge_negative_prompts(UNIVERSAL_QUALITY_NEGATIVE, req.negative)
-        img_prompt = f"Generate an image: {req.prompt}. Ensure all human subjects have natural anatomy with strictly two arms and two hands, clear detailed facial features, and distinct individual faces with diverse appearances. Avoid: {full_neg}."
+        system_prompt = build_image_system_prompt(full_neg)
+        img_prompt = (
+            f"Generate an image: {req.prompt}. Ensure all human subjects have natural anatomy with strictly two arms and two hands, "
+            f"clear detailed facial features, and distinct individual faces with diverse appearances and unique hairstyles. "
+            f"Avoid: {full_neg}."
+        )
 
         for m in models_to_try:
 
@@ -709,6 +744,10 @@ class Imagen3ImageProvider(ImageProvider):
             headers = {"Content-Type": "application/json"}
 
             body = {
+
+                "systemInstruction": {
+                    "parts": [{"text": system_prompt}]
+                },
 
                 "contents": [{"parts": [{"text": img_prompt}]}]
 
@@ -1053,9 +1092,14 @@ class FalFluxSchnellImageProvider(ImageProvider):
 
         }
 
+        full_neg = merge_negative_prompts(UNIVERSAL_QUALITY_NEGATIVE, req.negative)
+        anti_clone_directive = (
+            "Ensure distinct unique facial features and varied hairstyles for every individual, "
+            f"no identical faces or cloned people. Avoid: {full_neg[:350]}."
+        )
         payload = {
 
-            "prompt": req.prompt[:2500],
+            "prompt": f"{req.prompt[:2100]}. {anti_clone_directive}",
 
             "image_size": self.p.get("image_size", "landscape_16_9"),
 
