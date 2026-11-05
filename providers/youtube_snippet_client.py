@@ -144,6 +144,10 @@ def extract_youtube_snippet(
     as_clip: bool = True,
     target_w: int = 1920,
     target_h: int = 1080,
+    exclude_video_ids: Optional[set[str] | list[str]] = None,
+    target_scene_id: Optional[int] = None,
+    media_registry: Optional[dict[str, list[int]]] = None,
+    min_scene_distance: int = 6,
 ) -> dict[str, Any]:
     """Search YouTube or use a direct URL to extract a 2-3s short clip and/or a 1080p center-cropped screenshot.
 
@@ -172,12 +176,42 @@ def extract_youtube_snippet(
     title = clean_target
     vid_duration = 0.0
 
-    # If it's a search term rather than direct URL/ID, search first
+    # Anti-duplication & recency cooldown guard: check if direct video_id is in cooldown
+    if video_id and media_registry and target_scene_id is not None:
+        from core.media_dedup import is_media_in_cooldown
+        in_cool, conflict_sid = is_media_in_cooldown(video_id, target_scene_id, media_registry, min_distance=min_scene_distance)
+        if in_cool:
+            log.warning(
+                "Direct YouTube URL '%s' (ID: %s) is in recency cooldown (already used in Scene %s, min distance: %s). Searching alternative candidates...",
+                clean_target, video_id, conflict_sid, min_scene_distance
+            )
+            # Downgrade to query search to discover non-conflicting footage
+            video_id = None
+
+    # If it's a search term (or invalidated direct URL due to cooldown), search with deduplication
     if not video_id:
-        cands = search_youtube_videos(clean_target, limit=3)
+        cands = search_youtube_videos(clean_target, limit=10)
         if not cands:
             raise RuntimeError(f"No YouTube footage found for query: '{clean_target}'")
-        first = cands[0]
+
+        first = None
+        if media_registry and target_scene_id is not None:
+            from core.media_dedup import pick_best_media_candidate
+            first = pick_best_media_candidate(cands, target_scene_id, media_registry, min_distance=min_scene_distance)
+            if not first:
+                raise RuntimeError(
+                    f"All {len(cands)} YouTube footage candidates for '{clean_target}' violate recency cooldown (<{min_scene_distance} scenes from target #{target_scene_id})"
+                )
+        elif exclude_video_ids:
+            ex_set = set(exclude_video_ids)
+            filtered = [c for c in cands if c.get("id") not in ex_set and c.get("url") not in ex_set]
+            if filtered:
+                first = filtered[0]
+            else:
+                raise RuntimeError(f"All {len(cands)} YouTube candidates for '{clean_target}' are already used/excluded")
+        else:
+            first = cands[0]
+
         video_id = first["id"]
         video_url = first["url"]
         title = first.get("title", clean_target)

@@ -926,13 +926,19 @@ class StockImageProvider(ImageProvider):
         else:
             query = base_desc
 
+        used_keys = set(req.extra.get("used_stock_keys") or [])
+        recent_keys = set(req.extra.get("recent_asset_keys") or [])
+        all_excluded = used_keys.union(recent_keys)
+
         # If preferred source is YouTube snippet, search YouTube video and download high-res thumbnail
         if (pref_src == "youtube_snippet" or self.source == "youtube") and query:
             try:
                 from providers.youtube_snippet_client import search_youtube_videos, download_youtube_thumbnail
-                vids = search_youtube_videos(query, limit=3)
-                if vids:
-                    vid = vids[0]
+                vids = search_youtube_videos(query, limit=10)
+                # Anti-duplication: filter out videos already used or within recency cooldown window
+                unused_vids = [v for v in vids if v.get("id") not in all_excluded and v.get("url") not in all_excluded]
+                if unused_vids:
+                    vid = unused_vids[0]
                     download_youtube_thumbnail(vid["id"], req.output, target_w=req.width, target_h=req.height)
                     _check_not_blank(req.output)
                     return {
@@ -947,6 +953,8 @@ class StockImageProvider(ImageProvider):
                         "prompt": req.prompt,
                         "is_stock": True,
                     }
+                else:
+                    log.info("StockImageProvider: All %d YouTube thumbnail candidates for '%s' are in recency cooldown/already used; falling back to Wikimedia/AI", len(vids), query)
             except Exception as ey:
                 log.warning("StockImageProvider: YouTube thumbnail failed for '%s': %s; falling back to Wikimedia/Stock", query, ey)
 
@@ -970,11 +978,10 @@ class StockImageProvider(ImageProvider):
 
             raise RuntimeError(f"No stock images found online for query: {query}")
 
-        # Anti-duplication: filter out stock images already used in other scenes of this project
-        used_keys = set(req.extra.get("used_stock_keys") or [])
+        # Anti-duplication: filter out stock images already used in other scenes of this project or in cooldown
         unused_results = [
             r for r in results
-            if r.get("media_url") not in used_keys and r.get("title") not in used_keys
+            if r.get("media_url") not in all_excluded and r.get("title") not in all_excluded
         ]
 
         if unused_results:

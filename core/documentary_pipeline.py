@@ -845,12 +845,16 @@ class DocumentaryPipeline(BasePipeline):
 
 
         retries = int(img_cfg.get("retries", 2))
-
-
+        from core.media_dedup import (
+            get_project_media_registry,
+            is_media_in_cooldown,
+            pick_best_media_candidate,
+            extract_canonical_media_id,
+            DEFAULT_MIN_SCENE_DISTANCE,
+        )
+        media_registry = get_project_media_registry(scenes)
 
         try:
-
-
 
             for s in scenes:
 
@@ -1114,23 +1118,23 @@ class DocumentaryPipeline(BasePipeline):
 
                     extra={
 
-
-
                         "description": s.visual_description,
-
-
 
                         "entities": getattr(s, "entities", []),
 
-
-
                         "checkpoint": checkpoint_override,
 
+                        "progress_callback": _on_img_step,
 
+                        "search_keyword": getattr(s, "search_keyword", None),
 
-                        "progress_callback": _on_img_step
+                        "media_source": getattr(s, "media_source", None),
 
+                        "used_stock_keys": list(media_registry.keys()),
 
+                        "recent_asset_keys": [cid for cid, sids in media_registry.items() if any(abs(prev_sid - s.scene_id) < DEFAULT_MIN_SCENE_DISTANCE for prev_sid in sids)],
+
+                        "target_scene_id": s.scene_id,
 
                     }
 
@@ -1307,29 +1311,28 @@ class DocumentaryPipeline(BasePipeline):
 
                         yt_res = extract_youtube_snippet(
 
-
-
                             s.search_keyword,
-
-
 
                             output_video_path=clip_path,
 
-
-
                             output_image_path=img_path,
-
-
 
                             duration_sec=clip_dur,
 
+                            as_clip=as_clip,
 
+                            target_scene_id=s.scene_id,
 
-                            as_clip=as_clip
+                            media_registry=media_registry,
 
-
+                            min_scene_distance=DEFAULT_MIN_SCENE_DISTANCE,
 
                         )
+                        if yt_res and yt_res.get("source_url") and yt_res.get("source_url") != s.search_keyword:
+                            s.search_keyword = yt_res["source_url"]
+                        cid = extract_canonical_media_id(yt_res.get("video_id") or s.search_keyword)
+                        if cid:
+                            media_registry.setdefault(cid, []).append(s.scene_id)
 
 
 

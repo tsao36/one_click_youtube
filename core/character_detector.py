@@ -536,6 +536,14 @@ def enforce_main_character_real_image_ratio(
     clips_pool = main_char.get("clips", [])
     images_pool = main_char.get("images", [])
 
+    from core.media_dedup import (
+        get_project_media_registry,
+        pick_best_media_candidate,
+        extract_canonical_media_id,
+        DEFAULT_MIN_SCENE_DISTANCE,
+    )
+    registry = get_project_media_registry(project.scenes)
+
     for idx, sid in enumerate(scenes_to_convert):
         s = scenes_map.get(sid)
         if not s:
@@ -548,8 +556,15 @@ def enforce_main_character_real_image_ratio(
         scene_len = float(s.audio_duration or s.estimated_duration or 10.0)
         clip_dur = min(max(7.0, scene_len), 15.0)
 
-        if use_clip:
-            chosen_clip = clips_pool[idx % len(clips_pool)]
+        # Anti-duplication: select optimal clip adhering to recency cooldown (>= 6 scenes distance)
+        chosen_clip = pick_best_media_candidate(clips_pool, sid, registry, min_distance=DEFAULT_MIN_SCENE_DISTANCE) if use_clip else None
+        if use_clip and not chosen_clip and images_pool:
+            # If all clips are within cooldown window, try an authentic still image
+            chosen_img = pick_best_media_candidate(images_pool, sid, registry, min_distance=DEFAULT_MIN_SCENE_DISTANCE)
+            if chosen_img:
+                use_clip = False
+
+        if use_clip and chosen_clip:
             s.media_source = "youtube_snippet"
             s.search_keyword = chosen_clip.get("url")
             s.visual_type = "historical_footage"
@@ -560,13 +575,22 @@ def enforce_main_character_real_image_ratio(
                     output_image_path=img_out,
                     duration_sec=clip_dur,
                     as_clip=True,
+                    target_scene_id=sid,
+                    media_registry=registry,
+                    min_scene_distance=DEFAULT_MIN_SCENE_DISTANCE,
                 )
+                cid = extract_canonical_media_id(chosen_clip)
+                if cid:
+                    registry.setdefault(cid, []).append(sid)
                 updated_ids.append(sid)
                 real_scene_ids.append(sid)
             except Exception as e:
                 log.warning("Clip extraction failed for scene %s: %s", sid, e)
         elif images_pool:
-            chosen_img = images_pool[idx % len(images_pool)]
+            chosen_img = pick_best_media_candidate(images_pool, sid, registry, min_distance=DEFAULT_MIN_SCENE_DISTANCE)
+            if not chosen_img:
+                log.info("Scene %s: All available character images and clips violate recency cooldown (<%d scenes). Keeping AI visual.", sid, DEFAULT_MIN_SCENE_DISTANCE)
+                continue
             s.media_source = "stock_portrait"
             s.search_keyword = chosen_img.get("title") or main_char.get("name")
             s.visual_type = "authentic_portrait"
@@ -584,6 +608,9 @@ def enforce_main_character_real_image_ratio(
                     format_stock_image(img_out, 1920, 1080)
                 if clip_out.exists():
                     clip_out.unlink(missing_ok=True)
+                cid = extract_canonical_media_id(chosen_img)
+                if cid:
+                    registry.setdefault(cid, []).append(sid)
                 updated_ids.append(sid)
                 real_scene_ids.append(sid)
             except Exception as e:
@@ -669,6 +696,14 @@ def bulk_boost_character_media(
     clips_pool = fresh_media.get("clips", [])
     images_pool = fresh_media.get("images", [])
 
+    from core.media_dedup import (
+        get_project_media_registry,
+        pick_best_media_candidate,
+        extract_canonical_media_id,
+        DEFAULT_MIN_SCENE_DISTANCE,
+    )
+    registry = get_project_media_registry(project.scenes)
+
     for idx, sid in enumerate(target_scene_ids):
         s = scenes_map.get(sid)
         if not s:
@@ -681,8 +716,13 @@ def bulk_boost_character_media(
         scene_len = float(s.audio_duration or s.estimated_duration or 10.0)
         clip_dur = min(max(7.0, scene_len), 15.0)
 
-        if use_clip:
-            chosen_clip = clips_pool[idx % len(clips_pool)]
+        chosen_clip = pick_best_media_candidate(clips_pool, sid, registry, min_distance=DEFAULT_MIN_SCENE_DISTANCE) if use_clip else None
+        if use_clip and not chosen_clip and images_pool:
+            chosen_img = pick_best_media_candidate(images_pool, sid, registry, min_distance=DEFAULT_MIN_SCENE_DISTANCE)
+            if chosen_img:
+                use_clip = False
+
+        if use_clip and chosen_clip:
             s.media_source = "youtube_snippet"
             s.search_keyword = chosen_clip.get("url")
             s.visual_type = "historical_footage"
@@ -693,12 +733,21 @@ def bulk_boost_character_media(
                     output_image_path=img_out,
                     duration_sec=clip_dur,
                     as_clip=True,
+                    target_scene_id=sid,
+                    media_registry=registry,
+                    min_scene_distance=DEFAULT_MIN_SCENE_DISTANCE,
                 )
+                cid = extract_canonical_media_id(chosen_clip)
+                if cid:
+                    registry.setdefault(cid, []).append(sid)
                 updated_ids.append(sid)
             except Exception as e:
                 log.warning("Bulk clip extract failed for scene %s: %s", sid, e)
         elif images_pool:
-            chosen_img = images_pool[idx % len(images_pool)]
+            chosen_img = pick_best_media_candidate(images_pool, sid, registry, min_distance=DEFAULT_MIN_SCENE_DISTANCE)
+            if not chosen_img:
+                log.info("Scene %s: All available character media violate recency cooldown (<%d scenes). Keeping AI visual.", sid, DEFAULT_MIN_SCENE_DISTANCE)
+                continue
             s.media_source = "stock_portrait"
             s.search_keyword = chosen_img.get("title") or character_name
             s.visual_type = "authentic_portrait"
@@ -716,6 +765,9 @@ def bulk_boost_character_media(
                     format_stock_image(img_out, 1920, 1080)
                 if clip_out.exists():
                     clip_out.unlink(missing_ok=True)
+                cid = extract_canonical_media_id(chosen_img)
+                if cid:
+                    registry.setdefault(cid, []).append(sid)
                 updated_ids.append(sid)
             except Exception as e:
                 log.warning("Bulk image apply failed for scene %s: %s", sid, e)
