@@ -537,6 +537,13 @@ class DocumentaryPipeline(BasePipeline):
 
             self.p.set_scenes(scenes)
 
+            # Automatically enforce >= 90% real images/footage for scenes mentioning main character
+            try:
+                from core.character_detector import enforce_main_character_real_image_ratio
+                enforce_main_character_real_image_ratio(self.p, ratio=0.9)
+            except Exception as enf_err:
+                log.warning("Auto enforcement of 90% real images for main character skipped: %s", enf_err)
+
 
 
             elapsed = round(max(0.1, time.perf_counter() - t0), 1)

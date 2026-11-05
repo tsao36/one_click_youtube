@@ -1908,6 +1908,23 @@ def boost_character_ratio_endpoint(project_id: str, payload: dict[str, Any]):
     return res
 
 
+@app.post("/api/projects/{project_id}/characters/enforce_real_ratio")
+def enforce_character_real_ratio_endpoint(project_id: str, payload: dict[str, Any]):
+    """Ensure at least ratio (default 90%) of scenes mentioning the main character use authentic real visuals."""
+    p = get_project(project_id)
+    ratio = float(payload.get("ratio", 0.9))
+    clip_ratio = float(payload.get("clip_ratio", 0.7))
+    extra_queries = payload.get("extra_queries", [])
+    from core.character_detector import enforce_main_character_real_image_ratio
+    res = enforce_main_character_real_image_ratio(
+        p,
+        ratio=ratio,
+        clip_ratio=clip_ratio,
+        extra_queries=extra_queries,
+    )
+    return res
+
+
 
 @app.get("/api/projects/{project_id}/export_script")
 def export_project_script_endpoint(project_id: str, format: str = "md"):
