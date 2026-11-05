@@ -1225,11 +1225,26 @@ class DocumentaryPipeline(BasePipeline):
                         w_target = int(self.p.settings.get("images", {}).get("width", 1920))
                         h_target = int(self.p.settings.get("images", {}).get("height", 1080))
 
-                        portrait_info = resolve_wikipedia_portrait(person_name)
+                        portrait_info = None
+                        wiki_lead = resolve_wikipedia_portrait(person_name)
+                        if wiki_lead and wiki_lead.get("media_url"):
+                            cid = extract_canonical_media_id(wiki_lead["media_url"])
+                            in_cooldown, conf_sid = is_media_in_cooldown(cid, s.scene_id, media_registry, min_distance=DEFAULT_MIN_SCENE_DISTANCE)
+                            if not in_cooldown:
+                                portrait_info = wiki_lead
+                            else:
+                                log.info("Wikipedia lead portrait for '%s' is in cooldown (used in scene %s). Searching Wikimedia gallery...", person_name, conf_sid)
+
                         if not portrait_info:
-                            wiki_res = search_wikimedia(person_name, media_type="image", limit=5)
+                            wiki_res = search_wikimedia(person_name, media_type="image", limit=12)
                             if wiki_res:
-                                portrait_info = wiki_res[0]
+                                chosen_candidate, conf = pick_best_media_candidate(
+                                    wiki_res, s.scene_id, media_registry, min_distance=DEFAULT_MIN_SCENE_DISTANCE
+                                )
+                                if chosen_candidate:
+                                    portrait_info = chosen_candidate
+                                else:
+                                    log.info("All %d Wikimedia photos for '%s' are currently in cooldown. Falling back to diverse AI generation for scene %d.", len(wiki_res), person_name, s.scene_id)
 
                         if portrait_info and portrait_info.get("media_url"):
                             temp_dl = img_path.with_name(f"{img_path.stem}_portrait_raw.jpg")
@@ -1259,6 +1274,9 @@ class DocumentaryPipeline(BasePipeline):
                                 s.image.meta = merged_meta
                                 s.image.error = None
                                 generated = True
+                                cid = extract_canonical_media_id(portrait_info.get("media_url"))
+                                if cid:
+                                    media_registry.setdefault(cid, []).append(s.scene_id)
                                 log.info("Scene %d successfully grounded authentic portrait for '%s' from %s: %s",
                                          s.scene_id, person_name, portrait_info.get("source"), portrait_info.get("title"))
                     except Exception as port_err:
@@ -1549,129 +1567,45 @@ class DocumentaryPipeline(BasePipeline):
 
 
                         if wiki_res:
-
-
-
-                            chosen = wiki_res[0]
-
-
-
-                            temp_dl = img_path.with_name(f"{img_path.stem}_wiki_raw.jpg")
-
-
-
-                            download_media_file(chosen["media_url"], temp_dl)
-
-
-
-                            format_stock_image(temp_dl, img_path, target_w=w_target, target_h=h_target)
-
-
-
-                            if temp_dl.exists():
-
-
-
-                                try:
-
-
-
-                                    temp_dl.unlink()
-
-
-
-                                except Exception:
-
-
-
-                                    pass
-
-
-
-                            if img_path.exists() and img_path.stat().st_size > 1000:
-
-
-
-                                merged_meta = dict(existing_img_meta)
-
-
-
-                                merged_meta.update({
-
-
-
-                                    "provider": "stock",
-
-
-
-                                    "source": chosen.get("source", "wikimedia"),
-
-
-
-                                    "search_keyword": search_term,
-
-
-
-                                    "title": chosen.get("title", ""),
-
-
-
-                                    "author": chosen.get("author", "Wikimedia Contributor"),
-
-
-
-                                    "license": chosen.get("license", "CC / Public Domain"),
-
-
-
-                                    "url": chosen.get("media_url", ""),
-
-
-
-                                    "media_source": "wikimedia",
-
-
-
-                                    "is_stock": True,
-
-
-
-                                })
-
-
-
-                                merged_meta["takes"] = prev_img_takes
-
-
-
-                                s.image.status = Status.COMPLETED
-
-
-
-                                s.image.path = self.p.rel(img_path)
-
-
-
-                                s.image.meta = merged_meta
-
-
-
-                                s.image.error = None
-
-
-
-                                generated = True
-
-
-
-                                log.info("Scene %d successfully sourced Wikimedia image for '%s': %s",
-
-
-
-                                         s.scene_id, search_term, chosen.get("title"))
-
-
-
+                            chosen, conf = pick_best_media_candidate(
+                                wiki_res, s.scene_id, media_registry, min_distance=DEFAULT_MIN_SCENE_DISTANCE
+                            )
+                            if not chosen:
+                                log.info("All Wikimedia candidates for '%s' are in cooldown. Falling back to AI image generation for scene %d.", search_term, s.scene_id)
+                            else:
+                                temp_dl = img_path.with_name(f"{img_path.stem}_wiki_raw.jpg")
+                                download_media_file(chosen["media_url"], temp_dl)
+                                format_stock_image(temp_dl, img_path, target_w=w_target, target_h=h_target)
+                                if temp_dl.exists():
+                                    try:
+                                        temp_dl.unlink()
+                                    except Exception:
+                                        pass
+
+                                if img_path.exists() and img_path.stat().st_size > 1000:
+                                    merged_meta = dict(existing_img_meta)
+                                    merged_meta.update({
+                                        "provider": "stock",
+                                        "source": chosen.get("source", "wikimedia"),
+                                        "search_keyword": search_term,
+                                        "title": chosen.get("title", ""),
+                                        "author": chosen.get("author", "Wikimedia Contributor"),
+                                        "license": chosen.get("license", "CC / Public Domain"),
+                                        "url": chosen.get("media_url", ""),
+                                        "media_source": "wikimedia",
+                                        "is_stock": True,
+                                    })
+                                    merged_meta["takes"] = prev_img_takes
+                                    s.image.status = Status.COMPLETED
+                                    s.image.path = self.p.rel(img_path)
+                                    s.image.meta = merged_meta
+                                    s.image.error = None
+                                    generated = True
+                                    cid = extract_canonical_media_id(chosen.get("media_url"))
+                                    if cid:
+                                        media_registry.setdefault(cid, []).append(s.scene_id)
+                                    log.info("Scene %d successfully sourced Wikimedia image for '%s': %s",
+                                             s.scene_id, search_term, chosen.get("title"))
                     except Exception as wiki_err:
 
 
