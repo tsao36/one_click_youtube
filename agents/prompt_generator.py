@@ -110,12 +110,12 @@ def compose(parts: dict, style: dict, entity_desc: list[str], visual_type: str, 
             era_constraints = f"CRITICAL ERA CONSTRAINTS: Must strictly depict {era or 'the designated historical era'}; absolutely NO {neg_list_str}"
 
     pieces = [
-        era_anchor,
-        env_anchor,
         parts.get("subject"),
         parts.get("environment"),
-        *entity_desc,
         parts.get("composition"),
+        era_anchor,
+        env_anchor,
+        *entity_desc,
         parts.get("lighting") or style.get("lighting"),
         style_str,
         style.get("lens", "") if visual_type != "diagram" else "",
