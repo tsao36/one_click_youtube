@@ -1237,8 +1237,15 @@ class DocumentaryPipeline(BasePipeline):
 
                         if not portrait_info:
                             wiki_res = search_wikimedia(person_name, media_type="image", limit=12)
+                            alt_name = "沈伯洋" if person_name == "Puma Shen" else ("Puma Shen" if "沈伯洋" in person_name else "")
+                            if alt_name and len(wiki_res) < 6:
+                                extra_wiki = search_wikimedia(alt_name, media_type="image", limit=12)
+                                existing_u = {w.get("media_url") for w in wiki_res}
+                                for ew in extra_wiki:
+                                    if ew.get("media_url") not in existing_u:
+                                        wiki_res.append(ew)
                             if wiki_res:
-                                chosen_candidate, conf = pick_best_media_candidate(
+                                chosen_candidate = pick_best_media_candidate(
                                     wiki_res, s.scene_id, media_registry, min_distance=DEFAULT_MIN_SCENE_DISTANCE
                                 )
                                 if chosen_candidate:
@@ -1567,7 +1574,7 @@ class DocumentaryPipeline(BasePipeline):
 
 
                         if wiki_res:
-                            chosen, conf = pick_best_media_candidate(
+                            chosen = pick_best_media_candidate(
                                 wiki_res, s.scene_id, media_registry, min_distance=DEFAULT_MIN_SCENE_DISTANCE
                             )
                             if not chosen:
