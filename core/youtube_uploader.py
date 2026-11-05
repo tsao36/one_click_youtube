@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import socket
 import threading
 import time
@@ -721,22 +722,30 @@ def _upload_video_worker(
             resumable=True
         )
 
-        insert_request = service.videos().insert(
-            part="snippet,status",
-            body=request_body,
-            media_body=media
-        )
+        try:
+            insert_request = service.videos().insert(
+                part="snippet,status",
+                body=request_body,
+                media_body=media
+            )
 
-        response = None
-        while response is None:
-            upload_status, response = insert_request.next_chunk()
-            if upload_status:
-                bytes_uploaded = upload_status.resumable_progress
-                progress = int((bytes_uploaded / file_size) * 100)
-                with _upload_lock:
-                    if project_id in active_uploads:
-                        active_uploads[project_id]["progress_percent"] = min(99, progress)
-                        active_uploads[project_id]["bytes_uploaded"] = bytes_uploaded
+            response = None
+            while response is None:
+                upload_status, response = insert_request.next_chunk()
+                if upload_status:
+                    bytes_uploaded = upload_status.resumable_progress
+                    progress = int((bytes_uploaded / file_size) * 100)
+                    with _upload_lock:
+                        if project_id in active_uploads:
+                            active_uploads[project_id]["progress_percent"] = min(99, progress)
+                            active_uploads[project_id]["bytes_uploaded"] = bytes_uploaded
+        finally:
+            # Explicitly close file descriptor so Windows releases file lock immediately
+            if hasattr(media, "_fd") and media._fd and not media._fd.closed:
+                try:
+                    media._fd.close()
+                except Exception:
+                    pass
 
         # Video upload completed!
         video_id = response.get("id")
@@ -745,6 +754,7 @@ def _upload_video_worker(
 
         # Upload thumbnail if requested
         if upload_thumbnail and thumbnail_path and Path(thumbnail_path).exists():
+            thumb_media = None
             try:
                 log.info("Setting custom thumbnail for video %s from %s...", video_id, thumbnail_path)
                 thumb_media = MediaFileUpload(thumbnail_path, mimetype="image/png")
@@ -752,6 +762,12 @@ def _upload_video_worker(
                 log.info("Thumbnail updated successfully.")
             except Exception as e:
                 log.warning("Could not set thumbnail (channel may lack custom thumbnail verification): %s", e)
+            finally:
+                if thumb_media and hasattr(thumb_media, "_fd") and thumb_media._fd and not thumb_media._fd.closed:
+                    try:
+                        thumb_media._fd.close()
+                    except Exception:
+                        pass
 
         # Record in project outputs
         project.data.outputs["youtube_video_id"] = video_id
@@ -768,11 +784,17 @@ def _upload_video_worker(
                 dest_video = ext_dir / video_abs.name
                 if dest_video.exists():
                     dest_video = ext_dir / f"{video_abs.stem}_{int(time.time())}{video_abs.suffix}"
-                import shutil
-                shutil.move(str(video_abs), str(dest_video))
-                log.info("Moved uploaded final video %s to external drive: %s", video_abs, dest_video)
+                # Copy first so backup is guaranteed even if a media player holds a shared lock
+                shutil.copy2(str(video_abs), str(dest_video))
                 project.data.outputs["external_archive_path"] = str(dest_video)
                 project.data.outputs["archived_to_external"] = True
+
+                # Attempt to delete local source file on C: drive
+                try:
+                    os.unlink(str(video_abs))
+                    log.info("Moved uploaded final video %s to external drive: %s", video_abs, dest_video)
+                except Exception as del_err:
+                    log.info("Final video backed up to %s; local file retained (currently in use by player/browser): %s", dest_video, del_err)
                 project.save()
         except Exception as me:
             log.warning("Could not move final video to external drive: %s", me)
