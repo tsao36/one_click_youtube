@@ -9,7 +9,7 @@ export interface FoxBackgroundProps {
 
 export const FoxBackground: React.FC<FoxBackgroundProps> = ({
   bgSrc,
-  dim = 0.35,
+  dim = 0.0,
   children,
 }) => {
   const frame = useCurrentFrame();
@@ -35,15 +35,17 @@ export const FoxBackground: React.FC<FoxBackgroundProps> = ({
               height: "100%",
               objectFit: "cover",
               transform: `scale(${bgScale})`,
-              filter: "contrast(1.05) brightness(0.95)",
+              filter: "contrast(1.02) brightness(1.0)",
             }}
           />
-          {/* Transparent Vignette Gradient: keeps left text 100% readable while maintaining photo clarity */}
-          <AbsoluteFill
-            style={{
-              background: `radial-gradient(ellipse at 25% 45%, rgba(10, 14, 22, ${dim * 0.7}) 0%, rgba(6, 9, 15, ${Math.min(0.92, dim + 0.35)}) 100%)`,
-            }}
-          />
+          {/* Subtle Transparent Vignette only if dim requested to avoid blocking the image */}
+          {dim > 0.05 && (
+            <AbsoluteFill
+              style={{
+                background: `radial-gradient(ellipse at 25% 45%, rgba(10, 14, 22, ${dim * 0.4}) 0%, rgba(6, 9, 15, ${Math.min(0.6, dim + 0.1)}) 100%)`,
+              }}
+            />
+          )}
         </AbsoluteFill>
       )}
 

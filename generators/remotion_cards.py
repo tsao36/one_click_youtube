@@ -317,7 +317,7 @@ def _normalize_props_for_composition(comp: str, raw: dict[str, Any]) -> dict[str
         p["subtitle"] = subtext
         p["source"] = source
         p["accentColor"] = p.get("accentColor") or "#F87171"
-        p["dim"] = float(p.get("dim") or 0.35)
+        p["dim"] = float(p.get("dim") or 0.0)
 
     elif comp == "FoxMetricScene":
         val = str(p.get("metric") or p.get("value") or "").strip()

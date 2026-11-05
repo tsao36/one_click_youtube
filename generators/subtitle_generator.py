@@ -307,62 +307,29 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 w_sub = _est_px(subtitle, fs_sub) if subtitle else 0
                 content_w = max(w_tag, w_title, w_sub)
 
-                card_w = round(max(460 * scale, min(1180 * scale, content_w + 116 * scale)))
-                card_h = round((156 if subtitle else 118) * scale)
-                ch = round(14 * scale)
-
                 mid_x = round(width / 2)
-                x_left = round((width - card_w) / 2)
-                y_top_start = round(82 * scale)
-                y_top_target = round(54 * scale)
+                y_top_start = round(72 * scale)
+                y_top_target = round(48 * scale)
 
-                # Layer 1: Chamfered dark HUD card backdrop with cyan border
-                box_anim = (
-                    f"{{\\an7\\move({x_left},{y_top_start},{x_left},{y_top_target},0,320)\\fad(250,300)"
-                    f"\\1c&H221208&\\1a&H16&\\3c&HFFE500&\\3a&H18&\\bord2.5\\shad4\\4c&H000000&\\4a&H50&\\p1}}"
-                )
-                box_poly = (
-                    f"m {ch} 0 l {card_w - ch} 0 l {card_w} {ch} l {card_w} {card_h - ch} "
-                    f"l {card_w - ch} {card_h} l {ch} {card_h} l 0 {card_h - ch} l 0 {ch}{{\\p0}}"
-                )
-                raw_events.append((
-                    c_start,
-                    f"Dialogue: 1,{_ts_ass(c_start)},{_ts_ass(c_end)},FoxCalloutBox,,0,0,0,,{box_anim}{box_poly}",
-                ))
-
-                # Layer 2: Glowing top cyan accent bar
-                acc_h = max(3, round(5 * scale))
-                acc_w = card_w - 2 * ch
-                acc_anim = (
-                    f"{{\\an7\\move({x_left + ch},{y_top_start},{x_left + ch},{y_top_target},0,320)\\fad(250,300)"
-                    f"\\1c&HFFE500&\\1a&H00&\\bord0\\shad0\\p1}}"
-                )
-                acc_poly = f"m 0 0 l {acc_w} 0 l {acc_w} {acc_h} l 0 {acc_h}{{\\p0}}"
-                raw_events.append((
-                    c_start,
-                    f"Dialogue: 2,{_ts_ass(c_start)},{_ts_ass(c_end)},FoxCalloutBox,,0,0,0,,{acc_anim}{acc_poly}",
-                ))
-
-                # Layer 3: High-contrast kinetic typography inside the HUD card
-                txt_y_start = y_top_start + round(14 * scale)
-                txt_y_target = y_top_target + round(14 * scale)
-                anim_tag = f"{{\\an8\\move({mid_x},{txt_y_start},{mid_x},{txt_y_target},0,320)\\fad(250,300)}}"
+                # Pure floating kinetic typography with NO background box (preserves 100% of underlying visual)
+                anim_tag = f"{{\\an8\\move({mid_x},{y_top_start},{mid_x},{y_top_target},0,320)\\fad(250,300)}}"
 
                 # Highlight numbers/metrics in warm gold (#FFD838 -> &H0038D8FF&), key concepts in crisp white
                 has_metric = bool(re.search(r"(\d|[一二三四五六七八九十百千萬兩]+\s*[尊枚把件座名位人戶個條份公釐公厘毫米公分公尺公里倍成%])", title))
                 title_color = "&H0038D8FF&" if has_metric else "&H00FFFFFF&"
 
+                # High-contrast outline & shadow to guarantee crystal-clear readability without blocking the image
                 card_lines = [
-                    f"{{\\fs{fs_tag}\\c&H00FFE500&\\3c&H00140A04&\\bord2\\shad0\\b1}}◆  {clean_tag}  ◆",
-                    f"{{\\fs{fs_title}\\c{title_color}\\3c&H00100804&\\bord3.2\\shad2\\b1}}{title}",
+                    f"{{\\fs{fs_tag}\\c&H00FFE500&\\3c&H00140A04&\\bord2.5\\shad3\\b1}}◆  {clean_tag}  ◆",
+                    f"{{\\fs{fs_title}\\c{title_color}\\3c&H00100804&\\bord3.5\\shad4\\b1}}{title}",
                 ]
                 if subtitle:
-                    card_lines.append(f"{{\\fs{fs_sub}\\c&H00F2E6D8&\\3c&H00100804&\\bord2\\shad1\\b0}}{subtitle}")
+                    card_lines.append(f"{{\\fs{fs_sub}\\c&H00F2E6D8&\\3c&H00100804&\\bord2.4\\shad2.5\\b0}}{subtitle}")
 
                 formatted_content = "\\N".join(card_lines)
                 raw_events.append((
                     c_start,
-                    f"Dialogue: 3,{_ts_ass(c_start)},{_ts_ass(c_end)},{c_style},,0,0,0,,{anim_tag}{formatted_content}",
+                    f"Dialogue: 1,{_ts_ass(c_start)},{_ts_ass(c_end)},{c_style},,0,0,0,,{anim_tag}{formatted_content}",
                 ))
             else:
                 layer = 2 if c_style == "ChapterTag" else 1
