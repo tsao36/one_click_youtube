@@ -114,8 +114,25 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
-      ]
+        "development",
+        "intro_context"
+      ],
+      "voiceover_fitness": 4.3,
+      "distraction_prob": 0.11,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.74,
+      "acoustic_profile": {
+        "duration_sec": 177.46,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920326
     },
     {
       "id": "tech_futuristic/Crypto.mp3",
@@ -141,8 +158,25 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
-      ]
+        "development",
+        "deep_dive_tension"
+      ],
+      "voiceover_fitness": 3.83,
+      "distraction_prob": 0.29,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "deep_dive_tension",
+      "typesafe_confidence": 0.8,
+      "acoustic_profile": {
+        "duration_sec": 204.07,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920327
     },
     {
       "id": "tech_futuristic/Floating_Cities.mp3",
@@ -168,8 +202,25 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
-      ]
+        "development",
+        "intro_context"
+      ],
+      "voiceover_fitness": 4.65,
+      "distraction_prob": 0.13,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.72,
+      "acoustic_profile": {
+        "duration_sec": 184.06,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920327
     },
     {
       "id": "tech_futuristic/Digital_Bark.mp3",
@@ -195,8 +246,25 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
-      ]
+        "development",
+        "intro_context"
+      ],
+      "voiceover_fitness": 4.2,
+      "distraction_prob": 0.26,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.68,
+      "acoustic_profile": {
+        "duration_sec": 267.42,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920358
     },
     {
       "id": "tech_futuristic/Airship_Serenity.mp3",
@@ -222,8 +290,25 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
-      ]
+        "development",
+        "intro_context"
+      ],
+      "voiceover_fitness": 4.71,
+      "distraction_prob": 0.11,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.77,
+      "acoustic_profile": {
+        "duration_sec": 240.07,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920358
     },
     {
       "id": "cinematic_documentary/Dreamer.mp3",
@@ -248,8 +333,25 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
-      ]
+        "development",
+        "intro_context"
+      ],
+      "voiceover_fitness": 3.42,
+      "distraction_prob": 0.13,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.59,
+      "acoustic_profile": {
+        "duration_sec": 204.07,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920358
     },
     {
       "id": "cinematic_documentary/Autumn_Day.mp3",
@@ -274,8 +376,25 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
-      ]
+        "development",
+        "intro_context"
+      ],
+      "voiceover_fitness": 3.25,
+      "distraction_prob": 0.11,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.79,
+      "acoustic_profile": {
+        "duration_sec": 184.82,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920358
     },
     {
       "id": "cinematic_documentary/Heartbreaking.mp3",
@@ -300,8 +419,25 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
-      ]
+        "development",
+        "intro_context"
+      ],
+      "voiceover_fitness": 2.69,
+      "distraction_prob": 0.17,
+      "is_voiceover_ready": false,
+      "speech_intrusive": true,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.42,
+      "acoustic_profile": {
+        "duration_sec": 96.05,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920358
     },
     {
       "id": "cinematic_documentary/Frost_Waltz.mp3",
@@ -326,8 +462,25 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
-      ]
+        "development",
+        "intro_context"
+      ],
+      "voiceover_fitness": 4.21,
+      "distraction_prob": 0.11,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.32,
+      "acoustic_profile": {
+        "duration_sec": 135.47,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920358
     },
     {
       "id": "cinematic_documentary/Deep_Haze.mp3",
@@ -352,8 +505,25 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
-      ]
+        "development",
+        "intro_context"
+      ],
+      "voiceover_fitness": 4.49,
+      "distraction_prob": 0.09,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.57,
+      "acoustic_profile": {
+        "duration_sec": 122.07,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920358
     },
     {
       "id": "mystery_cosmic/Phantom_from_Space.mp3",
@@ -379,8 +549,25 @@
       "energy_level": "low",
       "movement_roles": [
         "intro",
-        "development"
-      ]
+        "development",
+        "intro_context"
+      ],
+      "voiceover_fitness": 3.95,
+      "distraction_prob": 0.18,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.55,
+      "acoustic_profile": {
+        "duration_sec": 156.4,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920358
     },
     {
       "id": "mystery_cosmic/Mesmerize.mp3",
@@ -406,8 +593,25 @@
       "energy_level": "low",
       "movement_roles": [
         "intro",
-        "development"
-      ]
+        "development",
+        "deep_dive_tension"
+      ],
+      "voiceover_fitness": 4.19,
+      "distraction_prob": 0.17,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "deep_dive_tension",
+      "typesafe_confidence": 0.52,
+      "acoustic_profile": {
+        "duration_sec": 424.07,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920358
     },
     {
       "id": "mystery_cosmic/Static_Motion.mp3",
@@ -433,8 +637,25 @@
       "energy_level": "low",
       "movement_roles": [
         "intro",
-        "development"
-      ]
+        "development",
+        "intro_context"
+      ],
+      "voiceover_fitness": 3.79,
+      "distraction_prob": 0.26,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.48,
+      "acoustic_profile": {
+        "duration_sec": 188.79,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920358
     },
     {
       "id": "mystery_cosmic/Blue_Sizzle.mp3",
@@ -460,8 +681,25 @@
       "energy_level": "low",
       "movement_roles": [
         "intro",
-        "development"
-      ]
+        "development",
+        "intro_context"
+      ],
+      "voiceover_fitness": 4.75,
+      "distraction_prob": 0.15,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.8,
+      "acoustic_profile": {
+        "duration_sec": 146.08,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920359
     },
     {
       "id": "mystery_cosmic/Darkest_Child.mp3",
@@ -487,8 +725,25 @@
       "energy_level": "low",
       "movement_roles": [
         "intro",
-        "development"
-      ]
+        "development",
+        "deep_dive_tension"
+      ],
+      "voiceover_fitness": 3.77,
+      "distraction_prob": 0.13,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "deep_dive_tension",
+      "typesafe_confidence": 0.43,
+      "acoustic_profile": {
+        "duration_sec": 238.68,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920359
     },
     {
       "id": "calm_focus/Meditation_Impromptu_01.mp3",
@@ -514,8 +769,25 @@
       "energy_level": "low",
       "movement_roles": [
         "intro",
-        "development"
-      ]
+        "development",
+        "intro_context"
+      ],
+      "voiceover_fitness": 3.58,
+      "distraction_prob": 0.1,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.49,
+      "acoustic_profile": {
+        "duration_sec": 212.82,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920359
     },
     {
       "id": "calm_focus/Meditation_Impromptu_02.mp3",
@@ -541,8 +813,25 @@
       "energy_level": "low",
       "movement_roles": [
         "intro",
-        "development"
-      ]
+        "development",
+        "intro_context"
+      ],
+      "voiceover_fitness": 4.18,
+      "distraction_prob": 0.07,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.32,
+      "acoustic_profile": {
+        "duration_sec": 249.1,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920359
     },
     {
       "id": "calm_focus/Clean_Soul.mp3",
@@ -568,8 +857,25 @@
       "energy_level": "low",
       "movement_roles": [
         "intro",
-        "development"
-      ]
+        "development",
+        "intro_context"
+      ],
+      "voiceover_fitness": 4.99,
+      "distraction_prob": 0.08,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.99,
+      "acoustic_profile": {
+        "duration_sec": 306.73,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920359
     },
     {
       "id": "calm_focus/Dream_Culture.mp3",
@@ -595,8 +901,25 @@
       "energy_level": "low",
       "movement_roles": [
         "intro",
-        "development"
-      ]
+        "development",
+        "intro_context"
+      ],
+      "voiceover_fitness": 4.12,
+      "distraction_prob": 0.13,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.83,
+      "acoustic_profile": {
+        "duration_sec": 214.36,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920360
     },
     {
       "id": "calm_focus/Fresh_Air.mp3",
@@ -622,8 +945,25 @@
       "energy_level": "low",
       "movement_roles": [
         "intro",
-        "development"
-      ]
+        "development",
+        "intro_context"
+      ],
+      "voiceover_fitness": 4.15,
+      "distraction_prob": 0.1,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.49,
+      "acoustic_profile": {
+        "duration_sec": 294.06,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920360
     },
     {
       "id": "dramatic_tension/Hitman.mp3",
@@ -649,8 +989,25 @@
       "energy_level": "high",
       "movement_roles": [
         "development",
-        "climax"
-      ]
+        "climax",
+        "deep_dive_tension"
+      ],
+      "voiceover_fitness": 4.04,
+      "distraction_prob": 0.14,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "deep_dive_tension",
+      "typesafe_confidence": 0.91,
+      "acoustic_profile": {
+        "duration_sec": 200.83,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920360
     },
     {
       "id": "dramatic_tension/Redletter.mp3",
@@ -676,8 +1033,25 @@
       "energy_level": "high",
       "movement_roles": [
         "development",
-        "climax"
-      ]
+        "climax",
+        "deep_dive_tension"
+      ],
+      "voiceover_fitness": 1.99,
+      "distraction_prob": 0.52,
+      "is_voiceover_ready": false,
+      "speech_intrusive": true,
+      "typesafe_movement_role": "deep_dive_tension",
+      "typesafe_confidence": 0.82,
+      "acoustic_profile": {
+        "duration_sec": 268.15,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920360
     },
     {
       "id": "dramatic_tension/Echoes_of_Time.mp3",
@@ -703,8 +1077,25 @@
       "energy_level": "high",
       "movement_roles": [
         "development",
-        "climax"
-      ]
+        "climax",
+        "deep_dive_tension"
+      ],
+      "voiceover_fitness": 2.97,
+      "distraction_prob": 0.27,
+      "is_voiceover_ready": false,
+      "speech_intrusive": true,
+      "typesafe_movement_role": "deep_dive_tension",
+      "typesafe_confidence": 0.18,
+      "acoustic_profile": {
+        "duration_sec": 285.15,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920360
     },
     {
       "id": "dramatic_tension/Intrepid.mp3",
@@ -730,8 +1121,25 @@
       "energy_level": "high",
       "movement_roles": [
         "development",
-        "climax"
-      ]
+        "climax",
+        "deep_dive_tension"
+      ],
+      "voiceover_fitness": 4.03,
+      "distraction_prob": 0.14,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "deep_dive_tension",
+      "typesafe_confidence": 0.94,
+      "acoustic_profile": {
+        "duration_sec": 190.98,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920360
     },
     {
       "id": "dramatic_tension/Lightless_Dawn.mp3",
@@ -757,8 +1165,25 @@
       "energy_level": "high",
       "movement_roles": [
         "development",
-        "climax"
-      ]
+        "climax",
+        "deep_dive_tension"
+      ],
+      "voiceover_fitness": 2.8,
+      "distraction_prob": 0.27,
+      "is_voiceover_ready": false,
+      "speech_intrusive": true,
+      "typesafe_movement_role": "deep_dive_tension",
+      "typesafe_confidence": 0.32,
+      "acoustic_profile": {
+        "duration_sec": 379.85,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920360
     },
     {
       "id": "uplifting_inspirational/Promises_to_Keep.mp3",
@@ -783,8 +1208,25 @@
       "energy_level": "high",
       "movement_roles": [
         "development",
-        "climax"
-      ]
+        "climax",
+        "climax_resolution"
+      ],
+      "voiceover_fitness": 3.22,
+      "distraction_prob": 0.15,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "climax_resolution",
+      "typesafe_confidence": 0.68,
+      "acoustic_profile": {
+        "duration_sec": 304.07,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920360
     },
     {
       "id": "uplifting_inspirational/Sovereign.mp3",
@@ -809,8 +1251,25 @@
       "energy_level": "high",
       "movement_roles": [
         "development",
-        "climax"
-      ]
+        "climax",
+        "climax_resolution"
+      ],
+      "voiceover_fitness": 3.39,
+      "distraction_prob": 0.13,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "climax_resolution",
+      "typesafe_confidence": 0.52,
+      "acoustic_profile": {
+        "duration_sec": 371.57,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920360
     },
     {
       "id": "uplifting_inspirational/Silver_Flame.mp3",
@@ -835,8 +1294,25 @@
       "energy_level": "high",
       "movement_roles": [
         "development",
-        "climax"
-      ]
+        "climax",
+        "climax_resolution"
+      ],
+      "voiceover_fitness": 4.64,
+      "distraction_prob": 0.13,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "climax_resolution",
+      "typesafe_confidence": 0.71,
+      "acoustic_profile": {
+        "duration_sec": 395.62,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920360
     },
     {
       "id": "Adrian_Walther_Happiness_background_vocals_2_49.wav",
@@ -851,7 +1327,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -861,7 +1338,25 @@
         "background",
         "vocals"
       ],
-      "url": "/api/music/audio/Adrian_Walther_Happiness_background_vocals_2_49.wav"
+      "url": "/api/music/audio/Adrian_Walther_Happiness_background_vocals_2_49.wav",
+      "voiceover_fitness": 2.14,
+      "distraction_prob": 0.66,
+      "is_voiceover_ready": false,
+      "speech_intrusive": true,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.88,
+      "acoustic_profile": {
+        "duration_sec": 169.22,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "background_vocals"
+        ],
+        "has_vocals": true,
+        "vocal_type": "background_vocals"
+      },
+      "typesafe_graded_at": 1793920361
     },
     {
       "id": "Basketcase_We_Have_To_Go_Back_instrumental_1_33.wav",
@@ -876,7 +1371,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -885,7 +1381,25 @@
         "back",
         "instrumental"
       ],
-      "url": "/api/music/audio/Basketcase_We_Have_To_Go_Back_instrumental_1_33.wav"
+      "url": "/api/music/audio/Basketcase_We_Have_To_Go_Back_instrumental_1_33.wav",
+      "voiceover_fitness": 4.34,
+      "distraction_prob": 0.18,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.48,
+      "acoustic_profile": {
+        "duration_sec": 93.0,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "instrumental"
+        ],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920361
     },
     {
       "id": "Brent_Wood_Sunday_Coffee_instrumental_1_36.wav",
@@ -900,7 +1414,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -910,7 +1425,25 @@
         "coffee",
         "instrumental"
       ],
-      "url": "/api/music/audio/Brent_Wood_Sunday_Coffee_instrumental_1_36.wav"
+      "url": "/api/music/audio/Brent_Wood_Sunday_Coffee_instrumental_1_36.wav",
+      "voiceover_fitness": 4.42,
+      "distraction_prob": 0.14,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.52,
+      "acoustic_profile": {
+        "duration_sec": 96.15,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "instrumental"
+        ],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920361
     },
     {
       "id": "DeHartmann_Morning_Star_instrumental_2_52.wav",
@@ -925,7 +1458,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -934,7 +1468,25 @@
         "star",
         "instrumental"
       ],
-      "url": "/api/music/audio/DeHartmann_Morning_Star_instrumental_2_52.wav"
+      "url": "/api/music/audio/DeHartmann_Morning_Star_instrumental_2_52.wav",
+      "voiceover_fitness": 4.55,
+      "distraction_prob": 0.13,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.62,
+      "acoustic_profile": {
+        "duration_sec": 172.9,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "instrumental"
+        ],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920361
     },
     {
       "id": "Falls_Fluidity_instrumental_5_29.wav",
@@ -949,7 +1501,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -957,7 +1510,25 @@
         "fluidity",
         "instrumental"
       ],
-      "url": "/api/music/audio/Falls_Fluidity_instrumental_5_29.wav"
+      "url": "/api/music/audio/Falls_Fluidity_instrumental_5_29.wav",
+      "voiceover_fitness": 4.49,
+      "distraction_prob": 0.13,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.58,
+      "acoustic_profile": {
+        "duration_sec": 329.03,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "instrumental"
+        ],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920361
     },
     {
       "id": "GLASWING_Drifting_background_vocals_3_30.wav",
@@ -972,7 +1543,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -981,7 +1553,25 @@
         "background",
         "vocals"
       ],
-      "url": "/api/music/audio/GLASWING_Drifting_background_vocals_3_30.wav"
+      "url": "/api/music/audio/GLASWING_Drifting_background_vocals_3_30.wav",
+      "voiceover_fitness": 2.13,
+      "distraction_prob": 0.66,
+      "is_voiceover_ready": false,
+      "speech_intrusive": true,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.89,
+      "acoustic_profile": {
+        "duration_sec": 210.63,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "background_vocals"
+        ],
+        "has_vocals": true,
+        "vocal_type": "background_vocals"
+      },
+      "typesafe_graded_at": 1793920361
     },
     {
       "id": "GLASWING_Like_Water_On_A_Glass_Table_lead_vocal_3_26.wav",
@@ -996,7 +1586,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -1008,7 +1599,25 @@
         "lead",
         "vocal"
       ],
-      "url": "/api/music/audio/GLASWING_Like_Water_On_A_Glass_Table_lead_vocal_3_26.wav"
+      "url": "/api/music/audio/GLASWING_Like_Water_On_A_Glass_Table_lead_vocal_3_26.wav",
+      "voiceover_fitness": 1.09,
+      "distraction_prob": 0.8,
+      "is_voiceover_ready": false,
+      "speech_intrusive": true,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.92,
+      "acoustic_profile": {
+        "duration_sec": 206.5,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "lead_vocal"
+        ],
+        "has_vocals": true,
+        "vocal_type": "lead_vocal"
+      },
+      "typesafe_graded_at": 1793920361
     },
     {
       "id": "GLASWING_Rose_Colored_instrumental_1_38.wav",
@@ -1023,7 +1632,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -1032,7 +1642,25 @@
         "colored",
         "instrumental"
       ],
-      "url": "/api/music/audio/GLASWING_Rose_Colored_instrumental_1_38.wav"
+      "url": "/api/music/audio/GLASWING_Rose_Colored_instrumental_1_38.wav",
+      "voiceover_fitness": 4.48,
+      "distraction_prob": 0.13,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.56,
+      "acoustic_profile": {
+        "duration_sec": 98.9,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "instrumental"
+        ],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920361
     },
     {
       "id": "Isaac_Joel_Alumroot_instrumental_1_28.wav",
@@ -1047,7 +1675,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -1056,7 +1685,25 @@
         "alumroot",
         "instrumental"
       ],
-      "url": "/api/music/audio/Isaac_Joel_Alumroot_instrumental_1_28.wav"
+      "url": "/api/music/audio/Isaac_Joel_Alumroot_instrumental_1_28.wav",
+      "voiceover_fitness": 4.5,
+      "distraction_prob": 0.13,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.57,
+      "acoustic_profile": {
+        "duration_sec": 88.45,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "instrumental"
+        ],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920361
     },
     {
       "id": "Kurtis_Parks_Promise_of_Hope_instrumental_2_46.wav",
@@ -1071,7 +1718,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -1081,7 +1729,25 @@
         "hope",
         "instrumental"
       ],
-      "url": "/api/music/audio/Kurtis_Parks_Promise_of_Hope_instrumental_2_46.wav"
+      "url": "/api/music/audio/Kurtis_Parks_Promise_of_Hope_instrumental_2_46.wav",
+      "voiceover_fitness": 4.49,
+      "distraction_prob": 0.14,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.57,
+      "acoustic_profile": {
+        "duration_sec": 166.81,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "instrumental"
+        ],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920361
     },
     {
       "id": "Lunareh_Awake_All_Night_background_vocals_2_47.wav",
@@ -1096,7 +1762,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -1107,7 +1774,25 @@
         "background",
         "vocals"
       ],
-      "url": "/api/music/audio/Lunareh_Awake_All_Night_background_vocals_2_47.wav"
+      "url": "/api/music/audio/Lunareh_Awake_All_Night_background_vocals_2_47.wav",
+      "voiceover_fitness": 2.12,
+      "distraction_prob": 0.69,
+      "is_voiceover_ready": false,
+      "speech_intrusive": true,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.89,
+      "acoustic_profile": {
+        "duration_sec": 167.34,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "background_vocals"
+        ],
+        "has_vocals": true,
+        "vocal_type": "background_vocals"
+      },
+      "typesafe_graded_at": 1793920362
     },
     {
       "id": "Lunareh_Now_Or_Never_background_vocals_2_55.wav",
@@ -1122,7 +1807,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -1132,7 +1818,25 @@
         "background",
         "vocals"
       ],
-      "url": "/api/music/audio/Lunareh_Now_Or_Never_background_vocals_2_55.wav"
+      "url": "/api/music/audio/Lunareh_Now_Or_Never_background_vocals_2_55.wav",
+      "voiceover_fitness": 2.13,
+      "distraction_prob": 0.69,
+      "is_voiceover_ready": false,
+      "speech_intrusive": true,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.88,
+      "acoustic_profile": {
+        "duration_sec": 175.58,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "background_vocals"
+        ],
+        "has_vocals": true,
+        "vocal_type": "background_vocals"
+      },
+      "typesafe_graded_at": 1793920362
     },
     {
       "id": "Lunareh_Retrograde_background_vocals_3_03.wav",
@@ -1147,7 +1851,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -1156,7 +1861,25 @@
         "background",
         "vocals"
       ],
-      "url": "/api/music/audio/Lunareh_Retrograde_background_vocals_3_03.wav"
+      "url": "/api/music/audio/Lunareh_Retrograde_background_vocals_3_03.wav",
+      "voiceover_fitness": 2.2,
+      "distraction_prob": 0.67,
+      "is_voiceover_ready": false,
+      "speech_intrusive": true,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.82,
+      "acoustic_profile": {
+        "duration_sec": 183.53,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "background_vocals"
+        ],
+        "has_vocals": true,
+        "vocal_type": "background_vocals"
+      },
+      "typesafe_graded_at": 1793920362
     },
     {
       "id": "Lunareh_Y2K_background_vocals_3_27.wav",
@@ -1171,7 +1894,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -1180,7 +1904,25 @@
         "background",
         "vocals"
       ],
-      "url": "/api/music/audio/Lunareh_Y2K_background_vocals_3_27.wav"
+      "url": "/api/music/audio/Lunareh_Y2K_background_vocals_3_27.wav",
+      "voiceover_fitness": 2.15,
+      "distraction_prob": 0.66,
+      "is_voiceover_ready": false,
+      "speech_intrusive": true,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.88,
+      "acoustic_profile": {
+        "duration_sec": 207.69,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "background_vocals"
+        ],
+        "has_vocals": true,
+        "vocal_type": "background_vocals"
+      },
+      "typesafe_graded_at": 1793920362
     },
     {
       "id": "Makenna_Susan_Lone_Pine_instrumental_2_05.wav",
@@ -1195,7 +1937,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -1205,7 +1948,25 @@
         "pine",
         "instrumental"
       ],
-      "url": "/api/music/audio/Makenna_Susan_Lone_Pine_instrumental_2_05.wav"
+      "url": "/api/music/audio/Makenna_Susan_Lone_Pine_instrumental_2_05.wav",
+      "voiceover_fitness": 4.53,
+      "distraction_prob": 0.13,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.61,
+      "acoustic_profile": {
+        "duration_sec": 125.33,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "instrumental"
+        ],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920362
     },
     {
       "id": "Markus_Huber_The_Sea_Of_Trees_instrumental_3_08.wav",
@@ -1220,7 +1981,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -1231,7 +1993,25 @@
         "trees",
         "instrumental"
       ],
-      "url": "/api/music/audio/Markus_Huber_The_Sea_Of_Trees_instrumental_3_08.wav"
+      "url": "/api/music/audio/Markus_Huber_The_Sea_Of_Trees_instrumental_3_08.wav",
+      "voiceover_fitness": 4.53,
+      "distraction_prob": 0.13,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.62,
+      "acoustic_profile": {
+        "duration_sec": 188.84,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "instrumental"
+        ],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920362
     },
     {
       "id": "Material_Gurl_The_Happiest_Memories_instrumental_1_56.wav",
@@ -1246,7 +2026,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -1257,7 +2038,25 @@
         "memories",
         "instrumental"
       ],
-      "url": "/api/music/audio/Material_Gurl_The_Happiest_Memories_instrumental_1_56.wav"
+      "url": "/api/music/audio/Material_Gurl_The_Happiest_Memories_instrumental_1_56.wav",
+      "voiceover_fitness": 4.43,
+      "distraction_prob": 0.15,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.53,
+      "acoustic_profile": {
+        "duration_sec": 116.28,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "instrumental"
+        ],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920363
     },
     {
       "id": "Memory_Theory_Many_Worlds_instrumental_2_16.wav",
@@ -1272,7 +2071,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -1282,7 +2082,25 @@
         "worlds",
         "instrumental"
       ],
-      "url": "/api/music/audio/Memory_Theory_Many_Worlds_instrumental_2_16.wav"
+      "url": "/api/music/audio/Memory_Theory_Many_Worlds_instrumental_2_16.wav",
+      "voiceover_fitness": 4.5,
+      "distraction_prob": 0.13,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.58,
+      "acoustic_profile": {
+        "duration_sec": 136.32,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "instrumental"
+        ],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920362
     },
     {
       "id": "Midnight_Daydream_Chillabye_instrumental_4_10.wav",
@@ -1297,7 +2115,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -1306,7 +2125,25 @@
         "chillabye",
         "instrumental"
       ],
-      "url": "/api/music/audio/Midnight_Daydream_Chillabye_instrumental_4_10.wav"
+      "url": "/api/music/audio/Midnight_Daydream_Chillabye_instrumental_4_10.wav",
+      "voiceover_fitness": 4.5,
+      "distraction_prob": 0.13,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.59,
+      "acoustic_profile": {
+        "duration_sec": 250.53,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "instrumental"
+        ],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920363
     },
     {
       "id": "Moments_The_Light_Within_instrumental_4_53.wav",
@@ -1321,7 +2158,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -1331,7 +2169,25 @@
         "within",
         "instrumental"
       ],
-      "url": "/api/music/audio/Moments_The_Light_Within_instrumental_4_53.wav"
+      "url": "/api/music/audio/Moments_The_Light_Within_instrumental_4_53.wav",
+      "voiceover_fitness": 4.57,
+      "distraction_prob": 0.13,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.64,
+      "acoustic_profile": {
+        "duration_sec": 293.43,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "instrumental"
+        ],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920363
     },
     {
       "id": "Moments_Within_Yourself_instrumental_5_11.wav",
@@ -1346,7 +2202,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -1355,7 +2212,25 @@
         "yourself",
         "instrumental"
       ],
-      "url": "/api/music/audio/Moments_Within_Yourself_instrumental_5_11.wav"
+      "url": "/api/music/audio/Moments_Within_Yourself_instrumental_5_11.wav",
+      "voiceover_fitness": 4.61,
+      "distraction_prob": 0.12,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.68,
+      "acoustic_profile": {
+        "duration_sec": 311.84,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "instrumental"
+        ],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920363
     },
     {
       "id": "Nu_Alkemi_t_Down_instrumental_4_30.wav",
@@ -1370,7 +2245,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -1378,7 +2254,25 @@
         "down",
         "instrumental"
       ],
-      "url": "/api/music/audio/Nu_Alkemi_t_Down_instrumental_4_30.wav"
+      "url": "/api/music/audio/Nu_Alkemi_t_Down_instrumental_4_30.wav",
+      "voiceover_fitness": 4.58,
+      "distraction_prob": 0.13,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.64,
+      "acoustic_profile": {
+        "duration_sec": 270.45,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "instrumental"
+        ],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920363
     },
     {
       "id": "Outside_The_Sky_Constant_741_Hz_Meditation_instrumental_3_47.wav",
@@ -1393,7 +2287,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -1405,7 +2300,25 @@
         "meditation",
         "instrumental"
       ],
-      "url": "/api/music/audio/Outside_The_Sky_Constant_741_Hz_Meditation_instrumental_3_47.wav"
+      "url": "/api/music/audio/Outside_The_Sky_Constant_741_Hz_Meditation_instrumental_3_47.wav",
+      "voiceover_fitness": 4.64,
+      "distraction_prob": 0.15,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.71,
+      "acoustic_profile": {
+        "duration_sec": 227.4,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "instrumental"
+        ],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920363
     },
     {
       "id": "Outside_The_Sky_Kindness_instrumental_9_55.wav",
@@ -1420,7 +2333,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -1430,7 +2344,25 @@
         "kindness",
         "instrumental"
       ],
-      "url": "/api/music/audio/Outside_The_Sky_Kindness_instrumental_9_55.wav"
+      "url": "/api/music/audio/Outside_The_Sky_Kindness_instrumental_9_55.wav",
+      "voiceover_fitness": 4.53,
+      "distraction_prob": 0.13,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.61,
+      "acoustic_profile": {
+        "duration_sec": 595.26,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "instrumental"
+        ],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920363
     },
     {
       "id": "Outside_The_Sky_Luminosity_instrumental_5_04.wav",
@@ -1445,7 +2377,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -1455,7 +2388,25 @@
         "luminosity",
         "instrumental"
       ],
-      "url": "/api/music/audio/Outside_The_Sky_Luminosity_instrumental_5_04.wav"
+      "url": "/api/music/audio/Outside_The_Sky_Luminosity_instrumental_5_04.wav",
+      "voiceover_fitness": 4.49,
+      "distraction_prob": 0.13,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.57,
+      "acoustic_profile": {
+        "duration_sec": 304.78,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "instrumental"
+        ],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920363
     },
     {
       "id": "PALA_Heartbeats_background_vocals_3_16.wav",
@@ -1470,7 +2421,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -1479,7 +2431,25 @@
         "background",
         "vocals"
       ],
-      "url": "/api/music/audio/PALA_Heartbeats_background_vocals_3_16.wav"
+      "url": "/api/music/audio/PALA_Heartbeats_background_vocals_3_16.wav",
+      "voiceover_fitness": 2.12,
+      "distraction_prob": 0.68,
+      "is_voiceover_ready": false,
+      "speech_intrusive": true,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.89,
+      "acoustic_profile": {
+        "duration_sec": 196.21,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "background_vocals"
+        ],
+        "has_vocals": true,
+        "vocal_type": "background_vocals"
+      },
+      "typesafe_graded_at": 1793920363
     },
     {
       "id": "Renderings_Low_Key_instrumental_3_14.wav",
@@ -1494,7 +2464,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -1503,7 +2474,25 @@
         "key",
         "instrumental"
       ],
-      "url": "/api/music/audio/Renderings_Low_Key_instrumental_3_14.wav"
+      "url": "/api/music/audio/Renderings_Low_Key_instrumental_3_14.wav",
+      "voiceover_fitness": 4.29,
+      "distraction_prob": 0.12,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.41,
+      "acoustic_profile": {
+        "duration_sec": 194.21,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "instrumental"
+        ],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920364
     },
     {
       "id": "Sam_Barsh_Sue_s_Dark_Side_instrumental_2_42.wav",
@@ -1518,7 +2507,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -1529,7 +2519,25 @@
         "side",
         "instrumental"
       ],
-      "url": "/api/music/audio/Sam_Barsh_Sue_s_Dark_Side_instrumental_2_42.wav"
+      "url": "/api/music/audio/Sam_Barsh_Sue_s_Dark_Side_instrumental_2_42.wav",
+      "voiceover_fitness": 4.48,
+      "distraction_prob": 0.15,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.57,
+      "acoustic_profile": {
+        "duration_sec": 162.97,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "instrumental"
+        ],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920364
     },
     {
       "id": "Shimmer_Era_instrumental_5_10.wav",
@@ -1544,7 +2552,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -1552,7 +2561,25 @@
         "era",
         "instrumental"
       ],
-      "url": "/api/music/audio/Shimmer_Era_instrumental_5_10.wav"
+      "url": "/api/music/audio/Shimmer_Era_instrumental_5_10.wav",
+      "voiceover_fitness": 4.66,
+      "distraction_prob": 0.13,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.73,
+      "acoustic_profile": {
+        "duration_sec": 310.11,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "instrumental"
+        ],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920364
     },
     {
       "id": "Simple_Thieves_Autumns_background_vocals_3_02.wav",
@@ -1567,7 +2594,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -1577,7 +2605,25 @@
         "background",
         "vocals"
       ],
-      "url": "/api/music/audio/Simple_Thieves_Autumns_background_vocals_3_02.wav"
+      "url": "/api/music/audio/Simple_Thieves_Autumns_background_vocals_3_02.wav",
+      "voiceover_fitness": 2.16,
+      "distraction_prob": 0.68,
+      "is_voiceover_ready": false,
+      "speech_intrusive": true,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.87,
+      "acoustic_profile": {
+        "duration_sec": 182.37,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "background_vocals"
+        ],
+        "has_vocals": true,
+        "vocal_type": "background_vocals"
+      },
+      "typesafe_graded_at": 1793920364
     },
     {
       "id": "Soulplusmind_A_Step_Back_instrumental_2_32.wav",
@@ -1592,7 +2638,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -1601,7 +2648,25 @@
         "back",
         "instrumental"
       ],
-      "url": "/api/music/audio/Soulplusmind_A_Step_Back_instrumental_2_32.wav"
+      "url": "/api/music/audio/Soulplusmind_A_Step_Back_instrumental_2_32.wav",
+      "voiceover_fitness": 4.53,
+      "distraction_prob": 0.14,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.61,
+      "acoustic_profile": {
+        "duration_sec": 152.81,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "instrumental"
+        ],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920364
     },
     {
       "id": "Soulplusmind_Quartz_Stroll_instrumental_2_33.wav",
@@ -1616,7 +2681,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -1625,7 +2691,25 @@
         "stroll",
         "instrumental"
       ],
-      "url": "/api/music/audio/Soulplusmind_Quartz_Stroll_instrumental_2_33.wav"
+      "url": "/api/music/audio/Soulplusmind_Quartz_Stroll_instrumental_2_33.wav",
+      "voiceover_fitness": 4.47,
+      "distraction_prob": 0.12,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.57,
+      "acoustic_profile": {
+        "duration_sec": 153.29,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "instrumental"
+        ],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920364
     },
     {
       "id": "Strength_To_Last_Majestic_Skies_background_vocals_3_29.wav",
@@ -1640,7 +2724,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -1651,7 +2736,25 @@
         "background",
         "vocals"
       ],
-      "url": "/api/music/audio/Strength_To_Last_Majestic_Skies_background_vocals_3_29.wav"
+      "url": "/api/music/audio/Strength_To_Last_Majestic_Skies_background_vocals_3_29.wav",
+      "voiceover_fitness": 2.18,
+      "distraction_prob": 0.68,
+      "is_voiceover_ready": false,
+      "speech_intrusive": true,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.84,
+      "acoustic_profile": {
+        "duration_sec": 209.12,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "background_vocals"
+        ],
+        "has_vocals": true,
+        "vocal_type": "background_vocals"
+      },
+      "typesafe_graded_at": 1793920364
     },
     {
       "id": "The_Realist_Astral_Journey_instrumental_2_47.wav",
@@ -1666,7 +2769,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -1676,7 +2780,25 @@
         "journey",
         "instrumental"
       ],
-      "url": "/api/music/audio/The_Realist_Astral_Journey_instrumental_2_47.wav"
+      "url": "/api/music/audio/The_Realist_Astral_Journey_instrumental_2_47.wav",
+      "voiceover_fitness": 4.52,
+      "distraction_prob": 0.13,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.6,
+      "acoustic_profile": {
+        "duration_sec": 167.2,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "instrumental"
+        ],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920364
     },
     {
       "id": "Tide_Electric_Last_Night_instrumental_4_04.wav",
@@ -1691,7 +2813,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -1701,7 +2824,25 @@
         "night",
         "instrumental"
       ],
-      "url": "/api/music/audio/Tide_Electric_Last_Night_instrumental_4_04.wav"
+      "url": "/api/music/audio/Tide_Electric_Last_Night_instrumental_4_04.wav",
+      "voiceover_fitness": 4.45,
+      "distraction_prob": 0.13,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.54,
+      "acoustic_profile": {
+        "duration_sec": 244.62,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "instrumental"
+        ],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920364
     },
     {
       "id": "Tide_Electric_The_Explorer_instrumental_3_31.wav",
@@ -1716,7 +2857,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -1726,7 +2868,25 @@
         "explorer",
         "instrumental"
       ],
-      "url": "/api/music/audio/Tide_Electric_The_Explorer_instrumental_3_31.wav"
+      "url": "/api/music/audio/Tide_Electric_The_Explorer_instrumental_3_31.wav",
+      "voiceover_fitness": 4.44,
+      "distraction_prob": 0.13,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.53,
+      "acoustic_profile": {
+        "duration_sec": 211.82,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "instrumental"
+        ],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920364
     },
     {
       "id": "Transmuter_Match_instrumental_3_37.wav",
@@ -1741,7 +2901,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -1749,7 +2910,25 @@
         "match",
         "instrumental"
       ],
-      "url": "/api/music/audio/Transmuter_Match_instrumental_3_37.wav"
+      "url": "/api/music/audio/Transmuter_Match_instrumental_3_37.wav",
+      "voiceover_fitness": 4.44,
+      "distraction_prob": 0.13,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.55,
+      "acoustic_profile": {
+        "duration_sec": 217.94,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "instrumental"
+        ],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920364
     },
     {
       "id": "Tru_Genesis_Tense_instrumental_2_55.wav",
@@ -1764,7 +2943,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "deep_dive_tension"
       ],
       "tags": [
         "tech_futuristic",
@@ -1773,7 +2953,25 @@
         "tense",
         "instrumental"
       ],
-      "url": "/api/music/audio/Tru_Genesis_Tense_instrumental_2_55.wav"
+      "url": "/api/music/audio/Tru_Genesis_Tense_instrumental_2_55.wav",
+      "voiceover_fitness": 4.5,
+      "distraction_prob": 0.15,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "deep_dive_tension",
+      "typesafe_confidence": 0.59,
+      "acoustic_profile": {
+        "duration_sec": 175.5,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "instrumental"
+        ],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920365
     },
     {
       "id": "Wayfair_Poplar_Creek_instrumental_2_50.wav",
@@ -1788,7 +2986,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -1797,7 +2996,25 @@
         "creek",
         "instrumental"
       ],
-      "url": "/api/music/audio/Wayfair_Poplar_Creek_instrumental_2_50.wav"
+      "url": "/api/music/audio/Wayfair_Poplar_Creek_instrumental_2_50.wav",
+      "voiceover_fitness": 4.43,
+      "distraction_prob": 0.15,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.52,
+      "acoustic_profile": {
+        "duration_sec": 170.83,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "instrumental"
+        ],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920365
     },
     {
       "id": "Wild_Wonder_Another_Life_instrumental_3_52.wav",
@@ -1812,7 +3029,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -1822,7 +3040,25 @@
         "life",
         "instrumental"
       ],
-      "url": "/api/music/audio/Wild_Wonder_Another_Life_instrumental_3_52.wav"
+      "url": "/api/music/audio/Wild_Wonder_Another_Life_instrumental_3_52.wav",
+      "voiceover_fitness": 4.53,
+      "distraction_prob": 0.14,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.61,
+      "acoustic_profile": {
+        "duration_sec": 232.84,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "instrumental"
+        ],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920365
     },
     {
       "id": "mystery_cosmic/deep_space_ambient_test.wav",
@@ -1884,7 +3120,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -1892,7 +3129,25 @@
         "starbound",
         "instrumental"
       ],
-      "url": "/api/music/audio/auto/AFTERNOONZ_Starbound_instrumental_3_14.wav"
+      "url": "/api/music/audio/auto/AFTERNOONZ_Starbound_instrumental_3_14.wav",
+      "voiceover_fitness": 4.44,
+      "distraction_prob": 0.13,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.53,
+      "acoustic_profile": {
+        "duration_sec": 194.95,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "instrumental"
+        ],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920365
     },
     {
       "id": "auto/Anthony_Catacoli_Melancholy_Midnight_instrumental_2_45.wav",
@@ -1907,7 +3162,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -1917,7 +3173,25 @@
         "midnight",
         "instrumental"
       ],
-      "url": "/api/music/audio/auto/Anthony_Catacoli_Melancholy_Midnight_instrumental_2_45.wav"
+      "url": "/api/music/audio/auto/Anthony_Catacoli_Melancholy_Midnight_instrumental_2_45.wav",
+      "voiceover_fitness": 4.43,
+      "distraction_prob": 0.15,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.52,
+      "acoustic_profile": {
+        "duration_sec": 165.94,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "instrumental"
+        ],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920365
     },
     {
       "id": "auto/Cast_Of_Characters_Locomotive_Rag_instrumental_2_07.wav",
@@ -1932,7 +3206,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -1942,7 +3217,25 @@
         "rag",
         "instrumental"
       ],
-      "url": "/api/music/audio/auto/Cast_Of_Characters_Locomotive_Rag_instrumental_2_07.wav"
+      "url": "/api/music/audio/auto/Cast_Of_Characters_Locomotive_Rag_instrumental_2_07.wav",
+      "voiceover_fitness": 3.74,
+      "distraction_prob": 0.21,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.52,
+      "acoustic_profile": {
+        "duration_sec": 127.55,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "instrumental"
+        ],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920365
     },
     {
       "id": "auto/Central_Train_Station_Platform_03.wav",
@@ -1957,7 +3250,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -1966,7 +3260,23 @@
         "station",
         "platform"
       ],
-      "url": "/api/music/audio/auto/Central_Train_Station_Platform_03.wav"
+      "url": "/api/music/audio/auto/Central_Train_Station_Platform_03.wav",
+      "voiceover_fitness": 4.26,
+      "distraction_prob": 0.15,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.62,
+      "acoustic_profile": {
+        "duration_sec": 90.93,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920365
     },
     {
       "id": "auto/Elise_Solberg_Ode_To_Bill_instrumental_3_46.wav",
@@ -1981,7 +3291,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -1991,7 +3302,25 @@
         "bill",
         "instrumental"
       ],
-      "url": "/api/music/audio/auto/Elise_Solberg_Ode_To_Bill_instrumental_3_46.wav"
+      "url": "/api/music/audio/auto/Elise_Solberg_Ode_To_Bill_instrumental_3_46.wav",
+      "voiceover_fitness": 4.48,
+      "distraction_prob": 0.14,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.57,
+      "acoustic_profile": {
+        "duration_sec": 226.71,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "instrumental"
+        ],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920366
     },
     {
       "id": "auto/King_Flamingo_Other_Shores_instrumental_2_36.wav",
@@ -2006,7 +3335,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -2016,7 +3346,25 @@
         "shores",
         "instrumental"
       ],
-      "url": "/api/music/audio/auto/King_Flamingo_Other_Shores_instrumental_2_36.wav"
+      "url": "/api/music/audio/auto/King_Flamingo_Other_Shores_instrumental_2_36.wav",
+      "voiceover_fitness": 4.45,
+      "distraction_prob": 0.14,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.55,
+      "acoustic_profile": {
+        "duration_sec": 156.82,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "instrumental"
+        ],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920366
     },
     {
       "id": "auto/King_Flamingo_Seaside_Samba_instrumental_1_44.wav",
@@ -2031,7 +3379,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -2041,7 +3390,25 @@
         "samba",
         "instrumental"
       ],
-      "url": "/api/music/audio/auto/King_Flamingo_Seaside_Samba_instrumental_1_44.wav"
+      "url": "/api/music/audio/auto/King_Flamingo_Seaside_Samba_instrumental_1_44.wav",
+      "voiceover_fitness": 4.04,
+      "distraction_prob": 0.2,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.67,
+      "acoustic_profile": {
+        "duration_sec": 104.05,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "instrumental"
+        ],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920365
     },
     {
       "id": "auto/King_Flamingo_Vignettes_instrumental_2_32.wav",
@@ -2056,7 +3423,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -2065,7 +3433,25 @@
         "vignettes",
         "instrumental"
       ],
-      "url": "/api/music/audio/auto/King_Flamingo_Vignettes_instrumental_2_32.wav"
+      "url": "/api/music/audio/auto/King_Flamingo_Vignettes_instrumental_2_32.wav",
+      "voiceover_fitness": 4.47,
+      "distraction_prob": 0.14,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.56,
+      "acoustic_profile": {
+        "duration_sec": 152.65,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "instrumental"
+        ],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920366
     },
     {
       "id": "auto/King_Flamingo_Wistful_instrumental_2_40.wav",
@@ -2080,7 +3466,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -2089,7 +3476,25 @@
         "wistful",
         "instrumental"
       ],
-      "url": "/api/music/audio/auto/King_Flamingo_Wistful_instrumental_2_40.wav"
+      "url": "/api/music/audio/auto/King_Flamingo_Wistful_instrumental_2_40.wav",
+      "voiceover_fitness": 4.49,
+      "distraction_prob": 0.15,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.57,
+      "acoustic_profile": {
+        "duration_sec": 160.75,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "instrumental"
+        ],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920366
     },
     {
       "id": "auto/Liberty_The_Duke_Of_New_York_instrumental_2_42.wav",
@@ -2104,7 +3509,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -2115,7 +3521,25 @@
         "york",
         "instrumental"
       ],
-      "url": "/api/music/audio/auto/Liberty_The_Duke_Of_New_York_instrumental_2_42.wav"
+      "url": "/api/music/audio/auto/Liberty_The_Duke_Of_New_York_instrumental_2_42.wav",
+      "voiceover_fitness": 4.44,
+      "distraction_prob": 0.15,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.53,
+      "acoustic_profile": {
+        "duration_sec": 162.35,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "instrumental"
+        ],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920366
     },
     {
       "id": "auto/Liberty_The_Night_Is_Young_instrumental_2_43.wav",
@@ -2130,7 +3554,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -2140,7 +3565,25 @@
         "young",
         "instrumental"
       ],
-      "url": "/api/music/audio/auto/Liberty_The_Night_Is_Young_instrumental_2_43.wav"
+      "url": "/api/music/audio/auto/Liberty_The_Night_Is_Young_instrumental_2_43.wav",
+      "voiceover_fitness": 4.49,
+      "distraction_prob": 0.15,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.57,
+      "acoustic_profile": {
+        "duration_sec": 163.26,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "instrumental"
+        ],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920366
     },
     {
       "id": "auto/Paul_Croteau_Beauty_In_Color_instrumental_2_52.wav",
@@ -2155,7 +3598,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -2165,7 +3609,25 @@
         "color",
         "instrumental"
       ],
-      "url": "/api/music/audio/auto/Paul_Croteau_Beauty_In_Color_instrumental_2_52.wav"
+      "url": "/api/music/audio/auto/Paul_Croteau_Beauty_In_Color_instrumental_2_52.wav",
+      "voiceover_fitness": 4.45,
+      "distraction_prob": 0.15,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.55,
+      "acoustic_profile": {
+        "duration_sec": 172.34,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "instrumental"
+        ],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920366
     },
     {
       "id": "auto/Renderings_Exploration_Of_A_New_City_instrumental_3_08.wav",
@@ -2180,7 +3642,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -2190,7 +3653,25 @@
         "city",
         "instrumental"
       ],
-      "url": "/api/music/audio/auto/Renderings_Exploration_Of_A_New_City_instrumental_3_08.wav"
+      "url": "/api/music/audio/auto/Renderings_Exploration_Of_A_New_City_instrumental_3_08.wav",
+      "voiceover_fitness": 4.43,
+      "distraction_prob": 0.13,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.52,
+      "acoustic_profile": {
+        "duration_sec": 188.89,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "instrumental"
+        ],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920366
     },
     {
       "id": "auto/Renderings_Gettin_Ya_instrumental_3_07.wav",
@@ -2205,7 +3686,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -2213,7 +3695,25 @@
         "gettin",
         "instrumental"
       ],
-      "url": "/api/music/audio/auto/Renderings_Gettin_Ya_instrumental_3_07.wav"
+      "url": "/api/music/audio/auto/Renderings_Gettin_Ya_instrumental_3_07.wav",
+      "voiceover_fitness": 4.41,
+      "distraction_prob": 0.15,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.57,
+      "acoustic_profile": {
+        "duration_sec": 187.22,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "instrumental"
+        ],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920366
     },
     {
       "id": "auto/Renderings_Hoagy_s_Dream_instrumental_3_27.wav",
@@ -2228,7 +3728,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -2237,7 +3738,25 @@
         "dream",
         "instrumental"
       ],
-      "url": "/api/music/audio/auto/Renderings_Hoagy_s_Dream_instrumental_3_27.wav"
+      "url": "/api/music/audio/auto/Renderings_Hoagy_s_Dream_instrumental_3_27.wav",
+      "voiceover_fitness": 4.45,
+      "distraction_prob": 0.14,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.54,
+      "acoustic_profile": {
+        "duration_sec": 207.27,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "instrumental"
+        ],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920367
     },
     {
       "id": "auto/Renderings_Patterns_instrumental_3_10.wav",
@@ -2252,7 +3771,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -2260,7 +3780,25 @@
         "patterns",
         "instrumental"
       ],
-      "url": "/api/music/audio/auto/Renderings_Patterns_instrumental_3_10.wav"
+      "url": "/api/music/audio/auto/Renderings_Patterns_instrumental_3_10.wav",
+      "voiceover_fitness": 4.35,
+      "distraction_prob": 0.15,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.61,
+      "acoustic_profile": {
+        "duration_sec": 190.62,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "instrumental"
+        ],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920367
     },
     {
       "id": "auto/Renderings_Spoken_Word_instrumental_3_08.wav",
@@ -2275,7 +3813,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -2284,7 +3823,25 @@
         "word",
         "instrumental"
       ],
-      "url": "/api/music/audio/auto/Renderings_Spoken_Word_instrumental_3_08.wav"
+      "url": "/api/music/audio/auto/Renderings_Spoken_Word_instrumental_3_08.wav",
+      "voiceover_fitness": 4.52,
+      "distraction_prob": 0.17,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.59,
+      "acoustic_profile": {
+        "duration_sec": 188.12,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "instrumental"
+        ],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920367
     },
     {
       "id": "auto/Sam_Barsh_Days_Old_instrumental_2_54.wav",
@@ -2299,7 +3856,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -2309,7 +3867,25 @@
         "old",
         "instrumental"
       ],
-      "url": "/api/music/audio/auto/Sam_Barsh_Days_Old_instrumental_2_54.wav"
+      "url": "/api/music/audio/auto/Sam_Barsh_Days_Old_instrumental_2_54.wav",
+      "voiceover_fitness": 4.48,
+      "distraction_prob": 0.16,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.57,
+      "acoustic_profile": {
+        "duration_sec": 174.79,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "instrumental"
+        ],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920367
     },
     {
       "id": "auto/Sam_Barsh_Jefe_Nueva_instrumental_3_21.wav",
@@ -2324,7 +3900,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -2334,7 +3911,25 @@
         "nueva",
         "instrumental"
       ],
-      "url": "/api/music/audio/auto/Sam_Barsh_Jefe_Nueva_instrumental_3_21.wav"
+      "url": "/api/music/audio/auto/Sam_Barsh_Jefe_Nueva_instrumental_3_21.wav",
+      "voiceover_fitness": 4.52,
+      "distraction_prob": 0.14,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.59,
+      "acoustic_profile": {
+        "duration_sec": 201.09,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "instrumental"
+        ],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920367
     },
     {
       "id": "auto/Sam_Barsh_Morning_Macchiato_instrumental_3_09.wav",
@@ -2349,7 +3944,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -2359,7 +3955,25 @@
         "macchiato",
         "instrumental"
       ],
-      "url": "/api/music/audio/auto/Sam_Barsh_Morning_Macchiato_instrumental_3_09.wav"
+      "url": "/api/music/audio/auto/Sam_Barsh_Morning_Macchiato_instrumental_3_09.wav",
+      "voiceover_fitness": 4.41,
+      "distraction_prob": 0.15,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.57,
+      "acoustic_profile": {
+        "duration_sec": 189.06,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "instrumental"
+        ],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920367
     },
     {
       "id": "auto/Thruline_Stay_Up_High_instrumental_2_43.wav",
@@ -2374,7 +3988,8 @@
       "energy_level": "mid",
       "movement_roles": [
         "intro",
-        "development"
+        "development",
+        "intro_context"
       ],
       "tags": [
         "tech_futuristic",
@@ -2383,7 +3998,25 @@
         "high",
         "instrumental"
       ],
-      "url": "/api/music/audio/auto/Thruline_Stay_Up_High_instrumental_2_43.wav"
+      "url": "/api/music/audio/auto/Thruline_Stay_Up_High_instrumental_2_43.wav",
+      "voiceover_fitness": 4.55,
+      "distraction_prob": 0.14,
+      "is_voiceover_ready": true,
+      "speech_intrusive": false,
+      "typesafe_movement_role": "intro_context",
+      "typesafe_confidence": 0.63,
+      "acoustic_profile": {
+        "duration_sec": 163.54,
+        "rms_db": -24.0,
+        "peak_db": -1.0,
+        "dynamic_range_db": 20.0,
+        "filename_tags": [
+          "instrumental"
+        ],
+        "has_vocals": false,
+        "vocal_type": "instrumental"
+      },
+      "typesafe_graded_at": 1793920367
     }
   ]
 }

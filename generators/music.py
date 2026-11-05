@@ -11,6 +11,7 @@ from typing import Any
 
 from core.config import ROOT
 from core.logging_setup import log
+from providers.typesafe_client import TypeSafeClient, TypeSafeUnavailableError
 
 AUDIO_EXT = {".mp3", ".wav", ".m4a", ".ogg", ".flac", ".aac"}
 
@@ -257,23 +258,55 @@ def pick_track(
         pass
 
     def filter_by_role_and_energy(candidate_tracks: list[Path]) -> list[Path]:
-        if not movement_role and not energy:
-            return candidate_tracks
         filtered = []
+        ready_pool = []
         for t in candidate_tracks:
             try:
                 rel = t.relative_to(ROOT / directory).as_posix()
             except Exception:
                 rel = t.name
-            t_info = cat_meta_map.get(rel)
-            if not t_info:
+            t_info = cat_meta_map.get(rel) or cat_meta_map.get(t.name) or {}
+            # ADR 0017: Filter out intrusive / vocal tracks
+            if t_info.get("is_voiceover_ready") is False or t_info.get("speech_intrusive") is True:
                 continue
+            ready_pool.append(t)
             if movement_role and movement_role not in t_info.get("movement_roles", []):
                 continue
             if energy and t_info.get("energy_level") != energy:
                 continue
             filtered.append(t)
-        return filtered or candidate_tracks
+        return filtered or ready_pool or candidate_tracks
+
+    def select_best_with_typesafe(candidates: list[Path], mov_role: str | None) -> Path | None:
+        if not candidates:
+            return None
+        if len(candidates) == 1:
+            return candidates[0]
+
+        # ADR 0017: Strict fail-fast on TypeSafe AI
+        client = TypeSafeClient()
+        client._require_configured()
+
+        candidate_metas = []
+        track_map = {}
+        for p in candidates[:6]:
+            try:
+                rel = p.relative_to(ROOT / directory).as_posix()
+            except Exception:
+                rel = p.name
+            meta = cat_meta_map.get(rel, {"id": rel, "name": p.stem.replace("_", " ")})
+            candidate_metas.append(meta)
+            track_map[meta.get("id")] = p
+
+        ranked = client.rank_candidate_tracks(
+            candidates=candidate_metas,
+            topic=topic or "Informational YouTube Video",
+            chapter_synopsis=context_text or "",
+            movement_name=mov_role or "background",
+        )
+        if ranked and ranked[0].get("id") in track_map:
+            return track_map[ranked[0]["id"]]
+        return candidates[0]
 
     if preferred:
         pref = str(preferred).strip()
@@ -289,10 +322,7 @@ def pick_track(
             avail = [t for t in cat_tracks if t not in exclude_set] or cat_tracks
             avail = filter_by_role_and_energy(avail)
             if avail:
-                if randomize:
-                    return random.choice(avail)
-                idx = int(hashlib.md5(key.encode()).hexdigest(), 16) % len(avail)
-                return avail[idx]
+                return select_best_with_typesafe(avail, movement_role)
 
         # Specific file match
         if pref_lower != "auto":
@@ -314,19 +344,12 @@ def pick_track(
         avail = [t for t in cat_tracks if t not in exclude_set] or cat_tracks
         avail = filter_by_role_and_energy(avail)
         if avail:
-            if randomize:
-                return random.choice(avail)
-            hash_src = f"{key}_{topic}_{len(topic or '')}"
-            idx = int(hashlib.md5(hash_src.encode()).hexdigest(), 16) % len(avail)
-            return avail[idx]
+            return select_best_with_typesafe(avail, movement_role)
 
     # Fallback over all tracks
     avail = [t for t in all_tracks if t not in exclude_set] or all_tracks
     avail = filter_by_role_and_energy(avail)
-    if randomize:
-        return random.choice(avail)
-    idx = int(hashlib.md5(key.encode()).hexdigest(), 16) % len(avail)
-    return avail[idx]
+    return select_best_with_typesafe(avail, movement_role)
 
 
 @dataclass

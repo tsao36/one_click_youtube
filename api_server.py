@@ -1293,6 +1293,51 @@ def delete_music_track(filepath: str):
     raise HTTPException(status_code=404, detail="Music track not found")
 
 
+# --- TypeSafe AI Inventory Grading Endpoints (ADR 0017) ---
+_music_grade_state = {
+    "running": False,
+    "progress": 0,
+    "total": 0,
+    "current_track": "",
+    "result": None,
+    "error": None
+}
+
+
+@app.get("/api/music/grade-status")
+def get_music_grade_status():
+    return _music_grade_state
+
+
+@app.post("/api/music/grade-inventory")
+async def trigger_grade_inventory(background_tasks: BackgroundTasks, force: bool = False):
+    global _music_grade_state
+    if _music_grade_state["running"]:
+        return {"status": "already_running", "detail": "Grading is already in progress"}
+
+    from scripts.grade_music_catalog import grade_inventory
+
+    def run_grading_task():
+        global _music_grade_state
+        _music_grade_state["running"] = True
+        _music_grade_state["error"] = None
+        _music_grade_state["progress"] = 0
+        def on_prog(cur, tot, name):
+            _music_grade_state["progress"] = cur
+            _music_grade_state["total"] = tot
+            _music_grade_state["current_track"] = name
+        try:
+            res = grade_inventory(force=force, progress_callback=on_prog)
+            _music_grade_state["result"] = res
+        except Exception as e:
+            _music_grade_state["error"] = str(e)
+        finally:
+            _music_grade_state["running"] = False
+
+    background_tasks.add_task(run_grading_task)
+    return {"status": "started"}
+
+
 class UpdateProjectMusicRequest(BaseModel):
     track: Optional[str] = None
     volume_db: Optional[float] = None
@@ -4077,6 +4122,7 @@ def get_all_settings():
             "PIXABAY_API_KEY": bool(get_secret("PIXABAY_API_KEY")),
             "HEDRA_API_KEY": bool(get_secret("HEDRA_API_KEY") or get_secret("HEDRA_KEY")),
             "MINIMAX_API_KEY": bool(get_secret("MINIMAX_API_KEY") or get_secret("MINIMAX_KEY")),
+            "TYPESAFE_API_KEY": bool(get_secret("TYPESAFE_API_KEY") or get_secret("TYPESAFE_KEY")),
         }
     }
 
@@ -4141,6 +4187,10 @@ def update_all_settings(req: UpdateSettingsRequest):
                     set_secret("MINIMAX_KEY", v)
                 elif k == "MINIMAX_KEY":
                     set_secret("MINIMAX_API_KEY", v)
+                elif k == "TYPESAFE_API_KEY":
+                    set_secret("TYPESAFE_KEY", v)
+                elif k == "TYPESAFE_KEY":
+                    set_secret("TYPESAFE_API_KEY", v)
     return {"status": "saved"}
 
 

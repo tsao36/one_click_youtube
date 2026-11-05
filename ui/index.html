@@ -2052,7 +2052,12 @@
             Curated royalty-free ambient music sorted by type (Tech, Documentary, Mystery, Calm, Dramatic, Uplifting). Tracks are seamlessly looped and <b>automatically ducked (-24 dB)</b> under voice narration during rendering.
           </div>
         </div>
-        <button class="btn-sec" onclick="loadMusicTracks()" style="padding: 6px 12px; font-size: 12px;">🔄 Refresh Library</button>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <button class="btn-sec" onclick="loadMusicTracks()" style="padding: 6px 12px; font-size: 12px;">🔄 Refresh Library</button>
+          <button id="btn-grade-typesafe" class="btn-primary" onclick="triggerTypeSafeGrading()" style="padding: 6px 14px; font-size: 12px; font-weight: 700; background: linear-gradient(135deg, #4f46e5, #7c3aed); border: none; box-shadow: 0 2px 8px rgba(124,58,237,0.35);">
+            ✨ Grade with TypeSafe AI (Jev)
+          </button>
+        </div>
       </div>
 
       <!-- Category Filter Pills -->
@@ -2511,6 +2516,11 @@
           <label>Pixabay API Key (Optional Stock Clips)</label>
           <input type="password" id="set-pixabay-key" placeholder="Pixabay Key (pixabay.com/api/docs)">
           <div id="set-pixabay-key-status" style="font-size: 12px; margin-top: 3px; color: #94a3b8;"></div>
+        </div>
+        <div class="form-group">
+          <label>TypeSafe AI (Jev) API Key (BGM Screening & Matching)</label>
+          <input type="password" id="set-typesafe-key" placeholder="ts_... (console.typesafe.ai/home)">
+          <div id="set-typesafe-key-status" style="font-size: 12px; margin-top: 3px; color: #94a3b8;"></div>
         </div>
       </div>
       <div style="font-size: 12px; color: #34d399; margin-bottom: 12px;">
@@ -10022,6 +10032,15 @@
                   <span style="background: ${meta.bg}; color: ${meta.color}; border: 1px solid ${meta.border}; font-size: 11px; padding: 2px 8px; border-radius: 12px; font-weight: 600;">
                     ${meta.label}
                   </span>
+                  ${t.is_voiceover_ready ? `
+                    <span style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); font-size: 11px; padding: 2px 8px; border-radius: 12px; font-weight: 600;" title="TypeSafe Fitness Score: ${t.voiceover_fitness || 4.0}/5">
+                      ✓ Safe for Voiceover (${t.voiceover_fitness || 4.0}/5)
+                    </span>
+                  ` : (t.speech_intrusive ? `
+                    <span style="background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); font-size: 11px; padding: 2px 8px; border-radius: 12px; font-weight: 600;" title="TypeSafe Distraction Risk: ${t.distraction_prob || 0.7}">
+                      ⚠️ Speech Intrusive (Vocal/Abrasive)
+                    </span>
+                  ` : '')}
                   ${t.mood ? `<span style="font-size: 11px; color: #94a3b8; background: #1e293b; padding: 2px 7px; border-radius: 6px;">${t.mood}</span>` : ''}
                 </div>
                 ${t.description ? `<div style="font-size: 12px; color: #94a3b8; line-height: 1.4; margin-bottom: 5px;">${t.description}</div>` : ''}
@@ -10298,6 +10317,54 @@
       }
     }
 
+    async function triggerTypeSafeGrading() {
+      const btn = document.getElementById('btn-grade-typesafe');
+      if (!confirm("Run TypeSafe AI System One (Jev) to grade and filter all tracks in your inventory for voiceover suitability?")) {
+        return;
+      }
+      try {
+        if (btn) {
+          btn.disabled = true;
+          btn.textContent = "⏳ Grading Inventory...";
+        }
+        const res = await fetch('/api/music/grade-inventory', { method: 'POST' });
+        const data = await res.json();
+        if (!res.ok) {
+          alert("Failed to start grading: " + (data.detail || res.statusText));
+          if (btn) { btn.disabled = false; btn.textContent = "✨ Grade with TypeSafe AI (Jev)"; }
+          return;
+        }
+
+        // Poll progress
+        const interval = setInterval(async () => {
+          try {
+            const stRes = await fetch('/api/music/grade-status');
+            const st = await stRes.json();
+            if (st.running) {
+              if (btn) btn.textContent = `⏳ Grading [${st.progress}/${st.total || 89}]...`;
+            } else {
+              clearInterval(interval);
+              if (btn) {
+                btn.disabled = false;
+                btn.textContent = "✨ Grade with TypeSafe AI (Jev)";
+              }
+              if (st.error) {
+                alert("Grading finished with error: " + st.error);
+              } else {
+                alert(`Grading Complete! Total: ${st.result ? st.result.total : 0}, Voiceover Ready: ${st.result ? st.result.passed : 0}, Speech Intrusive: ${st.result ? st.result.failed : 0}`);
+              }
+              await loadMusicTracks();
+            }
+          } catch (pollErr) {
+            console.error("Polling error:", pollErr);
+          }
+        }, 1500);
+      } catch (err) {
+        alert("Error starting TypeSafe grading: " + err.message);
+        if (btn) { btn.disabled = false; btn.textContent = "✨ Grade with TypeSafe AI (Jev)"; }
+      }
+    }
+
     async function deleteMusicTrack(filename) {
       if (!confirm(`Delete music track "${filename}"?`)) return;
       try {
@@ -10414,6 +10481,7 @@
       const minimax = document.getElementById('set-minimax-key') ? document.getElementById('set-minimax-key').value.trim() : '';
       const pexels = document.getElementById('set-pexels-key') ? document.getElementById('set-pexels-key').value.trim() : '';
       const pixabay = document.getElementById('set-pixabay-key') ? document.getElementById('set-pixabay-key').value.trim() : '';
+      const typesafe = document.getElementById('set-typesafe-key') ? document.getElementById('set-typesafe-key').value.trim() : '';
       if (gemini) secrets.GEMINI_API_KEY = gemini;
       if (openai) secrets.OPENAI_API_KEY = openai;
       if (fal) secrets.FAL_KEY = fal;
@@ -10425,6 +10493,7 @@
       if (minimax) secrets.MINIMAX_API_KEY = minimax;
       if (pexels) secrets.PEXELS_API_KEY = pexels;
       if (pixabay) secrets.PIXABAY_API_KEY = pixabay;
+      if (typesafe) secrets.TYPESAFE_API_KEY = typesafe;
 
       await fetch('/api/settings', {
         method: 'POST',
@@ -10467,6 +10536,7 @@
         setField('set-minimax-key', 'MINIMAX_API_KEY');
         setField('set-pexels-key', 'PEXELS_API_KEY');
         setField('set-pixabay-key', 'PIXABAY_API_KEY');
+        setField('set-typesafe-key', 'TYPESAFE_API_KEY');
 
         if (data.settings && data.settings.subtitles) {
           const sub = data.settings.subtitles;

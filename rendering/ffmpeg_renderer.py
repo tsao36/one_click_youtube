@@ -330,9 +330,14 @@ def build_audio_mix(project: Project, narration: Path, total: float, out: Path,
         run_ffmpeg([*args, "-filter_complex", fc, "-map", "[out]", "-t", f"{total:.3f}", "-ar", "48000", "-ac", "2", "-c:a", "pcm_s16le", str(out)], cancel=cancel)
         return info
 
-    duck_filter = ("[nsc]highpass=f=120,lowpass=f=3500[sc_ctrl];"
-                   "[mus_bed][sc_ctrl]sidechaincompress=threshold=0.08:ratio=2.5:attack=60:release=550:makeup=1[md];"
-                   if m.get("ducking", True) else "[mus_bed]anull[md];[nsc]anullsink;")
+    # ADR 0017: Voice-Carving Notch EQ (-3dB at 1.8kHz) + Real-time DSP Sidechain Ducking
+    duck_filter = (
+        "[mus_bed]equalizer=f=1800:t=q:w=1.2:g=-3.0[mus_eq];"
+        "[nsc]highpass=f=120,lowpass=f=3500[sc_ctrl];"
+        "[mus_eq][sc_ctrl]sidechaincompress=threshold=0.125:ratio=4:attack=15:release=350:makeup=1[md];"
+        if m.get("ducking", True)
+        else "[mus_bed]equalizer=f=1800:t=q:w=1.2:g=-3.0[md];[nsc]anullsink;"
+    )
 
     if len(music_plan) == 1:
         # Single-track background music (classic)
@@ -348,7 +353,7 @@ def build_audio_mix(project: Project, narration: Path, total: float, out: Path,
 
         fc_parts = [
             f"[0:a]aresample=48000,aformat=channel_layouts=stereo,asplit=2[nar][nsc];",
-            f"[1:a]aresample=48000,aformat=channel_layouts=stereo,loudnorm=I=-16:TP=-2,volume={vol}dB,"
+            f"[1:a]aresample=48000,aformat=channel_layouts=stereo,loudnorm=I=-26:TP=-2,volume={vol}dB,"
             f"atrim={so:.3f}:{so + total:.3f},asetpts=PTS-STARTPTS,afade=t=in:d={fi},afade=t=out:st={max(0, total - fo):.3f}:d={fo}[mus_bed];",
             duck_filter,
         ]
@@ -391,8 +396,8 @@ def build_audio_mix(project: Project, narration: Path, total: float, out: Path,
         trim_len = dur_i + overlap
 
         fc_parts.append(
-            f"[{in_idx}:a]aresample=48000,aformat=channel_layouts=stereo,loudnorm=I=-16:TP=-2,volume={vol_i}dB,"
-            f"atrim={so_i:.3f}:{so_i + trim_len:.3f},asetpts=PTS-STARTPTS,afade=t=in:d={fi_i},afade=t=out:st={dur_i:.3f}:d={fo_i},"
+            f"[{in_idx}:a]aresample=48000,aformat=channel_layouts=stereo,loudnorm=I=-26:TP=-2,volume={vol_i}dB,"
+            f"atrim={so_i:.3f}:{so_i + trim_len:.3f},asetpts=PTS-STARTPTS,afade=t=in:d={fi_i}:curve=qsin,afade=t=out:st={dur_i:.3f}:d={fo_i}:curve=iqsin,"
             f"adelay={start_ms}:all=1[m{i}];"
         )
         bed_labels.append(f"[m{i}]")
