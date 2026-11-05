@@ -436,3 +436,70 @@ def synthesize(text: str, profile: dict, out_wav: Path, settings: dict, provider
     meta["voice_config_hash"] = voice_fingerprint(profile, vs)
     meta["is_cloud"] = provider.is_cloud
     return meta
+
+
+def generate_voice_sample(voice_name: str, text: str | None = None, force: bool = False) -> Path:
+    """Generate or ensure test_sample.wav exists for the given voice profile."""
+    target_dir = VOICES_DIR / voice_name
+    if not (target_dir / "voice.json").exists():
+        for p in VOICES_DIR.iterdir():
+            if p.is_dir() and p.name.lower() == voice_name.lower() and (p / "voice.json").exists():
+                voice_name = p.name
+                target_dir = p
+                break
+    out_wav = target_dir / "test_sample.wav"
+    if out_wav.exists() and out_wav.stat().st_size > 500 and not force:
+        return out_wav
+
+    prof = load_profile(voice_name)
+    from core.config import load_settings
+    cfg = load_settings()
+    spk = prof.get("speaker") or prof.get("voice") or voice_name
+    prov = (prof.get("provider") or "").lower()
+
+    if not text:
+        if prov == "voai":
+            text = f"你好，我是{spk}，這是我的聲音展示與說話效果。"
+        elif prov == "elevenlabs":
+            text = f"Hello, this is {spk} speaking, a test sample of this voice."
+        elif prov == "edge":
+            disp = prof.get("display_name", spk)
+            text = f"你好，這是{disp}的語音示範。"
+        else:
+            text = "你好，這是我複製的聲音樣本測試。"
+
+    synthesize(text, prof, out_wav, cfg)
+    return out_wav
+
+
+def batch_generate_missing_samples(provider: str | None = "voai", max_workers: int = 4) -> dict:
+    """Batch generate missing test_sample.wav files for voice profiles."""
+    import concurrent.futures
+    profiles = list_profiles()
+    missing = [
+        p["name"] for p in profiles
+        if (not provider or p.get("provider") == provider) and not p.get("has_test_sample")
+    ]
+    if not missing:
+        return {"total": len(profiles), "missing_target": 0, "generated": 0, "failed": 0}
+
+    generated = 0
+    failed = 0
+
+    def _worker(name):
+        try:
+            generate_voice_sample(name, force=False)
+            return True
+        except Exception as e:
+            log.warning("Failed generating sample for '%s': %s", name, e)
+            return False
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as ex:
+        futures = {ex.submit(_worker, name): name for name in missing}
+        for fut in concurrent.futures.as_completed(futures):
+            if fut.result():
+                generated += 1
+            else:
+                failed += 1
+
+    return {"total": len(profiles), "missing_target": len(missing), "generated": generated, "failed": failed}

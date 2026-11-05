@@ -797,7 +797,10 @@
         <div class="form-group" id="creator-voice-group">
           <label style="display: flex; justify-content: space-between; align-items: center;">
             <span>Voice Profile / 聲音形象</span>
-            <span id="voice-select-hint" style="font-size: 11px; color: #10b981; font-weight: 600;">🔗 Stage 6: BlueMagpie Clone</span>
+            <span style="display: flex; align-items: center; gap: 8px;">
+              <button type="button" class="btn-sec" onclick="previewCreatorSelectedVoice()" style="padding: 2px 8px; font-size: 11px; height: auto; background: rgba(56,189,248,0.15); border-color: #0284c7; color: #38bdf8; font-weight: 600;" title="試聽目前所選音色">🔊 試聽音色 (Preview)</button>
+              <span id="voice-select-hint" style="font-size: 11px; color: #10b981; font-weight: 600;">🔗 Stage 6: BlueMagpie Clone</span>
+            </span>
           </label>
           <select id="voice-select" onchange="onVoiceProfileSelectChange()"></select>
         </div>
@@ -1746,9 +1749,14 @@
     <div class="card">
       <div class="card-title" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
         <span>Voice Profiles (Voice Cloning & TTS)</span>
-        <button type="button" class="btn-primary" onclick="syncVoaiVoicesNow()" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); border: 1px solid #38bdf8; font-size: 12px; font-weight: 700; padding: 6px 14px; display: inline-flex; align-items: center; gap: 6px;" title="從 https://app.voai.ai/actors 同步全部 75 位台灣聲優角色庫">
-          ⚡ 同步 VoAI 全部 75 位聲優庫 (Sync All VoAI Actors)
-        </button>
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+          <button type="button" class="btn-sec" onclick="batchGenerateAllVoaiSamples()" id="btn-batch-samples" style="background: rgba(2, 132, 199, 0.15); border: 1px solid #0284c7; color: #38bdf8; font-size: 12px; font-weight: 700; padding: 6px 12px; display: inline-flex; align-items: center; gap: 6px;" title="批次生成全部尚未具備試聽檔的 VoAI 聲優樣本音訊">
+            🎵 批次生成全部試聽樣本 (Batch Generate Samples)
+          </button>
+          <button type="button" class="btn-primary" onclick="syncVoaiVoicesNow()" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); border: 1px solid #38bdf8; font-size: 12px; font-weight: 700; padding: 6px 14px; display: inline-flex; align-items: center; gap: 6px;" title="從 https://app.voai.ai/actors 同步全部 75 位台灣聲優角色庫">
+            ⚡ 同步 VoAI 全部 75 位聲優庫 (Sync All VoAI Actors)
+          </button>
+        </div>
       </div>
       <div id="voice-profiles-list"></div>
       <hr style="border: 0; border-top: 1px solid var(--card-border); margin: 20px 0;">
@@ -8409,7 +8417,7 @@
                   ${isEleven ? '<span style="background:rgba(37,99,235,0.25); border:1px solid #2563eb; color:#60a5fa; font-size: 12px; font-weight:700; padding:1px 6px; border-radius:4px;">⚡ ElevenLabs</span>' : ''}
                   ${isVoai ? '<span style="background:rgba(2,132,199,0.25); border:1px solid #0284c7; color:#38bdf8; font-size: 12px; font-weight:700; padding:1px 6px; border-radius:4px;">🇹🇼 VoAI 絕好聲創</span>' : ''}
                   ${isEdge ? `<span style="background:rgba(16,185,129,0.22); border:1px solid #10b981; color:#6ee7b7; font-size: 12px; font-weight:700; padding:1px 6px; border-radius:4px;">🇹🇼 Edge-TTS ${v.gender === 'male' ? '臺灣男聲' : '臺灣女聲'}</span>` : ''}
-                  ${hasSample ? '<span style="background:rgba(5,150,105,0.25); border:1px solid #059669; color:#34d399; font-size: 12px; font-weight:700; padding:1px 6px; border-radius:4px;">✓ Sample Saved</span>' : '<span style="font-size: 12px; color:#f59e0b; background:rgba(245,158,11,0.15); border:1px solid #d97706; padding:1px 6px; border-radius:4px;">⏳ No Sample</span>'}
+                  ${hasSample ? '<span style="background:rgba(5,150,105,0.25); border:1px solid #059669; color:#34d399; font-size: 12px; font-weight:700; padding:1px 6px; border-radius:4px;">✓ Sample Ready</span>' : '<span style="font-size: 12px; color:#38bdf8; background:rgba(56,189,248,0.15); border:1px solid #0284c7; padding:1px 6px; border-radius:4px;">⚡ 點擊即播 (Auto-Sample)</span>'}
                 </div>
                 <div style="font-size:12px; color:var(--text-muted); margin-top:3px;">
                   ${isEleven ? `
@@ -8425,13 +8433,9 @@
               </div>
 
               <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                ${hasSample ? `
-                  <audio controls src="${sampleUrl}" style="height:32px; max-width:230px;" id="audio-player-${v.name}"></audio>
-                  <button class="btn-sec" style="padding:6px 12px; font-size:12px; background:#1e293b;" onclick="playExistingVoiceSample('${v.name}')" title="Play saved sample">▶️ Play</button>
-                  <button class="btn-sec" style="padding:6px 12px; font-size:12px; color:#93c5fd;" onclick="testVoiceProfile('${v.name}', true)" id="btn-test-${v.name}" title="Re-generate test sample with new text">🔄 Re-test</button>
-                ` : `
-                  <button class="btn-sec" style="padding:6px 14px; font-size:12px; background:#1e3a8a; border-color:#3b82f6; color:#fff; font-weight:600;" onclick="testVoiceProfile('${v.name}', false)" id="btn-test-${v.name}">🎙️ Test Sample</button>
-                `}
+                <audio controls preload="none" src="${sampleUrl}" style="height:32px; max-width:230px;" id="audio-player-${v.name}"></audio>
+                <button class="btn-sec" style="padding:6px 12px; font-size:12px; background:#1e293b;" onclick="playExistingVoiceSample('${v.name}')" id="btn-play-${v.name}" title="Play sample (auto-generates if not yet cached)">▶️ 試聽 (Play)</button>
+                <button class="btn-sec" style="padding:6px 12px; font-size:12px; color:#93c5fd;" onclick="testVoiceProfile('${v.name}', true)" id="btn-test-${v.name}" title="Re-generate test sample with new text">🔄 自訂測試</button>
                 <button type="button" class="btn-sec" style="padding:6px 12px; font-size:12px; color:#38bdf8; background:rgba(56,189,248,0.12); border-color:#0284c7; font-weight:600;" onclick="toggleRenameVoiceBox('${v.name}')" title="Rename Voice Profile ID & Display Name">✏️ 重新命名 (Rename)</button>
                 ${v.name !== 'default_local' ? `<button class="btn-sec btn-danger" style="padding:6px 12px; font-size:12px;" onclick="deleteVoiceProfile('${v.name}')">Delete</button>` : ''}
               </div>
@@ -8734,14 +8738,63 @@
       } catch (e) { setVoiceCustStatus(vName, '❌ ' + e.message, '#f87171'); }
     }
 
-    function playExistingVoiceSample(vName) {
-      const audioEl = document.getElementById(`audio-player-${vName}`);
-      if (audioEl) {
-        audioEl.currentTime = 0;
-        audioEl.play();
-      } else {
-        const audio = new Audio(`/media/voices/${vName}/test_sample.wav?t=${Date.now()}`);
-        audio.play();
+    function previewCreatorSelectedVoice() {
+      const sel = document.getElementById('voice-select');
+      if (!sel || !sel.value) return;
+      playExistingVoiceSample(sel.value);
+    }
+
+    async function batchGenerateAllVoaiSamples() {
+      const btn = document.getElementById('btn-batch-samples');
+      if (btn) { btn.disabled = true; btn.textContent = '⏳ 正在批次生成試聽樣本 (Generating)...'; }
+      showToast('🚀 開始批次生成 VoAI 聲音試聽檔，請稍候...');
+      try {
+        const res = await fetch('/api/voices/generate_missing_samples?provider=voai', { method: 'POST' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Batch generation failed');
+        showToast(`✅ 完成！成功生成 ${data.generated} 個 VoAI 試聽樣本檔！`);
+        await loadVoiceProfiles();
+      } catch (err) {
+        alert(`批次生成試聽失敗: ${err.message}`);
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '🎵 批次生成全部試聽樣本 (Batch Generate Samples)';
+        }
+      }
+    }
+
+    async function playExistingVoiceSample(vName) {
+      if (!vName) return;
+      const btn = document.getElementById(`btn-play-${vName}`);
+      const origText = btn ? btn.innerHTML : '';
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '⏳ 載入中...';
+      }
+      showToast(`🔊 正在準備「${vName}」聲音試聽...`);
+
+      try {
+        let audioEl = document.getElementById(`audio-player-${vName}`);
+        if (audioEl) {
+          if (!audioEl.src || audioEl.src.includes('undefined')) {
+            audioEl.src = `/media/voices/${vName}/test_sample.wav?t=${Date.now()}`;
+          }
+          audioEl.currentTime = 0;
+          await audioEl.play();
+        } else {
+          const audio = new Audio(`/media/voices/${vName}/test_sample.wav?t=${Date.now()}`);
+          await audio.play();
+        }
+        showToast(`▶️ 正在播放「${vName}」試聽樣本`);
+      } catch (err) {
+        console.error("Voice playback error:", err);
+        showToast(`⚠️ 聲音播放失敗: ${err.message}`, '#f87171');
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = origText || '▶️ 試聽 (Play)';
+        }
       }
     }
 
@@ -9204,11 +9257,16 @@
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
         const a = new Audio(url);
-        a.play();
-
-        setTimeout(() => {
+        a.onended = () => {
+          URL.revokeObjectURL(url);
           loadVoiceProfiles();
-        }, 1200);
+        };
+        try {
+          await a.play();
+        } catch (playErr) {
+          console.warn("Autoplay was prevented:", playErr);
+          loadVoiceProfiles();
+        }
       } catch (e) {
         clearInterval(progTimer);
         if (progBox) progBox.style.display = 'none';

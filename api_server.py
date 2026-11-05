@@ -42,7 +42,7 @@ from core.versioning import (
     ensure_initial_image_take,
     ensure_initial_voice_take,
 )
-from generators.voice_generator import delete_profile, list_profiles, load_profile, save_profile, synthesize
+from generators.voice_generator import batch_generate_missing_samples, delete_profile, generate_voice_sample, list_profiles, load_profile, save_profile, synthesize
 from providers.comfy_client import ComfyClient
 from providers.images import ImageRequest, get_image_provider
 from providers.llm.ollama_provider import OllamaProvider
@@ -3649,7 +3649,19 @@ def render_final(project_id: str, background_tasks: BackgroundTasks):
 # ---------------- Media Serving ----------------
 @app.get("/media/voices/{voice_name}/{file_name}")
 def serve_voice_file(voice_name: str, file_name: str):
-    path = DATA_DIR / "voices" / voice_name / file_name
+    target_dir = DATA_DIR / "voices" / voice_name
+    if not (target_dir / "voice.json").exists():
+        for p in (DATA_DIR / "voices").iterdir():
+            if p.is_dir() and p.name.lower() == voice_name.lower():
+                voice_name = p.name
+                target_dir = p
+                break
+    path = target_dir / file_name
+    if not path.exists() and file_name in ("test_sample.wav", "sample.wav"):
+        try:
+            generate_voice_sample(voice_name)
+        except Exception as e:
+            log.warning("Auto-synthesizing voice sample for '%s' failed: %s", voice_name, e)
     if not path.exists():
         raise HTTPException(status_code=404, detail="File not found")
     media_type = "audio/wav" if path.suffix == ".wav" else "audio/mpeg"
@@ -3896,8 +3908,24 @@ def get_voice_test_sample(voice_name: str):
                 break
     test_out = target_dir / "test_sample.wav"
     if not test_out.exists() or test_out.stat().st_size == 0:
+        try:
+            generate_voice_sample(voice_name)
+        except Exception as e:
+            log.warning("Auto-synthesizing voice sample for '%s' failed: %s", voice_name, e)
+    if not test_out.exists() or test_out.stat().st_size == 0:
         raise HTTPException(status_code=404, detail="Test sample not found")
     return FileResponse(test_out, media_type="audio/wav")
+
+
+@app.post("/api/voices/generate_missing_samples")
+def generate_missing_voice_samples(provider: Optional[str] = "voai"):
+    """Batch generate missing sample audio files for registered voice profiles."""
+    try:
+        res = batch_generate_missing_samples(provider=provider)
+        return {"status": "ok", **res}
+    except Exception as e:
+        log.exception("Failed to batch generate missing voice samples: %s", e)
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/api/voices/{name}")

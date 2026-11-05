@@ -58,3 +58,26 @@ def test_list_profiles_includes_voai():
     # We should have synced profiles available
     assert len(voai_profiles) >= 70
 
+
+
+def test_generate_voice_sample_mock(tmp_path):
+    from generators.voice_generator import generate_voice_sample
+    v_dir = tmp_path / "voai_測試小明"
+    v_dir.mkdir(parents=True, exist_ok=True)
+    (v_dir / "voice.json").write_text(json.dumps({
+        "name": "voai_測試小明",
+        "provider": "voai",
+        "speaker": "測試小明",
+        "model_id": "Sota+",
+    }), encoding="utf-8")
+
+    def fake_synthesize(text, prof, out_wav, cfg):
+        out_wav.write_bytes(b"RIFFdummywavaudio" * 50)
+        return {"duration": 1.5}
+
+    with patch("generators.voice_generator.VOICES_DIR", tmp_path), \
+         patch("core.config.load_settings", return_value={}), \
+         patch("generators.voice_generator.synthesize", side_effect=fake_synthesize):
+        out_file = generate_voice_sample("voai_測試小明")
+        assert out_file.exists()
+        assert out_file.stat().st_size > 500
