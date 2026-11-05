@@ -1407,7 +1407,15 @@ def get_stage_data_endpoint(project_id: str, stage_name: str):
     p = get_project(project_id)
     ret = {}
     if stage_name == "research":
-        ret = {"research": p.read_json("research/research.json", {})}
+        res_json = p.read_json("research/research.json", {})
+        chars = p.read_json("research/characters.json", [])
+        if not chars and res_json:
+            try:
+                from core.character_detector import scan_and_populate_project_characters
+                chars = scan_and_populate_project_characters(p)
+            except Exception as e:
+                log.warning("Auto character discovery failed: %s", e)
+        ret = {"research": res_json, "characters": chars}
     elif stage_name == "script":
         ret = {
             "script_json": p.read_json("script/script.json", {}),
@@ -1739,6 +1747,11 @@ def update_stage_data_endpoint(project_id: str, stage_name: str, payload: dict[s
         if "research" in payload:
             p.write_json("research/research.json", payload["research"])
             p.invalidate("script")
+        if "characters" in payload:
+            p.write_json("research/characters.json", payload["characters"])
+            rj = p.read_json("research/research.json", {})
+            rj["key_characters"] = payload["characters"]
+            p.write_json("research/research.json", rj)
     elif stage_name == "script":
         is_drama = bool(p.settings.get("project_mode") == "short_drama" or p.data.settings.get("project_mode") == "short_drama")
         if "script_json" in payload:
@@ -1817,6 +1830,56 @@ def update_stage_data_endpoint(project_id: str, stage_name: str, payload: dict[s
         p.data.outputs.pop("final", None)
     p.save()
     return {"status": "saved", "stage": stage_name}
+
+# ---------------- Key Character Media & Review Endpoints ----------------
+@app.get("/api/projects/{project_id}/characters")
+def get_project_characters_endpoint(project_id: str, rescan: bool = False):
+    """Retrieve key characters and their online authentic images/clips for Stage 1 review."""
+    p = get_project(project_id)
+    chars = []
+    if not rescan and p.path("research/characters.json").exists():
+        chars = p.read_json("research/characters.json", [])
+    if not chars:
+        from core.character_detector import scan_and_populate_project_characters
+        chars = scan_and_populate_project_characters(p, force=rescan)
+    return {"project_id": project_id, "characters": chars}
+
+
+@app.put("/api/projects/{project_id}/characters")
+def update_project_characters_endpoint(project_id: str, payload: dict[str, Any]):
+    """Update user audit decisions (approval status, selected media, target scenes) for characters."""
+    p = get_project(project_id)
+    characters = payload.get("characters", [])
+    p.write_json("research/characters.json", characters)
+    rj = p.read_json("research/research.json", {})
+    rj["key_characters"] = characters
+    p.write_json("research/research.json", rj)
+    p.save()
+    return {"status": "success", "count": len(characters)}
+
+
+@app.post("/api/projects/{project_id}/characters/search")
+def search_character_online_media_endpoint(project_id: str, payload: dict[str, Any]):
+    """Query fresh authentic media online for a character by query term."""
+    query = payload.get("query", "").strip()
+    if not query:
+        raise HTTPException(status_code=400, detail="Query keyword is required")
+    from core.character_detector import fetch_online_media_for_character
+    media = fetch_online_media_for_character({"name": query, "original_name": query, "search_keywords": [query]})
+    return {"query": query, "media": media}
+
+
+@app.post("/api/projects/{project_id}/characters/apply")
+def apply_characters_to_scenes_endpoint(project_id: str, payload: dict[str, Any]):
+    """Apply approved character real images or video clips directly into project scenes."""
+    p = get_project(project_id)
+    characters = payload.get("characters")
+    if not characters:
+        characters = p.read_json("research/characters.json", [])
+    from core.character_detector import apply_character_media_to_scenes
+    res = apply_character_media_to_scenes(p, characters)
+    return res
+
 
 
 @app.get("/api/projects/{project_id}/export_script")

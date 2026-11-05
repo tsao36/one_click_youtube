@@ -209,6 +209,14 @@ class DocumentaryPipeline(BasePipeline):
 
             self.p.write_json("research/research.json", res)
 
+            # Identify key characters and discover authentic online media
+            try:
+                self.p.activity("Stage 1/10: Identifying key characters & discovering authentic online media...")
+                from core.character_detector import scan_and_populate_project_characters
+                scan_and_populate_project_characters(self.p)
+            except Exception as ce:
+                log.warning("Stage 1 character media discovery failed: %s", ce)
+
 
 
             if user_research and user_research.strip() and not (self.p.path("research", "user_research.md")).exists():

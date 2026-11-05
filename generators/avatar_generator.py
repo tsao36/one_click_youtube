@@ -582,7 +582,10 @@ def save_base_video(name: str, video_bytes: bytes, filename: str = "upload.mp4",
         ]
         run_ffmpeg(cmd)
     finally:
-        raw.unlink(missing_ok=True)
+        try:
+            raw.unlink(missing_ok=True)
+        except Exception:
+            pass
     (d / "test_sample__latentsync.mp4").unlink(missing_ok=True)
     (d / "test_sample__masked_speaker.mp4").unlink(missing_ok=True)
     (d / "test_sample.mp4").unlink(missing_ok=True)

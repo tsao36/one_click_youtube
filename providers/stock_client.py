@@ -37,7 +37,8 @@ def resolve_wikipedia_portrait(entity_name: str) -> dict[str, Any] | None:
     headers = {"User-Agent": USER_AGENT}
     endpoints = [
         f"https://en.wikipedia.org/api/rest_v1/page/summary/{urllib.parse.quote(clean_name)}",
-        f"https://zh.wikipedia.org/api/rest_v1/page/summary/{urllib.parse.quote(clean_name)}"
+        f"https://zh.wikipedia.org/api/rest_v1/page/summary/{urllib.parse.quote(clean_name)}",
+        f"https://ja.wikipedia.org/api/rest_v1/page/summary/{urllib.parse.quote(clean_name)}"
     ]
 
     for ep in endpoints:

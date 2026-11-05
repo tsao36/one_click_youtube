@@ -10769,6 +10769,8 @@
             <div id="insp-res-rep-status" style="font-size: 11px; color: #34d399; margin-top: 4px; min-height: 14px;"></div>
           </div>
 
+          ${(!isDrama) ? renderCharactersReviewHtml(data.characters || (data.research && data.research.key_characters) || [], true) : ''}
+
           <div style="margin-bottom:12px;">
             <label style="font-weight:600; display:block; margin-bottom:6px;">${titleLabel}</label>
             <textarea id="insp-research" style="width:100%; height:320px; font-family:monospace; font-size:12px; background:#080d16; color:#e2e8f0; border:1px solid var(--card-border); padding:10px; border-radius:6px;">${resText}</textarea>
@@ -12826,6 +12828,237 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       if (typeof showToast === 'function') showToast(`✓ 配樂演進模式已切換為: ${val}`);
     }
 
+
+    /* ==========================================================================
+       KEY CHARACTERS & AUTHENTIC MEDIA REVIEW (Stage 1 Research Extension)
+       ========================================================================== */
+    function renderCharactersReviewHtml(characters, isInspector = false) {
+      if (!Array.isArray(characters) || !characters.length) {
+        return `
+          <div style="background: rgba(15, 23, 42, 0.6); border: 1px dashed rgba(59, 130, 246, 0.3); border-radius: 8px; padding: 18px 20px; margin-bottom: 20px; text-align: center;">
+            <div style="font-size: 26px; margin-bottom: 6px;">🎭</div>
+            <div style="font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 4px;">尚未識別關鍵歷史人物</div>
+            <div style="font-size: 12px; color: var(--text-muted); max-width: 440px; margin: 0 auto 12px auto;">
+              系統可根據研究報告自動識別核心人物、歷史原作者與演員，並自 Wikipedia 與 YouTube 檢索真實肖像與歷史片段。
+            </div>
+            <button class="btn-sec" style="font-size: 12px; padding: 6px 14px; background: rgba(59,130,246,0.18); border-color: #3b82f6; color: #93c5fd; font-weight: 600;" onclick="rescanProjectCharacters(${isInspector})">
+              🔍 立即掃描人物與網路真實素材
+            </button>
+          </div>
+        `;
+      }
+
+      let html = `
+        <div style="background: linear-gradient(135deg, rgba(11, 20, 38, 0.95) 0%, rgba(6, 12, 24, 0.95) 100%); border: 1px solid rgba(59, 130, 246, 0.35); border-radius: 8px; padding: 18px 20px; margin-bottom: 20px; box-shadow: 0 4px 16px rgba(0,0,0,0.3);">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; border-bottom: 1px solid rgba(59, 130, 246, 0.2); padding-bottom: 12px;">
+            <div>
+              <div style="font-size: 15px; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 8px;">
+                <span>🎭</span> 關鍵人物與真實影音審查 (Key Characters & Authentic Media Review)
+                <span style="font-size: 11px; background: rgba(59,130,246,0.2); color: #60a5fa; border: 1px solid rgba(59,130,246,0.4); padding: 2px 7px; border-radius: 10px;">共 ${characters.length} 位人物</span>
+              </div>
+              <div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">
+                系統已自動自 Wikipedia、Wikimedia 及 YouTube 檢索真實肖像與歷史紀錄片段。您可在此審查、選擇並直接指派至對應分鏡。
+              </div>
+            </div>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <button type="button" class="btn-sec" style="font-size: 11px; padding: 6px 12px; color: #93c5fd; border-color: #3b82f6;" onclick="rescanProjectCharacters(${isInspector})">
+                🔄 重新檢索素材
+              </button>
+              <button type="button" class="btn-primary" style="font-size: 11px; padding: 6px 14px; background: linear-gradient(135deg, #059669 0%, #047857 100%); font-weight: 700; border: 1px solid #10b981;" onclick="applyApprovedCharacterMedia(${isInspector})">
+                🔗 一鍵套用至對應分鏡
+              </button>
+            </div>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 16px;">
+      `;
+
+      characters.forEach((char, cIdx) => {
+        const charId = char.id || `char_${cIdx + 1}`;
+        const targetScenesStr = Array.isArray(char.target_scenes) ? char.target_scenes.join(', ') : (char.target_scenes || '');
+        const images = char.images || [];
+        const clips = char.clips || [];
+        const selectedImg = char.selected_image;
+        const selectedClip = char.selected_clip;
+        const status = char.status || 'pending';
+
+        html += `
+          <div style="background: #080d16; border: 1px solid rgba(124, 145, 182, 0.25); border-radius: 8px; padding: 16px;">
+            <!-- Character Header -->
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px; margin-bottom: 12px;">
+              <div>
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                  <span style="font-size: 15px; font-weight: 800; color: #fff;">${char.name}</span>
+                  ${char.original_name ? `<span style="font-size: 11px; background: rgba(59,130,246,0.15); color: #93c5fd; border: 1px solid rgba(59,130,246,0.3); border-radius: 4px; padding: 2px 6px;">${char.original_name}</span>` : ''}
+                  <select style="font-size: 11px; padding: 2px 6px; border-radius: 4px; background: #040814; color: ${status === 'approved' ? '#34d399' : (status === 'rejected' ? '#f87171' : '#f59e0b')}; border: 1px solid var(--border-muted); font-weight: 700;" onchange="onCharacterStatusChange(${cIdx}, this.value, ${isInspector})">
+                    <option value="pending" ${status === 'pending' ? 'selected' : ''}>⏳ 待審查 (Pending)</option>
+                    <option value="approved" ${status === 'approved' ? 'selected' : ''}>✓ 已核准 (Approved)</option>
+                    <option value="rejected" ${status === 'rejected' ? 'selected' : ''}>✕ 排除 (Rejected)</option>
+                  </select>
+                </div>
+                <div style="font-size: 12px; color: #cbd5e1; margin-top: 4px; line-height: 1.4;">
+                  ${char.role || '關鍵歷史人物'}
+                </div>
+              </div>
+
+              <!-- Target Scenes Assignment -->
+              <div style="display: flex; align-items: center; gap: 6px; background: #04070e; border: 1px solid #1e293b; border-radius: 6px; padding: 6px 10px;">
+                <label style="font-size: 11px; font-weight: 700; color: #38bdf8; margin: 0; white-space: nowrap;">🎯 指派至分鏡:</label>
+                <input type="text" value="${targetScenesStr}" placeholder="e.g. 6, 15, 20" style="width: 140px; font-size: 11px; padding: 3px 6px; background: #080d16; border: 1px solid #334155; border-radius: 4px; color: #fff; font-weight: 700;" onchange="onCharacterScenesChange(${cIdx}, this.value, ${isInspector})">
+                <span style="font-size: 10px; color: #64748b;">(Scene IDs)</span>
+              </div>
+            </div>
+
+            <!-- Media Columns: Images & Clips -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px;">
+              <!-- Real Images Gallery -->
+              <div style="background: #040814; border: 1px solid #1e293b; border-radius: 6px; padding: 10px 12px;">
+                <div style="font-size: 12px; font-weight: 700; color: #93c5fd; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between;">
+                  <span>📸 真實肖像與歷史劇照 (${images.length})</span>
+                </div>
+                ${!images.length ? '<div style="font-size:11px; color:#64748b; padding:10px 0;">無相關圖片素材</div>' : `
+                  <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px;">
+                    ${images.map((img, iIdx) => {
+                      const isSel = (img.url === selectedImg);
+                      return `
+                        <div onclick="onCharacterSelectImage(${cIdx}, '${img.url.replace(/'/g, "\'")}', ${isInspector})" style="position: relative; cursor: pointer; border-radius: 4px; overflow: hidden; border: 2px solid ${isSel ? '#10b981' : 'transparent'}; box-shadow: ${isSel ? '0 0 8px rgba(16,185,129,0.5)' : 'none'}; background: #000; aspect-ratio: 16/10;">
+                          <img src="${img.thumbnail_url || img.url}" style="width: 100%; height: 100%; object-fit: cover; display: block;" onerror="this.src='/favicon.ico';">
+                          <span style="position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.75); color: #fff; font-size: 9px; padding: 1px 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${img.source || 'Photo'}</span>
+                          ${isSel ? '<span style="position: absolute; top: 2px; right: 2px; background: #10b981; color: #fff; font-size: 10px; border-radius: 50%; width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; font-weight: 900;">✓</span>' : ''}
+                        </div>
+                      `;
+                    }).join('')}
+                  </div>
+                `}
+              </div>
+
+              <!-- Real Video Clips Gallery -->
+              <div style="background: #040814; border: 1px solid #1e293b; border-radius: 6px; padding: 10px 12px;">
+                <div style="font-size: 12px; font-weight: 700; color: #f59e0b; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between;">
+                  <span>🎬 真實歷史影像片段 (${clips.length})</span>
+                </div>
+                ${!clips.length ? '<div style="font-size:11px; color:#64748b; padding:10px 0;">無相關影片片段</div>' : `
+                  <div style="display: flex; flex-direction: column; gap: 8px;">
+                    ${clips.map((clip, clIdx) => {
+                      const isSel = (clip.url === selectedClip);
+                      return `
+                        <div style="display: flex; align-items: center; gap: 8px; background: #080d16; border: 1px solid ${isSel ? '#3b82f6' : '#1e293b'}; border-radius: 4px; padding: 6px; box-shadow: ${isSel ? '0 0 8px rgba(59,130,246,0.4)' : 'none'};">
+                          <img src="${clip.thumbnail_url || ''}" style="width: 64px; height: 38px; object-fit: cover; border-radius: 3px; background: #000; flex-shrink: 0;" onerror="this.src='/favicon.ico';">
+                          <div style="flex: 1; min-width: 0;">
+                            <div style="font-size: 11px; font-weight: 600; color: #cbd5e1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${clip.title}">
+                              ${clip.title}
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 6px; margin-top: 3px;">
+                              <span style="font-size: 10px; color: #ef4444; font-weight: 700;">YouTube</span>
+                              ${clip.duration > 0 ? `<span style="font-size: 10px; color: #94a3b8;">${Math.round(clip.duration)}s</span>` : ''}
+                              <a href="${clip.url}" target="_blank" style="font-size: 10px; color: #60a5fa; text-decoration: underline;" onclick="event.stopPropagation();">觀看</a>
+                            </div>
+                          </div>
+                          <button type="button" class="btn-sec" style="font-size: 10px; padding: 4px 8px; border-color: ${isSel ? '#3b82f6' : '#334155'}; color: ${isSel ? '#60a5fa' : '#94a3b8'}; background: ${isSel ? 'rgba(59,130,246,0.15)' : 'transparent'}; font-weight: 700; white-space: nowrap;" onclick="onCharacterSelectClip(${cIdx}, '${clip.url.replace(/'/g, "\'")}', ${isInspector})">
+                            ${isSel ? '✓ 已選用片段' : '選用此片段'}
+                          </button>
+                        </div>
+                      `;
+                    }).join('')}
+                  </div>
+                `}
+              </div>
+            </div>
+          </div>
+        `;
+      });
+
+      html += `
+          </div>
+        </div>
+      `;
+      return html;
+    }
+
+    function onCharacterSelectImage(charIdx, imgUrl, isInspector) {
+      const dataObj = isInspector ? inspectedStageData : studioStageData;
+      if (!dataObj || !dataObj.characters || !dataObj.characters[charIdx]) return;
+      dataObj.characters[charIdx].selected_image = imgUrl;
+      dataObj.characters[charIdx].status = 'approved';
+      if (typeof showToast === 'function') showToast(`✓ 已為 ${dataObj.characters[charIdx].name} 選定肖像素材`);
+      if (isInspector) {
+        if (typeof renderInspectorContent === 'function') renderInspectorContent('research', dataObj);
+      } else {
+        if (typeof renderStudioWorkspace === 'function') renderStudioWorkspace('research', dataObj, studioProject);
+      }
+    }
+
+    function onCharacterSelectClip(charIdx, clipUrl, isInspector) {
+      const dataObj = isInspector ? inspectedStageData : studioStageData;
+      if (!dataObj || !dataObj.characters || !dataObj.characters[charIdx]) return;
+      dataObj.characters[charIdx].selected_clip = clipUrl;
+      dataObj.characters[charIdx].status = 'approved';
+      if (typeof showToast === 'function') showToast(`✓ 已為 ${dataObj.characters[charIdx].name} 選定影片片段`);
+      if (isInspector) {
+        if (typeof renderInspectorContent === 'function') renderInspectorContent('research', dataObj);
+      } else {
+        if (typeof renderStudioWorkspace === 'function') renderStudioWorkspace('research', dataObj, studioProject);
+      }
+    }
+
+    function onCharacterStatusChange(charIdx, status, isInspector) {
+      const dataObj = isInspector ? inspectedStageData : studioStageData;
+      if (!dataObj || !dataObj.characters || !dataObj.characters[charIdx]) return;
+      dataObj.characters[charIdx].status = status;
+      if (typeof showToast === 'function') showToast(`✓ ${dataObj.characters[charIdx].name} 狀態已設為: ${status}`);
+    }
+
+    function onCharacterScenesChange(charIdx, val, isInspector) {
+      const dataObj = isInspector ? inspectedStageData : studioStageData;
+      if (!dataObj || !dataObj.characters || !dataObj.characters[charIdx]) return;
+      const ids = val.split(/[,，\s]+/).map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+      dataObj.characters[charIdx].target_scenes = ids;
+    }
+
+    async function rescanProjectCharacters(isInspector) {
+      if (!currentProjectId) return alert("請先選取專案");
+      try {
+        if (typeof showToast === 'function') showToast("🔍 正在重新掃描人物與檢索網路真實素材...");
+        const res = await fetch(`/api/projects/${currentProjectId}/characters?rescan=true`);
+        const json = await res.json();
+        const dataObj = isInspector ? inspectedStageData : studioStageData;
+        if (dataObj) {
+          dataObj.characters = json.characters || [];
+        }
+        if (isInspector) {
+          if (typeof renderInspectorContent === 'function') renderInspectorContent('research', dataObj);
+        } else {
+          if (typeof renderStudioWorkspace === 'function') renderStudioWorkspace('research', dataObj, studioProject);
+        }
+        if (typeof showToast === 'function') showToast(`✓ 成功檢索到 ${json.characters?.length || 0} 位人物資料！`);
+      } catch (e) {
+        alert("檢索失敗: " + e.message);
+      }
+    }
+
+    async function applyApprovedCharacterMedia(isInspector) {
+      if (!currentProjectId) return alert("請先選取專案");
+      const dataObj = isInspector ? inspectedStageData : studioStageData;
+      const characters = dataObj ? dataObj.characters : [];
+      if (!characters || !characters.length) return alert("尚無人物資料");
+
+      try {
+        if (typeof showToast === 'function') showToast("⏳ 正在將選定的真實肖像與歷史片段套用至分鏡...");
+        const res = await fetch(`/api/projects/${currentProjectId}/characters/apply`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ characters })
+        });
+        const result = await res.json();
+        const updated = result.updated_scenes || [];
+        alert(`✓ 成功將真實歷史影音套用至分鏡 [${updated.join(', ')}]！
+已標記為真實素材，渲染時將使用歷史肖像或片段。`);
+        if (typeof loadStageStudio === 'function') loadStageStudio('research');
+      } catch (e) {
+        alert("套用失敗: " + e.message);
+      }
+    }
+
     /* ==========================================================================
        STAGE STUDIO (Independent Stage Playground & Assembly)
        ========================================================================== */
@@ -13359,6 +13592,8 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
               </div>
             </div>
           </div>
+
+          ${renderCharactersReviewHtml(data.characters || (resObj && resObj.key_characters) || [])}
 
           <div style="margin-bottom: 16px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
@@ -15911,6 +16146,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       if (stKey === 'research') {
         const text = document.getElementById('studio-research').value;
         try { payload.research = JSON.parse(text); } catch(e) { payload.research = { notes: text }; }
+        if (studioStageData && studioStageData.characters) payload.characters = studioStageData.characters;
         const eraEl = document.getElementById('studio-ws-era');
         if (eraEl && payload.research && typeof payload.research === 'object') {
           if (!payload.research.world_setting || typeof payload.research.world_setting !== 'object') {
