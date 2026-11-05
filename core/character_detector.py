@@ -25,9 +25,11 @@ from providers.youtube_snippet_client import (
 
 SYSTEM_CHARACTER_PROMPT = (
     "You are an expert historical researcher and documentary archivist. "
-    "Analyze the documentary research notes, world settings, and topic to identify 1 to 4 "
-    "KEY REAL HISTORICAL, BIOGRAPHICAL, OR CENTRAL FIGURES whose authentic real-world portraits, "
-    "archival photos, or video footage are critical for documentary credibility. "
+    "Analyze the documentary research notes, world settings, and topic to identify 1 to 5 "
+    "KEY CHARACTERS, CENTRAL HEROES, CREATORS, OR HISTORICAL FIGURES. "
+    "IMPORTANT: If the topic focuses on an iconic hero, franchise, or character (e.g. 快傑獅子丸), "
+    "ALWAYS include that central character as char_1, providing accurate native foreign search queries "
+    "(such as Japanese kanji/kana, sequels like 風雲ライオン丸, transformation queries like 快傑ライオン丸 変身). "
     "Output strictly a JSON array of objects."
 )
 
@@ -161,18 +163,22 @@ def _heuristic_character_extraction(research_data: dict[str, Any], topic: str) -
     return candidates
 
 
-def fetch_online_media_for_character(char: dict[str, Any]) -> dict[str, Any]:
+def fetch_online_media_for_character(char: dict[str, Any], extra_queries: Optional[list[str]] = None) -> dict[str, Any]:
     """Retrieve online authentic Wikipedia portraits, Wikimedia images, and YouTube clips."""
     images: list[dict[str, Any]] = []
     clips: list[dict[str, Any]] = []
     seen_urls: set[str] = set()
 
     keywords = []
-    for k in [char.get("original_name"), char.get("name")] + char.get("search_keywords", []):
+    candidates = (extra_queries or []) + [char.get("original_name"), char.get("name")] + char.get("search_keywords", [])
+    for k in candidates:
         if k and isinstance(k, str) and k.strip() and k.strip() not in keywords:
             keywords.append(k.strip())
+            # For foreign/Japanese terms, add helpful variant terms if not present
+            if any(term in k for term in ("ライオン丸", "獅子丸")) and "風雲ライオン丸" not in keywords:
+                keywords.append("風雲ライオン丸")
 
-    for kw in keywords[:3]:
+    for kw in keywords[:5]:
         # 1. Wikipedia portrait infobox
         try:
             wiki_p = resolve_wikipedia_portrait(kw)
@@ -251,7 +257,7 @@ def fetch_online_media_for_character(char: dict[str, Any]) -> dict[str, Any]:
         except Exception as e:
             log.debug("YouTube footage lookup failed for '%s': %s", kw, e)
 
-    return {"images": images[:8], "clips": clips[:6]}
+    return {"images": images[:16], "clips": clips[:12]}
 
 
 def match_scenes_for_character(char: dict[str, Any], scenes: list[Any]) -> list[int]:
@@ -356,9 +362,19 @@ def apply_character_media_to_scenes(project: Project, character_assignments: lis
                     s.media_source = "youtube_snippet"
                     s.search_keyword = selected_clip_url
                     s.visual_type = "historical_footage"
-                    clip_dur = min(max(3.0, float(s.audio_duration or s.estimated_duration or 3.0)), 6.0)
+                    # Allow ~10s clip matching scene duration (7s - 15s)
+                    scene_len = float(s.audio_duration or s.estimated_duration or 10.0)
+                    clip_dur = min(max(7.0, scene_len), 15.0)
+                    
+                    # Cycle through available clips if multiple exist for variety
+                    chosen_clip_url = selected_clip_url
+                    clips_pool = item.get("clips", [])
+                    if len(clips_pool) > 1 and len(target_scene_ids) > 1:
+                        idx_in_char = target_scene_ids.index(sid)
+                        chosen_clip_url = clips_pool[idx_in_char % len(clips_pool)].get("url") or selected_clip_url
+
                     extract_youtube_snippet(
-                        selected_clip_url,
+                        chosen_clip_url,
                         output_video_path=clip_out,
                         output_image_path=img_out,
                         duration_sec=clip_dur,
@@ -404,3 +420,132 @@ def apply_character_media_to_scenes(project: Project, character_assignments: lis
         project.save()
 
     return {"status": "success", "updated_scenes": updated_scene_ids}
+
+
+def bulk_boost_character_media(
+    project: Project,
+    character_name: str,
+    target_scene_ids: Optional[list[int]] = None,
+    clip_ratio: float = 0.7,
+    extra_queries: Optional[list[str]] = None,
+) -> dict[str, Any]:
+    """
+    Batch replace scene visuals with authentic ~10s YouTube clips and real photos
+    for a central character (e.g. 快傑獅子丸 / 風雲ライオン丸), boosting the percentage of real footage.
+    """
+    chars = project.read_json("research/characters.json", [])
+    target_char = None
+    for c in chars:
+        if c.get("name") == character_name or character_name in (c.get("original_name") or "") or character_name in (c.get("search_keywords") or []):
+            target_char = c
+            break
+
+    if not target_char:
+        # Create character entry on the fly
+        target_char = {
+            "id": f"char_{len(chars) + 1}",
+            "name": character_name,
+            "original_name": character_name,
+            "role": f"Primary hero/subject: {character_name}",
+            "search_keywords": extra_queries or [character_name],
+            "status": "approved"
+        }
+        chars.append(target_char)
+
+    if extra_queries:
+        existing_kws = target_char.setdefault("search_keywords", [])
+        for eq in extra_queries:
+            if eq not in existing_kws:
+                existing_kws.append(eq)
+
+    # Fetch fresh pool of media
+    fresh_media = fetch_online_media_for_character(target_char, extra_queries=extra_queries)
+    target_char["images"] = fresh_media["images"]
+    target_char["clips"] = fresh_media["clips"]
+    target_char["status"] = "approved"
+
+    # Identify eligible scenes if target_scene_ids not specified
+    if not target_scene_ids:
+        target_scene_ids = match_scenes_for_character(target_char, project.scenes)
+
+    if not target_scene_ids:
+        # Fallback to scenes containing character name or keywords
+        target_scene_ids = [s.scene_id for s in project.scenes if any(k in (s.narration or "") for k in (extra_queries or [character_name]))]
+
+    target_char["target_scenes"] = target_scene_ids
+
+    # Distribute clips vs stills based on clip_ratio
+    scenes_map = {s.scene_id: s for s in project.scenes}
+    updated_ids = []
+    clips_pool = fresh_media.get("clips", [])
+    images_pool = fresh_media.get("images", [])
+
+    for idx, sid in enumerate(target_scene_ids):
+        s = scenes_map.get(sid)
+        if not s:
+            continue
+
+        use_clip = (idx / max(1, len(target_scene_ids))) < clip_ratio and bool(clips_pool)
+        img_out = project.path("images", f"{s.tag}.png")
+        clip_out = project.path("animation", f"{s.tag}.mp4")
+
+        scene_len = float(s.audio_duration or s.estimated_duration or 10.0)
+        clip_dur = min(max(7.0, scene_len), 15.0)
+
+        if use_clip:
+            chosen_clip = clips_pool[idx % len(clips_pool)]
+            s.media_source = "youtube_snippet"
+            s.search_keyword = chosen_clip.get("url")
+            s.visual_type = "historical_footage"
+            try:
+                extract_youtube_snippet(
+                    chosen_clip["url"],
+                    output_video_path=clip_out,
+                    output_image_path=img_out,
+                    duration_sec=clip_dur,
+                    as_clip=True,
+                )
+                updated_ids.append(sid)
+            except Exception as e:
+                log.warning("Bulk clip extract failed for scene %s: %s", sid, e)
+        elif images_pool:
+            chosen_img = images_pool[idx % len(images_pool)]
+            s.media_source = "stock_portrait"
+            s.search_keyword = chosen_img.get("title") or character_name
+            s.visual_type = "authentic_portrait"
+            img_url = chosen_img.get("url")
+            try:
+                if "youtube.com" in img_url or "ytimg.com" in img_url:
+                    vid_m = re.search(r"vi/([a-zA-Z0-9_-]{11})", img_url)
+                    if vid_m:
+                        download_youtube_thumbnail(vid_m.group(1), img_out)
+                    else:
+                        download_media_file(img_url, img_out)
+                        format_stock_image(img_out, 1920, 1080)
+                else:
+                    download_media_file(img_url, img_out)
+                    format_stock_image(img_out, 1920, 1080)
+                if clip_out.exists():
+                    clip_out.unlink(missing_ok=True)
+                updated_ids.append(sid)
+            except Exception as e:
+                log.warning("Bulk image apply failed for scene %s: %s", sid, e)
+
+    project.write_json("research/characters.json", chars)
+    rj = project.read_json("research/research.json", {})
+    rj["key_characters"] = chars
+    project.write_json("research/research.json", rj)
+
+    if updated_ids:
+        project.save_scenes()
+        project.clear_clips_cache()
+        project.invalidate("render")
+        project.save()
+
+    return {
+        "status": "success",
+        "character": character_name,
+        "updated_scenes": updated_ids,
+        "total_clips_available": len(clips_pool),
+        "total_images_available": len(images_pool),
+    }

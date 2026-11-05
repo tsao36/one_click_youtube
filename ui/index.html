@@ -12909,6 +12909,35 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
               </div>
             </div>
 
+            <!-- Foreign Search & Ratio Boost Toolbar -->
+            <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(59, 130, 246, 0.25); border-radius: 6px; padding: 10px 12px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                <div style="display: flex; align-items: center; gap: 6px; flex: 1; min-width: 280px;">
+                  <span style="font-size: 11px; font-weight: 700; color: #38bdf8; white-space: nowrap;">🌐 原生/外語搜尋詞:</span>
+                  <input type="text" id="char-keywords-${cIdx}" value="${escapeHtml(Array.isArray(char.search_keywords) ? char.search_keywords.join(', ') : (char.search_keywords || ''))}" placeholder="例如：風雲ライオン丸, 快傑ライオン丸 変身" style="flex: 1; font-size: 11px; padding: 4px 8px; background: #080d16; border: 1px solid #334155; border-radius: 4px; color: #fff;" onchange="onCharacterKeywordsChange(${cIdx}, this.value, ${isInspector})">
+                  <button type="button" class="btn-sec" style="font-size: 11px; padding: 4px 10px; color: #38bdf8; border-color: #0284c7; white-space: nowrap;" onclick="reSearchCharacterForeign(${cIdx}, ${isInspector})">
+                    🔍 以外語搜尋素材
+                  </button>
+                </div>
+              </div>
+
+              <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; border-top: 1px dashed rgba(59, 130, 246, 0.2); padding-top: 8px;">
+                <div style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: #94a3b8;">
+                  <span style="color: #fbbf24; font-weight: 700;">⚡ 真實影音佔比:</span>
+                  <select id="char-clip-ratio-${cIdx}" style="font-size: 11px; padding: 3px 6px; background: #080d16; border: 1px solid #334155; border-radius: 4px; color: #facc15; font-weight: 600;">
+                    <option value="0.7" selected>70% 實拍影片 (~10s) + 30% 劇照 (推薦)</option>
+                    <option value="1.0">100% 全數使用實拍影片 (~10s)</option>
+                    <option value="0.5">50% 實拍影片 + 50% 劇照</option>
+                    <option value="0.0">100% 全數使用真實歷史劇照</option>
+                  </select>
+                  <span style="color: #64748b;">(自動裁切約 10 秒 YouTube 高畫質片段並依分鏡時長對齊)</span>
+                </div>
+                <button type="button" class="btn-primary" style="font-size: 11px; padding: 5px 14px; background: linear-gradient(135deg, #d97706 0%, #b45309 100%); border: 1px solid #f59e0b; color: #fff; font-weight: 700; white-space: nowrap;" onclick="boostCharacterRatio(${cIdx}, ${isInspector})">
+                  ⚡ 一鍵提高主角真實影音佔比 (批次套用分鏡)
+                </button>
+              </div>
+            </div>
+
             <!-- Media Columns: Images & Clips -->
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px;">
               <!-- Real Images Gallery -->
@@ -13013,6 +13042,94 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       if (!dataObj || !dataObj.characters || !dataObj.characters[charIdx]) return;
       const ids = val.split(/[,，\s]+/).map(s => parseInt(s.trim())).filter(n => !isNaN(n));
       dataObj.characters[charIdx].target_scenes = ids;
+    }
+
+    function onCharacterKeywordsChange(charIdx, val, isInspector) {
+      const dataObj = isInspector ? inspectedStageData : studioStageData;
+      if (!dataObj || !dataObj.characters || !dataObj.characters[charIdx]) return;
+      const kws = val.split(/[,，\n]+/).map(s => s.trim()).filter(Boolean);
+      dataObj.characters[charIdx].search_keywords = kws;
+    }
+
+    async function reSearchCharacterForeign(charIdx, isInspector) {
+      if (!currentProjectId) return alert("請先選取專案");
+      const dataObj = isInspector ? inspectedStageData : studioStageData;
+      if (!dataObj || !dataObj.characters || !dataObj.characters[charIdx]) return;
+      const char = dataObj.characters[charIdx];
+      const kwInput = document.getElementById(`char-keywords-${charIdx}`);
+      const rawKws = kwInput ? kwInput.value : '';
+      const kws = rawKws.split(/[,，\n]+/).map(s => s.trim()).filter(Boolean);
+      char.search_keywords = kws;
+
+      try {
+        if (typeof showToast === 'function') showToast(`🔍 正在以外語原生關鍵詞檢索 ${char.name} 素材...`);
+        const res = await fetch(`/api/projects/${currentProjectId}/characters/search`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            query: char.name,
+            original_name: char.original_name || char.name,
+            extra_queries: kws
+          })
+        });
+        const result = await res.json();
+        if (result.media) {
+          char.images = result.media.images || [];
+          char.clips = result.media.clips || [];
+        }
+        if (typeof showToast === 'function') showToast(`✓ 已成功檢索到 ${char.images.length} 張圖片與 ${char.clips.length} 支影片片段！`);
+        if (isInspector) {
+          if (typeof renderInspectorContent === 'function') renderInspectorContent('research', dataObj);
+        } else {
+          if (typeof renderStudioWorkspace === 'function') renderStudioWorkspace('research', dataObj, studioProject);
+        }
+      } catch (e) {
+        alert("檢索失敗: " + e.message);
+      }
+    }
+
+    async function boostCharacterRatio(charIdx, isInspector) {
+      if (!currentProjectId) return alert("請先選取專案");
+      const dataObj = isInspector ? inspectedStageData : studioStageData;
+      if (!dataObj || !dataObj.characters || !dataObj.characters[charIdx]) return;
+      const char = dataObj.characters[charIdx];
+
+      const ratioSelect = document.getElementById(`char-clip-ratio-${charIdx}`);
+      const clipRatio = ratioSelect ? parseFloat(ratioSelect.value) : 0.7;
+
+      const kwInput = document.getElementById(`char-keywords-${charIdx}`);
+      const rawKws = kwInput ? kwInput.value : '';
+      const extraQueries = rawKws.split(/[,，\n]+/).map(s => s.trim()).filter(Boolean);
+
+      const targetScenes = Array.isArray(char.target_scenes) ? char.target_scenes : [];
+
+      if (!confirm(`確定要為主角「${char.name}」批次提高真實影音佔比嗎？\n\n- 原生外語搜尋詞: ${extraQueries.join(', ') || char.name}\n- 實拍影片比例: ${Math.round(clipRatio * 100)}% (自動剪輯約 10 秒 YouTube 實拍片段)\n- 劇照比例: ${Math.round((1 - clipRatio) * 100)}%\n- 目標分鏡: ${targetScenes.length ? targetScenes.join(', ') : '自動比對主角分鏡'}\n\n這將把真實歷史影片與劇照寫入對應分鏡，大幅提高紀錄片真實畫面佔比！`)) {
+        return;
+      }
+
+      try {
+        if (typeof showToast === 'function') showToast(`⚡ 正在批次下載與裁切 ~10s 實拍影片片段與劇照 (需數十秒)...`);
+        const res = await fetch(`/api/projects/${currentProjectId}/characters/boost_ratio`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            character_name: char.name,
+            target_scenes: targetScenes,
+            clip_ratio: clipRatio,
+            extra_queries: extraQueries
+          })
+        });
+        const result = await res.json();
+        if (result.status === 'success') {
+          const updated = result.updated_scenes || [];
+          alert(`✓ 成功提高主角「${char.name}」真實影音佔比！\n\n已更新分鏡: [${updated.join(', ')}]\n包含約 10 秒真實影片片段與高畫質劇照。\n\n請前往 Stage 10 點擊「Render 1080p Video」合成最新畫面！`);
+          if (typeof loadStageStudio === 'function') loadStageStudio('research');
+        } else {
+          alert("處理失敗: " + JSON.stringify(result));
+        }
+      } catch (e) {
+        alert("操作失敗: " + e.message);
+      }
     }
 
     async function rescanProjectCharacters(isInspector) {

@@ -1860,12 +1860,18 @@ def update_project_characters_endpoint(project_id: str, payload: dict[str, Any])
 
 @app.post("/api/projects/{project_id}/characters/search")
 def search_character_online_media_endpoint(project_id: str, payload: dict[str, Any]):
-    """Query fresh authentic media online for a character by query term."""
+    """Query fresh authentic media online for a character by query term and extra foreign queries."""
     query = payload.get("query", "").strip()
     if not query:
         raise HTTPException(status_code=400, detail="Query keyword is required")
+    extra_queries = payload.get("extra_queries") or []
     from core.character_detector import fetch_online_media_for_character
-    media = fetch_online_media_for_character({"name": query, "original_name": query, "search_keywords": [query]})
+    char_obj = {
+        "name": query,
+        "original_name": payload.get("original_name") or query,
+        "search_keywords": [query] + [q for q in extra_queries if q != query]
+    }
+    media = fetch_online_media_for_character(char_obj, extra_queries=extra_queries)
     return {"query": query, "media": media}
 
 
@@ -1878,6 +1884,27 @@ def apply_characters_to_scenes_endpoint(project_id: str, payload: dict[str, Any]
         characters = p.read_json("research/characters.json", [])
     from core.character_detector import apply_character_media_to_scenes
     res = apply_character_media_to_scenes(p, characters)
+    return res
+
+
+@app.post("/api/projects/{project_id}/characters/boost_ratio")
+def boost_character_ratio_endpoint(project_id: str, payload: dict[str, Any]):
+    """Bulk replace scene visuals with authentic ~10s YouTube clips and real photos for a character."""
+    p = get_project(project_id)
+    character_name = payload.get("character_name") or payload.get("name")
+    if not character_name:
+        raise HTTPException(status_code=400, detail="character_name is required")
+    target_scene_ids = payload.get("target_scenes")
+    clip_ratio = float(payload.get("clip_ratio", 0.7))
+    extra_queries = payload.get("extra_queries", [])
+    from core.character_detector import bulk_boost_character_media
+    res = bulk_boost_character_media(
+        p,
+        character_name=character_name,
+        target_scene_ids=target_scene_ids,
+        clip_ratio=clip_ratio,
+        extra_queries=extra_queries,
+    )
     return res
 
 

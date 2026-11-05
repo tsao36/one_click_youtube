@@ -1294,7 +1294,7 @@ class DocumentaryPipeline(BasePipeline):
 
 
 
-                        clip_dur = min(max(3.0, float(s.audio_duration or s.estimated_duration or 3.0)), 6.0)
+                        clip_dur = min(max(7.0, float(s.audio_duration or s.estimated_duration or 10.0)), 15.0)
 
 
 
