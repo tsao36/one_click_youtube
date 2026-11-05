@@ -1300,76 +1300,20 @@
           </div>
         </div>
 
-      </div>
-    </div>
-
-    <!-- Active Project Details & Stages Breakdown Card -->
-    <div class="card" id="project-card">
-      <div class="card-title" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-        <span id="proj-title">Project Stages & Asset Breakdown</span>
-        <div style="display: flex; gap: 8px; align-items: center;">
-          <span class="badge badge-ok" id="proj-state">IDLE</span>
-          <button class="btn-sec btn-danger" onclick="deleteCurrentProject()" style="padding: 4px 10px; font-size: 12px; display: flex; align-items: center; gap: 4px;" title="Permanently delete project and all content files">🗑️ Delete Project</button>
-        </div>
-      </div>
-      <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 8px;">
-        <div style="font-size: 13px; color: var(--text-muted); flex: 1; word-break: break-word;" id="proj-activity">Select or create a project to view generation stages.</div>
-        <button type="button" id="proj-copy-error-btn" class="btn-sec" onclick="copyCurrentProjectError(this)" style="display: none; padding: 4px 10px; font-size: 11px; font-weight: 700; background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; color: #fca5a5; border-radius: 4px; cursor: pointer; white-space: nowrap; flex-shrink: 0;" title="Copy full error message to clipboard">📋 Copy Error</button>
-      </div>
-      <div id="proj-error-box" style="display: none; background: rgba(127, 29, 29, 0.25); border: 1px solid #ef4444; border-radius: 6px; padding: 10px 12px; margin-bottom: 12px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px;">
-          <span style="font-size: 12px; font-weight: 700; color: #fca5a5;">⚠️ Pipeline Error Details</span>
-          <button type="button" class="btn-sec" onclick="copyCurrentProjectError(this)" style="padding: 3px 10px; font-size: 11px; font-weight: 700; background: #dc2626; border: 1px solid #f87171; color: #fff; border-radius: 4px; cursor: pointer;">📋 Copy Error Code</button>
-        </div>
-        <pre id="proj-error-text" style="margin: 0; font-family: monospace; font-size: 11px; color: #fecaca; white-space: pre-wrap; word-break: break-word; max-height: 120px; overflow-y: auto;"></pre>
-      </div>
-
-      <!-- Stage-by-Stage Controls -->
-      <div style="background: linear-gradient(90deg, #0e1e38 0%, #111a2e 100%); border: 1px solid #1e3a8a; border-radius: var(--radius); padding: 10px 14px; margin: 10px 0 14px 0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <span style="font-size: 18px;">🎯</span>
-          <div>
-            <div style="font-size: 13px; font-weight: 700; color: #93c5fd;">Interactive Stage-by-Stage Workflow</div>
-            <div style="font-size: 12px; color: var(--text-muted);">Test and fine-tune each stage independently, then string all stages together into your final video.</div>
+        <!-- Bottom Action Row inside Creator Card -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--border-subtle); flex-wrap: wrap; gap: 12px;">
+          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <button type="button" class="btn-sec" onclick="switchTab('studio')" style="font-size: 12.5px; padding: 10px 16px;">
+              🛠️ Documentary Stage Studio ➔
+            </button>
+            <button type="button" class="btn-sec" onclick="switchTab('preview')" style="font-size: 12.5px; padding: 10px 16px;">
+              📺 前往 Player 觀看 ➔
+            </button>
           </div>
-        </div>
-        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-          <button class="btn-primary" id="btn-creator-assemble-stages" onclick="assembleAllStagesNow()">🔗 String All Stages Together & Create Video</button>
-          <button class="btn-sec" style="padding: 6px 12px; font-size: 12px;" onclick="switchTab('studio')">🛠️ Stage Studio</button>
-          <button class="btn-sec" style="padding: 6px 12px; font-size: 12px;" onclick="runNextStage()">▶ Run Next Stage</button>
-        </div>
-      </div>
-      
-      <div id="stage-timing-summary-bar" style="display: none; margin-bottom: 14px;"></div>
-
-      <div class="stages-grid" id="stages-container">
-        <!-- Rendered dynamically -->
-      </div>
-
-      <div style="margin-top: 16px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; justify-content: space-between;">
-        <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-          <button class="btn-primary" id="btn-creator-assemble-stages-2" onclick="assembleAllStagesNow()">🔗 String All Stages Together & Render</button>
-          <button class="btn-sec" style="background: rgba(193, 157, 73, 0.18); border-color: #C19D49; color: #fde68a; font-weight: 700;" onclick="openRerenderVoiceModal()" title="Re-synthesize narration voice and automatically re-render the final 1080p video">🎙️🔄 Re-render Voice & Update Video</button>
-          <button class="btn-sec" onclick="switchTab('studio')">🛠️ Independent Stage Studio</button>
-          <button type="button" class="btn-sec" onclick="toggleProjectAdvancedActions()" id="btn-toggle-proj-actions" style="font-size: 12px;">⚙️ 更多導出選項 (More Export Options ▼)</button>
-        </div>
-        <div style="display: flex; gap: 6px; align-items: center;">
-          <button id="btn-creator-yt-upload" class="btn-primary" onclick="openYouTubeUploadModal()" style="display: none; font-weight: 700; padding: 6px 14px; font-size: 12px; background: linear-gradient(135deg, #dc2626, #b91c1c); border-color: #b91c1c; align-items: center; gap: 6px;" title="Upload finished video to YouTube channel @tsao36">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-            </svg>
-            <span id="btn-creator-yt-upload-text">Upload to YouTube (@tsao36)</span>
+          <button id="btn-create-video-bottom" class="btn-primary" onclick="startCreation()" style="padding: 12px 34px; font-size: 15px; font-weight: 800; letter-spacing: 0.03em;">
+            🚀 CREATE VIDEO
           </button>
-          <button id="btn-creator-stop-render" class="btn-sec btn-danger" onclick="stopRenderingVideo()" style="display: none; font-weight: 700; padding: 6px 14px; font-size: 12px;" title="Immediately halt ongoing video rendering">🛑 Stop Rendering Video</button>
         </div>
-      </div>
-
-      <!-- Collapsible Project Export Sub-panel -->
-      <div id="project-advanced-actions-strip" style="display: none; margin-top: 12px; padding: 12px 14px; background: rgba(8, 12, 22, 0.7); border: 1px solid rgba(124, 145, 182, 0.25); border-radius: var(--radius); gap: 8px; flex-wrap: wrap; align-items: center;">
-        <span style="font-size: 12px; font-weight: 700; color: #7C91B6; margin-right: 6px;">微調與單獨導出：</span>
-        <button class="btn-sec" style="font-size: 12px; padding: 5px 12px;" onclick="openEditor()">✏️ Open Scene Editor</button>
-        <button class="btn-sec" style="font-size: 12px; padding: 5px 12px;" onclick="renderDraftNow()">🎬 Render 480p Draft</button>
-        <button class="btn-sec" style="font-size: 12px; padding: 5px 12px;" onclick="renderFinalNow()">🎥 Render Final 1080p</button>
       </div>
     </div>
   </div>
@@ -7263,6 +7207,10 @@
           btn.disabled = false;
           btn.innerHTML = origText;
         }
+        if (btn2) {
+          btn2.disabled = false;
+          btn2.innerHTML = origText;
+        }
       }
     }
 
@@ -7314,10 +7262,15 @@
       const pauseAfterResearch = document.getElementById('creator-pause-after-research') ? document.getElementById('creator-pause-after-research').checked : false;
 
       const btn = document.getElementById('btn-create-video');
+      const btn2 = document.getElementById('btn-create-video-bottom');
       const origText = btn ? btn.innerHTML : 'CREATE VIDEO';
       if (btn) {
         btn.disabled = true;
         btn.innerHTML = '⏳ CREATING PROJECT...';
+      }
+      if (btn2) {
+        btn2.disabled = true;
+        btn2.innerHTML = '⏳ CREATING PROJECT...';
       }
 
       try {
