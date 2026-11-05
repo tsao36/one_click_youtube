@@ -87,6 +87,8 @@ class Project:
         if not PROJECTS_DIR.exists():
             return out
         for d in sorted(PROJECTS_DIR.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True):
+            if d.name.lower().startswith("test_") or "cleanup" in d.name.lower():
+                continue
             pj = d / "project.json"
             if pj.exists():
                 try:

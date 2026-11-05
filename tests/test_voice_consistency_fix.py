@@ -34,21 +34,24 @@ def test_apply_presenter_placement_falls_back_when_no_project_voice():
 
 def test_sync_avatar_disabled_cleans_avatar_voice(tmp_path):
     p = Project.create("test_avatar_voice_cleanup")
-    p.data.settings["avatar_enabled"] = False
-    p.data.settings["voice_profile"] = "tw_man_sunny"
-    s1 = Scene(
-        scene_id=1,
-        section="Hook",
-        narration="Hello",
-        is_presenter=True,
-        visual_type="talking_head",
-        avatar_profile="tsaotsao",
-        voice_profile="mytsaovoicemagpie",
-    )
-    p.set_scenes([s1])
-    with patch("generators.avatar_generator.load_avatar", return_value={"name": "tsaotsao", "voice_profile": "mytsaovoicemagpie"}):
-        p.sync_avatar_disabled_state()
-    
-    assert p.scenes[0].is_presenter is False
-    assert p.scenes[0].avatar_profile is None
-    assert p.scenes[0].voice_profile == "tw_man_sunny"
+    try:
+        p.data.settings["avatar_enabled"] = False
+        p.data.settings["voice_profile"] = "tw_man_sunny"
+        s1 = Scene(
+            scene_id=1,
+            section="Hook",
+            narration="Hello",
+            is_presenter=True,
+            visual_type="talking_head",
+            avatar_profile="tsaotsao",
+            voice_profile="mytsaovoicemagpie",
+        )
+        p.set_scenes([s1])
+        with patch("generators.avatar_generator.load_avatar", return_value={"name": "tsaotsao", "voice_profile": "mytsaovoicemagpie"}):
+            p.sync_avatar_disabled_state()
+        
+        assert p.scenes[0].is_presenter is False
+        assert p.scenes[0].avatar_profile is None
+        assert p.scenes[0].voice_profile == "tw_man_sunny"
+    finally:
+        p.delete()
