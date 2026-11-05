@@ -1,11 +1,14 @@
 """Unit tests for Stage 1 key character identification and online media discovery."""
 from __future__ import annotations
 
+from unittest.mock import MagicMock
 import pytest
 from core.character_detector import (
     identify_characters_from_research,
     _heuristic_character_extraction,
     match_scenes_for_character,
+    get_main_character,
+    enforce_main_character_real_image_ratio,
 )
 
 
@@ -40,3 +43,35 @@ def test_match_scenes_for_character():
     assert 20 in matched
     assert 26 in matched
     assert 1 not in matched
+
+
+def test_match_scenes_compound_cjk_name():
+    # Compound title '快傑獅子丸' should match root name '獅子丸' in narration
+    char = {
+        "name": "快傑獅子丸",
+        "original_name": "快傑ライオン丸",
+        "search_keywords": ["風雲ライオン丸"]
+    }
+    scenes = [
+        {"scene_id": 1, "narration": "電視圈大戰", "prompt": ""},
+        {"scene_id": 11, "narration": "當時特攝界普遍採用橡膠面具，但獅子丸大膽顛覆了這個常規。", "prompt": ""},
+        {"scene_id": 18, "narration": "站在獅子丸對立面的宿命對手——虎錠之介。", "prompt": ""},
+        {"scene_id": 34, "narration": "從後續的《風雲獅子丸》到日後牙狼。", "prompt": ""},
+    ]
+    matched = match_scenes_for_character(char, scenes)
+    assert 11 in matched
+    assert 18 in matched
+    assert 34 in matched
+    assert 1 not in matched
+
+
+def test_get_main_character():
+    proj = MagicMock()
+    proj.data.topic = "快傑獅子丸（P-Production 特攝時代劇）"
+    proj.read_json.return_value = [
+        {"id": "char_1", "name": "鷺巢富雄", "role": "製作人"},
+        {"id": "char_2", "name": "快傑獅子丸", "role": "主角 / 核心英雄", "is_hero": True},
+    ]
+    main_char = get_main_character(proj)
+    assert main_char is not None
+    assert "獅子丸" in main_char["name"]
