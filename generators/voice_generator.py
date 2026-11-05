@@ -99,7 +99,7 @@ def load_profile(name: str) -> dict:
 
 
 def save_profile(name: str, data: dict, reference_wav: bytes | None = None, ref_filename: str = "reference.wav") -> dict:
-    name = re.sub(r"[^a-zA-Z0-9_\-]", "_", name.strip()) or "voice"
+    name = re.sub(r"[^a-zA-Z0-9_\-\u4e00-\u9fff]", "_", name.strip()) or "voice"
     d = VOICES_DIR / name
     d.mkdir(parents=True, exist_ok=True)
     existing = load_profile(name) if (d / "voice.json").exists() else {}
@@ -160,7 +160,7 @@ def rename_profile(old_name: str, new_name: str, new_display_name: str | None = 
 
     prof = json.loads(vj.read_text(encoding="utf-8"))
 
-    clean_new_name = re.sub(r"[^a-zA-Z0-9_\-]", "_", new_name.strip()) if new_name else old_name
+    clean_new_name = re.sub(r"[^a-zA-Z0-9_\-\u4e00-\u9fff]", "_", new_name.strip()) if new_name else old_name
     if not clean_new_name:
         clean_new_name = old_name
 
@@ -222,6 +222,87 @@ def delete_profile(name: str) -> None:
     if name == "default_local":
         raise ValueError("default_local cannot be deleted")
     shutil.rmtree(VOICES_DIR / name, ignore_errors=True)
+
+
+def sync_all_voai_voice_profiles(force: bool = False) -> list[dict]:
+    """Fetch all official voice actors from VoAI Connect API (https://app.voai.ai/actors) and register them into VOICES_DIR."""
+    from providers.tts import VoAITTS
+    speakers_data = VoAITTS.fetch_speakers()
+    speakers = speakers_data.get("speakers", [])
+    if not speakers:
+        log.warning("No speakers returned by VoAI API")
+        return []
+
+    created_or_updated: list[dict] = []
+    VOICES_DIR.mkdir(parents=True, exist_ok=True)
+
+    for s in speakers:
+        s_name = (s.get("name") or "").strip()
+        if not s_name:
+            continue
+        folder_name = f"voai_{s_name}"
+        target_dir = VOICES_DIR / folder_name
+        vj_path = target_dir / "voice.json"
+
+        models = s.get("models", [])
+        preferred_model = "Sota+" if "Sota+" in models else ("Neo" if "Neo" in models else "Classic")
+        styles_by_model = s.get("styles_by_model", {})
+        available_styles = styles_by_model.get(preferred_model, s.get("styles", ["預設"]))
+        if "預設" not in available_styles:
+            available_styles.insert(0, "預設")
+
+        gender = s.get("gender") or "未知"
+        age = s.get("age")
+        cat = s.get("category") or ""
+
+        display_parts = [preferred_model, gender]
+        if age:
+            display_parts.append(f"{age}歲")
+        if cat:
+            display_parts.append(cat)
+        desc_str = " · ".join(display_parts)
+        disp_name = f"VoAI - {s_name} ({desc_str})"
+
+        existing = {}
+        if vj_path.exists():
+            try:
+                existing = json.loads(vj_path.read_text(encoding="utf-8"))
+            except Exception:
+                existing = {}
+
+        prof = {
+            **existing,
+            "name": folder_name,
+            "display_name": disp_name,
+            "provider": "voai",
+            "voice": s_name,
+            "voice_id": s_name,
+            "speaker": s_name,
+            "model_id": preferred_model,
+            "version": preferred_model,
+            "voai_style": existing.get("voai_style") or "預設",
+            "available_styles": available_styles,
+            "available_models": models,
+            "styles_by_model": styles_by_model,
+            "gender": "female" if "女" in str(gender) else ("male" if "男" in str(gender) else "unknown"),
+            "gender_label": gender,
+            "age": age,
+            "category": cat,
+            "stability": 0.5,
+            "similarity_boost": 0.75,
+            "language": "Traditional Chinese",
+            "speech_rate": float(existing.get("speech_rate", 1.0)),
+            "pitch_shift": float(existing.get("pitch_shift", 0.0)),
+            "breath_pause": float(existing.get("breath_pause", 0.0)),
+            "is_default": existing.get("is_default", False),
+        }
+
+        target_dir.mkdir(parents=True, exist_ok=True)
+        vj_path.write_text(json.dumps(prof, indent=2, ensure_ascii=False), encoding="utf-8")
+        created_or_updated.append(prof)
+
+    log.info("Successfully synced %d VoAI voice profiles to %s", len(created_or_updated), VOICES_DIR)
+    return created_or_updated
 
 
 def default_profile_name(settings: dict) -> str:

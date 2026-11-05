@@ -3692,7 +3692,7 @@ def get_voices():
 def _extract_bluemagpie_centroid_if_needed(voice_name: str) -> None:
     """Extract 192-dim ECAPA speaker centroid for BlueMagpie-TTS voice profile to prevent gibberish."""
     try:
-        clean_name = re.sub(r"[^a-zA-Z0-9_\-]", "_", voice_name.strip())
+        clean_name = re.sub(r"[^a-zA-Z0-9_\-\u4e00-\u9fff]", "_", voice_name.strip())
         voice_dir = DATA_DIR / "voices" / clean_name
         ref_wav_p = voice_dir / "reference.wav"
         centroid_p = voice_dir / "speaker_centroid.pt"
@@ -3777,7 +3777,7 @@ async def create_voice(
         data["pitch"] = f"{'+' if hz >= 0 else ''}{hz}Hz"
         data["gender"] = "male" if "YunJhe" in chosen_edge_voice or "WanLung" in chosen_edge_voice or "Yun" in chosen_edge_voice else "female" 
     if provider == "cosyvoice" and not ref_bytes:
-        existing = DATA_DIR / "voices" / re.sub(r"[^a-zA-Z0-9_\-]", "_", name.strip()) / "reference.wav"
+        existing = DATA_DIR / "voices" / re.sub(r"[^a-zA-Z0-9_\-\u4e00-\u9fff]", "_", name.strip()) / "reference.wav"
         if not existing.exists():
             raise HTTPException(status_code=400, detail=f"{provider} needs a reference voice clip (3–15 s of clean speech)")
     prof = await asyncio.to_thread(
@@ -3788,6 +3788,17 @@ async def create_voice(
         ref_filename=reference_file.filename if reference_file else "ref.wav",
     )
     return prof
+
+
+@app.post("/api/voices/sync_voai")
+def sync_voai_voices():
+    """Sync all official voice actors from VoAI Connect API (https://app.voai.ai/actors)."""
+    from generators.voice_generator import sync_all_voai_voice_profiles
+    try:
+        profiles = sync_all_voai_voice_profiles(force=True)
+        return {"status": "ok", "count": len(profiles), "profiles": profiles}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/api/voices/{name}/reference")
