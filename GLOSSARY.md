@@ -219,3 +219,19 @@ _Avoid_: Audio seek time, track start trim, cut beginning
 **Public Domain Audio Resolver**:
 An automated background service querying the Internet Archive and Wikimedia Commons APIs for zero-key, copyright-cleared classical audio recordings matching composer and opus metadata.
 _Avoid_: MP3 crawler, audio scraper, torrent fetcher
+
+**Movement Bed**:
+A continuous, progression-based background music segment mapped across an entire narrative movement (e.g., Exposition, Deep Dive, Resolution), crossfading smoothly at movement chapter boundaries.
+_Avoid_: BGM track, audio background, music loop
+
+**Acoustic Carpet**:
+An unobtrusive musical texture with soft transients, muted high-mids, and minimal melodic presence, engineered specifically to fill room silence without competing with speech comprehension.
+_Avoid_: Filler sound, background noise, ambient bed
+
+**Track Fitness Score**:
+A structured, calibrated judgment rating (such as evaluated via TypeSafe AI System One models) that grades an audio track's cognitive non-intrusiveness and suitability for high-density voiceover content.
+_Avoid_: Music rating, song score, BGM rank
+
+**Frequency Masking Gate**:
+An automated filter rule and dynamic spectral carving that detects and attenuates background music energy in the human voice intelligibility band (800 Hz - 3.5 kHz) to prevent vocal competition.
+_Avoid_: Audio ducker, sound dip, vocal clash check
