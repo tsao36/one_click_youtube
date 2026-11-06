@@ -232,6 +232,10 @@ _Avoid_: Filler sound, background noise, ambient bed
 A structured, calibrated judgment rating (such as evaluated via TypeSafe AI System One models) that grades an audio track's cognitive non-intrusiveness and suitability for high-density voiceover content.
 _Avoid_: Music rating, song score, BGM rank
 
+**Epic Chronicle Mural Style**:
+A visual style preset (`epic_chronicle_mural`) characterized by dense, textured digital impasto oil painting, fine art narrative illustration, rich mineral earth palettes accented with vermilion, and a unified single-subject focal hierarchy, decoupled from mandatory historical era constraints.
+_Avoid_: Split-screen collage, multi-panel vignettes, flat comic borders, anime, glossy 3D CGI render
+
 **Frequency Masking Gate**:
 An automated filter rule and dynamic spectral carving that detects and attenuates background music energy in the human voice intelligibility band (800 Hz - 3.5 kHz) to prevent vocal competition.
 _Avoid_: Audio ducker, sound dip, vocal clash check

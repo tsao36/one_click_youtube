@@ -286,6 +286,14 @@ visual_styles:
     lens: "flat 2D front-on or three-quarter editorial graphic composition, clean theatrical framing"
     mood: "satirical, insightful, compelling, political explainer, sharp, analytical"
     negative: "photorealistic, 3D, CGI, realistic skin pores, photorealistic human photo, messy cluttered background, realistic background, blurry, lowres, distorted anatomy, extra fingers, watermark, logo, text"
+  epic_chronicle_mural:
+    label: "Historical Chronicle & Epic Mural (史詩歷史巨畫)"
+    style: "masterful epic chronicle digital oil painting, textured impasto brushwork, rich mineral earth tones with vermilion and deep ochre accents, fine art narrative illustration, textured canvas grain, 8k resolution"
+    lighting: "dramatic natural sunlight, dusty atmospheric volumetric light beams, warm directional rim lighting, rich chiaroscuro depth"
+    lens: "cinematic 50mm lens, single clear primary focal subject, centered heroic perspective, unified single-frame composition, deep atmospheric environmental depth"
+    mood: "grand, solemn, gritty, heroic, epic realism, narratively dense"
+    negative: "split screen, multi-panel, collage, montage, multiple frames, comic panel borders, vignette borders, diptych, triptych, anime, 3D CGI plastic render, airbrushed digital art, smooth plastic skin, extra limbs, bad anatomy, duplicate faces, text, watermark, logo"
+    recommended_model: "nano-banana-2.1"
 remotion:
   default_style: EvidenceHighlightScene
 thumbnail:
