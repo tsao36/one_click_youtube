@@ -90,3 +90,19 @@ def test_pick_best_media_candidate_falls_back_when_all_in_cooldown():
     # Scene 21 is distance 1 from Scene 20. Only candidate is in cooldown.
     chosen = pick_best_media_candidate(candidates, 21, registry, min_distance=6)
     assert chosen is None
+
+
+def test_pick_best_media_candidate_enforces_max_uses():
+    candidates = [
+        {'id': 'AWXDPJu2aGs', 'url': 'https://www.youtube.com/watch?v=AWXDPJu2aGs'},
+    ]
+    # Already used once in scene 10
+    registry = {'AWXDPJu2aGs': [10]}
+    
+    # Scene 30 is outside min_distance (distance 20 >= 6), but max_uses=1 rejects reuse
+    chosen = pick_best_media_candidate(candidates, 30, registry, min_distance=6, max_uses=1)
+    assert chosen is None
+
+    # If max_uses is explicitly set to 2, it allows reuse outside cooldown
+    chosen2 = pick_best_media_candidate(candidates, 30, registry, min_distance=6, max_uses=2)
+    assert chosen2 is not None

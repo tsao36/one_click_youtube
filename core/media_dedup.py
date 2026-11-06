@@ -150,6 +150,7 @@ def pick_best_media_candidate(
     target_scene_id: int,
     registry: dict[str, list[int]],
     min_distance: int = DEFAULT_MIN_SCENE_DISTANCE,
+    max_uses: int = 1,
 ) -> Optional[Any]:
     """Picks the optimal candidate from a pool or search results by enforcing:
     1. Zero project-wide reuse (highest priority).
@@ -170,16 +171,25 @@ def pick_best_media_candidate(
         if not cid:
             continue
 
-        if cid not in registry or not registry[cid]:
+        used_sids = [sid for sid in registry.get(cid, []) if sid != target_scene_id]
+        if not used_sids:
             # Never used anywhere in the project yet!
             completely_unused.append(cand)
+            continue
+
+        # If already used max_uses times or more, reject immediately to prevent repeating loops
+        if len(used_sids) >= max_uses:
+            log.debug(
+                "Media candidate '%s' reached max global usage (%d >= %d) for scene %d",
+                cid, len(used_sids), max_uses, target_scene_id
+            )
             continue
 
         # Check if in cooldown
         in_cooldown, conflict_sid = is_media_in_cooldown(cid, target_scene_id, registry, min_distance=min_distance)
         if not in_cooldown:
             # Used elsewhere, but far enough away (> min_distance)
-            closest_dist = min(abs(prev_sid - target_scene_id) for prev_sid in registry[cid] if prev_sid != target_scene_id)
+            closest_dist = min(abs(prev_sid - target_scene_id) for prev_sid in used_sids)
             eligible_cooldown_passed.append((closest_dist, cand))
         else:
             log.debug(

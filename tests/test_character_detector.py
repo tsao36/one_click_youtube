@@ -110,3 +110,18 @@ def test_clean_character_search_keywords_splits_slashes():
     # Context anchors
     assert any("法律" in k or "教授" in k for k in kws)
 
+
+
+def test_match_scenes_rejects_generic_topic_and_stopwords():
+    char = {
+        'name': '維克·海斯',
+        'original_name': 'Vic Hayes',
+        'search_keywords': ['Vic Hayes', 'Father of Wi-Fi', 'IEEE 802.11 history', '維克·海斯']
+    }
+    scenes = [
+        {'scene_id': 1, 'narration': '為什麼機場 Wi-Fi 明明滿格卻這麼慢？', 'visual_description': 'A wide establishing shot of an international airport terminal.'},
+        {'scene_id': 2, 'narration': '許多旅客在候機室滑手機等待連線', 'visual_description': 'Close-up of a smartphone searching for Wi-Fi signal.'},
+        {'scene_id': 3, 'narration': '荷蘭工程師維克·海斯在1990年主導了標準制定', 'visual_description': 'Historical interview photo of Vic Hayes speaking.'},
+    ]
+    matched = match_scenes_for_character(char, scenes, topic='機場 Wi-Fi 為什麼這麼慢？')
+    assert matched == [3], f'Expected [3], got {matched}'

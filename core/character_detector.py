@@ -370,36 +370,113 @@ def fetch_online_media_for_character(char: dict[str, Any], extra_queries: Option
     return {"images": images[:16], "clips": clips[:12]}
 
 
-def match_scenes_for_character(char: dict[str, Any], scenes: list[Any]) -> list[int]:
-    """Identify which scene IDs in the project relate to this character."""
+COMMON_CHARACTER_STOPWORDS = {
+    "of", "in", "the", "on", "at", "to", "for", "with", "by", "from", "and", "or",
+    "a", "an", "is", "are", "was", "were", "it", "as", "be", "this", "that", "these",
+    "those", "into", "over", "after", "before", "between", "under", "above", "out",
+    "history", "story", "father", "mother", "founder", "pioneer", "inventor", "standard",
+    "committee", "chairman", "expert", "review", "clip", "full", "speech", "talk",
+    "about", "what", "why", "how", "when", "where", "who", "whom", "whose", "which",
+    "demo", "video", "photo", "image", "portrait", "interview", "documentary", "audio",
+    "sound", "music", "bgm", "scene", "scenes", "prompt", "text", "footage", "shot",
+    "之父", "之母", "歷史", "標準", "委員會", "創始人", "發明人", "專家", "介紹", "故事",
+    "訪談", "影片", "照片", "演講", "片段", "紀錄片"
+}
+
+
+def is_descriptive_character_keyword(phrase: str) -> bool:
+    """Returns True if keyword is a descriptive query phrase rather than a proper character name/alias."""
+    p_lower = phrase.lower()
+    words = re.findall(r"[a-z0-9]+|[一-鿿぀-ヿ]+", p_lower)
+    for w in words:
+        if w in COMMON_CHARACTER_STOPWORDS:
+            return True
+    return False
+
+
+def match_scenes_for_character(char: dict[str, Any], scenes: list[Any], topic: str = "") -> list[int]:
+    """Identify which scene IDs in the project relate to this character.
+    Uses strict name/alias token matching and ignores generic stopwords or video topic keywords.
+    """
     matched_ids = []
-    keywords = [char.get("name"), char.get("original_name")] + char.get("search_keywords", [])
-    expanded_kws = set()
-    for k in keywords:
-        if not k or not isinstance(k, str):
+
+    # 1. Clean topic tokens to prevent matching the video's primary topic (e.g. 'wi-fi') as a character
+    topic_clean = re.sub(r"[^\w\s一-鿿぀-ヿ]", " ", (topic or "").lower())
+    topic_tokens = {w.strip() for w in re.split(r"\s+", topic_clean) if len(w.strip()) >= 2}
+
+    # 2. Extract authentic character match tokens (names + authentic aliases only)
+    candidate_names = [char.get("name"), char.get("original_name")] + (char.get("aliases") or [])
+    for sk in char.get("search_keywords", []):
+        if sk and isinstance(sk, str) and not is_descriptive_character_keyword(sk):
+            candidate_names.append(sk)
+
+    match_patterns: list[tuple[str, bool]] = []
+    seen_patterns = set()
+
+    def _add_pat(pat: str, is_word: bool):
+        p_clean = pat.strip().lower()
+        if not p_clean or p_clean in seen_patterns:
+            return
+        if p_clean in COMMON_CHARACTER_STOPWORDS or p_clean in topic_tokens:
+            return
+        seen_patterns.add(p_clean)
+        match_patterns.append((p_clean, is_word))
+
+    for raw in candidate_names:
+        if not raw or not isinstance(raw, str):
             continue
-        parts = re.split(r"[/（\(\)）\s·・]+", k)
-        for p in parts:
-            p_clean = p.strip().lower()
-            if len(p_clean) >= 2:
-                expanded_kws.add(p_clean)
-                if len(p_clean) >= 4 and re.search(r"[\u4e00-\u9fff\u3040-\u30ff]", p_clean):
-                    expanded_kws.add(p_clean[:2])
-                    expanded_kws.add(p_clean[2:])
-                    if len(p_clean) >= 5:
-                        expanded_kws.add(p_clean[-3:])
+        sub_names = re.split(r"[/|｜（\(\)）]+", raw.strip())
+        for sname in sub_names:
+            sname = sname.strip()
+            if not sname:
+                continue
+            is_cjk = bool(re.search(r"[一-鿿぀-ヿ]", sname))
+            if is_cjk:
+                clean_cjk = re.sub(r"[·・\s]+", "", sname)
+                if len(clean_cjk) >= 2:
+                    _add_pat(clean_cjk, False)
+                if len(clean_cjk) >= 4:
+                    _add_pat(clean_cjk[:2], False)
+                    _add_pat(clean_cjk[2:], False)
+                    if len(clean_cjk) >= 5:
+                        _add_pat(clean_cjk[-3:], False)
+            else:
+                clean_lat = sname.strip().lower()
+                if " " in clean_lat:
+                    _add_pat(clean_lat, True)
+                    for part in clean_lat.split():
+                        part = part.strip()
+                        if len(part) >= 3:
+                            _add_pat(part, True)
+                else:
+                    if len(clean_lat) >= 3:
+                        _add_pat(clean_lat, True)
+
+    if not match_patterns:
+        return []
 
     for s in scenes:
         narration = getattr(s, "narration", "") or (s.get("narration", "") if isinstance(s, dict) else "")
-        prompt = getattr(s, "prompt", "") or (s.get("prompt", "") if isinstance(s, dict) else "")
         visual_desc = getattr(s, "visual_description", "") or (s.get("visual_description", "") if isinstance(s, dict) else "")
-        search_kw = getattr(s, "search_keyword", "") or (s.get("search_keyword", "") if isinstance(s, dict) else "")
-        combined = f"{narration} {prompt} {visual_desc} {search_kw}".lower()
+        target_text = f"{narration} {visual_desc}"
         sid = getattr(s, "scene_id", None) or (s.get("scene_id") if isinstance(s, dict) else None)
         if sid is None:
             continue
-        if any(kw in combined for kw in expanded_kws):
+
+        matched = False
+        for pat, is_word in match_patterns:
+            if is_word:
+                if re.search(rf"\b{re.escape(pat)}\b", target_text, re.IGNORECASE):
+                    matched = True
+                    break
+            else:
+                if pat in target_text.lower():
+                    matched = True
+                    break
+
+        if matched:
             matched_ids.append(int(sid))
+
     return matched_ids
 
 
@@ -422,7 +499,7 @@ def scan_and_populate_project_characters(project: Project, force: bool = False) 
         media = fetch_online_media_for_character(char)
         char["images"] = media["images"]
         char["clips"] = media["clips"]
-        char["target_scenes"] = match_scenes_for_character(char, scenes)
+        char["target_scenes"] = match_scenes_for_character(char, scenes, topic=getattr(project.data, "topic", "") or "")
         char["selected_image"] = media["images"][0]["url"] if media["images"] else None
         char["selected_clip"] = media["clips"][0]["url"] if media["clips"] else None
         char["status"] = "pending"
@@ -593,7 +670,11 @@ def enforce_main_character_real_image_ratio(
         return {"status": "no_scenes", "updated_scenes": [], "real_percentage": 100.0}
 
     # Match all scenes where the main character is mentioned
-    matched_ids = match_scenes_for_character(main_char, scenes)
+    auto_stock = project.data.settings.get("images", {}).get("auto_stock_mode") or project.settings.get("auto_stock_mode", "balanced")
+    if auto_stock in ("disabled", "off"):
+        return {"status": "disabled_by_settings", "updated_scenes": [], "real_percentage": 100.0}
+
+    matched_ids = match_scenes_for_character(main_char, scenes, topic=getattr(project.data, "topic", "") or "")
     if not matched_ids:
         name_kws = [main_char.get("name"), main_char.get("original_name")] + (extra_queries or [])
         matched_ids = [
@@ -791,7 +872,7 @@ def bulk_boost_character_media(
 
     # Identify eligible scenes if target_scene_ids not specified
     if not target_scene_ids:
-        target_scene_ids = match_scenes_for_character(target_char, project.scenes)
+        target_scene_ids = match_scenes_for_character(target_char, project.scenes, topic=getattr(project.data, "topic", "") or "")
 
     if not target_scene_ids:
         # Fallback to scenes containing character name or keywords

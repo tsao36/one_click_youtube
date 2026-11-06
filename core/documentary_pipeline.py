@@ -539,8 +539,10 @@ class DocumentaryPipeline(BasePipeline):
 
             # Automatically enforce >= 90% real images/footage for scenes mentioning main character
             try:
-                from core.character_detector import enforce_main_character_real_image_ratio
-                enforce_main_character_real_image_ratio(self.p, ratio=0.9)
+                auto_stock_mode = self.p.data.settings.get("images", {}).get("auto_stock_mode") or self.p.settings.get("auto_stock_mode", "balanced")
+                if auto_stock_mode not in ("disabled", "off"):
+                    from core.character_detector import enforce_main_character_real_image_ratio
+                    enforce_main_character_real_image_ratio(self.p, ratio=0.9)
             except Exception as enf_err:
                 log.warning("Auto enforcement of 90% real images for main character skipped: %s", enf_err)
 
@@ -1245,6 +1247,19 @@ class DocumentaryPipeline(BasePipeline):
                                     if ew.get("media_url") not in existing_u:
                                         wiki_res.append(ew)
                             if wiki_res:
+                                # Strict name relevance validation: reject unrelated figures with the same surname
+                                p_words = [pw.lower() for pw in re.split(r"\s+", person_name.strip()) if len(pw) >= 2]
+                                valid_wiki_res = []
+                                for w in wiki_res:
+                                    w_text = f"{w.get('title', '')} {w.get('description', '')}".lower()
+                                    if len(p_words) >= 2:
+                                        if all(pw in w_text for pw in p_words):
+                                            valid_wiki_res.append(w)
+                                    else:
+                                        if any(pw in w_text for pw in p_words):
+                                            valid_wiki_res.append(w)
+                                wiki_res = valid_wiki_res
+
                                 chosen_candidate = pick_best_media_candidate(
                                     wiki_res, s.scene_id, media_registry, min_distance=DEFAULT_MIN_SCENE_DISTANCE
                                 )

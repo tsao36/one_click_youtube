@@ -1,211 +1,174 @@
-# encoding: utf-8
-with open("core/character_detector.py", "rb") as f:
-    content = f.read().decode("utf-8")
+with open("core/character_detector.py", "r", encoding="utf-8") as f:
+    text = f.read()
 
-old_kw = 'expanded_kws.add(p_clean[:2])'
-new_kw = '''expanded_kws.add(p_clean[:2])
+common_stopwords_block = '''COMMON_CHARACTER_STOPWORDS = {
+    "of", "in", "the", "on", "at", "to", "for", "with", "by", "from", "and", "or",
+    "a", "an", "is", "are", "was", "were", "it", "as", "be", "this", "that", "these",
+    "those", "into", "over", "after", "before", "between", "under", "above", "out",
+    "history", "story", "father", "mother", "founder", "pioneer", "inventor", "standard",
+    "committee", "chairman", "expert", "review", "clip", "full", "speech", "talk",
+    "about", "what", "why", "how", "when", "where", "who", "whom", "whose", "which",
+    "demo", "video", "photo", "image", "portrait", "interview", "documentary", "audio",
+    "sound", "music", "bgm", "scene", "scenes", "prompt", "text", "footage", "shot",
+    "之父", "之母", "歷史", "標準", "委員會", "創始人", "發明人", "專家", "介紹", "故事",
+    "訪談", "影片", "照片", "演講", "片段", "紀錄片"
+}
+
+
+def is_descriptive_character_keyword(phrase: str) -> bool:
+    """Returns True if keyword is a descriptive query phrase rather than a proper character name/alias."""
+    p_lower = phrase.lower()
+    words = re.findall(r"[a-z0-9]+|[\u4e00-\u9fff\u3040-\u30ff]+", p_lower)
+    for w in words:
+        if w in COMMON_CHARACTER_STOPWORDS:
+            return True
+    return False
+
+'''
+
+target_match_func = '''def match_scenes_for_character(char: dict[str, Any], scenes: list[Any]) -> list[int]:
+    """Identify which scene IDs in the project relate to this character."""
+    matched_ids = []
+    keywords = [char.get("name"), char.get("original_name")] + char.get("search_keywords", [])
+    expanded_kws = set()
+    for k in keywords:
+        if not k or not isinstance(k, str):
+            continue
+        parts = re.split(r"[/（\(\)）\s·・]+", k)
+        for p in parts:
+            p_clean = p.strip().lower()
+            if len(p_clean) >= 2:
+                expanded_kws.add(p_clean)
+                if len(p_clean) >= 4 and re.search(r"[\u4e00-\u9fff\u3040-\u30ff]", p_clean):
+                    expanded_kws.add(p_clean[:2])
                     expanded_kws.add(p_clean[2:])
                     if len(p_clean) >= 5:
-                        expanded_kws.add(p_clean[-3:])'''
-assert old_kw in content, "old_kw not in content"
-content = content.replace(old_kw, new_kw, 1)
+                        expanded_kws.add(p_clean[-3:])
 
-old_comb = 'combined = (narration + " " + prompt).lower()'
-new_comb = '''visual_desc = getattr(s, "visual_description", "") or (s.get("visual_description", "") if isinstance(s, dict) else "")
+    for s in scenes:
+        narration = getattr(s, "narration", "") or (s.get("narration", "") if isinstance(s, dict) else "")
+        prompt = getattr(s, "prompt", "") or (s.get("prompt", "") if isinstance(s, dict) else "")
+        visual_desc = getattr(s, "visual_description", "") or (s.get("visual_description", "") if isinstance(s, dict) else "")
         search_kw = getattr(s, "search_keyword", "") or (s.get("search_keyword", "") if isinstance(s, dict) else "")
-        combined = f"{narration} {prompt} {visual_desc} {search_kw}".lower()'''
-assert old_comb in content, "old_comb not in content"
-content = content.replace(old_comb, new_comb, 1)
-
-old_boost = 'def bulk_boost_character_media('
-helper_code = '''def get_main_character(project: Project) -> Optional[dict[str, Any]]:
-    """Identify the primary protagonist / hero character for this project."""
-    chars = project.read_json("research/characters.json", [])
-    if not chars:
-        return None
-
-    # 1. Topic keyword match against character name or original_name
-    topic = (getattr(project.data, "topic", "") or project.id or "").lower()
-    topic_keywords = [t.strip().lower() for t in re.split(r"[/（\(\)）\s·・]+", topic) if len(t.strip()) >= 2]
-    for c in chars:
-        name = (c.get("name") or "").lower()
-        orig = (c.get("original_name") or "").lower()
-        if any(tk in name or tk in orig for tk in topic_keywords):
-            return c
-
-    # 2. Hero or protagonist flag/role
-    for c in chars:
-        role = (c.get("role") or "").lower()
-        if c.get("is_main") or c.get("is_hero") or "hero" in role or "主角" in role:
-            if "飾演" not in role and "actor" not in role:
-                return c
-
-    for c in chars:
-        role = (c.get("role") or "").lower()
-        if c.get("is_main") or c.get("is_hero") or "hero" in role or "主角" in role:
-            return c
-
-    # 3. Default to first character
-    return chars[0]
-
-
-def enforce_main_character_real_image_ratio(
-    project: Project,
-    ratio: float = 0.9,
-    clip_ratio: float = 0.7,
-    extra_queries: Optional[list[str]] = None,
-) -> dict[str, Any]:
-    """
-    Ensure that at least `ratio` (default 0.9 / 90%) of scenes mentioning
-    the main character use authentic real images/clips rather than AI-generated images.
-    """
-    main_char = get_main_character(project)
-    if not main_char:
-        return {"status": "no_character", "updated_scenes": [], "real_percentage": 0.0}
-
-    # Ensure main_char has images and clips
-    if not main_char.get("images") or not main_char.get("clips"):
-        fresh = fetch_online_media_for_character(main_char, extra_queries=extra_queries)
-        main_char["images"] = fresh["images"]
-        main_char["clips"] = fresh["clips"]
-
-    scenes = project.scenes or []
-    if not scenes:
-        return {"status": "no_scenes", "updated_scenes": [], "real_percentage": 100.0}
-
-    # Match all scenes where the main character is mentioned
-    matched_ids = match_scenes_for_character(main_char, scenes)
-    if not matched_ids:
-        name_kws = [main_char.get("name"), main_char.get("original_name")] + (extra_queries or [])
-        matched_ids = [
-            s.scene_id for s in scenes
-            if any(k and k in ((s.narration or "") + " " + (s.visual_description or "")) for k in name_kws)
-        ]
-
-    if not matched_ids:
-        return {"status": "no_mentioned_scenes", "updated_scenes": [], "real_percentage": 100.0}
-
-    scenes_map = {s.scene_id: s for s in scenes}
-
-    # Classify current mentioned scenes: which are real vs generated
-    real_scene_ids = []
-    generated_scene_ids = []
-
-    for sid in matched_ids:
-        s = scenes_map.get(sid)
-        if not s:
+        combined = f"{narration} {prompt} {visual_desc} {search_kw}".lower()
+        sid = getattr(s, "scene_id", None) or (s.get("scene_id") if isinstance(s, dict) else None)
+        if sid is None:
             continue
-        is_real = (
-            getattr(s, "media_source", "ai") in ("youtube_snippet", "stock_portrait", "authentic_portrait", "celebrity_portrait", "wikimedia", "historical_footage")
-            or getattr(s, "visual_type", "") in ("historical_footage", "authentic_portrait", "talking_actor")
-            or project.path("animation", f"{s.tag}.mp4").exists()
-        )
-        if is_real:
-            real_scene_ids.append(sid)
-        else:
-            generated_scene_ids.append(sid)
+        if any(kw in combined for kw in expanded_kws):
+            matched_ids.append(int(sid))
+    return matched_ids'''
 
-    total_mentioned = len(matched_ids)
-    target_real_count = math.ceil(total_mentioned * ratio)
-    needed_boost_count = max(0, target_real_count - len(real_scene_ids))
+replacement_match_func = common_stopwords_block + '''def match_scenes_for_character(char: dict[str, Any], scenes: list[Any], topic: str = "") -> list[int]:
+    """Identify which scene IDs in the project relate to this character.
+    Uses strict name/alias token matching and ignores generic stopwords or video topic keywords.
+    """
+    matched_ids = []
 
-    log.info(
-        "Main character '%s' mentioned in %d scenes. Current real: %d (%.1f%%). Target: %d (%.0f%%). Needed: %d",
-        main_char.get("name"),
-        total_mentioned,
-        len(real_scene_ids),
-        (len(real_scene_ids) / total_mentioned) * 100 if total_mentioned else 0,
-        target_real_count,
-        ratio * 100,
-        needed_boost_count,
-    )
+    # 1. Clean topic tokens to prevent matching the video's primary topic (e.g. 'wi-fi') as a character
+    topic_clean = re.sub(r"[^\w\s\u4e00-\u9fff\u3040-\u30ff]", " ", (topic or "").lower())
+    topic_tokens = {w.strip() for w in re.split(r"\s+", topic_clean) if len(w.strip()) >= 2}
 
-    updated_ids = []
-    scenes_to_convert = generated_scene_ids[:max(needed_boost_count, len(generated_scene_ids))] if needed_boost_count > 0 else []
+    # 2. Extract authentic character match tokens (names + authentic aliases only)
+    candidate_names = [char.get("name"), char.get("original_name")] + (char.get("aliases") or [])
+    for sk in char.get("search_keywords", []):
+        if sk and isinstance(sk, str) and not is_descriptive_character_keyword(sk):
+            candidate_names.append(sk)
 
-    clips_pool = main_char.get("clips", [])
-    images_pool = main_char.get("images", [])
+    match_patterns: list[tuple[str, bool]] = []
+    seen_patterns = set()
 
-    for idx, sid in enumerate(scenes_to_convert):
-        s = scenes_map.get(sid)
-        if not s:
+    def _add_pat(pat: str, is_word: bool):
+        p_clean = pat.strip().lower()
+        if not p_clean or p_clean in seen_patterns:
+            return
+        if p_clean in COMMON_CHARACTER_STOPWORDS or p_clean in topic_tokens:
+            return
+        seen_patterns.add(p_clean)
+        match_patterns.append((p_clean, is_word))
+
+    for raw in candidate_names:
+        if not raw or not isinstance(raw, str):
             continue
-
-        use_clip = (idx / max(1, len(scenes_to_convert))) < clip_ratio and bool(clips_pool)
-        img_out = project.path("images", f"{s.tag}.png")
-        clip_out = project.path("animation", f"{s.tag}.mp4")
-
-        scene_len = float(s.audio_duration or s.estimated_duration or 10.0)
-        clip_dur = min(max(7.0, scene_len), 15.0)
-
-        if use_clip:
-            chosen_clip = clips_pool[idx % len(clips_pool)]
-            s.media_source = "youtube_snippet"
-            s.search_keyword = chosen_clip.get("url")
-            s.visual_type = "historical_footage"
-            try:
-                extract_youtube_snippet(
-                    chosen_clip["url"],
-                    output_video_path=clip_out,
-                    output_image_path=img_out,
-                    duration_sec=clip_dur,
-                    as_clip=True,
-                )
-                updated_ids.append(sid)
-                real_scene_ids.append(sid)
-            except Exception as e:
-                log.warning("Clip extraction failed for scene %s: %s", sid, e)
-        elif images_pool:
-            chosen_img = images_pool[idx % len(images_pool)]
-            s.media_source = "stock_portrait"
-            s.search_keyword = chosen_img.get("title") or main_char.get("name")
-            s.visual_type = "authentic_portrait"
-            img_url = chosen_img.get("url")
-            try:
-                if "youtube.com" in img_url or "ytimg.com" in img_url:
-                    vid_m = re.search(r"vi/([a-zA-Z0-9_-]{11})", img_url)
-                    if vid_m:
-                        download_youtube_thumbnail(vid_m.group(1), img_out)
-                    else:
-                        download_media_file(img_url, img_out)
-                        format_stock_image(img_out, 1920, 1080)
+        sub_names = re.split(r"[/|｜（\(\)）]+", raw.strip())
+        for sname in sub_names:
+            sname = sname.strip()
+            if not sname:
+                continue
+            is_cjk = bool(re.search(r"[\u4e00-\u9fff\u3040-\u30ff]", sname))
+            if is_cjk:
+                clean_cjk = re.sub(r"[·・\s]+", "", sname)
+                if len(clean_cjk) >= 2:
+                    _add_pat(clean_cjk, False)
+                if len(clean_cjk) >= 4:
+                    _add_pat(clean_cjk[:2], False)
+                    _add_pat(clean_cjk[2:], False)
+                    if len(clean_cjk) >= 5:
+                        _add_pat(clean_cjk[-3:], False)
+            else:
+                clean_lat = sname.strip().lower()
+                if " " in clean_lat:
+                    _add_pat(clean_lat, True)
+                    for part in clean_lat.split():
+                        part = part.strip()
+                        if len(part) >= 3:
+                            _add_pat(part, True)
                 else:
-                    download_media_file(img_url, img_out)
-                    format_stock_image(img_out, 1920, 1080)
-                if clip_out.exists():
-                    clip_out.unlink(missing_ok=True)
-                updated_ids.append(sid)
-                real_scene_ids.append(sid)
-            except Exception as e:
-                log.warning("Image apply failed for scene %s: %s", sid, e)
+                    if len(clean_lat) >= 3:
+                        _add_pat(clean_lat, True)
 
-    final_real_count = len(set(real_scene_ids))
-    final_ratio = (final_real_count / total_mentioned) if total_mentioned > 0 else 1.0
+    if not match_patterns:
+        return []
 
-    if updated_ids:
-        project.save_scenes()
-        project.clear_clips_cache()
-        project.invalidate("render")
-        project.save()
+    for s in scenes:
+        narration = getattr(s, "narration", "") or (s.get("narration", "") if isinstance(s, dict) else "")
+        visual_desc = getattr(s, "visual_description", "") or (s.get("visual_description", "") if isinstance(s, dict) else "")
+        target_text = f"{narration} {visual_desc}"
+        sid = getattr(s, "scene_id", None) or (s.get("scene_id") if isinstance(s, dict) else None)
+        if sid is None:
+            continue
 
-    return {
-        "status": "success",
-        "character": main_char.get("name"),
-        "total_mentioned_scenes": total_mentioned,
-        "real_scenes_count": final_real_count,
-        "real_percentage": round(final_ratio * 100, 1),
-        "target_percentage": round(ratio * 100, 1),
-        "updated_scenes": updated_ids,
-        "all_real_scenes": list(set(real_scene_ids)),
-        "all_mentioned_scenes": matched_ids,
-    }
+        matched = False
+        for pat, is_word in match_patterns:
+            if is_word:
+                if re.search(rf"\b{re.escape(pat)}\b", target_text, re.IGNORECASE):
+                    matched = True
+                    break
+            else:
+                if pat in target_text.lower():
+                    matched = True
+                    break
 
+        if matched:
+            matched_ids.append(int(sid))
 
-def bulk_boost_character_media('''
-assert old_boost in content, "old_boost not in content"
-content = content.replace(old_boost, helper_code, 1)
+    return matched_ids'''
 
-with open("core/character_detector.py", "wb") as f:
-    f.write(content.encode("utf-8"))
+assert target_match_func in text, "target_match_func not found"
+text = text.replace(target_match_func, replacement_match_func)
 
-print("core/character_detector.py successfully patched!")
+# Also update caller in scan_and_populate_project_characters:
+old_populate_call = 'char["target_scenes"] = match_scenes_for_character(char, scenes)'
+new_populate_call = 'char["target_scenes"] = match_scenes_for_character(char, scenes, topic=getattr(project.data, "topic", "") or "")'
+assert old_populate_call in text, "old_populate_call not found"
+text = text.replace(old_populate_call, new_populate_call)
+
+# Also update caller in enforce_main_character_real_image_ratio:
+old_enforce_call = 'matched_ids = match_scenes_for_character(main_char, scenes)'
+new_enforce_call = '''auto_stock = project.data.settings.get("images", {}).get("auto_stock_mode") or project.settings.get("auto_stock_mode", "balanced")
+    if auto_stock in ("disabled", "off"):
+        return {"status": "disabled_by_settings", "updated_scenes": [], "real_percentage": 100.0}
+
+    matched_ids = match_scenes_for_character(main_char, scenes, topic=getattr(project.data, "topic", "") or "")'''
+assert old_enforce_call in text, "old_enforce_call not found"
+text = text.replace(old_enforce_call, new_enforce_call)
+
+# Also update caller in bulk_boost_character_media:
+old_bulk_call = 'target_scene_ids = match_scenes_for_character(target_char, project.scenes)'
+new_bulk_call = 'target_scene_ids = match_scenes_for_character(target_char, project.scenes, topic=getattr(project.data, "topic", "") or "")'
+assert old_bulk_call in text, "old_bulk_call not found"
+text = text.replace(old_bulk_call, new_bulk_call)
+
+with open("core/character_detector.py", "w", encoding="utf-8") as f:
+    f.write(text)
+
+print("Successfully patched core/character_detector.py")
