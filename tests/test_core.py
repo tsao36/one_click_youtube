@@ -428,6 +428,64 @@ def test_youtube_metadata_and_upload_traditional_chinese(tmp_path, monkeypatch):
         Project.delete_project(p.id)
 
 
+def test_youtube_upload_description_asset_attributions(tmp_path):
+    from core.youtube_uploader import generate_youtube_metadata
+    from core.models import Scene, Status
+    p = Project.create("test_yt_attributions")
+    try:
+        # Pre-seed thumbnail to skip slow LLM thumbnail generation during tests
+        thumb_file = p.path("output", "thumbnail.png")
+        thumb_file.parent.mkdir(parents=True, exist_ok=True)
+        thumb_file.write_bytes(b"\x89PNG\r\n\x1a\nfake")
+
+        s1 = Scene(scene_id=1, section="Intro", narration="Testing YouTube clip citation.", audio_duration=6.0)
+        s1.audio.status = Status.COMPLETED
+        s1.media_source = "youtube_snippet"
+        s1.search_keyword = "https://www.youtube.com/watch?v=Kl4dtLfnCBM"
+        s1.image.meta = {
+            "provider": "youtube",
+            "video_id": "Kl4dtLfnCBM",
+            "title": "Wi-Fi 6 Speed Test Demo",
+            "channel": "Tech Reviews",
+            "url": "https://www.youtube.com/watch?v=Kl4dtLfnCBM",
+        }
+
+        s2 = Scene(scene_id=2, section="Core", narration="Testing Wikimedia photo attribution.", audio_duration=8.0)
+        s2.audio.status = Status.COMPLETED
+        s2.media_source = "wikimedia"
+        s2.image.meta = {
+            "provider": "stock",
+            "source": "wikimedia",
+            "title": "Large Hadron Collider CERN",
+            "author": "VasuVR",
+            "license": "CC BY 4.0",
+            "url": "https://upload.wikimedia.org/wikipedia/commons/a/a3/CERN.jpg?utm_source=test",
+        }
+
+        s3 = Scene(scene_id=3, section="Summary", narration="Conclusion beat.", audio_duration=5.0)
+        s3.audio.status = Status.COMPLETED
+
+        p.set_scenes([s1, s2, s3])
+
+        meta = generate_youtube_metadata(p)
+        desc = meta["description"]
+
+        # Verify Online Asset Attribution header and content
+        assert "線上素材與引用來源" in desc
+        assert "https://www.youtube.com/watch?v=Kl4dtLfnCBM" in desc
+        assert "Wi-Fi 6 Speed Test Demo" in desc
+        assert "Tech Reviews" in desc or "頻道" in desc
+        assert "Large Hadron Collider CERN" in desc
+        assert "VasuVR" in desc
+        assert "CC BY 4.0" in desc
+        assert "https://upload.wikimedia.org/wikipedia/commons/a/a3/CERN.jpg" in desc
+        # Ensure query parameters are stripped for clean URLs
+        assert "utm_source" not in desc
+
+    finally:
+        Project.delete_project(p.id)
+
+
 def test_fox_callout_extraction():
     from generators.motion_callout_generator import extract_motion_callout
 

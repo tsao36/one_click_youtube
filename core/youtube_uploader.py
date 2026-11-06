@@ -484,6 +484,205 @@ def build_youtube_chapters(
     return [c.youtube_line for c in chunks]
 
 
+def collect_project_asset_attributions(project: Project) -> list[str]:
+    """Collect and format citations and attributions for YouTube footage, Wikimedia photos, and music assets used in the video."""
+    lines: list[str] = []
+    scenes = project.active_scenes()
+
+    yt_items: dict[str, dict[str, Any]] = {}
+    image_items: dict[str, dict[str, Any]] = {}
+
+    for s in scenes:
+        im = s.image.meta or {}
+        an = s.animation.meta or {}
+        ms = getattr(s, "media_source", "ai") or "ai"
+        sk = (getattr(s, "search_keyword", "") or "").strip()
+
+        # 1. YouTube Footage / Screenshots
+        vid = im.get("video_id") or an.get("video_id")
+        if not vid and sk:
+            from providers.youtube_snippet_client import extract_video_id
+            vid = extract_video_id(sk)
+
+        yt_url = im.get("url") or an.get("source_url") or an.get("url")
+        if vid:
+            yt_url = f"https://www.youtube.com/watch?v={vid}"
+        elif sk.startswith("http") and ("youtube.com" in sk or "youtu.be" in sk):
+            yt_url = sk
+
+        is_youtube = bool(
+            (yt_url and ("youtube.com" in yt_url or "youtu.be" in yt_url)) or
+            vid or
+            ms in ("youtube_snippet", "youtube_screenshot") or
+            im.get("provider") == "youtube" or
+            an.get("provider") == "youtube"
+        )
+
+        if is_youtube and yt_url:
+            raw_title = im.get("title") or an.get("title") or (sk if not sk.startswith("http") else "")
+            channel = im.get("channel") or an.get("channel") or im.get("author") or an.get("author") or ""
+            key = vid or yt_url
+            if key not in yt_items:
+                yt_items[key] = {
+                    "title": raw_title,
+                    "url": yt_url,
+                    "channel": channel,
+                    "scenes": [s.scene_id],
+                }
+            else:
+                yt_items[key]["scenes"].append(s.scene_id)
+            continue
+
+        # 2. Online Stock / Wikimedia Commons Images
+        is_online_image = bool(
+            ms in ("wikimedia", "stock", "stock_portrait", "stock_photos") or
+            im.get("provider") in ("stock", "wikimedia") or
+            im.get("source") in ("wikimedia", "wikipedia") or
+            an.get("provider") == "stock_video" or
+            (im.get("url") and any(d in im.get("url") for d in ("wikimedia.org", "wikipedia.org", "pexels.com", "unsplash.com", "archive.org")))
+        )
+
+        img_url = im.get("url") or an.get("url") or ""
+        if is_online_image and img_url:
+            clean_url = img_url.split("?")[0] if "?" in img_url else img_url
+            raw_title = im.get("title") or an.get("title") or sk or "線上素材"
+            author = im.get("author") or an.get("author") or ""
+            license_str = im.get("license") or an.get("license") or ""
+            key = clean_url
+            if key not in image_items:
+                image_items[key] = {
+                    "title": raw_title,
+                    "author": author,
+                    "license": license_str,
+                    "url": clean_url,
+                    "scenes": [s.scene_id],
+                }
+            else:
+                image_items[key]["scenes"].append(s.scene_id)
+
+    # 3. Background Music (Soundtrack)
+    music_items: list[dict[str, Any]] = []
+    music_plan_file = project.path("music", "music_plan.json")
+    if music_plan_file.exists():
+        try:
+            plan_data = json.loads(music_plan_file.read_text(encoding="utf-8"))
+            seen_tracks = set()
+            catalog_file = DATA_DIR / "music" / "catalog.json"
+            catalog_by_basename: dict[str, dict[str, Any]] = {}
+            if catalog_file.exists():
+                try:
+                    cdata = json.loads(catalog_file.read_text(encoding="utf-8"))
+                    for t in cdata.get("tracks", []):
+                        bn = t.get("basename") or Path(t.get("filename", "")).name
+                        if bn:
+                            catalog_by_basename[bn.lower()] = t
+                except Exception:
+                    pass
+
+            for seg in plan_data:
+                tr_name = seg.get("name") or Path(seg.get("track", "")).name
+                if not tr_name or tr_name.lower() in seen_tracks:
+                    continue
+                seen_tracks.add(tr_name.lower())
+                cat_entry = catalog_by_basename.get(tr_name.lower(), {})
+                composer = cat_entry.get("composer")
+                work = cat_entry.get("work")
+                desc = cat_entry.get("description")
+                source = cat_entry.get("source")
+                epoch = cat_entry.get("epoch")
+                music_items.append({
+                    "name": tr_name,
+                    "composer": composer,
+                    "work": work,
+                    "epoch": epoch,
+                    "description": desc,
+                    "source": source,
+                })
+        except Exception as mex:
+            log.warning("Could not read music plan for attributions: %s", mex)
+
+    # 4. Research Citations
+    research_sources: list[str] = []
+    research_file = project.path("research", "research.json")
+    if research_file.exists():
+        try:
+            rdata = json.loads(research_file.read_text(encoding="utf-8"))
+            sources_list = rdata.get("sources", [])
+            if isinstance(sources_list, list):
+                for src in sources_list[:4]:
+                    if src and isinstance(src, str):
+                        research_sources.append(src.strip())
+        except Exception:
+            pass
+
+    if not yt_items and not image_items and not music_items and not research_sources:
+        return []
+
+    lines.append("🌐 線上素材與引用來源（Online Asset Sources & Attributions）：")
+
+    # Format YouTube Footage
+    if yt_items:
+        lines.append("🎬 YouTube 影片片段引用（Video Footage）：")
+        for item in yt_items.values():
+            title = item["title"]
+            url = item["url"]
+            channel = item["channel"]
+            sids = item["scenes"]
+            sid_str = f" [Scene #{sids[0]}]" if len(sids) == 1 else f" [Scenes #{sids[0]}-#{sids[-1]}]"
+            if title and not title.startswith("http") and title.lower() != url.lower():
+                ch_str = f"（頻道：{channel}）" if channel else ""
+                lines.append(f"• {title}{ch_str}：{url}")
+            else:
+                lines.append(f"• YouTube 影像來源{sid_str}：{url}")
+
+    # Format Images / Photography
+    if image_items:
+        if yt_items:
+            lines.append("")
+        lines.append("🖼️ 圖像與公眾授權照片（Images & Photography）：")
+        for item in image_items.values():
+            title = item["title"]
+            if len(title) > 60:
+                title = title[:57] + "..."
+            author = item["author"]
+            lic = item["license"]
+            url = item["url"]
+            meta_parts = []
+            if author:
+                meta_parts.append(f"by {author}")
+            if lic:
+                meta_parts.append(f"({lic})")
+            meta_str = (" " + " ".join(meta_parts)) if meta_parts else ""
+            lines.append(f'• "{title}"{meta_str}')
+            lines.append(f"  {url}")
+
+    # Format Music
+    if music_items:
+        if yt_items or image_items:
+            lines.append("")
+        lines.append("🎵 背景音樂引用（Soundtrack & Music）：")
+        for m in music_items:
+            if m.get("composer") and m.get("work"):
+                epoch_str = f" ({m['epoch']})" if m.get("epoch") else ""
+                lines.append(f"• {m['composer']}：《{m['work']}》{epoch_str}（OpenOpus / 公共領域 Public Domain）")
+            elif m.get("description"):
+                clean_name = Path(m["name"]).stem.replace("_", " ")
+                lines.append(f"• {clean_name} - {m['description']}")
+            else:
+                clean_name = Path(m["name"]).stem.replace("_", " ")
+                lines.append(f"• {clean_name}（Royalty-Free Audio Library）")
+
+    # Format Research Sources
+    if research_sources:
+        if yt_items or image_items or music_items:
+            lines.append("")
+        lines.append("📚 參考文獻與資料來源（References & Citations）：")
+        for src in research_sources:
+            lines.append(f"• {src}")
+
+    return lines
+
+
 def generate_youtube_metadata(project: Project) -> dict[str, Any]:
     """Generate professional, ready-to-upload YouTube metadata from project scenes and script."""
     settings = load_settings().get("youtube", {})
@@ -560,6 +759,13 @@ def generate_youtube_metadata(project: Project) -> dict[str, Any]:
         desc_lines.extend(chapters)
         desc_lines.append("")
 
+    # 5b. Online Asset Sources & Attributions (YouTube, Wikimedia, Music, Citations)
+    if settings.get("include_asset_sources", True):
+        attributions = collect_project_asset_attributions(project)
+        if attributions:
+            desc_lines.extend(attributions)
+            desc_lines.append("")
+
     channel_handle = settings.get("channel_handle", "@tsao36")
     channel_url = settings.get("channel_url", "https://www.youtube.com/@tsao36")
     desc_lines.append(f"🔔 歡迎訂閱頻道掌握最新深度影片：{channel_url}")
@@ -572,6 +778,8 @@ def generate_youtube_metadata(project: Project) -> dict[str, Any]:
         desc_lines.append(hashtags)
 
     full_description = normalize_to_taiwan_mandarin("\n".join(desc_lines))
+    if len(full_description) > 4950:
+        full_description = full_description[:4940] + "\n..."
 
     # 6. Locate Final MP4 Video
     final_rel = pdata.outputs.get("final") or f"final/{project.id}.mp4"

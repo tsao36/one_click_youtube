@@ -85,6 +85,7 @@ youtube:
   min_chapter_duration_seconds: 15.0
   max_chapter_duration_seconds: 180.0
   auto_generate_tags: true
+  include_asset_sources: true
 visual_styles:
   tech_schematic:
     label: 3D Tech Schematic & Explainer (fOx Style)
