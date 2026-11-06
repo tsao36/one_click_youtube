@@ -1,0 +1,13 @@
+{
+  "name": "newtsao",
+  "display_name": "曹曹主播",
+  "provider": "fal-ai/latentsync",
+  "layout": "fullscreen",
+  "is_default": true,
+  "is_masked": false,
+  "voice_profile": "voai_亦修",
+  "created_at": "2026-11-06 08:08:03",
+  "image_filename": "portrait.png",
+  "has_base_video": true,
+  "has_image": true
+}
