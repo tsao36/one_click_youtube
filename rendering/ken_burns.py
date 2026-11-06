@@ -95,19 +95,23 @@ def render_talking_avatar_clip(
     fps: int,
     encoder_args: list[str] | None = None,
 ) -> None:
-    """Conform a lip-synced talking avatar clip: EXACT 1.0x playback speed, lead_in start padding, seamless looping.
+    """Conform a lip-synced talking avatar clip: EXACT 1.0x playback speed, lead_in start padding, resting tail hold.
 
     Talking avatar clips are generated to strictly synchronize with narration audio.
-    They must NEVER freeze or halt on a static frame. If the scene duration extends beyond
-    the video length (e.g. trailing audio or slot transition duration), the clip continues
-    moving seamlessly via -stream_loop rather than cloning the last frame.
+    They start with lead_in padding (mouth closed) to align with audio onset.
+    After speech finishes, the clip holds its resting frame (mouth closed) via tpad stop_mode=clone
+    so the avatar never loops speech or restarts talking abruptly during slot transitions or pauses.
     """
     frames = max(2, math.ceil(seconds * fps) + 1)
     lead_s = max(0.0, float(lead_in))
+    src_dur = duration(src)
+    tail_hold = max(0.0, seconds - (lead_s + src_dur)) + 0.5
 
     pad_filters = []
     if lead_s > 0.005:
         pad_filters.append(f"tpad=start_mode=clone:start_duration={lead_s:.4f}")
+    if tail_hold > 0.005:
+        pad_filters.append(f"tpad=stop_mode=clone:stop_duration={tail_hold:.4f}")
     pad_str = ("," + ",".join(pad_filters)) if pad_filters else ""
 
     vf = (
@@ -117,8 +121,7 @@ def render_talking_avatar_clip(
         f"{pad_str},setsar=1,format=yuv420p"
     )
     enc = encoder_args or ["-c:v", "libx264", "-preset", "veryfast", "-crf", "17", "-pix_fmt", "yuv420p"]
-    # -stream_loop -1 ensures avatar video never freezes mid-sentence or halts on a single frame
-    run_ffmpeg(["-threads", "2", "-stream_loop", "-1", "-i", str(src), "-vf", vf, "-frames:v", str(frames), "-r", str(fps), *enc, "-an", str(output)])
+    run_ffmpeg(["-threads", "2", "-i", str(src), "-vf", vf, "-frames:v", str(frames), "-r", str(fps), *enc, "-an", str(output)])
 
 
 def _best_chinese_font_file() -> str:

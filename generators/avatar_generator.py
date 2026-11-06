@@ -518,19 +518,21 @@ def _generate_fal_kling_avatar(
     return {"provider": endpoint, "video_url": vid_url, "is_cloud": True, "duration": duration(output_mp4)}
 
 
-def _build_looped_base_video(base_video: Path, target_sec: float, out_path: Path) -> Path:
-    """Ping-pong loop (forward + reverse) the silent base clip so it covers the narration without a visible jump cut."""
+def _build_looped_base_video(base_video: Path, target_sec: float, out_path: Path, fps: int = 25) -> Path:
+    """Ping-pong loop (forward + reverse) the silent base clip so it covers the narration without a visible jump cut.
+    LatentSync strictly requires 25 FPS input video to match 50Hz Whisper audio features (2 features/frame).
+    """
     out_path.parent.mkdir(parents=True, exist_ok=True)
     pingpong = out_path.with_name(out_path.stem + "_pp.mp4")
     run_ffmpeg([
         "-i", str(base_video),
-        "-filter_complex", "[0:v]split[a][b];[b]reverse[r];[a][r]concat=n=2:v=1:a=0,format=yuv420p[v]",
-        "-map", "[v]", "-an", "-c:v", "libx264", "-preset", "veryfast", "-crf", "18", "-y", str(pingpong),
+        "-filter_complex", f"[0:v]fps={fps},split[a][b];[b]reverse[r];[a][r]concat=n=2:v=1:a=0,fps={fps},format=yuv420p[v]",
+        "-map", "[v]", "-an", "-r", str(fps), "-c:v", "libx264", "-preset", "veryfast", "-crf", "18", "-y", str(pingpong),
     ])
     run_ffmpeg([
         "-stream_loop", "-1", "-i", str(pingpong),
         "-t", f"{target_sec + 0.3:.3f}", "-an",
-        "-c:v", "libx264", "-preset", "veryfast", "-crf", "18", "-pix_fmt", "yuv420p", "-y", str(out_path),
+        "-r", str(fps), "-c:v", "libx264", "-preset", "veryfast", "-crf", "18", "-pix_fmt", "yuv420p", "-y", str(out_path),
     ])
     pingpong.unlink(missing_ok=True)
     return out_path
@@ -546,20 +548,40 @@ def _generate_fal_latentsync(
     """Real recorded base clip (body, hands, lighting) + audio -> re-synced mouth via LatentSync."""
     if not base_video_path.exists():
         raise FileNotFoundError("LatentSync 需要先上傳一段 10~30 秒的真人底片影片 (base video)")
+
+    # LatentSync processes audio with Whisper at 16kHz mono and outputs in 16-frame chunks (0.64s @ 25fps).
+    # Pre-resample audio and add 0.8s tail silence padding to ensure LatentSync frame flooring
+    # never truncates the final spoken words of the sentence.
+    prep_audio = output_mp4.with_name(output_mp4.stem + "_prep_sync.wav")
+    try:
+        run_ffmpeg([
+            "-i", str(audio_path),
+            "-af", "aresample=16000,aformat=channel_layouts=mono,apad=pad_dur=0.8",
+            "-c:a", "pcm_s16le",
+            "-y", str(prep_audio),
+        ])
+        target_sec = duration(prep_audio) + 0.5
+    except Exception as e:
+        log.warning("Audio prep for LatentSync failed (%s), using raw audio", e)
+        prep_audio = audio_path
+        target_sec = duration(audio_path) + 1.2
+
     looped = _build_looped_base_video(
-        base_video_path, duration(audio_path) + 1.2, output_mp4.with_name(output_mp4.stem + "_drive.mp4")
+        base_video_path, target_sec, output_mp4.with_name(output_mp4.stem + "_drive.mp4"), fps=25
     )
     try:
         payload = {
             "video_url": upload_file_to_fal(looped, fal_key),
-            "audio_url": upload_file_to_fal(audio_path, fal_key),
+            "audio_url": upload_file_to_fal(prep_audio, fal_key),
             "guidance_scale": 1.5,
         }
-        log.info("Requesting fal-ai/latentsync with base video...")
+        log.info("Requesting fal-ai/latentsync with 25fps base video and padded 16kHz audio...")
         res = _fal_queue_run("fal-ai/latentsync", payload, fal_key, timeout=timeout)
         vid_url = _download_fal_video(res, output_mp4, "fal-ai/latentsync")
     finally:
         looped.unlink(missing_ok=True)
+        if prep_audio != audio_path:
+            prep_audio.unlink(missing_ok=True)
     return {"provider": "fal-ai/latentsync", "video_url": vid_url, "is_cloud": True, "duration": duration(output_mp4)}
 
 
@@ -577,7 +599,7 @@ def save_base_video(name: str, video_bytes: bytes, filename: str = "upload.mp4",
             cmd += ["-t", str(max_duration)]
         cmd += [
             "-an",
-            "-vf", "scale='if(gt(ih,1080),-2,iw)':'if(gt(ih,1080),1080,ih)',fps=30,format=yuv420p",
+            "-vf", "scale='if(gt(ih,1080),-2,iw)':'if(gt(ih,1080),1080,ih)',fps=25,format=yuv420p",
             "-c:v", "libx264", "-preset", "veryfast", "-crf", "18", "-y", str(out),
         ]
         run_ffmpeg(cmd)
