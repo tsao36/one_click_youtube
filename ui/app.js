@@ -760,11 +760,30 @@
       }
     }
 
-    function enableRemotionInCreator() {
+    function apply100PercentRemotionPreset() {
       setVal('model-stage-animation', 'remotion');
+      setVal('ai-video-pct', '0');
+      const styleEl = document.getElementById('visual-style');
+      if (styleEl && styleEl.value !== 'tech_schematic') {
+        styleEl.value = 'tech_schematic';
+        if (typeof onCreatorStyleChange === 'function') onCreatorStyleChange('tech_schematic');
+      }
       onStageModelChange('animation');
       updateCreatorRemotionStrip();
-      showToast('⚛️ Remotion React 動態圖表已啟用為 Stage 7 預設引擎！');
+      if (currentProjectId) {
+        const sm = getSelectedStageModels();
+        sm.animation = 'remotion';
+        apiRequest(`/api/projects/${currentProjectId}/stage-models`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ stage_models: sm })
+        }).catch(e => console.error(e));
+      }
+      showToast('⚛️ 已一鍵配置為 100% Remotion 影片架構！(Stage 8: Auto Tactile Blueprint, AI 影片: 0%, 視覺風格: Tech Schematic)');
+    }
+
+    function enableRemotionInCreator() {
+      apply100PercentRemotionPreset();
     }
 
     function onVoiceProfileSelectChange(notify = true) {
@@ -1243,7 +1262,8 @@
         setVal('model-stage-script', 'gemini');
         setVal('model-stage-scenes', 'gemini');
         setVal('model-stage-prompts', 'gemini');
-        setVal('model-stage-images', isDrama ? 'nano-banana-2.1' : 'dalle3');
+        setVal('model-stage-images', 'nano-banana-2.1');
+        setVal('checkpoint-select', 'nano-banana-2.1');
         setVal('model-stage-voice', 'elevenlabs');
         setVal('model-stage-animation', isDrama ? 'hedra' : 'veo');
         setVal('model-stage-subtitles', 'local');
