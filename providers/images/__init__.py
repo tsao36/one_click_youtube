@@ -218,6 +218,27 @@ def _generate_openai_image(req: ImageRequest, attempts: list[dict], key: str,
     raise RuntimeError(f"OpenAI {provider} generation failed: {last_error}")
 
 
+def _decode_inline_image(data: dict) -> bytes | None:
+    """Extract a base64-encoded image from a Gemini generateContent response."""
+    import base64
+
+    candidates = data.get("candidates") or []
+    if not candidates:
+        return None
+    parts = candidates[0].get("content", {}).get("parts", [])
+    for part in parts:
+        inline = part.get("inlineData") or part.get("inline_data")
+        if inline and inline.get("data"):
+            return base64.b64decode(inline["data"])
+    return None
+
+
+def _write_generated_image(req: ImageRequest, image_bytes: bytes) -> None:
+    req.output.parent.mkdir(parents=True, exist_ok=True)
+    req.output.write_bytes(image_bytes)
+    _check_not_blank(req.output)
+
+
 class GptImage1Provider(ImageProvider):
 
     name = "gpt-image-1"
@@ -399,12 +420,7 @@ class Imagen302ImageProvider(ImageProvider):
                 if preds and preds[0].get("bytesBase64Encoded"):
 
                     img_bytes = base64.b64decode(preds[0]["bytesBase64Encoded"])
-
-                    req.output.parent.mkdir(parents=True, exist_ok=True)
-
-                    req.output.write_bytes(img_bytes)
-
-                    _check_not_blank(req.output)
+                    _write_generated_image(req, img_bytes)
 
                     return {
 
@@ -450,40 +466,18 @@ class Imagen302ImageProvider(ImageProvider):
                 r = requests.post(url, json=body, headers=headers, timeout=180)
 
                 if r.status_code == 200:
-
-                    data = r.json()
-
-                    parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
-
-                    for part in parts:
-
-                        if "inlineData" in part and "data" in part["inlineData"]:
-
-                            img_bytes = base64.b64decode(part["inlineData"]["data"])
-
-                            req.output.parent.mkdir(parents=True, exist_ok=True)
-
-                            req.output.write_bytes(img_bytes)
-
-                            _check_not_blank(req.output)
-
-                            return {
-
-                                "provider": "imagen-3.0-generate-002",
-
-                                "model": m,
-
-                                "seed": req.seed,
-
-                                "width": req.width,
-
-                                "height": req.height,
-
-                                "prompt": req.prompt,
-
-                                "is_cloud": True,
-
-                            }
+                    img_bytes = _decode_inline_image(r.json())
+                    if img_bytes:
+                        _write_generated_image(req, img_bytes)
+                        return {
+                            "provider": "imagen-3.0-generate-002",
+                            "model": m,
+                            "seed": req.seed,
+                            "width": req.width,
+                            "height": req.height,
+                            "prompt": req.prompt,
+                            "is_cloud": True,
+                        }
 
             except Exception as ex:
 
@@ -712,9 +706,6 @@ class Imagen3ImageProvider(ImageProvider):
         return (True, "Gemini API key configured") if self.key else (False, "GEMINI_API_KEY not set in .env")
 
     def generate(self, req: ImageRequest, cancel: Callable[[], bool] | None = None) -> dict:
-
-        import base64
-
         import requests
 
         if cancel and cancel():
@@ -768,40 +759,18 @@ class Imagen3ImageProvider(ImageProvider):
                 data = r.json()
 
                 try:
-
-                    candidates = data.get("candidates", [])
-
-                    parts = candidates[0].get("content", {}).get("parts", [])
-
-                    for part in parts:
-
-                        if "inlineData" in part and "data" in part["inlineData"]:
-
-                            img_bytes = base64.b64decode(part["inlineData"]["data"])
-
-                            req.output.parent.mkdir(parents=True, exist_ok=True)
-
-                            req.output.write_bytes(img_bytes)
-
-                            _check_not_blank(req.output)
-
-                            return {
-
-                                "provider": "imagen3",
-
-                                "model": m,
-
-                                "seed": req.seed,
-
-                                "width": req.width,
-
-                                "height": req.height,
-
-                                "prompt": req.prompt,
-
-                                "is_cloud": True
-
-                            }
+                    img_bytes = _decode_inline_image(data)
+                    if img_bytes:
+                        _write_generated_image(req, img_bytes)
+                        return {
+                            "provider": "imagen3",
+                            "model": m,
+                            "seed": req.seed,
+                            "width": req.width,
+                            "height": req.height,
+                            "prompt": req.prompt,
+                            "is_cloud": True,
+                        }
 
                 except Exception as ex:
 

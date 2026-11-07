@@ -398,6 +398,28 @@ def test_openai_image_providers_use_shared_executor(tmp_path, monkeypatch, provi
     assert post.call_args.kwargs["timeout"] == 180
 
 
+def test_shared_gemini_image_helpers_decode_and_write(tmp_path, monkeypatch):
+    import base64
+    import providers.images as images
+
+    monkeypatch.setattr(images, "_check_not_blank", lambda path: None)
+    raw = b"image"
+    payload = {
+        "candidates": [{
+            "content": {
+                "parts": [{"inlineData": {"data": base64.b64encode(raw).decode()}}]
+            }
+        }]
+    }
+    decoded = images._decode_inline_image(payload)
+    assert decoded == raw
+    assert images._decode_inline_image({"candidates": []}) is None
+
+    req = images.ImageRequest("prompt", "", 1, 1920, 1080, tmp_path / "nested" / "out.png")
+    images._write_generated_image(req, decoded)
+    assert req.output.read_bytes() == raw
+
+
 def test_shared_remotion_executor_retries_and_cleans_temp_files(tmp_path, monkeypatch):
     import rendering.remotion_cli as remotion
 
