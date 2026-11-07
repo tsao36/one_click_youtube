@@ -25,6 +25,8 @@ class OpenAICompatProvider(LLMProvider):
     def available(self) -> tuple[bool, str]:
         if self.is_cloud and not self.key:
             return False, "API key not set in .env"
+        if "api.openai.com" in self.base_url and not self.key.startswith("sk-"):
+            return False, "Invalid OpenAI API key format in .env (OpenAI keys must start with 'sk-')"
         return True, self.base_url
 
     def generate(self, prompt, system="", json_mode=False, temperature=0.7, max_tokens=4096) -> str:
