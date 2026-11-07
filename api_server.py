@@ -66,11 +66,21 @@ app = FastAPI(title="Local-First AI Video Creator", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+def _resolve_under(base_dir: Path, relative_path: str) -> Path:
+    base = base_dir.resolve()
+    target = (base / relative_path).resolve()
+    try:
+        target.relative_to(base)
+    except ValueError as exc:
+        raise HTTPException(status_code=403, detail="Forbidden") from exc
+    return target
 
 # Active pipeline registry
 active_pipelines: dict[str, Pipeline] = {}
@@ -3701,7 +3711,7 @@ def serve_voice_file(voice_name: str, file_name: str):
                 voice_name = p.name
                 target_dir = p
                 break
-    path = target_dir / file_name
+    path = _resolve_under(target_dir, file_name)
     if not path.exists() and file_name in ("test_sample.wav", "sample.wav"):
         try:
             generate_voice_sample(voice_name)
@@ -3715,16 +3725,10 @@ def serve_voice_file(voice_name: str, file_name: str):
 
 @app.get("/media/{project_id}/{file_path:path}")
 def serve_project_file(project_id: str, file_path: str):
-    base_dir = (PROJECTS_DIR / project_id).resolve()
-    target_path = (PROJECTS_DIR / project_id / file_path).resolve()
-    if not str(target_path).startswith(str(base_dir)):
-        raise HTTPException(status_code=403, detail="Forbidden")
+    base_dir = PROJECTS_DIR / project_id
+    target_path = _resolve_under(base_dir, file_path)
     if not target_path.exists() or not target_path.is_file():
-        ext_alt = Path(r"D:\youtube channel video") / target_path.name
-        if ext_alt.exists() and ext_alt.is_file():
-            target_path = ext_alt
-        else:
-            raise HTTPException(status_code=404, detail="File not found")
+        raise HTTPException(status_code=404, detail="File not found")
 
     ext = target_path.suffix.lower()
     if ext == ".mp4":

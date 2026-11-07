@@ -307,6 +307,67 @@ def test_yaml_reads_are_cached_and_results_are_isolated(tmp_path, monkeypatch):
     assert loader.call_count == 2
 
 
+def test_media_endpoints_confine_paths_to_their_roots(tmp_path, monkeypatch):
+    import api_server as server
+    from fastapi import HTTPException
+
+    projects = tmp_path / "projects"
+    project_dir = projects / "demo"
+    project_dir.mkdir(parents=True)
+    (project_dir / "project.json").write_text("{}", encoding="utf-8")
+    monkeypatch.setattr(server, "PROJECTS_DIR", projects)
+    with pytest.raises(HTTPException) as project_error:
+        server.serve_project_file("demo", "../secret.txt")
+    assert project_error.value.status_code == 403
+
+    voices = tmp_path / "voices"
+    voice_dir = voices / "demo"
+    voice_dir.mkdir(parents=True)
+    (voice_dir / "voice.json").write_text("{}", encoding="utf-8")
+    monkeypatch.setattr(server, "DATA_DIR", tmp_path)
+    with pytest.raises(HTTPException) as voice_error:
+        server.serve_voice_file("demo", "../secret.wav")
+    assert voice_error.value.status_code == 403
+
+
+def test_cors_accepts_only_localhost_origins():
+    import re
+
+    middleware = next(
+        item for item in api_server.app.user_middleware
+        if item.cls.__name__ == "CORSMiddleware"
+    )
+    regex = re.compile(middleware.kwargs["allow_origin_regex"])
+    assert regex.match("http://localhost:8000")
+    assert regex.match("http://127.0.0.1:5173")
+    assert not regex.match("https://example.com")
+
+
+def test_project_settings_merge_happens_once_per_instance(project, monkeypatch):
+    calls = 0
+    original = project_manager.load_settings
+
+    def counted_load():
+        nonlocal calls
+        calls += 1
+        return original()
+
+    monkeypatch.setattr(project_manager, "load_settings", counted_load)
+    loaded = Project(project.id)
+    assert loaded.settings is loaded.data.settings
+    _ = loaded.settings
+    _ = loaded.settings
+    assert calls == 1
+
+
+def test_get_secret_does_not_reload_dotenv(monkeypatch):
+    import core.config as config
+
+    monkeypatch.setenv("CODEX_TEST_SECRET", "present")
+    monkeypatch.setattr(config, "load_env", Mock(side_effect=AssertionError("dotenv reload")))
+    assert config.get_secret("CODEX_TEST_SECRET") == "present"
+
+
 @pytest.mark.parametrize("provider_name", ["gpt-image-1", "dalle3"])
 def test_openai_image_providers_use_shared_executor(tmp_path, monkeypatch, provider_name):
     import base64

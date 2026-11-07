@@ -60,6 +60,7 @@ class Project:
         self.dir = PROJECTS_DIR / project_id
         self.lock = Project._locks.setdefault(project_id, threading.RLock())
         self.data = ProjectData(**read_json(self.dir / "project.json"))
+        self.data.settings = deep_merge(load_settings(), self.data.settings)
         self._scenes: list[Scene] | None = None
 
     @property
@@ -109,8 +110,8 @@ class Project:
     # ---------- settings ----------
     @property
     def settings(self) -> dict:
-        """Effective settings snapshot. Persist edits through data.settings, then save()."""
-        return deep_merge(load_settings(), self.data.settings)
+        """Effective settings snapshot loaded once for this project instance."""
+        return self.data.settings
 
     # ---------- paths ----------
     @property
@@ -135,6 +136,7 @@ class Project:
     def reload(self) -> None:
         with self.lock:
             self.data = ProjectData(**read_json(self.path("project.json")))
+            self.data.settings = deep_merge(load_settings(), self.data.settings)
             self._scenes = None
 
     @property

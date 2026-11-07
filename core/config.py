@@ -74,10 +74,12 @@ def load_env() -> None:
     load_dotenv(ENV_FILE, override=True)
 
 
+load_env()
+
+
 def get_secret(name: str | None) -> str:
     if not name:
         return ""
-    load_env()
     return os.environ.get(name, "").strip()
 
 
