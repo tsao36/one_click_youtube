@@ -25,6 +25,28 @@ STAGE_FILES: dict[str, list[str]] = {
 }
 
 
+def find_take(takes: list[dict[str, Any]], number: int) -> dict[str, Any] | None:
+    """Return a take by its numeric identifier."""
+    return next((take for take in takes if int(take.get("take", -1)) == number), None)
+
+
+def next_take_number(takes: list[dict[str, Any]], disk_numbers: list[int] | None = None) -> int:
+    """Return the next take number across metadata and files already on disk."""
+    metadata_numbers = [int(take.get("take", 0)) for take in takes]
+    return max(metadata_numbers + list(disk_numbers or []) + [0]) + 1
+
+
+def remove_take(takes: list[dict[str, Any]], number: int) -> list[dict[str, Any]]:
+    """Return take metadata without the selected take."""
+    return [take for take in takes if int(take.get("take", -1)) != number]
+
+
+def copy_take(source: Path, destination: Path) -> None:
+    """Copy a take while ensuring its destination directory exists."""
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(source, destination)
+
+
 def _versions_meta_path(project: Project, stage_name: str) -> Path:
     return project.path(stage_name, "versions.json")
 
@@ -186,7 +208,7 @@ def ensure_initial_image_take(project: Project, scene_id: int) -> None:
     active_path = project.path(s.image.path) if s.image.path else project.path("images", f"{s.tag}.png")
     take1_path = takes_dir / f"scene_{scene_id:03d}_take1.png"
     if active_path.exists() and not take1_path.exists():
-        shutil.copy2(active_path, take1_path)
+        copy_take(active_path, take1_path)
 
     # 2. Inspect all take files on disk for this scene
     pattern = re.compile(rf"^scene_{scene_id:03d}_take(\d+)\.png$")
@@ -205,7 +227,7 @@ def ensure_initial_image_take(project: Project, scene_id: int) -> None:
                 log.info("Cleaning up duplicate take 2 for scene %d (identical to take 1)", scene_id)
                 disk_takes[2].unlink(missing_ok=True)
                 del disk_takes[2]
-                takes = [t for t in takes if int(t.get("take", 1)) != 2]
+                takes = remove_take(takes, 2)
                 if meta.get("active_take") == 2:
                     meta["active_take"] = 1
                 updated = True
@@ -270,9 +292,8 @@ def record_scene_image_take(project: Project, scene_id: int, active_rel_path: st
     takes_dir.mkdir(parents=True, exist_ok=True)
     pattern = re.compile(rf"^scene_{scene_id:03d}_take(\d+)\.png$")
     disk_nums = [int(m.group(1)) for df in takes_dir.glob(f"scene_{scene_id:03d}_take*.png") if (m := pattern.match(df.name))]
-    meta_nums = [int(t["take"]) for t in takes if isinstance(t, dict) and "take" in t]
-
-    highest = max(disk_nums + meta_nums + [0])
+    next_take_num = next_take_number(takes, disk_nums)
+    highest = next_take_num - 1
     src = project.path(active_rel_path)
 
     # Idempotency check: if highest take already exists and is bitwise identical to src, avoid creating a duplicate take
@@ -286,13 +307,11 @@ def record_scene_image_take(project: Project, scene_id: int, active_rel_path: st
             except Exception:
                 pass
 
-    next_take_num = highest + 1
-
     archive_name = f"scene_{scene_id:03d}_take{next_take_num}.png"
     archive_path = takes_dir / archive_name
 
     if src.exists():
-        shutil.copy2(src, archive_path)
+        copy_take(src, archive_path)
         take_rel = project.rel(archive_path)
     else:
         take_rel = active_rel_path
@@ -329,7 +348,7 @@ def switch_scene_image_take(project: Project, scene_id: int, target_take: int) -
     ensure_initial_image_take(project, scene_id)
     meta = s.image.meta or {}
     takes = meta.get("takes", [])
-    take_entry = next((t for t in takes if int(t.get("take", -1)) == target_take), None)
+    take_entry = find_take(takes, target_take)
 
     if not take_entry:
         return {"status": "error", "message": f"Take {target_take} not found"}
@@ -337,7 +356,7 @@ def switch_scene_image_take(project: Project, scene_id: int, target_take: int) -
     take_file = project.abs(take_entry["path"])
     if take_file and take_file.exists():
         active_dest = project.path("images", f"{s.tag}.png")
-        shutil.copy2(take_file, active_dest)
+        copy_take(take_file, active_dest)
         s.image.path = project.rel(active_dest)
         meta["active_take"] = target_take
         if take_entry.get("style"):
@@ -370,7 +389,7 @@ def delete_scene_image_take(project: Project, scene_id: int, target_take: int | 
 
     deleted_entry = None
     if target_take is not None:
-        deleted_entry = next((t for t in takes if int(t.get("take", -1)) == target_take), None)
+        deleted_entry = find_take(takes, target_take)
 
     if deleted_entry:
         if deleted_entry.get("path"):
@@ -381,7 +400,7 @@ def delete_scene_image_take(project: Project, scene_id: int, target_take: int | 
                 except Exception as ex:
                     log.warning("Could not unlink take file %s: %s", take_path, ex)
 
-        takes = [t for t in takes if int(t.get("take", -1)) != target_take]
+        takes = remove_take(takes, target_take)
         meta["takes"] = takes
 
         if active_take == target_take:
@@ -391,7 +410,7 @@ def delete_scene_image_take(project: Project, scene_id: int, target_take: int | 
                 new_file = project.abs(new_take_entry["path"])
                 if new_file and new_file.exists():
                     active_dest = project.path("images", f"{s.tag}.png")
-                    shutil.copy2(new_file, active_dest)
+                    copy_take(new_file, active_dest)
                     s.image.path = project.rel(active_dest)
                     meta["active_take"] = new_take
                     if new_take_entry.get("style"):
@@ -451,7 +470,7 @@ def ensure_initial_voice_take(project: Project, scene_id: int) -> None:
     active_path = project.path(s.audio.path) if s.audio.path else project.path("audio", f"{s.tag}.wav")
     take1_path = takes_dir / f"scene_{scene_id:03d}_take1.wav"
     if active_path.exists() and not take1_path.exists():
-        shutil.copy2(active_path, take1_path)
+        copy_take(active_path, take1_path)
 
     # 2. Inspect all take files on disk for this scene
     pattern = re.compile(rf"^scene_{scene_id:03d}_take(\d+)\.wav$")
@@ -470,7 +489,7 @@ def ensure_initial_voice_take(project: Project, scene_id: int) -> None:
                 log.info("Cleaning up duplicate voice take 2 for scene %d (identical to take 1)", scene_id)
                 disk_takes[2].unlink(missing_ok=True)
                 del disk_takes[2]
-                takes = [t for t in takes if int(t.get("take", 1)) != 2]
+                takes = remove_take(takes, 2)
                 if meta.get("active_take") == 2:
                     meta["active_take"] = 1
                 updated = True
@@ -533,9 +552,8 @@ def record_scene_voice_take(project: Project, scene_id: int, active_rel_path: st
     takes_dir.mkdir(parents=True, exist_ok=True)
     pattern = re.compile(rf"^scene_{scene_id:03d}_take(\d+)\.wav$")
     disk_nums = [int(m.group(1)) for df in takes_dir.glob(f"scene_{scene_id:03d}_take*.wav") if (m := pattern.match(df.name))]
-    meta_nums = [int(t["take"]) for t in takes if isinstance(t, dict) and "take" in t]
-
-    highest = max(disk_nums + meta_nums + [0])
+    next_take_num = next_take_number(takes, disk_nums)
+    highest = next_take_num - 1
     src = project.path(active_rel_path)
 
     # Idempotency check: if highest take already exists and is bitwise identical to src, avoid creating a duplicate take
@@ -544,9 +562,7 @@ def record_scene_voice_take(project: Project, scene_id: int, active_rel_path: st
         if highest_path.exists():
             try:
                 if filecmp.cmp(str(highest_path), str(src), shallow=False):
-                    existing = next(
-                        (take for take in takes if int(take.get("take", -1)) == highest), None
-                    )
+                    existing = find_take(takes, highest)
                     if existing is not None:
                         existing.update({
                             "voice": voice_used or meta.get("voice", ""),
@@ -563,13 +579,11 @@ def record_scene_voice_take(project: Project, scene_id: int, active_rel_path: st
             except Exception:
                 pass
 
-    next_take_num = highest + 1
-
     archive_name = f"scene_{scene_id:03d}_take{next_take_num}.wav"
     archive_path = takes_dir / archive_name
 
     if src.exists():
-        shutil.copy2(src, archive_path)
+        copy_take(src, archive_path)
         take_rel = project.rel(archive_path)
     else:
         take_rel = active_rel_path
@@ -604,7 +618,7 @@ def switch_scene_voice_take(project: Project, scene_id: int, target_take: int) -
     ensure_initial_voice_take(project, scene_id)
     meta = s.audio.meta or {}
     takes = meta.get("takes", [])
-    take_entry = next((t for t in takes if int(t.get("take", -1)) == target_take), None)
+    take_entry = find_take(takes, target_take)
 
     if not take_entry:
         return {"status": "error", "message": f"Take {target_take} not found"}
@@ -612,7 +626,7 @@ def switch_scene_voice_take(project: Project, scene_id: int, target_take: int) -
     take_file = project.abs(take_entry["path"])
     if take_file and take_file.exists():
         active_dest = project.path("audio", f"{s.tag}.wav")
-        shutil.copy2(take_file, active_dest)
+        copy_take(take_file, active_dest)
         s.audio.path = project.rel(active_dest)
         if "duration_seconds" in take_entry:
             s.audio_duration = float(take_entry["duration_seconds"] or 0.0)
@@ -659,7 +673,7 @@ def delete_scene_voice_take(project: Project, scene_id: int, target_take: int | 
 
     deleted_entry = None
     if target_take is not None:
-        deleted_entry = next((t for t in takes if int(t.get("take", -1)) == target_take), None)
+        deleted_entry = find_take(takes, target_take)
 
     if deleted_entry:
         if deleted_entry.get("path"):
@@ -670,7 +684,7 @@ def delete_scene_voice_take(project: Project, scene_id: int, target_take: int | 
                 except Exception as ex:
                     log.warning("Could not unlink voice take file %s: %s", take_path, ex)
 
-        takes = [t for t in takes if int(t.get("take", -1)) != target_take]
+        takes = remove_take(takes, target_take)
         meta["takes"] = takes
 
         if active_take == target_take:
@@ -680,7 +694,7 @@ def delete_scene_voice_take(project: Project, scene_id: int, target_take: int | 
                 new_file = project.abs(new_take_entry["path"])
                 if new_file and new_file.exists():
                     active_dest = project.path("audio", f"{s.tag}.wav")
-                    shutil.copy2(new_file, active_dest)
+                    copy_take(new_file, active_dest)
                     s.audio.path = project.rel(active_dest)
                     meta["active_take"] = new_take
                     if "duration_seconds" in new_take_entry:

@@ -22,10 +22,10 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from core.config import DATA_DIR, LOGS_DIR, PROJECTS_DIR, ROOT, deep_merge, get_secret, load_providers, load_settings, save_yaml, set_secret
-from core.hardware import detect_system
-from core.logging_setup import RECENT, log, setup_logging
+from core.logging_setup import log, setup_logging
 from core.models import STAGES, Scene, Status
-from core.pipeline import Pipeline, PipelineCancelled
+from core.base_pipeline import BasePipeline
+from core.pipeline import PipelineCancelled, get_pipeline
 from core.project_manager import Project
 from rendering.ffmpeg_renderer import render_project
 from rendering.ffmpeg_utils import kill_all_ffmpeg_processes
@@ -45,7 +45,7 @@ from core.versioning import (
 from generators.voice_generator import batch_generate_missing_samples, delete_profile, generate_voice_sample, list_profiles, load_profile, save_profile, synthesize
 from providers.comfy_client import ComfyClient
 from providers.images import ImageRequest, get_image_provider
-from providers.llm.ollama_provider import OllamaProvider
+from api_routes.system import router as system_router
 from core.youtube_uploader import (
     get_youtube_status,
     save_client_secrets_data,
@@ -71,6 +71,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.include_router(system_router)
 
 
 def _resolve_under(base_dir: Path, relative_path: str) -> Path:
@@ -83,7 +84,7 @@ def _resolve_under(base_dir: Path, relative_path: str) -> Path:
     return target
 
 # Active pipeline registry
-active_pipelines: dict[str, Pipeline] = {}
+active_pipelines: dict[str, BasePipeline] = {}
 _jobs_lock = threading.RLock()
 
 
@@ -107,7 +108,7 @@ def queue_pipeline_job(p: Project, background_tasks: BackgroundTasks, work: Call
             return False
         if prepare:
             prepare(p)
-        pipeline = Pipeline(p, stop_at=stop_at)
+        pipeline = get_pipeline(p, stop_at=stop_at)
         p.data.state, p.data.error = "running", None
         p.save()
         active_pipelines[p.id] = pipeline
@@ -288,41 +289,6 @@ def get_available_checkpoints() -> list[str]:
     if not ckpt_names:
         ckpt_names.add("sd_xl_base_1.0.safetensors")
     return sorted(list(ckpt_names))
-
-
-# ---------------- Hardware & Status ----------------
-@app.get("/api/status")
-def get_hardware_status():
-    return detect_system()
-
-
-@app.get("/api/logs")
-def get_logs():
-    return {"logs": list(RECENT)}
-
-
-@app.post("/api/memory/unload")
-def unload_gpu_memory():
-    """Unload ComfyUI and Ollama models from VRAM."""
-    results = {}
-    # Unload ComfyUI
-    try:
-        url = load_providers().get("images", {}).get("comfyui", {}).get("base_url", "http://127.0.0.1:8188")
-        ComfyClient(url).free()
-        results["comfyui"] = "Freed"
-    except Exception as e:
-        results["comfyui"] = str(e)
-
-    # Unload Ollama
-    try:
-        ollama_cfg = load_providers().get("llm", {}).get("providers", {}).get("ollama", {})
-        OllamaProvider(ollama_cfg).unload()
-        results["ollama"] = "Unloaded"
-    except Exception as e:
-        results["ollama"] = str(e)
-
-    log.info("Manual memory unload requested: %s", results)
-    return results
 
 
 # ---------------- Project Endpoints ----------------
@@ -2939,8 +2905,7 @@ def regenerate_scene_voice(project_id: str, scene_id: int, req_body: Optional[Re
 
     # Immediately refresh project subtitles with new words and audio timings
     try:
-        from core.pipeline import Pipeline
-        Pipeline(p)._run_subtitles()
+        get_pipeline(p)._run_subtitles()
     except Exception as ex:
         log.warning("Could not auto-refresh subtitles after voice regen: %s", ex)
 

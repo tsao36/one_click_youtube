@@ -181,7 +181,7 @@ def test_ai_topic_discovery(tmp_path, monkeypatch):
 
 
 def test_dynamic_stage_model_switch(tmp_path, monkeypatch):
-    from core.pipeline import Pipeline
+    from core.pipeline import get_pipeline
     from core.project_manager import Project
 
     # Create dummy project
@@ -193,7 +193,7 @@ def test_dynamic_stage_model_switch(tmp_path, monkeypatch):
         }
     })
     try:
-        pipeline = Pipeline(p)
+        pipeline = get_pipeline(p)
         assert pipeline.get_stage_model("images") == "comfyui"
         assert pipeline.get_stage_model("voice") == "bluemagpie"
         assert pipeline.get_stage_model("animation") == "kenburns"
@@ -544,7 +544,7 @@ def test_write_ass_with_fox_callout(tmp_path):
 
 def test_pipeline_motion_callouts_toggle(tmp_path):
     from core.models import Scene, Status
-    from core.pipeline import Pipeline
+    from core.pipeline import get_pipeline
     from core.project_manager import Project
 
     p = Project.create("test_callouts_toggle")
@@ -562,7 +562,7 @@ def test_pipeline_motion_callouts_toggle(tmp_path):
         p.data.settings["subtitles"] = {"enabled": True, "burn_in": True, "motion_graphics_callouts": True}
         p.settings["subtitles"] = p.data.settings["subtitles"]
         p.save()
-        pipe = Pipeline(p)
+        pipe = get_pipeline(p)
         pipe._run_subtitles()
         ass_content = p.path("subtitles", "subtitles.ass").read_text(encoding="utf-8")
         on_dialogues = [line for line in ass_content.splitlines() if "FoxCalloutCard" in line and line.startswith("Dialogue:")]
@@ -574,7 +574,7 @@ def test_pipeline_motion_callouts_toggle(tmp_path):
         p.data.settings["subtitles"] = {"enabled": True, "burn_in": True, "motion_graphics_callouts": False, "callouts_enabled": False}
         p.settings["subtitles"] = p.data.settings["subtitles"]
         p.save()
-        pipe2 = Pipeline(p)
+        pipe2 = get_pipeline(p)
         pipe2._run_subtitles()
         ass_content_off = p.path("subtitles", "subtitles.ass").read_text(encoding="utf-8")
         off_dialogues = [line for line in ass_content_off.splitlines() if "FoxCalloutCard" in line and line.startswith("Dialogue:")]

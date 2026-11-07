@@ -20,25 +20,10 @@ def get_pipeline(project: Project, stop_at: Optional[str] = None) -> BasePipelin
     return DocumentaryPipeline(project, stop_at=stop_at)
 
 
-class Pipeline:
-    """Smart pipeline orchestrator.
-
-    Instantiating Pipeline(project) automatically constructs either a
-    DramaPipeline (for 9:16 vertical short drama) or DocumentaryPipeline
-    (for 16:9 widescreen documentary), ensuring clean separation of stages.
-    """
-
-    def __new__(cls, project: Project, stop_at: Optional[str] = None):
-        return get_pipeline(project, stop_at=stop_at)
-
-    get_pipeline = staticmethod(get_pipeline)
-
-
 __all__ = [
     "BasePipeline",
     "DocumentaryPipeline",
     "DramaPipeline",
-    "Pipeline",
     "PipelineCancelled",
     "apply_presenter_placement",
     "get_pipeline",

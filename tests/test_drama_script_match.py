@@ -1,6 +1,6 @@
 import pytest
 from core.project_manager import Project
-from core.pipeline import Pipeline
+from core.pipeline import get_pipeline
 from core.models import Status
 from core.drama_pipeline import parse_drama_script_markdown
 
@@ -44,7 +44,7 @@ def test_drama_stage3_matches_stage2(tmp_path):
         p.write_json("script/script.json", {"title": title, "sections": sections})
         p.save()
 
-        pipe = Pipeline(p)
+        pipe = get_pipeline(p)
         pipe._run_scenes()
 
         p.reload()

@@ -8,7 +8,7 @@ from pathlib import Path
 
 from core.hardware import detect_system
 from core.logging_setup import log, setup_logging
-from core.pipeline import Pipeline
+from core.pipeline import get_pipeline
 from core.project_manager import Project
 
 
@@ -49,7 +49,7 @@ def run_cli(topic: str, duration: float, language: str, voice: str, style: str, 
         "voice_profile": voice,
     }
     p = Project.create(topic=topic, overrides=overrides)
-    pipeline = Pipeline(p)
+    pipeline = get_pipeline(p)
     pipeline.run()
 
     final_path = p.abs(p.data.outputs.get("final"))
