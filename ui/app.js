@@ -641,8 +641,7 @@
         applyStudioModeChrome();
         loadStageStudio();
       }
-      if (name === 'editor') loadScenesForEditor();
-      if (name === 'voices') { loadVoiceProfiles(); loadElevenLabsVoices(); }
+            if (name === 'voices') { loadVoiceProfiles(); loadElevenLabsVoices(); }
       if (name === 'music') loadMusicTracks();
         if (name === 'avatars') loadAvatars();
       if (name === 'drama') {
@@ -4321,6 +4320,7 @@
       const d = await apiJson('/api/projects/' + currentProjectId);
       currentScenes = d.scenes || [];
       const tbody = document.getElementById('scenes-tbody');
+      if (!tbody) return;
       tbody.innerHTML = '';
 
       const isDrama = isDramaStudioProject(currentProject);
@@ -4441,7 +4441,7 @@
     }
 
     function openEditor() {
-      switchTab('editor');
+      switchTab('studio');
     }
 
     async function refreshLogs() {

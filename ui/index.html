@@ -711,7 +711,6 @@
     <button class="nav-tab" onclick="switchTab('drama')">🎭 Short Drama Studio</button>
     <button class="nav-tab" onclick="switchTab('studio')">🛠️ Documentary Stage Studio</button>
     <button class="nav-tab" onclick="switchTab('dramastudio')">🎭 Drama Stage Studio</button>
-    <button class="nav-tab" onclick="switchTab('editor')">Scene Editor</button>
     <button class="nav-tab" onclick="switchTab('preview')">📺 Player & YouTube</button>
     <button class="nav-tab" onclick="switchTab('voices')">Voice Profiles</button>
     <button class="nav-tab" onclick="switchTab('music')">🎵 Ambient Music</button>
@@ -1572,64 +1571,6 @@
     <div class="card custom-horizontal-scroll" id="studio-stage-workspace" style="margin-top: 16px; min-height: 480px; overflow-x: auto; max-width: 100%;">
       <div style="text-align: center; padding: 40px; color: var(--text-muted);">
         Loading Stage Studio...
-      </div>
-    </div>
-  </div>
-
-  <!-- TAB: SCENE EDITOR -->
-  <div id="tab-editor" class="tab-content">
-    <div class="card">
-      <div class="card-title">
-        <span>Scene Management</span>
-        <div>
-          <button class="btn-sec" onclick="saveScenesToServer()">Save Changes</button>
-          <button onclick="renderFinalNow()">Render Video</button>
-        </div>
-      </div>
-      <!-- Find & Replace Toolbar in Scene Editor -->
-      <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid #1e3a8a; border-radius: 8px; padding: 12px 16px; margin-bottom: 14px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
-          <div style="font-size: 13px; font-weight: 700; color: #93c5fd; display: flex; align-items: center; gap: 8px;">
-            <span style="font-size: 16px;">🔍</span>
-            <span>Batch Keyword Replace Tool</span>
-            <span style="font-size: 11px; font-weight: normal; color: #94a3b8;">— 全專案跨階段連動替換關鍵字與分鏡台詞，支援語音極速重整</span>
-          </div>
-        </div>
-        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-          <div style="flex: 1; min-width: 180px;">
-            <input type="text" id="editor-scenes-find" placeholder="Find keyword in Stage 1, 2, 3..." style="width: 100%; font-size: 13px; padding: 8px 12px; background: #04070e; border: 1px solid #334155; border-radius: 6px; color: #fff;">
-          </div>
-          <div style="flex: 1; min-width: 180px;">
-            <input type="text" id="editor-scenes-replace" placeholder="Replace with..." style="width: 100%; font-size: 13px; padding: 8px 12px; background: #04070e; border: 1px solid #334155; border-radius: 6px; color: #fff;">
-          </div>
-          <label style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #cbd5e1; cursor: pointer; user-select: none;">
-            <input type="checkbox" id="editor-scenes-match-case" style="accent-color: #3b82f6;"> Case Sensitive
-          </label>
-          <label style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #93c5fd; cursor: pointer; user-select: none; font-weight: 600;">
-            <input type="checkbox" id="editor-scenes-all-stages" checked style="accent-color: #3b82f6;"> 🔄 連動全階段 (Stage 1, 2, 3 & 提示詞)
-          </label>
-          <button class="btn-primary" style="font-size: 12px; padding: 8px 16px; background: #2563eb; border: 1px solid #3b82f6; font-weight: 600;" onclick="executeUniversalReplace('scenes', 'editor-scenes-find', 'editor-scenes-replace', 'editor-scenes-match-case', 'editor-scenes-all-stages', 'editor-scenes-rep-status')">
-            🔄 全階段同步取代
-          </button>
-        </div>
-        <div id="editor-scenes-rep-status" style="font-size: 12px; color: #34d399; margin-top: 8px; min-height: 16px; font-weight: 500;"></div>
-      </div>
-
-      <div style="overflow-x: auto;">
-        <table id="scenes-table">
-          <thead>
-            <tr>
-              <th style="width: 50px;">ID</th>
-              <th style="width: 140px;">Image</th>
-              <th>Narration & Visual Prompt</th>
-              <th style="width: 90px;">Duration</th>
-              <th style="width: 140px;">Motion</th>
-              <th style="width: 80px;">AI Video</th>
-              <th style="width: 120px;">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="scenes-tbody"></tbody>
-        </table>
       </div>
     </div>
   </div>
