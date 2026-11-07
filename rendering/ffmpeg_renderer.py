@@ -170,7 +170,8 @@ def render_scene_clip(project: Project, sc: Scene, slot: Slot, w: int, h: int, f
                 is_avatar = is_drama or ("hedra" in prov) or (avatar_allowed and (getattr(sc, "is_presenter", False) or sc.visual_type in ("talking_head", "talking_actor")))
                 if is_avatar:
                     lead_in = max(0.0, float(slot.audio_start - slot.start))
-                    ken_burns.render_talking_avatar_clip(vid, tmp_out, seconds, lead_in, w, h, fps, INTERMEDIATE)
+                    adur = float(sc.audio_duration) if sc.audio_duration else None
+                    ken_burns.render_talking_avatar_clip(vid, tmp_out, seconds, lead_in, w, h, fps, INTERMEDIATE, speech_duration=adur)
                 else:
                     ken_burns.render_video_clip(vid, tmp_out, seconds, w, h, fps, duration(vid), INTERMEDIATE)
                 tmp_out.replace(out)
@@ -220,6 +221,14 @@ def render_scene_clip(project: Project, sc: Scene, slot: Slot, w: int, h: int, f
 
 
 def build_narration(project: Project, scenes: list[Scene], slots: list[Slot], out: Path, cancel: Callable[[], bool] | None = None) -> None:
+    settings = project.settings
+    is_drama = bool(
+        settings.get("project_mode") == "short_drama"
+        or (hasattr(project, "data") and project.data and project.data.settings.get("project_mode") == "short_drama")
+    )
+    avatar_allowed = project.is_avatar_enabled() if hasattr(project, "is_avatar_enabled") else bool(
+        settings.get("avatar_enabled", True) and settings.get("presenter_placement") not in ("none", "off", "disabled", False)
+    )
     sr = int(project.settings["voice"].get("sample_rate", 48000))
     args: list[str] = []
     parts = []
@@ -231,6 +240,9 @@ def build_narration(project: Project, scenes: list[Scene], slots: list[Slot], ou
             wav_file = project.abs(sc.audio.path) if (sc.audio and sc.audio.path) else project.path("audio", f"{sc.tag}.wav")
             args += ["-i", str(wav_file)]
             lead_ms = int(round((sl.audio_start - sl.start) * 1000))
+            is_avatar = is_drama or (avatar_allowed and (getattr(sc, "is_presenter", False) or sc.visual_type in ("talking_head", "talking_actor")))
+            if is_avatar:
+                lead_ms += 133  # -133ms visual lead calibration: mouth shape begins 133ms before audio
             delay = f"adelay={lead_ms}:all=1," if lead_ms > 0 else ""
             adur = float(sc.audio_duration) if sc.audio_duration else (sl.length - (sl.audio_start - sl.start))
             fade_out_st = max(0.0, adur - 0.045)
@@ -332,11 +344,11 @@ def build_audio_mix(project: Project, narration: Path, total: float, out: Path,
 
     # ADR 0017: Voice-Carving Notch EQ (-3dB at 1.8kHz) + Real-time DSP Sidechain Ducking
     duck_filter = (
-        "[mus_bed]equalizer=f=1800:t=q:w=1.2:g=-3.0[mus_eq];"
+        "[mus_bed]equalizer=f=1800:t=q:w=1.2:g=-2.5[mus_eq];"
         "[nsc]highpass=f=120,lowpass=f=3500[sc_ctrl];"
-        "[mus_eq][sc_ctrl]sidechaincompress=threshold=0.125:ratio=4:attack=15:release=350:makeup=1[md];"
+        "[mus_eq][sc_ctrl]sidechaincompress=threshold=0.08:ratio=2.5:attack=40:release=500:makeup=1[md];"
         if m.get("ducking", True)
-        else "[mus_bed]equalizer=f=1800:t=q:w=1.2:g=-3.0[md];[nsc]anullsink;"
+        else "[mus_bed]equalizer=f=1800:t=q:w=1.2:g=-2.5[md];[nsc]anullsink;"
     )
 
     if len(music_plan) == 1:
@@ -353,7 +365,7 @@ def build_audio_mix(project: Project, narration: Path, total: float, out: Path,
 
         fc_parts = [
             f"[0:a]aresample=48000,aformat=channel_layouts=stereo,asplit=2[nar][nsc];",
-            f"[1:a]aresample=48000,aformat=channel_layouts=stereo,loudnorm=I=-26:TP=-2,volume={vol}dB,"
+            f"[1:a]aresample=48000,aformat=channel_layouts=stereo,loudnorm=I=-16:TP=-2,volume={vol}dB,"
             f"atrim={so:.3f}:{so + total:.3f},asetpts=PTS-STARTPTS,afade=t=in:d={fi},afade=t=out:st={max(0, total - fo):.3f}:d={fo}[mus_bed];",
             duck_filter,
         ]
@@ -396,7 +408,7 @@ def build_audio_mix(project: Project, narration: Path, total: float, out: Path,
         trim_len = dur_i + overlap
 
         fc_parts.append(
-            f"[{in_idx}:a]aresample=48000,aformat=channel_layouts=stereo,loudnorm=I=-26:TP=-2,volume={vol_i}dB,"
+            f"[{in_idx}:a]aresample=48000,aformat=channel_layouts=stereo,loudnorm=I=-16:TP=-2,volume={vol_i}dB,"
             f"atrim={so_i:.3f}:{so_i + trim_len:.3f},asetpts=PTS-STARTPTS,afade=t=in:d={fi_i}:curve=qsin,afade=t=out:st={dur_i:.3f}:d={fo_i}:curve=iqsin,"
             f"adelay={start_ms}:all=1[m{i}];"
         )

@@ -1,0 +1,13 @@
+{
+  "name": "twinkletwinkle",
+  "display_name": "小潔主播",
+  "provider": "fal-ai/kling-video/v1/standard/ai-avatar",
+  "layout": "fullscreen",
+  "is_default": false,
+  "is_masked": false,
+  "voice_profile": "voai_姍姍",
+  "created_at": "2026-11-06 23:46:14",
+  "image_filename": "portrait.png",
+  "has_base_video": true,
+  "has_image": true
+}

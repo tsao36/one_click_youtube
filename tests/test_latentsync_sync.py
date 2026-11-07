@@ -81,3 +81,34 @@ def test_render_talking_avatar_clip_no_stream_loop(tmp_path):
     vf_arg = cmd[cmd.index("-vf") + 1]
     assert "tpad=start_mode=clone:start_duration=0.5000" in vf_arg
     assert "tpad=stop_mode=clone" in vf_arg
+
+
+def test_render_talking_avatar_clip_speech_duration_trimming(tmp_path):
+    src = tmp_path / "src.mp4"
+    src.write_bytes(b"dummy")
+    out = tmp_path / "out.mp4"
+
+    ffmpeg_calls = []
+
+    def mock_run_ffmpeg(cmd, **kwargs):
+        ffmpeg_calls.append(cmd)
+
+    with patch("rendering.ken_burns.run_ffmpeg", side_effect=mock_run_ffmpeg):
+        with patch("rendering.ken_burns.duration", return_value=10.0):
+            render_talking_avatar_clip(
+                src=src,
+                output=out,
+                seconds=12.0,
+                lead_in=0.2,
+                width=1920,
+                height=1080,
+                fps=30,
+                speech_duration=6.0,
+            )
+
+    assert len(ffmpeg_calls) == 1
+    cmd = ffmpeg_calls[0]
+    # Input should be capped to speech_duration + 0.05 = 6.05s so mouth never moves after speech ends
+    assert "-t" in cmd
+    t_idx = cmd.index("-t")
+    assert cmd[t_idx + 1] == "6.0500"

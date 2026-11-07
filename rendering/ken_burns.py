@@ -94,18 +94,23 @@ def render_talking_avatar_clip(
     height: int,
     fps: int,
     encoder_args: list[str] | None = None,
+    speech_duration: float | None = None,
 ) -> None:
     """Conform a lip-synced talking avatar clip: EXACT 1.0x playback speed, lead_in start padding, resting tail hold.
 
     Talking avatar clips are generated to strictly synchronize with narration audio.
     They start with lead_in padding (mouth closed) to align with audio onset.
-    After speech finishes, the clip holds its resting frame (mouth closed) via tpad stop_mode=clone
-    so the avatar never loops speech or restarts talking abruptly during slot transitions or pauses.
+    After speech finishes (speech_duration), the clip holds its resting closed-mouth frame via tpad stop_mode=clone
+    so the avatar never moves its mouth when there is no sound or during slot transitions.
     """
     frames = max(2, math.ceil(seconds * fps) + 1)
     lead_s = max(0.0, float(lead_in))
     src_dur = duration(src)
-    tail_hold = max(0.0, seconds - (lead_s + src_dur)) + 0.5
+
+    # If speech duration is known, cap talking footage at speech end so the avatar
+    # never continues moving its mouth when sound has ended.
+    play_dur = min(src_dur, float(speech_duration) + 0.05) if speech_duration and speech_duration > 0 else src_dur
+    tail_hold = max(0.0, seconds - (lead_s + play_dur)) + 0.5
 
     pad_filters = []
     if lead_s > 0.005:
@@ -121,7 +126,8 @@ def render_talking_avatar_clip(
         f"{pad_str},setsar=1,format=yuv420p"
     )
     enc = encoder_args or ["-c:v", "libx264", "-preset", "veryfast", "-crf", "17", "-pix_fmt", "yuv420p"]
-    run_ffmpeg(["-threads", "2", "-i", str(src), "-vf", vf, "-frames:v", str(frames), "-r", str(fps), *enc, "-an", str(output)])
+    in_args = ["-t", f"{play_dur:.4f}", "-i", str(src)] if play_dur < src_dur - 0.05 else ["-i", str(src)]
+    run_ffmpeg(["-threads", "2", *in_args, "-vf", vf, "-frames:v", str(frames), "-r", str(fps), *enc, "-an", str(output)])
 
 
 def _best_chinese_font_file() -> str:
