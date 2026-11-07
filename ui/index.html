@@ -7376,7 +7376,7 @@
       const controller = new AbortController();
       pollController = controller;
       try {
-        const res = await fetch('/api/projects/' + projectId, { signal: controller.signal });
+        const res = await fetch('/api/projects/' + projectId + '/status', { signal: controller.signal });
         if (!res.ok) throw new Error(`Project status request failed (${res.status})`);
         const d = await res.json();
         if (generation !== pollGeneration || projectId !== currentProjectId) return false;
@@ -8167,7 +8167,7 @@
               <div style="font-size:22px; font-weight:800; color:#38bdf8; margin-top:2px;">${durFormatted}</div>
               <div style="font-size: 12px; color:#94a3b8; margin-top:2px;">Total recorded creation time</div>
             </div>
-            <div style="margin-bottom:6px;">Total Scenes: <b style="color:#fff;">${d.scenes ? d.scenes.length : 0}</b></div>
+            <div style="margin-bottom:6px;">Total Scenes: <b style="color:#fff;">${d.scene_count ?? (d.scenes ? d.scenes.length : 0)}</b></div>
             <div style="margin-bottom:6px;">Narration Language: <b style="color:#93c5fd;">${(p.settings && p.settings.video && p.settings.video.language) || 'English'}</b></div>
             <div style="margin-bottom:6px;">Background Music: <b style="color:#60a5fa;">🎵 ${musicDisplay}</b></div>
             <div style="margin-bottom:6px;">LLM Requests: <b style="color:#fff;">${u.llm_requests}</b></div>

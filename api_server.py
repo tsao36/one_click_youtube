@@ -838,6 +838,19 @@ def update_project_stage_models(project_id: str, req: UpdateStageModelsRequest):
     return {"status": "updated", "stage_models": p.settings.get("stage_models", {}), "voice_profile": p.settings.get("voice_profile")}
 
 
+@app.get("/api/projects/{project_id}/status")
+def get_project_status(project_id: str):
+    """Return the small, frequently-polled project status payload."""
+    if not (PROJECTS_DIR / project_id).exists():
+        raise HTTPException(status_code=404, detail="Project not found")
+    p = get_project(project_id)
+    return {
+        "project": p.data.model_dump(mode="json"),
+        "outputs": p.data.outputs,
+        "scene_count": len(p.active_scenes()),
+    }
+
+
 @app.get("/api/projects/{project_id}")
 def get_project_details(project_id: str):
     if not (PROJECTS_DIR / project_id).exists():

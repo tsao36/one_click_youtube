@@ -368,6 +368,17 @@ def test_get_secret_does_not_reload_dotenv(monkeypatch):
     assert config.get_secret("CODEX_TEST_SECRET") == "present"
 
 
+def test_project_status_endpoint_omits_heavy_detail_payload(project):
+    response = TestClient(api_server.app).get(f"/api/projects/{project.id}/status")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["project"]["id"] == project.id
+    assert "scene_count" in payload
+    assert "scenes" not in payload
+    assert "script" not in payload
+    assert "research" not in payload
+
+
 @pytest.mark.parametrize("provider_name", ["gpt-image-1", "dalle3"])
 def test_openai_image_providers_use_shared_executor(tmp_path, monkeypatch, provider_name):
     import base64
