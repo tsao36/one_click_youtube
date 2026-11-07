@@ -200,13 +200,64 @@ class TypeSafeClient:
             best_id = answers.get("best_track", {}).get("choice")
             probs = answers.get("best_track", {}).get("probabilities", {})
 
-            # Sort candidates by probability descending
+            # Attach rank probability and sort candidates descending
+            for c in candidates:
+                c["rank_prob"] = float(probs.get(c.get("id"), 0.0))
             ranked = sorted(
                 candidates,
-                key=lambda c: (probs.get(c.get("id"), 0.0), c.get("voiceover_fitness", 0)),
+                key=lambda c: (c.get("rank_prob", 0.0), c.get("voiceover_fitness", 0)),
                 reverse=True,
             )
             return ranked
         except Exception as e:
             log.warning("TypeSafe ranking failed (%s); preserving natural candidate order", e)
             raise
+
+    def classify_topic_category(
+        self,
+        topic: str,
+        context_text: str = "",
+    ) -> str | None:
+        """Classify a video topic and synopsis into the best matching documentary music category."""
+        if not self.is_configured():
+            return None
+
+        state = {
+            "video_topic": topic,
+            "context_summary": (context_text or "")[:600],
+        }
+
+        questions = {
+            "category": {
+                "type": "choice",
+                "instructions": (
+                    "Which documentary music genre best fits the tone, subject matter, and mood of this video topic?"
+                ),
+                "criteria": {
+                    "cinematic_documentary": "Historical chronicle, civic affairs, urban planning, housing, government policy, society, culture, biography.",
+                    "dramatic_tension": "High-stakes crisis, controversy, financial scam, investigation, deadlock, conflict, tension.",
+                    "tech_futuristic": "Technology, AI, semiconductors, software engineering, digital innovation, cyber, quantum physics.",
+                    "mystery_cosmic": "Astronomy, cosmos, deep ocean mysteries, astrophysics, unsolved enigmas.",
+                    "uplifting_inspirational": "Human triumph, hope, medical breakthroughs, optimism, inspiring journeys, visionary futures.",
+                    "calm_focus": "Tutorials, educational deep work, psychology, philosophy, habits, calm mindfulness.",
+                },
+            }
+        }
+
+        try:
+            answers = self.system_one(state=state, questions=questions)
+            choice = answers.get("category", {}).get("choice")
+            valid_cats = {
+                "cinematic_documentary",
+                "dramatic_tension",
+                "tech_futuristic",
+                "mystery_cosmic",
+                "uplifting_inspirational",
+                "calm_focus",
+            }
+            if choice in valid_cats:
+                return choice
+        except Exception as e:
+            log.warning("TypeSafe topic categorization failed (%s)", e)
+
+        return None

@@ -40,18 +40,30 @@ CATEGORY_KEYWORDS = {
         "皇帝", "秦始皇", "漢朝", "唐朝", "宋朝", "明朝", "清朝", "羅馬", "埃及", "考古",
         "遺跡", "封建", "統治", "戰役", "將軍", "文藝復興", "工業革命", "冷戰", "二戰", "一戰",
         "宮廷", "典故", "世家", "翻案", "秘辛", "古蹟", "文物", "先民", "建國", "變革",
+        "都更", "都市更新", "公辦都更", "老屋", "改建", "危老", "拆遷", "容積", "房地產", "住宅",
+        "政策", "政見", "政府", "體制", "立法院", "立法委員", "立委", "法案", "法規", "修法",
+        "市府", "預算", "首長", "市長", "公共工程", "基礎建設", "城市", "治理", "社會", "公民",
+        "權益", "住戶", "都市規劃", "執政", "在野", "選區", "選情", "民調", "公聽會", "審查",
+        "內閣", "官員",
         "history", "ancient", "war", "documentary", "dynasty", "civilization", "biography",
         "epic", "empire", "emperor", "monarchy", "archaeology", "renaissance", "revolution",
-        "medieval", "crusade", "battle", "legend", "heritage", "chronicle", "historical"
+        "medieval", "crusade", "battle", "legend", "heritage", "chronicle", "historical",
+        "urban renewal", "housing", "infrastructure", "policy", "governance", "public policy",
+        "civic", "municipal", "legislation", "city planning", "urban development", "social issue",
+        "public interest", "parliament", "mayor"
     ],
     "dramatic_tension": [
         "危機", "騙局", "破產", "內幕", "調查", "暴跌", "陰謀", "真相", "犯罪", "醜聞",
         "崩盤", "重案", "黑幕", "陷阱", "貪腐", "案發", "審判", "衝突", "地緣", "警報",
         "股市", "雷曼", "詐騙", "揭密", "爭端", "制裁", "威脅", "博弈", "角力", "對抗",
         "暗殺", "間諜", "洗錢", "特工", "追查", "破案", "懸疑", "懸案", "逃亡", "金融海嘯",
+        "爭議", "糾紛", "利益", "卡關", "產權", "喬不攏", "違法", "弊端", "質疑", "抗爭",
+        "訴訟", "違建", "阻力", "官僚", "制度沉痾", "瓶頸", "死結", "政爭", "反彈", "攻防",
+        "爭執", "拆遷戶", "釘子戶",
         "crisis", "investigation", "crime", "crash", "scandal", "fraud", "conspiracy", "danger",
         "murder", "lawsuit", "trial", "geopolitics", "threat", "sanction", "collapse", "dilemma",
-        "suspense", "tension", "intrigue", "corruption", "whistleblower", "conflict"
+        "suspense", "tension", "intrigue", "corruption", "whistleblower", "conflict",
+        "controversy", "deadlock", "bureaucracy", "impasse", "dispute", "protest", "clash"
     ],
     "uplifting_inspirational": [
         "突破", "創新", "希望", "治癒", "醫學", "發現", "未來展望", "奇蹟", "生命", "靈感",
@@ -65,9 +77,12 @@ CATEGORY_KEYWORDS = {
         "教學", "入門", "指南", "心態", "冥想", "生活", "哲學", "專注", "習慣", "心理",
         "日常", "自我", "思考", "讀書", "技巧", "步驟", "筆記", "健康", "放鬆", "職場",
         "效率", "認知", "閱讀", "自律", "極簡", "思維", "心理學", "思辨", "安靜", "學習",
+        "分析", "解析", "評估", "觀察", "觀點", "機制", "框架", "方法", "科普", "說明",
+        "探討", "拆解", "比較", "盤點", "整理",
         "tutorial", "guide", "focus", "calm", "psychology", "philosophy", "lifestyle",
         "mindfulness", "habit", "study", "learning", "productivity", "meditation", "essay",
-        "reflection", "quiet", "minimalism", "wellness", "mental health", "deep work"
+        "reflection", "quiet", "minimalism", "wellness", "mental health", "deep work",
+        "analysis", "breakdown", "evaluation", "mechanism", "framework", "overview", "comparison"
     ]
 }
 
@@ -130,7 +145,7 @@ def sync_catalog(directory: str = "data/music") -> dict[str, Any]:
         if "classical" in rel.lower() or p.parent.name.lower() == "classical":
             cat = "cinematic_documentary"
         elif cat not in CATEGORY_KEYWORDS:
-            cat = "tech_futuristic"
+            cat = "cinematic_documentary"
 
         if rel not in known_filenames:
             size_mb = round(p.stat().st_size / (1024 * 1024), 2)
@@ -198,10 +213,53 @@ def list_tracks(directory: str, category: str | None = None) -> list[Path]:
     return sorted(tracks, key=lambda p: (p.parent.name, p.name))
 
 
+def get_recent_tracks(directory: str = "data/music", limit: int = 4) -> list[str]:
+    """Retrieve recently used track identifiers across projects for anti-repetition cooldown."""
+    rec_file = ROOT / directory / "recent_tracks.json"
+    if not rec_file.exists():
+        return []
+    try:
+        data = json.loads(rec_file.read_text(encoding="utf-8"))
+        if isinstance(data, list):
+            return [item.get("id") for item in data[-limit:] if isinstance(item, dict) and item.get("id")]
+    except Exception as e:
+        log.debug("Could not read recent tracks: %s", e)
+    return []
+
+
+def record_track_selection(track_id: str, project_id: str | None = None, directory: str = "data/music") -> None:
+    """Record selected track into persistent recent history to prevent immediate repetition."""
+    rec_file = ROOT / directory / "recent_tracks.json"
+    data = []
+    if rec_file.exists():
+        try:
+            data = json.loads(rec_file.read_text(encoding="utf-8"))
+            if not isinstance(data, list):
+                data = []
+        except Exception:
+            data = []
+
+    # Deduplicate consecutive identical entries for same project
+    if data and data[-1].get("id") == track_id and data[-1].get("project") == project_id:
+        return
+
+    data.append({
+        "id": track_id,
+        "project": project_id or "default",
+        "timestamp": int(time.time()),
+    })
+    data = data[-30:]
+    try:
+        rec_file.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+    except Exception as e:
+        log.warning("Could not persist recent_tracks.json: %s", e)
+
+
 def detect_topic_category(
     topic: str | None,
     context_text: str | None = None,
     preferred_vibe: str | None = None,
+    use_ai_fallback: bool = True,
 ) -> str | None:
     # 1. Explicit user override if present
     if preferred_vibe:
@@ -211,7 +269,7 @@ def detect_topic_category(
 
     combined = f"{topic or ''} {context_text or ''}".lower()
     if not combined.strip():
-        return "tech_futuristic"
+        return "cinematic_documentary"
 
     # 2. Weighted keyword scoring: topic title matches get 3x weight, context/script gets 1x
     scores: dict[str, float] = {cat: 0.0 for cat in CATEGORY_KEYWORDS}
@@ -228,7 +286,20 @@ def detect_topic_category(
     if scores[best_cat] > 0.0:
         return best_cat
 
-    return "tech_futuristic"
+    # 3. Intelligent AI category classification when keyword scoring gives 0 matches
+    if use_ai_fallback:
+        try:
+            client = TypeSafeClient()
+            if client.is_configured():
+                ai_cat = client.classify_topic_category(topic or "", context_text=context_text or "")
+                if ai_cat:
+                    log.info("TypeSafe AI classified unkeyworded topic '%s' -> %s", (topic or "")[:60], ai_cat)
+                    return ai_cat
+        except Exception as e:
+            log.debug("TypeSafe category detection skipped: %s", e)
+
+    # 4. Neutral documentary fallback (cinematic_documentary is the industry standard baseline)
+    return "cinematic_documentary"
 
 
 def pick_track(
@@ -289,7 +360,7 @@ def pick_track(
 
         candidate_metas = []
         track_map = {}
-        for p in candidates[:6]:
+        for p in candidates[:8]:
             try:
                 rel = p.relative_to(ROOT / directory).as_posix()
             except Exception:
@@ -304,9 +375,49 @@ def pick_track(
             chapter_synopsis=context_text or "",
             movement_name=mov_role or "background",
         )
-        if ranked and ranked[0].get("id") in track_map:
-            return track_map[ranked[0]["id"]]
-        return candidates[0]
+        if not ranked:
+            return candidates[0]
+
+        # Anti-repetition cooldown: tracks used in last 3 projects receive a demotion penalty
+        recent_used_ids = set(get_recent_tracks(directory, limit=3))
+
+        scored_candidates: list[tuple[float, Path, str]] = []
+        for c in ranked:
+            cid = c.get("id")
+            if cid not in track_map:
+                continue
+            prob = float(c.get("rank_prob", 0.0))
+            fitness = float(c.get("voiceover_fitness", 3.5))
+            weight = max(0.08, prob) * (fitness / 3.0)
+
+            # Apply cooldown penalty if used recently
+            if cid in recent_used_ids:
+                weight *= 0.15
+
+            scored_candidates.append((weight, track_map[cid], cid))
+
+        if not scored_candidates:
+            return candidates[0]
+
+        scored_candidates.sort(key=lambda x: x[0], reverse=True)
+
+        # Deterministic variety selection using project key seed:
+        # Guarantees identical result when re-rendering the same project,
+        # while exploring different high-scoring candidates across different projects.
+        if len(scored_candidates) == 1:
+            return scored_candidates[0][1]
+
+        top_pool = scored_candidates[:3]
+        total_w = sum(x[0] for x in top_pool)
+        seed_hash = hashlib.md5(f"{key}:{mov_role}:{topic}".encode("utf-8")).hexdigest()
+        seed_ratio = (int(seed_hash, 16) % 10000) / 10000.0
+        target = seed_ratio * total_w
+        accum = 0.0
+        for w, trk, _ in top_pool:
+            accum += w
+            if accum >= target:
+                return trk
+        return top_pool[0][1]
 
     if preferred:
         pref = str(preferred).strip()
@@ -635,6 +746,13 @@ def plan_music_timeline(
                 "3-Movement Documentary Music Planned: [M1: %s (0.0s -> %.1fs)] -> [M2: %s (%.1fs -> %.1fs)] -> [M3: %s (%.1fs -> %.1fs)]",
                 seg1.name, t_m1, seg2.name, t_m1, t_m2, seg3.name, t_m2, total_duration
             )
+            for seg in (seg1, seg2, seg3):
+                try:
+                    rel_id = seg.track.relative_to(ROOT / directory).as_posix()
+                except Exception:
+                    rel_id = seg.track.name
+                record_track_selection(rel_id, project_id=key, directory=directory)
+
             return [seg1, seg2, seg3]
 
     # 2-Movement fallback (Body -> Ending Outlook) for 80s - 150s videos

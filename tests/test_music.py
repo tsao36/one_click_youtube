@@ -19,6 +19,22 @@ def test_detect_topic_category():
     assert detect_topic_category("金融危機內幕調查與巨頭破產真相") == "dramatic_tension"
     assert detect_topic_category("抗癌醫學重大突破與生命希望奇蹟") == "uplifting_inspirational"
     assert detect_topic_category("高效專注學習法與生活習慣指南") == "calm_focus"
+    # Civic, urban planning & policy topics
+    assert detect_topic_category("YouTube 六分鐘影片腳本：沈伯洋「無限都更」計畫") == "cinematic_documentary"
+    assert detect_topic_category("立法院法案審查與政府年度預算爭議") in ("cinematic_documentary", "dramatic_tension")
+
+
+def test_music_anti_repetition_cooldown():
+    from generators.music import record_track_selection, get_recent_tracks
+    record_track_selection("tech_futuristic/Crypto.mp3", "test_proj_prev")
+    recent = get_recent_tracks("data/music", limit=5)
+    assert "tech_futuristic/Crypto.mp3" in recent
+
+    # Under tech category, Crypto should be demoted in favor of other viable tracks
+    t = pick_track("data/music", "test_proj_next", topic="最新人工智慧晶片架構")
+    assert t is not None
+    # Cooldown should select an alternate voiceover-ready track
+    assert t.name != "Crypto.mp3"
 
 
 def test_pick_track_with_topic():
