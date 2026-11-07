@@ -21,20 +21,40 @@ from core.motion_graphics_schema import (
 )
 from providers.llm import LLMClient
 
-DIRECTOR_SYSTEM_PROMPT = """你是一位專門為深度解說/科學歷史紀錄片服務的專業 Motion Graphics 視覺導演 (Motion Graphics Director)。
+DIRECTOR_SYSTEM_PROMPT = """你是一位專門為深度科技科普、AI 工作術與商業思維影片服務的專業 Motion Graphics 視覺導演 (Motion Graphics Director)，專精於 Gary Chen / Modern Minimalist 科技解說風格。
 
-你的任務是分析旁白文案，並在合適的關鍵節點，挑選最能提升觀眾理解度的動態圖卡 (Motion Graphics)。
+你的任務是分析旁白文案，挑選最能將抽象觀點、策略對比與思維架構視覺化的 Remotion 動態圖卡。
 你「絕對不需要寫程式碼」，你只需要輸出符合指定 JSON Schema 的結構化資料。
 
 可挑選的受控組件類型 (Scene Types)：
-1. BranchPathwayScene：多路線取捨、演進分支、淘汰排除分析。適用於 2-6 條技術路徑或戰略選擇對比，具備淘汰標記 (eliminated/selected)。
-   包含: title, subtitle, paths (陣列，每項含 id, name, category, detail, status ["eliminated"|"selected"|"neutral"], eliminationReason, highlightTag), selectedId。
-2. LeaderCalloutScene：底圖特徵標註、解剖層次、HUD 引線標籤。適用於指出圖中核心構造或細節。
-   包含: title, subtitle, callouts (陣列，每項含 id, label, sublabel, anchorX [0.05-0.95], anchorY [0.05-0.95], boxX, boxY, metric, status ["normal"|"active"|"warning"])。
-3. ScaleCompareScene：微觀與宏觀極限尺度對比 (同心圓 20X 放大鏡與微米尺規)。適用於奈米 vs 頭髮、微米 vs 肉眼、微觀尺度震撼對比。
-   包含: title, subtitle, macroLabel, macroValue, macroDesc, microLabel, microValue, microDesc, ratioMultiplier, ratioLabel, magnificationFactor。
-4. EvidenceHighlightScene：實體紙本文獻、專利或調查檔案剪報，配合螢光筆動態劃記與遙測數據卡。適用於關鍵引言、核心數據、解密報告或歷史檔案揭露。
-   包含: title, docHeader, docDate, documentExcerpt, highlightPhrase, telemetryStats (陣列，每項含 label, value, badge)。
+1. FrameworkMatrixScene（核心思維/維度矩陣）：
+   適用於 2-4 個核心維度或支柱並列（例如「速度、高度、深度、廣度」、「四大原則」）。
+   包含: badge, title, subtitle, pillars (陣列，每項含 id, title, subtitle, icon, metric, points [重點字串清單], isHighlighted), activePillarId, accentColor。
+
+2. PromptComparisonScene（Before vs. After / 普通人 vs. 高手提問對比）：
+   適用於思維落差、指令優劣、傳統做法 vs. 創新做法對比。
+   包含: badge, title, subtitle, leftBadge, leftTitle, leftContent, leftTags, rightBadge, rightTitle, rightContent, rightTags, takeaway, accentColor。
+
+3. ChatSimulationScene（AI 實際提問與階梯產出模擬）：
+   適用於模擬 Claude/ChatGPT 等 AI 工具的實際操作、提問提示詞與分層執行成果輸出。
+   包含: badge, title, systemTag, promptText, responseTitle, responseItems (陣列，每項含 title, detail, tag), accentColor。
+
+4. KineticQuoteScene（權威觀點與金句卡）：
+   適用於產業領袖、專家名言或關鍵洞察（如 Anthropic 工程主管名言）。
+   包含: badge, quote, author, authorTitle, highlightPhrase, accentColor。
+
+5. WorkflowStepScene（串聯式工作流程 01 -> 02 -> 03）：
+   適用於多階段迭代、工作流推進、實戰落地步驟。
+   包含: badge, title, subtitle, steps (陣列，每項含 stepNumber, label, detail, tag), activeStepIndex, accentColor。
+
+6. KineticTypographyScene（核心論點動態視覺聚焦點）：
+   適用於破題開場 Hook、核心總結、極簡金句。
+   包含: badge, text, highlightPhrase, subtext, accentColor。
+
+7. BranchPathwayScene：多路線取捨、演進分支、淘汰排除分析。
+8. LeaderCalloutScene：精確細節、結構引線、HUD 科技標記。
+9. ScaleCompareScene：極限尺度對比與數量級震撼。
+10. EvidenceHighlightScene：實體文獻、報告數據與核心遙測卡。
 
 核心守則：
 1. 寧缺勿濫：動態圖卡只在「能大幅提升理解」時使用。不是每一句都要配圖表。
@@ -110,8 +130,9 @@ class MotionGraphicsDirector:
             "minimal": max(1, min(3, round(len(scenes) * 0.1))),
             "balanced": max(2, min(6, round(len(scenes) * 0.25))),
             "rich": max(3, min(8, round(len(scenes) * 0.4))),
+            "full": len(eligible_scenes),
         }
-        max_quota = density_limits.get(density, 4)
+        max_quota = density_limits.get(density, len(eligible_scenes) if density == "full" else 4)
 
         # Prepare scene briefs for the LLM
         scene_briefs = []
@@ -244,6 +265,68 @@ class MotionGraphicsDirector:
             scene_start_frames[s.scene_id] = accum_frames
             scene_duration_frames[s.scene_id] = dur_f
             accum_frames += dur_f
+
+        # 0. Check for comparison / prompt / vs keywords -> PromptComparisonScene
+        for s in eligible:
+            if len(out_scenes) >= max_quota:
+                break
+            sid = s.scene_id
+            if (sid - 1) in chosen_ids or (sid + 1) in chosen_ids:
+                continue
+
+            if any(k in (s.narration or "") for k in ("vs", "對比", "差別", "普通人", "高手", "一般人", "提問", "提示詞", "prompt")):
+                mg_scene = MotionGraphicScene(
+                    id=f"prompt-{sid:03d}",
+                    scene_id=sid,
+                    sceneType=SceneType.PROMPT_COMPARISON,
+                    layout=LayoutType.OVERLAY,
+                    startFrame=scene_start_frames[sid],
+                    durationInFrames=scene_duration_frames[sid],
+                    reason="自動識別提問策略與普通人vs高手對比",
+                    props={
+                        "title": s.section or "一般用法 vs 高手思維",
+                        "subtitle": "指令深度決定成果高度",
+                        "leftBadge": "一般用法 (Basic)",
+                        "leftTitle": "交出過程，缺乏驗收標準",
+                        "leftContent": (s.narration or "")[:140],
+                        "leftTags": ["單一動作", "被動執行"],
+                        "rightBadge": "高手做法 (Ambitious)",
+                        "rightTitle": "交出成果，設定專家規格",
+                        "rightContent": "設定資深專家角色，要求結構化診斷、方案規劃與完整交付物。",
+                        "rightTags": ["專家角色", "端到端交付"],
+                        "takeaway": "💡 核心轉變：從「幫我寫」到「幫我解決問題並產出成果」",
+                        "accentColor": "#38BDF8",
+                    },
+                )
+                out_scenes.append(mg_scene)
+                chosen_ids.add(sid)
+                continue
+
+            if any(k in (s.narration or "") for k in ("四個", "三個", "維度", "支柱", "框架", "高度", "深度", "廣度", "速度", "原則")):
+                mg_scene = MotionGraphicScene(
+                    id=f"matrix-{sid:03d}",
+                    scene_id=sid,
+                    sceneType=SceneType.FRAMEWORK_MATRIX,
+                    layout=LayoutType.OVERLAY,
+                    startFrame=scene_start_frames[sid],
+                    durationInFrames=scene_duration_frames[sid],
+                    reason="自動識別核心框架與多維度矩陣",
+                    props={
+                        "title": s.section or "核心框架四維度",
+                        "subtitle": "速度 · 高度 · 深度 · 廣度",
+                        "pillars": [
+                            {"id": "p1", "title": "高度 (Height)", "subtitle": "直接要求成果規格", "icon": "🎯", "metric": "結果導向", "points": ["不只是過程，要求完成整份成果", "設定清晰的驗收標準"]},
+                            {"id": "p2", "title": "深度 (Depth)", "subtitle": "專家批判性思維", "icon": "🧠", "metric": "思維層次", "points": ["導入領域頂尖框架", "要求挑戰與反直覺觀點"]},
+                            {"id": "p3", "title": "廣度 (Breadth)", "subtitle": "跨領域多維檢視", "icon": "🌐", "metric": "全局視角", "points": ["從多職能角度全盤審視", "打破單一信息繭房"]},
+                            {"id": "p4", "title": "速度 (Speed)", "subtitle": "極速並行探索", "icon": "⚡", "metric": "快速迭代", "points": ["數分鐘內生成多個方向", "將精力聚焦在決策"]},
+                        ],
+                        "activePillarId": "p1",
+                        "accentColor": "#38BDF8",
+                    },
+                )
+                out_scenes.append(mg_scene)
+                chosen_ids.add(sid)
+                continue
 
         # 1. Look for numeric metrics in narration -> EvidenceHighlightScene
         metric_re = re.compile(

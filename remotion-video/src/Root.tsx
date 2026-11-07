@@ -19,6 +19,21 @@ import {
   FoxTimelineSceneSchema,
 } from "./types";
 
+import { FrameworkMatrixScene } from "./FrameworkMatrixScene";
+import { PromptComparisonScene } from "./PromptComparisonScene";
+import { ChatSimulationScene } from "./ChatSimulationScene";
+import { KineticQuoteScene } from "./KineticQuoteScene";
+import { WorkflowStepScene } from "./WorkflowStepScene";
+import { KineticTypographyScene } from "./KineticTypographyScene";
+import {
+  FrameworkMatrixSceneSchema,
+  PromptComparisonSceneSchema,
+  ChatSimulationSceneSchema,
+  KineticQuoteSceneSchema,
+  WorkflowStepSceneSchema,
+  KineticTypographySceneSchema,
+} from "./types";
+
 const videoDimensions = { fps: 30, width: 1920, height: 1080 };
 
 export const RemotionRoot: React.FC = () => {
@@ -389,6 +404,51 @@ export const RemotionRoot: React.FC = () => {
               accentColor: "#38BDF8",
               dim: 0.45,
             }}
+          />
+        </Folder>
+        {/* 3. Modern Tech Explainer Archetypes (Gary Chen Style) */}
+        <Folder name="Modern-Tech-Explainer">
+          <Composition
+            id="FrameworkMatrixScene"
+            component={FrameworkMatrixScene}
+            schema={FrameworkMatrixSceneSchema}
+            durationInFrames={150}
+            {...videoDimensions}
+          />
+          <Composition
+            id="PromptComparisonScene"
+            component={PromptComparisonScene}
+            schema={PromptComparisonSceneSchema}
+            durationInFrames={150}
+            {...videoDimensions}
+          />
+          <Composition
+            id="ChatSimulationScene"
+            component={ChatSimulationScene}
+            schema={ChatSimulationSceneSchema}
+            durationInFrames={150}
+            {...videoDimensions}
+          />
+          <Composition
+            id="KineticQuoteScene"
+            component={KineticQuoteScene}
+            schema={KineticQuoteSceneSchema}
+            durationInFrames={150}
+            {...videoDimensions}
+          />
+          <Composition
+            id="WorkflowStepScene"
+            component={WorkflowStepScene}
+            schema={WorkflowStepSceneSchema}
+            durationInFrames={150}
+            {...videoDimensions}
+          />
+          <Composition
+            id="KineticTypographyScene"
+            component={KineticTypographyScene}
+            schema={KineticTypographySceneSchema}
+            durationInFrames={150}
+            {...videoDimensions}
           />
         </Folder>
       </Folder>

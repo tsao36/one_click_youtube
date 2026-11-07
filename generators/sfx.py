@@ -61,6 +61,91 @@ def ensure_drum_hit_sfx(path: Path | None = None) -> Path:
     return target
 
 
+def ensure_ui_pop_sfx(path: Path | None = None) -> Path:
+    """Ensure a subtle tactile UI bubble pop WAV file exists (48kHz stereo 16-bit)."""
+    target = path or (SFX_DIR / "pop.wav")
+    if target.exists() and target.stat().st_size > 1000:
+        return target
+
+    target.parent.mkdir(parents=True, exist_ok=True)
+    sr = 48000
+    duration = 0.08
+    n_samples = int(sr * duration)
+    with wave.open(str(target), "wb") as wf:
+        wf.setnchannels(2)
+        wf.setsampwidth(2)
+        wf.setframerate(sr)
+        raw = bytearray()
+        for i in range(n_samples):
+            t = i / sr
+            freq = 380.0 - (240.0 * (t / duration))
+            phase = 2.0 * math.pi * freq * t
+            env = math.exp(-35.0 * t)
+            val = int(max(-32767, min(32767, 32767 * 0.4 * math.sin(phase) * env)))
+            raw.extend(struct.pack("<hh", val, val))
+        wf.writeframes(raw)
+    return target
+
+
+def ensure_ui_click_sfx(path: Path | None = None) -> Path:
+    """Ensure a crisp subtle UI mechanical click WAV file exists (48kHz stereo 16-bit)."""
+    target = path or (SFX_DIR / "click.wav")
+    if target.exists() and target.stat().st_size > 1000:
+        return target
+
+    target.parent.mkdir(parents=True, exist_ok=True)
+    sr = 48000
+    duration = 0.035
+    n_samples = int(sr * duration)
+    with wave.open(str(target), "wb") as wf:
+        wf.setnchannels(2)
+        wf.setsampwidth(2)
+        wf.setframerate(sr)
+        raw = bytearray()
+        for i in range(n_samples):
+            t = i / sr
+            freq = 1400.0 - (600.0 * (t / duration))
+            phase = 2.0 * math.pi * freq * t
+            env = math.exp(-80.0 * t)
+            val = int(max(-32767, min(32767, 32767 * 0.35 * math.sin(phase) * env)))
+            raw.extend(struct.pack("<hh", val, val))
+        wf.writeframes(raw)
+    return target
+
+
+def ensure_ui_whoosh_sfx(path: Path | None = None) -> Path:
+    """Ensure a gentle modern UI card slide whoosh WAV file exists (48kHz stereo 16-bit)."""
+    target = path or (SFX_DIR / "whoosh.wav")
+    if target.exists() and target.stat().st_size > 1000:
+        return target
+
+    target.parent.mkdir(parents=True, exist_ok=True)
+    sr = 48000
+    duration = 0.22
+    n_samples = int(sr * duration)
+    import random
+    rnd = random.Random(42)
+    with wave.open(str(target), "wb") as wf:
+        wf.setnchannels(2)
+        wf.setsampwidth(2)
+        wf.setframerate(sr)
+        raw = bytearray()
+        for i in range(n_samples):
+            t = i / sr
+            env = math.sin(math.pi * (t / duration)) ** 2
+            freq = 250.0 + 400.0 * math.sin(math.pi * (t / duration))
+            noise = (rnd.random() * 2.0 - 1.0)
+            tone = math.sin(2.0 * math.pi * freq * t)
+            sig = (noise * 0.5 + tone * 0.5) * env
+            val = int(max(-32767, min(32767, 32767 * 0.25 * sig)))
+            raw.extend(struct.pack("<hh", val, val))
+        wf.writeframes(raw)
+    return target
+
+
 if __name__ == "__main__":
     p = ensure_drum_hit_sfx()
     print(f"Drum hit SFX ready at: {p}")
+    print(f"Pop SFX: {ensure_ui_pop_sfx()}")
+    print(f"Click SFX: {ensure_ui_click_sfx()}")
+    print(f"Whoosh SFX: {ensure_ui_whoosh_sfx()}")

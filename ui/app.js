@@ -759,6 +759,41 @@
       }
     }
 
+    function applyGaryChenRemotionPreset() {
+      setVal('model-stage-animation', 'remotion');
+      setVal('ai-video-pct', '0');
+      const styleEl = document.getElementById('visual-style');
+      if (styleEl && styleEl.value !== 'tech_schematic') {
+        styleEl.value = 'tech_schematic';
+        if (typeof onCreatorStyleChange === 'function') onCreatorStyleChange('tech_schematic');
+      }
+      onStageModelChange('animation');
+      updateCreatorRemotionStrip();
+      if (currentProjectId) {
+        const sm = getSelectedStageModels();
+        sm.animation = 'remotion';
+        apiRequest(`/api/projects/${currentProjectId}/stage-models`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ stage_models: sm })
+        }).catch(e => console.error(e));
+
+        apiRequest(`/api/projects/${currentProjectId}/settings`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            remotion: {
+              style: 'modern_tech_explainer',
+              theme: 'dark_obsidian',
+              density: 'full',
+              accentColor: '#38BDF8'
+            }
+          })
+        }).catch(e => console.error(e));
+      }
+      showToast('✨ 已一鍵配置為 Gary Chen 極簡科技解說風格！(100% Remotion 全程動態圖表、0% AI 圖片幻燈片、深色黑曜石畫布、四大思維矩陣與提問對比卡)');
+    }
+
     function apply100PercentRemotionPreset() {
       setVal('model-stage-animation', 'remotion');
       setVal('ai-video-pct', '0');

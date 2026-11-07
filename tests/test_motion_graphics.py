@@ -183,3 +183,92 @@ def test_remotion_card_rendering_smoke(tmp_path):
     assert rendered.exists()
     assert rendered.stat().st_size > 10000
     print(f"Rendered Remotion EvidenceHighlightScene successfully: {rendered.stat().st_size} bytes")
+
+
+def test_gary_chen_modern_archetypes(tmp_path):
+    from core.motion_graphics_schema import (
+        FrameworkMatrixSceneProps,
+        FrameworkPillar,
+        PromptComparisonSceneProps,
+        ChatSimulationSceneProps,
+        ChatResponseItem,
+        KineticQuoteSceneProps,
+        WorkflowStepSceneProps,
+        WorkflowStepItem,
+        KineticTypographySceneProps,
+    )
+
+    # 1. FrameworkMatrixSceneProps validation
+    fm = FrameworkMatrixSceneProps(
+        title="AI 四大野心維度",
+        subtitle="速度 · 高度 · 深度 · 廣度",
+        pillars=[
+            FrameworkPillar(id="p1", title="高度", subtitle="要結果", points=["要求完成整份季報"]),
+            FrameworkPillar(id="p2", title="深度", subtitle="像專家", points=["導入頂尖架構"]),
+        ],
+        activePillarId="p1",
+    )
+    assert fm.title == "AI 四大野心維度"
+    assert len(fm.pillars) == 2
+    assert fm.active_pillar_id == "p1"
+
+    # 2. PromptComparisonSceneProps validation
+    pc = PromptComparisonSceneProps(
+        title="普通人 vs 高手提問",
+        leftTitle="一般用法",
+        leftContent="幫我寫催繳信",
+        rightTitle="高手做法",
+        rightContent="以資深客戶成功總監視角設計挽回方案",
+    )
+    assert pc.left_title == "一般用法"
+    assert "客戶成功總監" in pc.right_content
+
+    # 3. ChatSimulationSceneProps validation
+    cs = ChatSimulationSceneProps(
+        title="Claude 3.5 提問產出模擬",
+        promptText="請分析官網文案並重構首頁價值主張",
+        responseItems=[
+            ChatResponseItem(title="診斷分析", detail="首頁過於抽象", tag="DIAGNOSIS"),
+        ],
+    )
+    assert cs.system_tag == "Claude 3.5 Sonnet"
+    assert len(cs.response_items) == 1
+
+    # 4. KineticQuoteSceneProps validation
+    kq = KineticQuoteSceneProps(
+        quote="同一個 AI，有人拿來改變世界，有人只拿來寫郵件。",
+        author="Felix Rieseberg",
+        highlightPhrase="改變世界",
+    )
+    assert kq.author == "Felix Rieseberg"
+    assert kq.highlight_phrase == "改變世界"
+
+    # 5. WorkflowStepSceneProps validation
+    ws = WorkflowStepSceneProps(
+        title="極限推進三步驟",
+        steps=[
+            WorkflowStepItem(stepNumber="01", label="界定規格", detail="定義驗收標準"),
+            WorkflowStepItem(stepNumber="02", label="專家挑戰", detail="挑出致命漏洞"),
+        ],
+    )
+    assert ws.steps[0].step_number == "01"
+
+    # 6. KineticTypographySceneProps validation
+    kt = KineticTypographySceneProps(
+        text="想把 AI 用得好，你得再瘋一點。",
+        highlightPhrase="再瘋一點",
+    )
+    assert kt.highlight_phrase == "再瘋一點"
+
+    # 7. Render Smoke Test (30 frames) for FrameworkMatrixScene
+    out_mp4 = tmp_path / "test_framework_render.mp4"
+    rendered = render_motion_graphic_clip(
+        scene_type="FrameworkMatrixScene",
+        props=fm.model_dump(by_alias=True),
+        out_path=out_mp4,
+        duration_frames=30,
+        fps=30,
+    )
+    assert rendered.exists()
+    assert rendered.stat().st_size > 10000
+    print(f"Rendered Remotion FrameworkMatrixScene successfully: {rendered.stat().st_size} bytes")
