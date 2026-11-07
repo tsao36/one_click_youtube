@@ -4198,7 +4198,9 @@ def update_all_settings(req: UpdateSettingsRequest):
     if req.providers:
         merged_p = deep_merge(load_providers(), req.providers)
         save_yaml("providers.yaml", merged_p)
+    validation_results = {}
     if req.secrets:
+        from core.key_validator import validate_key
         for k, v in req.secrets.items():
             if v is not None:
                 set_secret(k, v)
@@ -4222,7 +4224,22 @@ def update_all_settings(req: UpdateSettingsRequest):
                     set_secret("TYPESAFE_KEY", v)
                 elif k == "TYPESAFE_KEY":
                     set_secret("TYPESAFE_API_KEY", v)
-    return {"status": "saved"}
+
+                val_str = str(v).strip()
+                if val_str:
+                    validation_results[k] = validate_key(k, val_str)
+
+    return {"status": "saved", "validation": validation_results}
+
+
+@app.post("/api/settings/verify_key")
+def verify_api_key(req: dict[str, Any]):
+    key_name = req.get("name", "")
+    key_val = req.get("value")
+    if key_val is None or key_val == "":
+        key_val = get_secret(key_name)
+    from core.key_validator import validate_key
+    return validate_key(key_name, str(key_val or "").strip())
 
 
 # ---------------- YouTube Integration ----------------

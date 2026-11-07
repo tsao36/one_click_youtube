@@ -6535,6 +6535,21 @@
       }
     }
 
+    const KEY_ELEMENT_MAP = {
+      'GEMINI_API_KEY': 'set-gemini-key',
+      'OPENAI_API_KEY': 'set-openai-key',
+      'FAL_KEY': 'set-fal-key',
+      'ELEVENLABS_API_KEY': 'set-elevenlabs-key',
+      'VOAI_API_KEY': 'set-voai-key',
+      'KLING_API_KEY': 'set-kling-key',
+      'RUNWAY_API_KEY': 'set-runway-key',
+      'HEDRA_API_KEY': 'set-hedra-key',
+      'MINIMAX_API_KEY': 'set-minimax-key',
+      'PEXELS_API_KEY': 'set-pexels-key',
+      'PIXABAY_API_KEY': 'set-pixabay-key',
+      'TYPESAFE_API_KEY': 'set-typesafe-key'
+    };
+
     async function saveApiKeys() {
       const secrets = {};
       const gemini = document.getElementById('set-gemini-key').value.trim();
@@ -6562,24 +6577,99 @@
       if (pixabay) secrets.PIXABAY_API_KEY = pixabay;
       if (typesafe) secrets.TYPESAFE_API_KEY = typesafe;
 
-      await apiRequest('/api/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ secrets: secrets })
+      if (Object.keys(secrets).length === 0) {
+        alert("No new API keys entered to save. Enter a key in any field to update and test it.");
+        return;
+      }
+
+      // Update button & indicate verification is starting
+      const saveButtons = document.querySelectorAll("button[onclick*='saveApiKeys']");
+      saveButtons.forEach(btn => {
+        btn.disabled = true;
+        btn.dataset.origText = btn.textContent;
+        btn.textContent = '⏳ Testing & Verifying Keys...';
       });
-      alert("Settings saved successfully!");
-      loadApiKeys();
-      loadElevenLabsVoices();
-      loadVoAISpeakers();
+
+      for (const k of Object.keys(secrets)) {
+        const elId = KEY_ELEMENT_MAP[k];
+        const statusEl = document.getElementById(elId + '-status');
+        if (statusEl) {
+          statusEl.innerHTML = '<span style="color:#38bdf8; font-weight:600;">⏳ Testing & verifying key...</span>';
+        }
+      }
+
+      try {
+        const res = await apiRequest('/api/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ secrets: secrets })
+        });
+        const data = await res.json();
+        const validation = data.validation || {};
+
+        const failedList = [];
+        const successList = [];
+
+        for (const [k, v] of Object.entries(validation)) {
+          const elId = KEY_ELEMENT_MAP[k];
+          const statusEl = document.getElementById(elId + '-status');
+          const inputEl = document.getElementById(elId);
+          if (v.valid) {
+            successList.push(`${k}: ${v.message}`);
+            if (statusEl) {
+              statusEl.innerHTML = `<span style="color:#34d399; font-weight:600;">✓ Valid: ${v.message}</span>`;
+            }
+            if (inputEl) {
+              inputEl.style.borderColor = '#10b981';
+              inputEl.value = '';
+            }
+          } else {
+            failedList.push(`${k}: ${v.message}`);
+            if (statusEl) {
+              statusEl.innerHTML = `<span style="color:#ef4444; font-weight:600;">✗ Invalid: ${v.message}</span>`;
+            }
+            if (inputEl) {
+              inputEl.style.borderColor = '#ef4444';
+            }
+          }
+        }
+
+        if (failedList.length > 0) {
+          let msg = '⚠️ API Key Validation Failed:\n\n' + failedList.join('\n\n');
+          if (successList.length > 0) {
+            msg += '\n\n✓ Successfully verified:\n' + successList.join('\n');
+          }
+          alert(msg);
+        } else if (successList.length > 0) {
+          alert('✓ All ' + successList.length + ' updated API key(s) verified successfully!\n\n' + successList.join('\n'));
+        } else {
+          alert('Settings saved successfully!');
+        }
+
+        const preserveKeys = Object.keys(validation).filter(k => !validation[k].valid);
+        await loadApiKeys(preserveKeys);
+        loadElevenLabsVoices();
+        loadVoAISpeakers();
+      } catch (err) {
+        alert("Error saving API keys: " + err);
+      } finally {
+        saveButtons.forEach(btn => {
+          btn.disabled = false;
+          btn.textContent = btn.dataset.origText || 'Save API Keys';
+        });
+      }
     }
 
-    async function loadApiKeys() {
+    async function loadApiKeys(preserveErrorKeys = []) {
       try {
         const res = await apiRequest('/api/settings');
         const data = await res.json();
         const sc = data.secrets_configured || {};
 
         const setField = (id, keyName) => {
+          if (preserveErrorKeys && preserveErrorKeys.includes(keyName)) {
+            return;
+          }
           const el = document.getElementById(id);
           const statusEl = document.getElementById(id + '-status');
           if (el && sc[keyName]) {
