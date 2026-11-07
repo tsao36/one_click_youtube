@@ -15,10 +15,154 @@ try:
     import opencc
     _CC_T2S = opencc.OpenCC("t2s")
     _CC_S2TWP = opencc.OpenCC("s2twp")
+    _CC_S2T = opencc.OpenCC("s2t")
 except Exception as _e:
     _CC_T2S = None
     _CC_S2TWP = None
+    _CC_S2T = None
     log.warning("OpenCC could not be initialized (%s); using rule-based dictionary only", _e)
+
+
+# ==============================================================================
+# PROHIBITED CHINA (PRC) DOMAINS, PLATFORMS, AND STATE MEDIA
+# China alters, rewrites, and censors historical, geopolitical, and factual records
+# for political propaganda. All sources from mainland China and simplified Chinese
+# are strictly prohibited.
+# ==============================================================================
+PROHIBITED_CHINA_DOMAINS = {
+    ".cn", ".com.cn", ".gov.cn", ".edu.cn", ".org.cn", ".net.cn", ".mil.cn",
+    "baidu.com", "zhihu.com", "bilibili.com", "weibo.com", "weibo.cn",
+    "xinhuanet.com", "news.cn", "people.com.cn", "peopledaily.com.cn",
+    "cctv.com", "cgtn.com", "cri.cn", "globaltimes.cn", "chinadaily.com.cn",
+    "sohu.com", "sina.com.cn", "sina.cn", "163.com", "netease.com",
+    "qq.com", "tencent.com", "weixin.qq.com", "wechat.com",
+    "csdn.net", "douban.com", "xiaohongshu.com", "douyin.com",
+    "toutiao.com", "byteance.com", "kuaishou.com", "tieba.baidu.com",
+    "baike.baidu.com", "360.cn", "so.com", "sogou.com", "huanqiu.com",
+    "guancha.cn", "thepaper.cn", "ifeng.com", "chinaso.com", "youth.cn",
+    "gmw.cn", "chinanews.com.cn", "chinanews.com", "cyol.com", "zjol.com.cn",
+    "eastday.com", "dpm.org.cn", "bmy.com.cn"
+}
+
+PROHIBITED_CHINA_NAMES = [
+    "新華社", "人民日報", "央視", "中國中央電視台", "環球時報", "觀察者網",
+    "中國新聞社", "中新社", "光明日報", "中國日報", "求是", "學習強國",
+    "百度", "知乎", "嗶哩嗶哩", "抖音", "小紅書", "今日頭條", "微博",
+    "澎湃新聞", "共青團", "國務院新聞辦", "中共中央", "中宣部",
+]
+
+
+def is_prohibited_china_source(source_str: str) -> tuple[bool, str]:
+    """Check if a URL or source name belongs to mainland China (PRC) or CCP state media.
+    
+    Returns (is_prohibited, reason).
+    """
+    if not source_str or not isinstance(source_str, str):
+        return False, ""
+    
+    src_lower = source_str.lower().strip()
+    
+    # Check domain patterns
+    for dom in PROHIBITED_CHINA_DOMAINS:
+        if dom.startswith("."):
+            # e.g. .cn top level domain
+            if re.search(r"https?://[^\s/]*" + re.escape(dom) + r"([/:?]|$)", src_lower):
+                return True, f"Prohibited PRC mainland domain ({dom})"
+        else:
+            if dom in src_lower:
+                return True, f"Prohibited PRC platform or domain ({dom})"
+                
+    # Check state media / organization names
+    for name in PROHIBITED_CHINA_NAMES:
+        if name in source_str:
+            return True, f"Prohibited PRC state media or platform ({name})"
+            
+    return False, ""
+
+
+# Common Simplified Chinese characters distinct from Traditional Chinese
+_SIMPLIFIED_DISTINCT_CHARS = set(
+    "爱罢备笔毕边惨仓产长尝车彻尘称惩迟齿虫宠抽处触辞从聪达呆代带单担胆弹党挡导灯邓敌"
+    "订顶东动冻斗独顿队对吨夺舵尔儿耳发罚阀法矾反贩饭访纺飞废费纷坟奋讽丰风凤肤福抚复"
+    "负妇盖干赶个巩沟构购谷顾刮关观馆惯广规硅归龟国过海汉号呵合轰红后胡壶护画划话怀坏"
+    "欢环还换黄荒会伙获击机积饥鸡极际继夹价驾歼监艰渐捡践简剪见鉴江将奖浆蒋酱胶浇骄娇"
+    "阶街节杰洁借届斤谨进尽劲荆茎惊经竞静纠酒旧救就居举局聚惧剧据距惧卷眷觉绝决军君开"
+    "凯颗壳克肯垦恳阔腊蜡来兰栏览蓝篮浪捞劳牢姥乐类累泪离里礼历丽励砾帘联恋粮辽僚疗寮"
+    "列猎临林邻岭领浏留龙楼漏滤录陆驴乱轮罗逻络妈马码玛蚂马谩猫毛门扪闷们猛蒙眯弥觅眠"
+    "缅灭庙灭民悯敏名明鸣命摩磨魔墨没莫谋母亩目耐南难囊脑恼闹呢嫩能泥拟逆匿年撵念娘酿"
+    "鸟尿捏聂啮镊狞宁凝扭纽农浓奴怒女偶趴爬啪帕拍排牌派潘盘畔庞旁跑泡胚陪培配佩辔喷棚"
+    "蓬碰膨批披劈皮疲脾匹辟片偏便篇漂瓢票撇瞥乒凭评凭频拼聘贫频苹瓶评平魄破剖扑铺仆瀑"
+    "凄齐骑旗歧祈脐崎弃齐启器迁牵铅千迁乾签谦前欠枪强抢墙悄乔桥乔锹翘窍切且妾窃钦侵亲"
+    "轻氢清倾晴请庆穷琼秋丘求囚求曲屈驱趋渠取去趣圈全权泉劝券确群然燃壤让饶扰绕惹热人"
+    "仁忍任认扔仍日荣冗揉柔肉儒如茹乳辱入软锐瑞润若塞三伞丧扫骚色森僧杀沙纱刹傻煞晒伤"
+    "商晌賞上尚梢烧绍少勺哨奢舌蛇舍赦摄慑涉社设射涉申伸身深神审渗甚慎升生声牲胜绳盛圣"
+    "师失狮湿诗尸十石时识实食拾蚀适示市饰誓势嗜室视试收手首寿受兽售授狩瘦书树竖数耍衰"
+    "摔霜双爽谁水税睡顺说硕死祀四寺似饲肆松耸宋诵讼颂搜嗖搜俗诉肃素速粟算穗孙损笋缩琐"
+    "索所塔踏胎台态泰贪摊滩瘫坛谈叹炭汤糖堂膛唐躺烫掏涛桃淘套特藤疼腾梯提题啼体屉剃替"
+    "天添田甜填条跳帖铁听挺通同统痛投头透秃图涂途屠土吐唾团推蜕腿退脱拖妥驼椭拓唾挖哇"
+    "袜蛙娃歪外弯湾玩顽挽晚惋碗万汪亡网枉忘望妄威微危巍委违唯维伪纬萎畏胃喂魏文纹闻蚊"
+    "吻稳问翁蜗窝我握卧乌屋污钨恶巫呜誣无吴五午武侮悟晤物勿雾务吸希稀析昔息悉夕西膝席"
+    "袭喜洗细系戏隙吓侠夏峡下厦先仙鲜纤闲现宪县险线相香乡详祥想享向项响象像消硝销小效"
+    "校笑肖孝哮些歇协斜携挟胁鞋写泄泻屑谢芯心辛新薪信星腥醒兴幸性凶兄胸雄熊休修羞嗅秀"
+    "袖锈须虚需徐许叙续畜轩喧悬选癣绚学雪血寻循旬询训讯逊巡押鸦鸭压崖涯雅哑亚讶研炎岩"
+    "严言延沿掩眼焰演厌宴艳验央殃秧氧扬羊阳杨洋仰养样摇尧遥窑瑶谣耀药耀爷也野业夜叶医"
+    "衣依仪夷宜移遗疑乙已以矣亿忆义议异易医役抑译益谊疫谊溢毅翼阴茵荫音银引饮隐印英鹰"
+    "应营萤营赢盈迎颖佣拥庸痈咏泳勇踊用优忧幽悠尤由犹油游友有右佑幼诱于余鱼渔隅盂愚娱"
+    "愉逾舆予羽宇雨语狱育玉浴预域欲遇寓御裕愈誉渊冤元原圆园员源远愿约跃粤月悦乐阅耘云"
+    "运匀韵杂灾载再在咱攒暂赞遭遭遭凿躁造灶燥燥则责泽择贼怎赠增扎札轧闸炸摘斋寨战占瞻"
+    "斩展盏战站张涨掌丈仗账障胀招昭找沼兆照赵罩折哲辄者遮谪折震镇阵鸩振针砧珍枕疹诊镇"
+    "阵振争蒸征怔整政正症之支汁芝枝知织肢脂直值殖植执指止址齿旨止址纸指致智滞置帜质炙"
+    "掷中忠终钟盅肿重州舟周洲昼皱咒宙昼骤朱蛛猪诸诛逐助祝注著驻柱筑铸祝砖转传专庄装壮"
+    "状桩捉桌灼拙卓茁浊准酌著啄孜兹滋淄资仔姿滋子自宗总纵阻祖组钻攥罪尊遵昨左佐作做座"
+)
+
+def contains_simplified_chinese(text: str) -> tuple[bool, list[str]]:
+    """Detect if text contains simplified Chinese characters that differ from Taiwan Traditional characters.
+    
+    Returns (has_simplified, sample_simplified_chars).
+    """
+    if not text or not isinstance(text, str):
+        return False, []
+    
+    found: list[str] = []
+    if _CC_S2T:
+        try:
+            converted = _CC_S2T.convert(text)
+            for orig_ch, conv_ch in zip(text, converted):
+                if orig_ch != conv_ch and re.match(r"[\u4e00-\u9fff]", orig_ch):
+                    found.append(orig_ch)
+                    if len(found) >= 10:
+                        break
+            return bool(found), found
+        except Exception:
+            pass
+
+    return False, []
+
+
+def sanitize_and_filter_sources(sources: list[str] | list[dict]) -> tuple[list[str], list[str]]:
+    """Filter out all sources originating from mainland China (PRC) or containing simplified Chinese.
+    
+    Returns (safe_sources, rejected_sources).
+    """
+    safe: list[str] = []
+    rejected: list[str] = []
+    
+    for s in sources:
+        s_text = s if isinstance(s, str) else json.dumps(s, ensure_ascii=False)
+        is_prc, reason = is_prohibited_china_source(s_text)
+        if is_prc:
+            rejected.append(f"{s_text} [{reason}]")
+            continue
+            
+        has_simp, simp_chars = contains_simplified_chinese(s_text)
+        if has_simp and len(simp_chars) >= 3:
+            rejected.append(f"{s_text} [Contains Simplified Chinese: {''.join(simp_chars[:5])}]")
+            continue
+            
+        safe.append(s if isinstance(s, str) else s_text)
+        
+    return safe, rejected
 
 
 def is_taiwan_mandarin(language: str | None, topic: str = "") -> bool:
@@ -154,6 +298,102 @@ TAIWAN_MANDARIN_SYSTEM_PROMPT = """
 5. 【臺灣自然敘事語感與語調】：
    - 語氣客觀沉穩、自然流暢，兼具生動吸睛的 YouTube 節奏。
    - 句型多使用臺灣在地口語連接詞，如「透過」、「其實」、「舉例來說」、「我們可以發現」、「讓我們一起來探討」、「值得注意的是」，徹底去除翻譯腔、官腔教條與說教口吻。
+
+6. 【外國人名、國際地名與國名：100% 臺灣標準翻譯名稱（❌ 嚴格禁止中國大陸譯名）】：
+   - 外國人名臺灣標準（括號內為嚴禁使用之大陸譯名）：
+     * 歐巴馬（❌ 奧巴馬）
+     * 川普（❌ 特朗普）
+     * 柯林頓（❌ 克林頓）
+     * 柴契爾 / 柴契爾夫人（❌ 撒切爾 / 撒切爾夫人）
+     * 普丁（❌ 普京）
+     * 澤倫斯基（❌ 澤連斯基）
+     * 戈巴契夫（❌ 戈爾巴喬夫）
+     * 史達林（❌ 斯大林）
+     * 邱吉爾（❌ 丘吉爾）
+     * 艾森豪（❌ 艾森豪威爾）
+     * 甘迺迪（❌ 肯尼迪）
+     * 雷根（❌ 里根）
+     * 尼克森（❌ 尼克松）
+     * 季辛吉（❌ 基辛格）
+     * 賈伯斯（❌ 喬布斯）
+     * 比爾·蓋茲 / 蓋茲（❌ 比爾·蓋茨 / 蓋茨）
+     * 祖克柏（❌ 扎克伯格）
+     * 貝佐斯（❌ 貝索斯）
+     * 史匹柏（❌ 斯皮爾伯格）
+     * 李奧納多·狄卡皮歐（❌ 萊昂納多·迪卡普里奧）
+     * 達文西（❌ 達芬奇）
+     * 梵谷（❌ 梵高）
+     * 畢卡索（❌ 畢加索）
+     * 莫內（❌ 莫奈）
+     * 蕭邦（❌ 肖邦）
+     * 莫札特（❌ 莫扎特）
+     * 波耳（❌ 玻爾）
+     * 薛丁格（❌ 薛定諤）
+     * 克卜勒（❌ 開普勒）
+     * 歐本海默（❌ 奧本海默）
+     * 馮紐曼（❌ 馮·諾依曼 / 馮諾曼）
+     * 笛卡兒（❌ 笛卡爾）
+   - 國際地名、國名與城市臺灣標準：
+     * 紐西蘭（❌ 新西蘭）
+     * 雪梨（❌ 悉尼）
+     * 坎培拉（❌ 堪培拉）
+     * 聖荷西（❌ 聖何塞）
+     * 德州 / 德克薩斯（❌ 得州 / 得克薩斯）
+     * 休士頓（❌ 休斯敦）
+     * 蒙特婁（❌ 蒙特利爾）
+     * 杜拜（❌ 迪拜）
+     * 阿布達比（❌ 阿布扎比）
+     * 卡達（❌ 卡塔爾）
+     * 沙烏地阿拉伯 / 沙烏地（❌ 沙特阿拉伯 / 沙特）
+     * 伊斯坦堡（❌ 伊斯坦布爾）
+     * 坎城（❌ 戛納）
+     * 佛羅倫斯（❌ 佛羅倫薩）
+     * 喬治亞（❌ 格魯吉亞）
+     * 亞塞拜然（❌ 阿塞拜疆）
+     * 肯亞（❌ 肯尼亞）
+     * 奈及利亞（❌ 尼日利亞）
+     * 衣索比亞（❌ 埃塞俄比亞）
+     * 索馬利亞（❌ 索馬里）
+     * 坦尚尼亞（❌ 坦桑尼亞）
+     * 莫三比克（❌ 莫桑比克）
+     * 辛巴威（❌ 津巴布韋）
+     * 獅子山（❌ 塞拉利昂）
+     * 象牙海岸（❌ 科特迪瓦）
+     * 查德（❌ 乍得）
+     * 盧安達（❌ 盧旺達）
+     * 蒲隆地（❌ 布隆迪）
+     * 賴比瑞亞（❌ 利比里亞）
+     * 瓜地馬拉（❌ 危地馬拉）
+     * 宏都拉斯（❌ 洪都拉斯）
+     * 哥斯大黎加（❌ 哥斯達黎加）
+     * 多明尼加（❌ 多米尼加）
+     * 厄瓜多（❌ 厄瓜多爾）
+     * 蘇利南（❌ 蘇里南）
+     * 帛琉（❌ 帕勞）
+     * 吐瓦魯（❌ 圖瓦盧）
+     * 諾魯（❌ 瑙魯）
+     * 萬那杜（❌ 瓦努阿圖）
+     * 吉里巴斯（❌ 基里巴斯）
+     * 巴布亞紐幾內亞（❌ 巴布亞新幾內亞）
+   - 國防航太與科技翻譯名詞：
+     * 太空梭（❌ 航天飛機）
+     * 太空站（❌ 空間站）
+     * 太空人（❌ 航天員、宇航員）
+     * 巡弋飛彈（❌ 巡航導彈）
+     * 匿蹤戰機（❌ 隱身戰機）
+     * 核融合（❌ 核聚變）
+     * 核分裂（❌ 核裂變）
+     * 奈米（❌ 納米）
+     * 都卜勒效應（❌ 多普勒效應）
+     * 陣列（❌ 數組）
+     * 巨集（❌ 宏）
+     * 最佳化（❌ 優化）
+     * 機率（❌ 概率）
+
+7. 【100% 排除中國大陸來源與簡體字資料（防止政治扭曲與宣傳）】：
+   - 中國官方機構、審查機制及中共黨媒長年因政治宣傳與意識形態目的，對歷史事實、二戰紀錄、國家主權、人權、公共衛生、統計數據與科學技術進行系統性竄改、粉飾與審查。
+   - 本系統【100% 絕對禁止】採用或引用任何來自中國大陸（.cn 網域、新華社、人民日報、央視、環球時報、百度、知乎、Bilibili、微博、抖音、小紅書等）之網站、資料與說法。
+   - 嚴格禁止使用簡體中文來源，所有事實考證必須採用臺灣正體中文權威資料（中央研究院、國立臺灣大學、教育部、國立編譯館、國史館、國家圖書館）或具國際公信力之學術期刊、百科全書（臺灣維基百科 zh-tw、大英百科 Britannica、Nature、Science、IEEE）與國際中立通訊社（Reuters、AP、BBC）。
 """
 
 # Explicit rule-based replacement mappings for Taiwan Mandarin (sorted by specificity)
@@ -376,6 +616,122 @@ _TAIWAN_TERM_MAPPINGS: List[Tuple[re.Pattern, str]] = [
     (re.compile(r"[槓杠]精"), "抬槓狂"),
     (re.compile(r"[網网]暴"), "網路霸凌"),
     (re.compile(r"特[麼么]"), "真是"),
+
+    # --- 9. Foreign Personalities & Historical Figures (外國人名臺灣標準翻譯) ---
+    (re.compile(r"[奧奥]巴[馬马]"), "歐巴馬"),
+    (re.compile(r"特[朗]普"), "川普"),
+    (re.compile(r"克林[頓顿]"), "柯林頓"),
+    (re.compile(r"撒切[爾尔]夫人"), "柴契爾夫人"),
+    (re.compile(r"撒切[爾尔]"), "柴契爾"),
+    (re.compile(r"普[京]"), "普丁"),
+    (re.compile(r"[澤泽][連连]斯基"), "澤倫斯基"),
+    (re.compile(r"戈[爾尔]巴[喬乔]夫"), "戈巴契夫"),
+    (re.compile(r"斯大林"), "史達林"),
+    (re.compile(r"丘吉[爾尔]"), "邱吉爾"),
+    (re.compile(r"艾森豪威[爾尔]"), "艾森豪"),
+    (re.compile(r"肯尼迪"), "甘迺迪"),
+    (re.compile(r"里[根]"), "雷根"),
+    (re.compile(r"尼克松"), "尼克森"),
+    (re.compile(r"基辛格"), "季辛吉"),
+    (re.compile(r"[喬乔]布斯"), "賈伯斯"),
+    (re.compile(r"比[爾尔]·?[蓋盖]茨"), "比爾·蓋茲"),
+    (re.compile(r"(?<![覆掩遮蓋膝網])([蓋盖]茨)"), "蓋茲"),
+    (re.compile(r"[扎紥]克伯格"), "祖克柏"),
+    (re.compile(r"[貝贝]索斯"), "貝佐斯"),
+    (re.compile(r"斯皮[爾尔]伯格"), "史匹柏"),
+    (re.compile(r"[萊莱]昂[納纳]多"), "李奧納多"),
+    (re.compile(r"迪卡普里[奧奥]"), "狄卡皮歐"),
+    (re.compile(r"[達达]芬奇"), "達文西"),
+    (re.compile(r"梵高"), "梵谷"),
+    (re.compile(r"[畢毕]加索"), "畢卡索"),
+    (re.compile(r"莫[奈]"), "莫內"),
+    (re.compile(r"肖邦"), "蕭邦"),
+    (re.compile(r"莫扎特"), "莫札特"),
+    (re.compile(r"玻[爾尔]"), "波耳"),
+    (re.compile(r"[薛]定[諤谔]"), "薛丁格"),
+    (re.compile(r"[開开]普勒"), "克卜勒"),
+    (re.compile(r"[奧奥]本海默"), "歐本海默"),
+    (re.compile(r"馮·?[諾诺]依曼|冯·?[诺诺]依曼|馮·?[諾诺]曼|冯·?[诺诺]曼"), "馮紐曼"),
+    (re.compile(r"笛卡[爾尔]"), "笛卡兒"),
+
+    # --- 10. Foreign Geography, Countries & Cities (外國地名、國名與城市) ---
+    (re.compile(r"新西[蘭兰]"), "紐西蘭"),
+    (re.compile(r"悉尼"), "雪梨"),
+    (re.compile(r"堪培拉"), "坎培拉"),
+    (re.compile(r"[聖圣]何塞"), "聖荷西"),
+    (re.compile(r"得克[薩萨]斯"), "德克薩斯"),
+    (re.compile(r"(?<![獲取贏奪立心得])得州"), "德州"),
+    (re.compile(r"休斯[敦]"), "休士頓"),
+    (re.compile(r"蒙特利[爾尔]"), "蒙特婁"),
+    (re.compile(r"迪拜"), "杜拜"),
+    (re.compile(r"阿布扎比"), "阿布達比"),
+    (re.compile(r"卡[塔特][爾尔]"), "卡達"),
+    (re.compile(r"雅[爾尔][塔]"), "雅爾達"),
+    (re.compile(r"沙特阿拉伯"), "沙烏地阿拉伯"),
+    (re.compile(r"(?<![在赴從到進離])沙特(?=[國王軍政當聯境人局])"), "沙烏地"),
+    (re.compile(r"伊斯坦布[爾尔林]"), "伊斯坦堡"),
+    (re.compile(r"戛[納纳]"), "坎城"),
+    (re.compile(r"佛[羅罗][倫伦][薩萨]"), "佛羅倫斯"),
+    (re.compile(r"格[魯鲁]吉[亞亚]"), "喬治亞"),
+    (re.compile(r"阿塞拜[疆]"), "亞塞拜然"),
+    (re.compile(r"肯[尼][亞亚]"), "肯亞"),
+    (re.compile(r"[尼]日利[亞亚]"), "奈及利亞"),
+    (re.compile(r"埃塞俄比[亞亚]"), "衣索比亞"),
+    (re.compile(r"索[馬马]里"), "索馬利亞"),
+    (re.compile(r"坦桑[尼][亞亚]"), "坦尚尼亞"),
+    (re.compile(r"莫桑比克"), "莫三比克"),
+    (re.compile(r"津巴布[韋韦]"), "辛巴威"),
+    (re.compile(r"塞拉利昂"), "獅子山"),
+    (re.compile(r"科特迪瓦"), "象牙海岸"),
+    (re.compile(r"乍得"), "查德"),
+    (re.compile(r"[盧卢]旺[達达]"), "盧安達"),
+    (re.compile(r"布隆迪"), "蒲隆地"),
+    (re.compile(r"利比里[亞亚]"), "賴比瑞亞"),
+    (re.compile(r"危地[馬马]拉"), "瓜地馬拉"),
+    (re.compile(r"洪都拉斯"), "宏都拉斯"),
+    (re.compile(r"哥斯[達达]黎加"), "哥斯大黎加"),
+    (re.compile(r"多米[尼]加"), "多明尼加"),
+    (re.compile(r"厄瓜多[爾尔]"), "厄瓜多"),
+    (re.compile(r"[蘇苏]里南"), "蘇利南"),
+    (re.compile(r"帕[勞劳]"), "帛琉"),
+    (re.compile(r"[圖图]瓦[盧卢]"), "吐瓦魯"),
+    (re.compile(r"[瑙]魯|[瑙]鲁"), "諾魯"),
+    (re.compile(r"瓦努阿[圖图]"), "萬那杜"),
+    (re.compile(r"基里巴斯"), "吉里巴斯"),
+    (re.compile(r"巴布[亞亚]新[幾几][內内][亞亚]"), "巴布亞紐幾內亞"),
+
+    # --- 11. Science, Space, Defense & Computing Terminology (科學、國防、太空與科技名詞) ---
+    (re.compile(r"航天[飛飞][機机]"), "太空梭"),
+    (re.compile(r"空[間间]站"), "太空站"),
+    (re.compile(r"航天[員员]|宇航[員员]"), "太空人"),
+    (re.compile(r"巡航[導导][彈弹]"), "巡弋飛彈"),
+    (re.compile(r"[隱隐]身[戰战][機机]"), "匿蹤戰機"),
+    (re.compile(r"核聚[變变]"), "核融合"),
+    (re.compile(r"核裂[變变]"), "核分裂"),
+    (re.compile(r"[納纳]米"), "奈米"),
+    (re.compile(r"多普勒效[應应]"), "都卜勒效應"),
+    (re.compile(r"[數数][組组]"), "陣列"),
+    (re.compile(r"鏈[表]"), "鏈結串列"),
+    (re.compile(r"(?<![佇排])隊[列]"), "佇列"),
+    (re.compile(r"堆[棧栈]"), "堆疊"),
+    (re.compile(r"哈希|散列"), "雜湊"),
+    (re.compile(r"字[符]串"), "字串"),
+    (re.compile(r"字[節节]"), "位元組"),
+    (re.compile(r"比[特]"), "位元"),
+    (re.compile(r"(?<!顯)顯[卡]"), "顯示卡"),
+    (re.compile(r"主[板]"), "主機板"),
+    (re.compile(r"[虛虚][擬拟][機机]"), "虛擬機器"),
+    (re.compile(r"模[塊块]"), "模組"),
+    (re.compile(r"線[程]"), "執行緒"),
+    (re.compile(r"進[程]"), "行程"),
+    (re.compile(r"端[口]"), "連接埠"),
+    (re.compile(r"[帶带][寬宽]"), "頻寬"),
+    (re.compile(r"[數数][據据]包"), "封包"),
+    (re.compile(r"[優优]化"), "最佳化"),
+    (re.compile(r"概[率]"), "機率"),
+    (re.compile(r"矢[量]"), "向量"),
+    (re.compile(r"[標标][量]"), "純量"),
+    (re.compile(r"引力波"), "重力波"),
 ]
 
 # Strict Audit List of Forbidden Mainland Terms (支語與中國用語清單)
@@ -480,6 +836,101 @@ FORBIDDEN_MAINLAND_TERMS: List[Tuple[str, str, str]] = [
     (r"實錘", "確鑿鐵證", "中國網路用語：應使用『鐵證如山』或『確鑿證據』"),
     (r"槓精", "抬槓狂", "中國網路用語：應使用『抬槓狂』"),
     (r"特麼", "真是", "中國粗話口頭禪：應使用『真是』或『簡直』"),
+
+    # --- Foreign Names (外國人名大陸譯名審查) ---
+    (r"奧巴馬", "歐巴馬", "中國大陸譯名：臺灣標準譯名為『歐巴馬』"),
+    (r"特朗普", "川普", "中國大陸譯名：臺灣標準譯名為『川普』"),
+    (r"克林頓", "柯林頓", "中國大陸譯名：臺灣標準譯名為『柯林頓』"),
+    (r"撒切爾夫人", "柴契爾夫人", "中國大陸譯名：臺灣標準譯名為『柴契爾夫人』"),
+    (r"撒切爾", "柴契爾", "中國大陸譯名：臺灣標準譯名為『柴契爾』"),
+    (r"普京", "普丁", "中國大陸譯名：臺灣標準譯名為『普丁』"),
+    (r"澤連斯基", "澤倫斯基", "中國大陸譯名：臺灣標準譯名為『澤倫斯基』"),
+    (r"戈爾巴喬夫", "戈巴契夫", "中國大陸譯名：臺灣標準譯名為『戈巴契夫』"),
+    (r"斯大林", "史達林", "中國大陸譯名：臺灣標準譯名為『史達林』"),
+    (r"丘吉爾", "邱吉爾", "中國大陸譯名：臺灣標準譯名為『邱吉爾』"),
+    (r"艾森豪威爾", "艾森豪", "中國大陸譯名：臺灣標準譯名為『艾森豪』"),
+    (r"肯尼迪", "甘迺迪", "中國大陸譯名：臺灣標準譯名為『甘迺迪』"),
+    (r"里根", "雷根", "中國大陸譯名：臺灣標準譯名為『雷根』"),
+    (r"尼克松", "尼克森", "中國大陸譯名：臺灣標準譯名為『尼克森』"),
+    (r"基辛格", "季辛吉", "中國大陸譯名：臺灣標準譯名為『季辛吉』"),
+    (r"喬布斯", "賈伯斯", "中國大陸譯名：臺灣標準譯名為『賈伯斯』"),
+    (r"比爾·?蓋茨", "比爾·蓋茲", "中國大陸譯名：臺灣標準譯名為『比爾·蓋茲』"),
+    (r"扎克伯格", "祖克柏", "中國大陸譯名：臺灣標準譯名為『祖克柏』"),
+    (r"貝索斯", "貝佐斯", "中國大陸譯名：臺灣標準譯名為『貝佐斯』"),
+    (r"斯皮爾伯格", "史匹柏", "中國大陸譯名：臺灣標準譯名為『史匹柏』"),
+    (r"萊昂納多", "李奧納多", "中國大陸譯名：臺灣標準譯名為『李奧納多』"),
+    (r"迪卡普里奧", "狄卡皮歐", "中國大陸譯名：臺灣標準譯名為『狄卡皮歐』"),
+    (r"達芬奇", "達文西", "中國大陸譯名：臺灣標準譯名為『達文西』"),
+    (r"梵高", "梵谷", "中國大陸譯名：臺灣標準譯名為『梵谷』"),
+    (r"畢加索", "畢卡索", "中國大陸譯名：臺灣標準譯名為『畢卡索』"),
+    (r"莫奈", "莫內", "中國大陸譯名：臺灣標準譯名為『莫內』"),
+    (r"肖邦", "蕭邦", "中國大陸譯名：臺灣標準譯名為『蕭邦』"),
+    (r"莫扎特", "莫札特", "中國大陸譯名：臺灣標準譯名為『莫札特』"),
+    (r"玻爾", "波耳", "中國大陸譯名：臺灣標準譯名為『波耳』"),
+    (r"薛定諤", "薛丁格", "中國大陸譯名：臺灣標準譯名為『薛丁格』"),
+    (r"開普勒", "克卜勒", "中國大陸譯名：臺灣標準譯名為『克卜勒』"),
+    (r"奧本海默", "歐本海默", "中國大陸譯名：臺灣標準譯名為『歐本海默』"),
+    (r"馮·?諾依曼|馮·?諾曼", "馮紐曼", "中國大陸譯名：臺灣標準譯名為『馮紐曼』"),
+    (r"笛卡爾", "笛卡兒", "中國大陸譯名：臺灣標準譯名為『笛卡兒』"),
+
+    # --- Foreign Places & Countries (外國地名與國名大陸譯名審查) ---
+    (r"新西蘭", "紐西蘭", "中國大陸譯名：臺灣標準譯名為『紐西蘭』"),
+    (r"悉尼", "雪梨", "中國大陸譯名：臺灣標準譯名為『雪梨』"),
+    (r"堪培拉", "坎培拉", "中國大陸譯名：臺灣標準譯名為『坎培拉』"),
+    (r"聖何塞", "聖荷西", "中國大陸譯名：臺灣標準譯名為『聖荷西』"),
+    (r"得克薩斯", "德克薩斯", "中國大陸譯名：臺灣標準譯名為『德克薩斯』"),
+    (r"(?<![獲取贏奪立心得])得州", "德州", "中國大陸簡稱：臺灣標準為『德州』"),
+    (r"休斯敦", "休士頓", "中國大陸譯名：臺灣標準譯名為『休士頓』"),
+    (r"蒙特利爾", "蒙特婁", "中國大陸譯名：臺灣標準譯名為『蒙特婁』"),
+    (r"迪拜", "杜拜", "中國大陸譯名：臺灣標準譯名為『杜拜』"),
+    (r"阿布扎比", "阿布達比", "中國大陸譯名：臺灣標準譯名為『阿布達比』"),
+    (r"卡塔爾", "卡達", "中國大陸譯名：臺灣標準譯名為『卡達』"),
+    (r"沙特阿拉伯", "沙烏地阿拉伯", "中國大陸譯名：臺灣標準譯名為『沙烏地阿拉伯』"),
+    (r"(?<![在赴從到進離])沙特(?=[國王軍政當聯境人局])", "沙烏地", "中國大陸簡稱：臺灣標準為『沙烏地』"),
+    (r"伊斯坦布爾", "伊斯坦堡", "中國大陸譯名：臺灣標準譯名為『伊斯坦堡』"),
+    (r"戛納", "坎城", "中國大陸譯名：臺灣標準譯名為『坎城』"),
+    (r"佛羅倫薩", "佛羅倫斯", "中國大陸譯名：臺灣標準譯名為『佛羅倫斯』"),
+    (r"格魯吉亞", "喬治亞", "中國大陸譯名：臺灣標準譯名為『喬治亞』"),
+    (r"阿塞拜疆", "亞塞拜然", "中國大陸譯名：臺灣標準譯名為『亞塞拜然』"),
+    (r"肯尼亞", "肯亞", "中國大陸譯名：臺灣標準譯名為『肯亞』"),
+    (r"尼日利亞", "奈及利亞", "中國大陸譯名：臺灣標準譯名為『奈及利亞』"),
+    (r"埃塞俄比亞", "衣索比亞", "中國大陸譯名：臺灣標準譯名為『衣索比亞』"),
+    (r"索馬里", "索馬利亞", "中國大陸譯名：臺灣標準譯名為『索馬利亞』"),
+    (r"坦桑尼亞", "坦尚尼亞", "中國大陸譯名：臺灣標準譯名為『坦尚尼亞』"),
+    (r"莫桑比克", "莫三比克", "中國大陸譯名：臺灣標準譯名為『莫三比克』"),
+    (r"津巴布韋", "辛巴威", "中國大陸譯名：臺灣標準譯名為『辛巴威』"),
+    (r"塞拉利昂", "獅子山", "中國大陸譯名：臺灣標準譯名為『獅子山』"),
+    (r"科特迪瓦", "象牙海岸", "中國大陸譯名：臺灣標準譯名為『象牙海岸』"),
+    (r"乍得", "查德", "中國大陸譯名：臺灣標準譯名為『查德』"),
+    (r"盧旺達", "盧安達", "中國大陸譯名：臺灣標準譯名為『盧安達』"),
+    (r"布隆迪", "蒲隆地", "中國大陸譯名：臺灣標準譯名為『蒲隆地』"),
+    (r"利比里亞", "賴比瑞亞", "中國大陸譯名：臺灣標準譯名為『賴比瑞亞』"),
+    (r"危地馬拉", "瓜地馬拉", "中國大陸譯名：臺灣標準譯名為『瓜地馬拉』"),
+    (r"洪都拉斯", "宏都拉斯", "中國大陸譯名：臺灣標準譯名為『宏都拉斯』"),
+    (r"哥斯達黎加", "哥斯大黎加", "中國大陸譯名：臺灣標準譯名為『哥斯大黎加』"),
+    (r"多米尼加", "多明尼加", "中國大陸譯名：臺灣標準譯名為『多明尼加』"),
+    (r"厄瓜多爾", "厄瓜多", "中國大陸譯名：臺灣標準譯名為『厄瓜多』"),
+    (r"蘇里南", "蘇利南", "中國大陸譯名：臺灣標準譯名為『蘇利南』"),
+    (r"帕勞", "帛琉", "中國大陸譯名：臺灣標準譯名為『帛琉』"),
+    (r"圖瓦盧", "吐瓦魯", "中國大陸譯名：臺灣標準譯名為『吐瓦魯』"),
+    (r"瑙魯", "諾魯", "中國大陸譯名：臺灣標準譯名為『諾魯』"),
+    (r"瓦努阿圖", "萬那杜", "中國大陸譯名：臺灣標準譯名為『萬那杜』"),
+    (r"基里巴斯", "吉里巴斯", "中國大陸譯名：臺灣標準譯名為『吉里巴斯』"),
+    (r"巴布亞新幾內亞", "巴布亞紐幾內亞", "中國大陸譯名：臺灣標準譯名為『巴布亞紐幾內亞』"),
+
+    # --- Science, Space & Military Terms (科學、太空與軍事用語審查) ---
+    (r"航天飛機", "太空梭", "中國大陸名詞：臺灣標準為『太空梭』"),
+    (r"空間站", "太空站", "中國大陸名詞：臺灣標準為『太空站』"),
+    (r"航天員|宇航員", "太空人", "中國大陸名詞：臺灣標準為『太空人』"),
+    (r"巡航導彈", "巡弋飛彈", "中國大陸名詞：臺灣標準為『巡弋飛彈』"),
+    (r"隱身戰機", "匿蹤戰機", "中國大陸名詞：臺灣標準為『匿蹤戰機』"),
+    (r"核聚變", "核融合", "中國大陸名詞：臺灣標準為『核融合』"),
+    (r"核裂變", "核分裂", "中國大陸名詞：臺灣標準為『核分裂』"),
+    (r"納米", "奈米", "中國大陸名詞：臺灣標準為『奈米』"),
+    (r"多普勒效應", "都卜勒效應", "中國大陸名詞：臺灣標準為『都卜勒效應』"),
+    (r"數組", "陣列", "中國大陸電腦名詞：臺灣標準為『陣列』"),
+    (r"優化", "最佳化", "中國大陸用語：資訊科技與演算法情境應使用『最佳化』"),
+    (r"概率", "機率", "中國大陸用語：臺灣學術與日常標準為『機率』"),
 ]
 
 
@@ -491,18 +942,27 @@ def audit_taiwan_mandarin(text: str) -> List[dict]:
     if not text or not isinstance(text, str):
         return []
 
+    # Audit normalized traditional text so simplified mainland inputs are also caught
+    text_for_audit = _CC_S2T.convert(text) if _CC_S2T else text
     violations = []
+    seen_terms_at_pos = set()
     for pattern, suggestion, desc in FORBIDDEN_MAINLAND_TERMS:
         regex = re.compile(pattern)
-        for match in regex.finditer(text):
-            start = max(0, match.start() - 10)
-            end = min(len(text), match.end() + 10)
-            context = text[start:end].replace("\n", " ")
+        for match in regex.finditer(text_for_audit):
+            pos = match.start()
+            term = match.group(0)
+            key = (pos, term)
+            if key in seen_terms_at_pos:
+                continue
+            seen_terms_at_pos.add(key)
+            start = max(0, pos - 10)
+            end = min(len(text_for_audit), match.end() + 10)
+            context = text_for_audit[start:end].replace("\n", " ")
             violations.append({
-                "term": match.group(0),
+                "term": term,
                 "suggestion": suggestion,
                 "description": desc,
-                "position": match.start(),
+                "position": pos,
                 "context": f"...{context}..."
             })
     return violations

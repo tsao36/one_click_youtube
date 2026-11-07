@@ -97,13 +97,19 @@ class GeminiProvider(LLMProvider):
         return self._text(self._call(body))
 
     def generate_with_search(self, prompt, system="") -> str:
+        effective_sys = system or (
+            "STRICT FACTUAL INTEGRITY & SOURCE DIRECTIVE: 100% avoid retrieving or citing materials, sources, or domains "
+            "from the People's Republic of China (.cn domains, PRC state media, or mainland Chinese platforms), "
+            "as China frequently alters and twists facts for political purposes. 100% avoid Simplified Chinese sources. "
+            "Only retrieve verified Taiwan Traditional Chinese (.tw / Taiwanese academic / governmental / educational archives) "
+            "and reputable international sources (e.g. Nature, Science, Reuters, AP, BBC, zh-tw / en Wikipedia)."
+        )
         body: dict = {
             "contents": [{"role": "user", "parts": [{"text": prompt}]}],
             "tools": [{"google_search": {}}],
             "generationConfig": {"maxOutputTokens": 8192},
+            "systemInstruction": {"parts": [{"text": effective_sys}]},
         }
-        if system:
-            body["systemInstruction"] = {"parts": [{"text": system}]}
         try:
             return self._text(self._call(body))
         except LLMError as e:

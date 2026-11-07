@@ -8,9 +8,22 @@ BANNED_PHRASES = [
 ]
 
 BANNED_MAINLAND_PHRASES = [
-    "視頻", "短視頻", "軟件", "硬件", "立馬", "給力", "走心", "膠水語言", "閉環", "賦能", "痛點",
-    "抓手", "打法", "降維打擊", "忽悠", "吐槽", "老鐵", "小夥伴", "接地氣", "腦洞大開", "總而言之",
-    "綜上所述", "讓我們拭目以待", "妥妥的", "特麼", "牛逼", "打call", "吃瓜"
+    # 3C, tech, internet
+    "視頻", "短視頻", "軟件", "硬件", "芯片", "內存", "磁盤", "服務器", "算法", "數據庫",
+    "屏幕", "默認", "界面", "交互", "鏈接", "超鏈接", "互聯網", "局域網", "激光", "硅谷",
+    "航天", "打印機", "複印", "數組", "宏定義", "優化", "概率", "空間站", "航天飛機",
+    "航天員", "宇航員", "巡航導彈", "隱身戰機", "核聚變", "核裂變", "納米", "多普勒效應",
+    # Buzzwords & slang
+    "立馬", "給力", "走心", "膠水語言", "閉環", "賦能", "痛點", "抓手", "打法", "降維打擊",
+    "忽悠", "吐槽", "老鐵", "小夥伴", "接地氣", "腦洞大開", "總而言之", "綜上所述", "讓我們拭目以待",
+    "妥妥的", "特麼", "牛逼", "打call", "吃瓜", "帶節奏", "割韭菜", "智商稅", "高大上", "內卷",
+    # Mainland translation names (foreign figures & places)
+    "奧巴馬", "特朗普", "撒切爾", "普京", "澤連斯基", "戈爾巴喬夫", "斯大林", "丘吉爾",
+    "艾森豪威爾", "肯尼迪", "里根", "尼克松", "基辛格", "喬布斯", "蓋茨", "扎克伯格", "貝索斯",
+    "斯皮爾伯格", "達芬奇", "梵高", "畢加索", "莫奈", "肖邦", "莫扎特", "玻爾", "薛定諤",
+    "開普勒", "奧本海默", "馮諾依曼", "笛卡爾", "新西蘭", "悉尼", "堪培拉", "聖何塞", "得州",
+    "休斯敦", "蒙特利爾", "迪拜", "阿布扎比", "卡塔爾", "沙特", "伊斯坦布爾", "戛納", "佛羅倫薩",
+    "格魯吉亞", "阿塞拜疆", "肯尼亞", "尼日利亞", "埃塞俄比亞", "索馬里", "坦桑尼亞", "莫桑比克"
 ]
 
 # Universal Negative Prompt Tokens that apply to all videos & image generations:
@@ -93,5 +106,5 @@ NARRATION_RULES = f"""Rules for narration:
 - No markdown, no headings, no bullet points, no emojis, no stage directions, no speaker labels.
 - Do not recap the previous section; move the story forward.
 - Never use these English buzzwords: {", ".join(BANNED_PHRASES)}.
-- When writing in Chinese, strictly use Taiwan Traditional Chinese (台灣正體中文 / 國語詞彙) and never use these Mainland Chinese buzzwords/terms: {", ".join(BANNED_MAINLAND_PHRASES)}.
+- When writing in Chinese, strictly use Taiwan Traditional Chinese (台灣正體中文 / 國語詞彙) and standard Taiwan translations (台灣翻譯名稱), and never use Mainland Chinese buzzwords, tech jargon, or translation names: {", ".join(BANNED_MAINLAND_PHRASES)}.
 """

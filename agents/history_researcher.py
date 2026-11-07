@@ -21,11 +21,11 @@ FALLBACK_DYNASTY_TOPICS: list[dict[str, Any]] = [
         "recommended_duration": 10.0,
         "recommended_style": "cinematic_documentary",
         "proof": {
-            "platform": "考古出土文物考證（陝西省考古研究院報告）",
+            "platform": "考古出土文物考證（中央研究院史語所研究專案）",
             "metrics": "出土逾四萬件金屬兵器精密數據 / 科技史學界公認奇蹟",
             "headline": "兵馬俑坑出土秦弩機零件互換率與三稜箭鏃極致公差考證",
-            "url": "https://www.bmy.com.cn/",
-            "source_name": "秦始皇帝陵博物院 / 《史記·秦始皇本紀》",
+            "url": "https://www2.ihp.sinica.edu.tw/",
+            "source_name": "中央研究院歷史語言研究所考證 / 《史記·秦始皇本紀》",
             "why_popular": "大眾常以為古代兵器全靠鐵匠手工敲打，秦軍兩千年前即實現流水線互換零件與極致品質控管，反差感極強且極具話題爆發力。",
         },
     },
@@ -96,11 +96,11 @@ FALLBACK_DYNASTY_TOPICS: list[dict[str, Any]] = [
         "recommended_duration": 5.0,
         "recommended_style": "photorealistic_cinema",
         "proof": {
-            "platform": "清廷第一手官檔案（《清宮內務府奏銷檔》/《清代起居注冊》）",
-            "metrics": "內務府原始採買膳單實物記錄 / 故宮博物院院藏檔案",
+            "platform": "清廷第一手官檔案（國立故宮博物院藏《清宮內務府奏銷檔》/《清代起居注冊》）",
+            "metrics": "內務府原始採買膳單實物記錄 / 臺北國立故宮博物院藏檔案",
             "headline": "乾隆朝御膳底檔載明每日兩頓正餐、妃嬪依品級分發肉斤蔬菜嚴格配額",
-            "url": "https://www.dpm.org.cn/",
-            "source_name": "北京故宮博物院所藏《御膳底檔》 / 《清宮內務府檔案》",
+            "url": "https://www.npm.gov.tw/",
+            "source_name": "國立故宮博物院（臺北）所藏清宮檔案 / 《清代起居注冊》",
             "why_popular": "宮鬥劇與古裝劇風靡華人圈，但劇中奢華隨意的宮廷日常與真實嚴苛戒律形成強烈反差，闢謠內容百看不厭。",
         },
     },
@@ -167,29 +167,30 @@ def discover_dynasty_topic(exclude_topics: list[str] | None = None) -> dict[str,
         try:
             client = LLMClient("research", provider_override=provider_override, json_retries=1)
             prompt = (
-                "You are an acclaimed YouTube documentary director and Chinese history researcher (inspired by creators like 歷史調查局, 李天豪, 腦洞歷史, 簡說歷史, 渤海小吏, 國家寶藏).\\n"
-                f"Your task is to propose ONE highly viral, deeply curious, or astonishing topic focusing on '中國朝代冷知識歷史' (Chinese Dynasty trivia, imperial secrets, ancient daily life oddities, or historical misconception debunking).\\n"
-                f"Suggested historical focus era for inspiration: {chosen_era}\\n\\n"
-                f"Already queued topics to EXCLUDE (do not duplicate or copy closely):\\n{list(exclude)[:10]}\\n\\n"
-                "Angle Ideas:\\n"
-                "- 皇帝與宮廷的真實冷知識（打破影視劇謬誤，如皇帝吃什麼、起居作息、御膳房與後宮制度）\\n"
-                "- 古代平民生活的反差真相（宋代外賣、唐代長安夜禁、漢代公務員休假、古代物價與購買力）\\n"
-                "- 古代軍事黑科技與工程奇蹟（秦軍流水線公差、古代防作弊神技、驛站加急制度）\\n"
-                "- 顛覆刻板印象的歷史翻案（被演義或傳奇小說誤導的真實歷史真相）\\n\\n"
-                "Requirements:\\n"
-                "1. Output valid JSON only.\\n"
-                "2. 'topic': High-CTR, curiosity-driven YouTube documentary title in standard Taiwan Traditional Chinese (台灣繁體中文，嚴禁大陸簡體與大陸流行用語，用詞精準有力，引人入勝).\\n"
-                "3. 'logline': 1-2 sentence compelling summary of what the video uncovers and explains.\\n"
-                "4. 'category': Short category string (e.g. '中國朝代冷知識', '宋代生活奇觀', '明清宮廷秘辛', '秦漢黑科技與制度', '三國歷史翻案').\\n"
-                "5. 'recommended_duration': 5.0 or 10.0.\\n"
-                "6. 'recommended_style': One of ('cinematic_documentary', 'photorealistic_cinema', 'vintage_archive', 'digital_painting').\\n"
-                "7. 'proof': Object containing:\\n"
-                "   - 'platform': (e.g. '正史典籍考證（《史記》/《宋史》/《明實錄》/《清宮檔案》）')\\n"
-                "   - 'metrics': (e.g. '學界公認第一手文獻記載 / 故宮出土檔案紀錄 / 破百萬文史討論話題')\\n"
-                "   - 'headline': Cited historical record or archaeological excavation note\\n"
-                "   - 'url': Real reference or portal URL (e.g. https://ctext.org/ or https://www.npm.gov.tw/ or Wikipedia article)\\n"
-                "   - 'source_name': Name of primary historical text, author, or research institution\\n"
-                "   - 'why_popular': Why modern viewers are fascinated by this historical discovery (反直覺、揭開歷史真相、與現代生活產生強烈對比)\\n"
+                "You are an acclaimed YouTube documentary director and Chinese history researcher (inspired by creators like 李天豪, Cheap, 故事 StoryStudio, 臺灣吧 Taiwan Bar).\n"
+                f"Your task is to propose ONE highly viral, deeply curious, or astonishing topic focusing on '中國朝代冷知識歷史' (Chinese Dynasty trivia, imperial secrets, ancient daily life oddities, or historical misconception debunking).\n"
+                f"Suggested historical focus era for inspiration: {chosen_era}\n\n"
+                f"Already queued topics to EXCLUDE (do not duplicate or copy closely):\n{list(exclude)[:10]}\n\n"
+                "Angle Ideas:\n"
+                "- 皇帝與宮廷的真實冷知識（打破影視劇謬誤，如皇帝吃什麼、起居作息、御膳房與後宮制度）\n"
+                "- 古代平民生活的反差真相（宋代外賣、唐代長安夜禁、漢代公務員休假、古代物價與購買力）\n"
+                "- 古代軍事黑科技與工程奇蹟（秦軍流水線公差、古代防作弊神技、驛站加急制度）\n"
+                "- 顛覆刻板印象的歷史翻案（被演義或傳奇小說誤導的真實歷史真相）\n\n"
+                "Requirements:\n"
+                "1. Output valid JSON only.\n"
+                "2. 'topic': High-CTR, curiosity-driven YouTube documentary title in standard Taiwan Traditional Chinese (台灣正體中文，嚴禁大陸簡體與大陸流行用語，用詞精準有力，引人入勝).\n"
+                "3. 'logline': 1-2 sentence compelling summary of what the video uncovers and explains.\n"
+                "4. 'category': Short category string (e.g. '中國朝代冷知識', '宋代生活奇觀', '明清宮廷秘辛', '秦漢黑科技與制度', '三國歷史翻案').\n"
+                "5. 'recommended_duration': 5.0 or 10.0.\n"
+                "6. 'recommended_style': One of ('cinematic_documentary', 'photorealistic_cinema', 'vintage_archive', 'digital_painting').\n"
+                "7. 'proof': Object containing:\n"
+                "   - 'platform': (e.g. '正史典籍考證（《史記》/《宋史》/《明實錄》/《清宮檔案》）')\n"
+                "   - 'metrics': (e.g. '學界公認第一手文獻記載 / 故宮出土檔案紀錄 / 破百萬文史討論話題')\n"
+                "   - 'headline': Cited historical record or archaeological excavation note\n"
+                "   - 'url': Real reference or portal URL (e.g. https://ctext.org/ or https://www.npm.gov.tw/ or https://www2.ihp.sinica.edu.tw/ or Wikipedia zh-tw article)\n"
+                "   - 'source_name': Name of primary historical text, author, or research institution\n"
+                "   - 'why_popular': Why modern viewers are fascinated by this historical discovery (反直覺、揭開歷史真相、與現代生活產生強烈對比)\n"
+                "8. STRICT ZERO PRC / MAINLAND SOURCES & SIMPLIFIED CHINESE: 100% avoid using or citing sources, materials, or URLs from mainland China (.cn domains, PRC state media, Baidu, Zhihu, etc.) as China twists and alters facts for political purposes. 100% avoid Simplified Chinese. Ensure all terminology adheres strictly to 台灣用語 and 台灣翻譯名稱.\n"
             )
             data = client.json(prompt, "Output valid JSON only", temperature=0.75)
             if isinstance(data, dict):

@@ -1488,7 +1488,8 @@ def get_stage_data_endpoint(project_id: str, stage_name: str):
                 chars = scan_and_populate_project_characters(p)
             except Exception as e:
                 log.warning("Auto character discovery failed: %s", e)
-        ret = {"research": res_json, "characters": chars}
+        fact_check = p.read_json("research/fact_check_report.json", None)
+        ret = {"research": res_json, "characters": chars, "fact_check": fact_check}
     elif stage_name == "script":
         ret = {
             "script_json": p.read_json("script/script.json", {}),
@@ -1706,6 +1707,49 @@ def generate_world_setting_endpoint(project_id: str):
     res_data["world_setting"] = ws
     p.write_json("research/research.json", res_data)
     return {"status": "ok", "world_setting": ws}
+
+
+@app.post("/api/projects/{project_id}/fact-check")
+async def run_fact_check_endpoint(project_id: str):
+    """Run an on-demand fact-check and double-check validity on the project."""
+    p = get_project(project_id)
+    if not p:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    from core.fact_checker import verify_project_facts
+    try:
+        report = verify_project_facts(p)
+        return {"status": "ok", "report": report}
+    except Exception as e:
+        log.exception("Fact check failed for project %s", project_id)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/projects/{project_id}/fact-check")
+async def get_fact_check_endpoint(project_id: str):
+    """Get the latest fact check report for the project."""
+    p = get_project(project_id)
+    if not p:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    report_file = p.path("research", "fact_check_report.json")
+    if not report_file.exists():
+        res_file = p.path("research", "research.json")
+        if res_file.exists():
+            try:
+                from core.fact_checker import verify_project_facts
+                report = verify_project_facts(p, client=False)
+                return {"status": "ok", "report": report}
+            except Exception:
+                pass
+        return {"status": "not_found", "report": None}
+
+    try:
+        with open(report_file, "r", encoding="utf-8") as f:
+            report = json.load(f)
+        return {"status": "ok", "report": report}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to load fact check report: {e}")
 
 @app.get("/api/projects/{project_id}/stages/{stage_name}/versions")
 def get_versions_endpoint(project_id: str, stage_name: str):

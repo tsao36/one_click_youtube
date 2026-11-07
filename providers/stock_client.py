@@ -12,6 +12,7 @@ import requests
 from PIL import Image
 
 from core.config import ROOT, get_secret
+from core.taiwan_mandarin import normalize_to_taiwan_mandarin
 from rendering.ffmpeg_utils import ffmpeg_bin, run_ffmpeg
 
 log = logging.getLogger(__name__)
@@ -34,7 +35,10 @@ def resolve_wikipedia_portrait(entity_name: str) -> dict[str, Any] | None:
     if not clean_name:
         return None
 
-    headers = {"User-Agent": USER_AGENT}
+    headers = {
+        "User-Agent": USER_AGENT,
+        "Accept-Language": "zh-tw, zh-hant;q=0.9, en;q=0.8"
+    }
     endpoints = [
         f"https://en.wikipedia.org/api/rest_v1/page/summary/{urllib.parse.quote(clean_name)}",
         f"https://zh.wikipedia.org/api/rest_v1/page/summary/{urllib.parse.quote(clean_name)}",
@@ -64,7 +68,7 @@ def resolve_wikipedia_portrait(entity_name: str) -> dict[str, Any] | None:
 
             return {
                 "id": f"wikipedia_{data.get('pageid', clean_name)}",
-                "title": data.get("title", clean_name),
+                "title": normalize_to_taiwan_mandarin(data.get("title", clean_name)),
                 "type": "image",
                 "source": "wikipedia",
                 "thumbnail_url": thumb.get("source") or img_url,
@@ -74,7 +78,7 @@ def resolve_wikipedia_portrait(entity_name: str) -> dict[str, Any] | None:
                 "duration": None,
                 "author": "Wikipedia Contributors",
                 "license": "Public Domain / CC-BY-SA",
-                "description": data.get("description", "")
+                "description": normalize_to_taiwan_mandarin(data.get("description", ""))
             }
         except Exception as e:
             log.debug("Wikipedia infobox resolve error for '%s' on %s: %s", clean_name, ep, e)
@@ -99,7 +103,10 @@ def search_wikimedia(query: str, media_type: str = "all", limit: int = 15) -> li
         "iiprop": "url|size|mime|extmetadata",
         "format": "json"
     }
-    headers = {"User-Agent": USER_AGENT}
+    headers = {
+        "User-Agent": USER_AGENT,
+        "Accept-Language": "zh-tw, zh-hant;q=0.9, en;q=0.8"
+    }
 
     query_tokens = [t.lower() for t in re.findall(r"\w+", search_term) if len(t) >= 2]
     query_years = set(re.findall(r"\b(19\d\d|20\d\d)\b", search_term))
@@ -467,7 +474,10 @@ def search_stock_media(query: str, media_type: str = "all", source: str = "auto"
 def download_media_file(media_url: str, target_path: Path) -> Path:
     """Download a remote media URL into a local file with proper headers."""
     target_path.parent.mkdir(parents=True, exist_ok=True)
-    headers = {"User-Agent": USER_AGENT}
+    headers = {
+        "User-Agent": USER_AGENT,
+        "Accept-Language": "zh-tw, zh-hant;q=0.9, en;q=0.8"
+    }
     with requests.get(media_url, headers=headers, stream=True, timeout=60) as r:
         r.raise_for_status()
         with open(target_path, "wb") as f:

@@ -209,6 +209,13 @@ class DocumentaryPipeline(BasePipeline):
 
             self.p.write_json("research/research.json", res)
 
+            # Double-check fact validity, purge PRC sources, and generate fact verification reports
+            try:
+                from core.fact_checker import verify_project_facts
+                verify_project_facts(self.p, on_request=self._track_llm_request, provider_override=res_prov)
+            except Exception as fce:
+                log.warning("Stage 1 fact verification report generation failed: %s", fce)
+
             # Identify key characters and discover authentic online media
             try:
                 self.p.activity("Stage 1/10: Identifying key characters & discovering authentic online media...")

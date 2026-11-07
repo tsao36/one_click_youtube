@@ -12940,6 +12940,148 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
     /* ==========================================================================
        KEY CHARACTERS & AUTHENTIC MEDIA REVIEW (Stage 1 Research Extension)
        ========================================================================== */
+    /* ==========================================================================
+       FACT VALIDITY DOUBLE-CHECK & TAIWAN MANDARIN VERIFICATION (Stage 1)
+       ========================================================================== */
+    function renderFactCheckCardHtml(factCheck) {
+      if (!factCheck) {
+        return `
+          <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 8px; padding: 16px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+              <div style="font-weight: 700; color: #34d399; font-size: 14px; display: flex; align-items: center; gap: 8px;">
+                <span>🛡️</span> Fact Validity Double-Check & Taiwan Terminology (事實真偽雙重查核與臺灣用語檢驗)
+              </div>
+              <button class="btn-sec" style="font-size: 12px; padding: 6px 14px; background: rgba(16, 185, 129, 0.2); border-color: #10b981; color: #6ee7b7; font-weight: 700;" onclick="triggerStudioFactCheck(this)">
+                🔍 立即執行事實查核 (Run Fact Check)
+              </button>
+            </div>
+            <div style="font-size: 12px; color: var(--text-muted); margin-top: 8px;">
+              100% 排除中國大陸來源與簡體字資料，防範政治扭曲事實；全篇落實臺灣正體中文與臺灣標準翻譯名稱，並依中央研究院及國際學術共識雙重驗證。
+            </div>
+          </div>
+        `;
+      }
+
+      const score = Number(factCheck.validity_score || 100);
+      const status = factCheck.overall_status || 'PASSED';
+      const isPassed = status === 'PASSED';
+      const statusColor = isPassed ? '#34d399' : (status === 'NEEDS_REVIEW' ? '#fbbf24' : '#f87171');
+      const statusBg = isPassed ? 'rgba(16, 185, 129, 0.18)' : (status === 'NEEDS_REVIEW' ? 'rgba(245, 158, 11, 0.18)' : 'rgba(239, 68, 68, 0.18)');
+      const claims = factCheck.claims_audit || [];
+      const srcInt = factCheck.source_integrity || {};
+      const blocked = srcInt.prohibited_prc_sources_blocked || [];
+      const safe = srcInt.verified_safe_sources || [];
+
+      let blockedHtml = '';
+      if (blocked.length > 0) {
+        blockedHtml = `
+          <div style="margin-top: 10px; padding: 8px 12px; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.35); border-radius: 6px; font-size: 11.5px; color: #fca5a5;">
+            <b>🚫 已攔截並阻絕之中國大陸/簡體字來源 (${blocked.length} 項)：</b>
+            <ul style="margin: 4px 0 0 16px; padding: 0;">
+              ${blocked.map(b => `<li>${escapeHtml(b)}</li>`).join('')}
+            </ul>
+          </div>
+        `;
+      }
+
+      let claimsRows = '';
+      claims.forEach((c, idx) => {
+        const v = c.verdict || 'VERIFIED';
+        const vBadge = v === 'VERIFIED'
+          ? '<span style="color: #34d399; font-weight: 700;">🟢 正確 (VERIFIED)</span>'
+          : (v === 'DISPUTED' ? '<span style="color: #fbbf24; font-weight: 700;">🟡 存疑 (DISPUTED)</span>' : '<span style="color: #f87171; font-weight: 700;">🔴 錯誤 (FALSE)</span>');
+        const conf = Math.round(Number(c.confidence || 0.9) * 100);
+        let expl = escapeHtml(c.explanation || '');
+        if (c.correction_suggestion) {
+          expl += `<div style="margin-top: 4px; color: #6ee7b7; font-weight: 600;">💡 臺灣用語修正建議：${escapeHtml(c.correction_suggestion)}</div>`;
+        }
+        claimsRows += `
+          <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);">
+            <td style="padding: 8px 10px; color: var(--text-muted); font-family: monospace;">${idx + 1}</td>
+            <td style="padding: 8px 10px; color: #fff; font-weight: 600;">${escapeHtml(c.claim || '')}</td>
+            <td style="padding: 8px 10px; white-space: nowrap;">${vBadge}</td>
+            <td style="padding: 8px 10px; color: #93c5fd; font-family: monospace;">${conf}%</td>
+            <td style="padding: 8px 10px; color: #cbd5e1; font-size: 11.5px; line-height: 1.4;">${expl}</td>
+          </tr>
+        `;
+      });
+
+      return `
+        <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 8px; padding: 16px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 12px;">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+              <span style="font-size: 18px;">🛡️</span>
+              <span style="font-weight: 700; color: #fff; font-size: 14px;">Fact Validity Double-Check & Taiwan Standards (事實真偽查核與臺灣用語檢驗)</span>
+              <span style="font-size: 12px; font-weight: 800; padding: 2px 8px; border-radius: 12px; background: ${statusBg}; color: ${statusColor}; border: 1px solid ${statusColor}; font-family: monospace;">
+                ${score}/100 (${status})
+              </span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 11px; background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); padding: 2px 8px; border-radius: 12px;">
+                🚫 100% 零中國來源保證
+              </span>
+              <span style="font-size: 11px; background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); padding: 2px 8px; border-radius: 12px;">
+                🇹🇼 臺灣正體中文與翻譯名稱
+              </span>
+              <button class="btn-sec" style="font-size: 11px; padding: 4px 10px; background: rgba(16, 185, 129, 0.2); border-color: #10b981; color: #6ee7b7; font-weight: 700;" onclick="triggerStudioFactCheck(this)">
+                🔄 重新雙重查核 (Re-Check)
+              </button>
+            </div>
+          </div>
+
+          <div style="font-size: 12.5px; color: #cbd5e1; line-height: 1.5; margin-bottom: 12px; background: rgba(0,0,0,0.25); padding: 10px 12px; border-radius: 6px;">
+            ${escapeHtml(factCheck.summary || '已依據臺灣學術文獻及國際同儕共識完成事實有效性雙重查核。')}
+          </div>
+
+          ${blockedHtml}
+
+          <details style="margin-top: 10px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 8px;">
+            <summary style="cursor: pointer; font-size: 12px; font-weight: 600; color: #93c5fd; user-select: none;">
+              🔍 檢視逐項事實查核清單 (${claims.length} 項核心主張)
+            </summary>
+            <div style="margin-top: 10px; overflow-x: auto;">
+              <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left;">
+                <thead>
+                  <tr style="border-bottom: 1px solid rgba(255,255,255,0.12); color: var(--text-muted); font-size: 11px;">
+                    <th style="padding: 6px 10px; width: 40px;">#</th>
+                    <th style="padding: 6px 10px; min-width: 180px;">受檢事實主張 (Claim)</th>
+                    <th style="padding: 6px 10px; width: 130px;">查核結論</th>
+                    <th style="padding: 6px 10px; width: 80px;">信心度</th>
+                    <th style="padding: 6px 10px;">考證依據與臺灣用語建議</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${claimsRows}
+                </tbody>
+              </table>
+            </div>
+          </details>
+        </div>
+      `;
+    }
+
+    async function triggerStudioFactCheck(btn) {
+      if (!currentProjectId) return;
+      const oldHtml = btn.innerHTML;
+      btn.innerHTML = '⏳ 正在雙重查核事實中...';
+      btn.disabled = true;
+      try {
+        const res = await fetch(`/api/projects/${currentProjectId}/fact-check`, { method: 'POST' });
+        const data = await res.json();
+        if (data.status === 'ok') {
+          if (typeof showToast === 'function') showToast('✓ 事實真偽雙重查核完成！');
+          if (typeof loadStageStudio === 'function') await loadStageStudio('research');
+        } else {
+          alert('事實查核失敗: ' + (data.detail || JSON.stringify(data)));
+        }
+      } catch (err) {
+        alert('事實查核連線失敗: ' + err.message);
+      } finally {
+        btn.innerHTML = oldHtml;
+        btn.disabled = false;
+      }
+    }
+
     function renderCharactersReviewHtml(characters, isInspector = false) {
       if (!Array.isArray(characters) || !characters.length) {
         return `
@@ -13807,6 +13949,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
         const wsSettings = (stringifyWsVal(ws.key_settings) || '').replace(/"/g, '&quot;');
         const wsEnsemble = stringifyWsVal(ws.ensemble_specs) || '';
         const wsNegatives = Array.isArray(ws.negative_anachronisms) ? ws.negative_anachronisms.join('\n') : (ws.negative_anachronisms || '');
+        bodyHtml += renderFactCheckCardHtml(data.fact_check || (resObj && resObj.fact_check));
 
         bodyHtml += `
           <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(59, 130, 246, 0.35); border-radius: 8px; padding: 16px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">

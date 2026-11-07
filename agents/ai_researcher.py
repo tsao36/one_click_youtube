@@ -52,7 +52,7 @@ FALLBACK_AI_TOPICS: list[dict[str, Any]] = [
         "recommended_style": "tech_schematic",
         "proof": {
             "platform": "Anthropic 官方技術白皮書與 GitHub 實測基準",
-            "metrics": "OSWorld 基準測試領先現有模型近兩倍 / 支援完整 GUI 介面閉環操作",
+            "metrics": "OSWorld 基準測試領先現有模型近兩倍 / 支援完整 GUI 介面全流程自動化操作",
             "headline": "Developing Computer Use: Claude 3.5 Sonnet can now interact directly with computer interfaces",
             "url": "https://www.anthropic.com/news/3-5-models-and-computer-use",
             "source_name": "Anthropic Engineering / OSWorld Benchmark",
@@ -169,7 +169,7 @@ def discover_ai_topic(exclude_topics: list[str] | None = None) -> dict[str, Any]
         try:
             client = LLMClient("research", provider_override=provider_override, json_retries=1)
             prompt = (
-                "You are an elite Silicon Valley AI technology analyst and high-production YouTube tech documentary director (inspired by creators like 極客灣, 柴知道, Two Minute Papers, Yannic Kilcher, 泛科學, TechLead, ColdFusion).\n"
+                "You are an elite Silicon Valley AI technology analyst and high-production YouTube tech documentary director (inspired by creators like Two Minute Papers, Yannic Kilcher, 泛科學, TechLead, ColdFusion, 李宏毅).\n"
                 "Your task is to propose ONE highly viral, technically rigorous, and captivating topic focusing on 'NEW AI TECHNOLOGY NEWS IN THE WORLD' (全球最新 AI 前沿科技與產業重大突破).\n"
                 f"Suggested AI frontier focus area for inspiration: {chosen_field}\n\n"
                 f"Already queued topics to EXCLUDE (do not duplicate or copy closely):\n{list(exclude)[:10]}\n\n"
@@ -181,7 +181,7 @@ def discover_ai_topic(exclude_topics: list[str] | None = None) -> dict[str, Any]
                 "- 世界模型（World Models）與物理規律模擬（超越像素生成，進入物理空間規律預測）\n\n"
                 "Requirements:\n"
                 "1. Output valid JSON only.\n"
-                "2. 'topic': High-CTR, curiosity-driven YouTube documentary title in standard Taiwan Traditional Chinese (台灣繁體中文，嚴禁大陸簡體與大陸用語，用詞精準有力，引人入勝).\n"
+                "2. 'topic': High-CTR, curiosity-driven YouTube documentary title in standard Taiwan Traditional Chinese (台灣正體中文，嚴禁大陸簡體與大陸用語，用詞精準有力，引人入勝).\n"
                 "3. 'logline': 1-2 sentence compelling summary of what the video uncovers, explains, and demystifies.\n"
                 "4. 'category': Short category string (e.g. '全球 AI 科技前沿', '前沿大模型與推理架構', '具身智慧與實體機器人', 'AI 晶片與超級運算硬體', '世界模型與前沿視覺生成').\n"
                 "5. 'recommended_duration': 5.0 or 10.0.\n"
@@ -193,6 +193,7 @@ def discover_ai_topic(exclude_topics: list[str] | None = None) -> dict[str, Any]
                 "   - 'url': Real reference or portal URL (e.g. arXiv paper, OpenAI, Nature, DeepMind, NVIDIA, IEEE Spectrum)\n"
                 "   - 'source_name': Name of primary research lab, tech organization, or scientific journal\n"
                 "   - 'why_popular': Why this AI breakthrough electrifies tech enthusiasts and broad audiences alike (顛覆認知、跨越人機界限、引領全球未來十年科技走向)\n"
+                "8. STRICT ZERO PRC / MAINLAND SOURCES & SIMPLIFIED CHINESE: 100% avoid using or citing sources, materials, or URLs from mainland China (.cn domains, PRC state media, Baidu, etc.) as China twists and alters facts for political purposes. 100% avoid Simplified Chinese. Ensure all terminology adheres strictly to 台灣用語 and 台灣翻譯名稱 (如人工智慧、晶片、演算法、軟體、資料庫、記憶體、伺服器).\n"
             )
             data = client.json(prompt, "Output valid JSON only", temperature=0.75)
             if isinstance(data, dict):

@@ -96,6 +96,18 @@ A non-destructive pipeline lifecycle policy ensuring user-edited historical cons
 _Avoid_: Config lock, freeze schema, sticky world setting
 _Avoid_: Late credit check, runtime billing probe, mid-job balance test
 
+**PRC Source Exclusion**:
+A zero-tolerance source filtering and validation policy that automatically blocks, strips, and prevents the ingestion or citation of materials, websites, and data originating from the People's Republic of China (.cn domains, PRC state-controlled media, search engines, forums, content farms) or simplified Chinese texts, protecting documentary content from state-sponsored political propaganda and historical distortions.
+_Avoid_: China block, domain ban, PRC filter, red list
+
+**Taiwan Translation Names**:
+The rigorous enforcement of Taiwan National Academy for Educational Research (國家教育研究院) and Ministry of Foreign Affairs (外交部) standard translation naming conventions and authentic Taiwanese Mandarin vocabulary across all project stages, replacing mainland Chinese transliterations (e.g. 歐巴馬 not 奧巴馬, 川普 not 特朗普, 柴契爾 not 撒切爾, 普丁 not 普京, 澤倫斯基 not 澤連斯基, 史達林 not 斯大林, 邱吉爾 not 丘吉爾, 賈伯斯 not 喬布斯, 晶片 not 芯片, 演算法 not 算法, 軟體 not 軟件).
+_Avoid_: Taiwan words, Chinese conversion, localize terms
+
+**Fact Validity Double-Check**:
+A systematic post-research and pre-rendering verification subsystem that cross-examines documentary claims against verified Taiwanese academic institutions (e.g. 中央研究院, 國史館, 國家圖書館) and reputable international peer-reviewed consensus, outputting a structured validity score, claim-by-claim verdict (VERIFIED, DISPUTED, FALSE), and Taiwan-standard corrections while generating persistent JSON and Markdown reports.
+_Avoid_: Truth check, fact probe, myth check
+
 **Split-Angle Dialogue Cut**:
 A visual pacing mechanism that automatically alternates camera sizes or angles (e.g. medium push-in to tight close-up) during an extended spoken line (>6.0s) while preserving continuous uninterrupted audio.
 _Avoid_: Jump cut, audio split, sentence interruption

@@ -5,11 +5,31 @@ import json
 import re
 
 from core.config import load_providers
+from core.fact_checker import double_check_facts
 from core.logging_setup import log
-from core.taiwan_mandarin import is_taiwan_mandarin, normalize_to_taiwan_mandarin
+from core.taiwan_mandarin import (
+    is_prohibited_china_source,
+    is_taiwan_mandarin,
+    normalize_to_taiwan_mandarin,
+    sanitize_and_filter_sources,
+)
 from providers.llm import LLMClient, build_provider
 
-SYSTEM = "You are a meticulous research assistant for educational YouTube documentaries. You ensure rigorous factual and historical accuracy, establishing clear world settings and demographic realities so visual production avoids anachronisms. Output only JSON."
+SYSTEM = (
+    "You are a meticulous research assistant for educational YouTube documentaries. "
+    "You ensure rigorous factual, scientific, and historical accuracy, establishing clear world settings and demographic realities. "
+    "Output only JSON.\n\n"
+    "CRITICAL SOURCE & ACCURACY MANDATE:\n"
+    "1. 100% AVOID PRC / CHINA MAINLAND SOURCES & SIMPLIFIED CHINESE: "
+    "Strictly avoid any sources, materials, or websites from the People's Republic of China (PRC / .cn domains, state-controlled media, "
+    "Baidu, Zhihu, Bilibili, Weibo, Xinhua, etc.), as China alters, censors, and twists facts for political purposes. "
+    "100% avoid Simplified Chinese sources. "
+    "Only cite and rely upon verified Taiwan Traditional Chinese (.tw, Academia Sinica, university archives) and reputable international sources "
+    "(e.g. Nature, Science, Reuters, AP, BBC, zh-tw / en Wikipedia).\n"
+    "2. 100% TAIWAN MANDARIN & STANDARD TRANSLATIONS: "
+    "All Chinese text MUST strictly adhere to Taiwan Traditional Chinese vocabulary (台灣用語) and standard Taiwanese translation names "
+    "(台灣翻譯名稱，例如：歐巴馬、川普、柴契爾、普丁、澤倫斯基、史達林、邱吉爾、賈伯斯、達文西、梵谷、克卜勒、歐本海默、紐西蘭、雪梨、杜拜、德州、太空梭、匿蹤戰機、晶片、演算法、軟體、資料庫、記憶體、影片)."
+)
 
 SCHEMA = """{
   "main_question": "the core question the video answers",
@@ -151,10 +171,22 @@ def research(
             if not ok:
                 raise RuntimeError(msg)
             on_request(g)
-            search_query = f"Research this video topic thoroughly with current, accurate information and cite sources: {topic}"
+            search_query = (
+                f"Research this video topic thoroughly with current, accurate information: {topic} "
+                "-site:.cn -site:baidu.com -site:zhihu.com -site:bilibili.com -site:weibo.com -site:xinhuanet.com "
+                "(Strictly exclude PRC China mainland websites and Simplified Chinese sources. "
+                "Cite verified Taiwan Traditional Chinese .tw sources or reputable international sources only)"
+            )
             if is_tw:
                 search_query += " (Focus on Taiwan Traditional Chinese terminology and context where applicable)"
-            notes = g.generate_with_search(search_query)
+            raw_search_notes = g.generate_with_search(search_query)
+            # Filter search notes to strip any lines citing prohibited PRC sources
+            clean_note_lines = []
+            for line in raw_search_notes.splitlines():
+                is_prc, _r = is_prohibited_china_source(line)
+                if not is_prc:
+                    clean_note_lines.append(line)
+            notes = "\n".join(clean_note_lines)
             mode = "hybrid" if has_user_research else "gemini_search"
         except Exception as e:
             log.warning("Research provider failed (%s); continuing with LLM knowledge only", e)
@@ -213,6 +245,32 @@ def research(
         data = _normalize_obj_taiwan(data)
         if ws_saved:
             data["world_setting"] = ws_saved
+    # Sanitize and filter sources (100% avoid mainland China & simplified Chinese sources)
+    raw_sources = data.get("sources", [])
+    safe_sources, blocked_sources = sanitize_and_filter_sources(raw_sources)
+    data["sources"] = safe_sources
+    if blocked_sources:
+        log.warning("Blocked %d prohibited PRC or Simplified Chinese sources from research output: %s", len(blocked_sources), blocked_sources)
+
+    # Attach Double-Check Fact Validity Report
+    try:
+        fact_report = double_check_facts(
+            topic=topic,
+            research_data=data,
+            client=client,
+            use_llm=True
+        )
+        data["fact_check"] = {
+            "validity_score": fact_report.get("validity_score", 100),
+            "overall_status": fact_report.get("overall_status", "PASSED"),
+            "summary": fact_report.get("summary", ""),
+            "timestamp": fact_report.get("timestamp", ""),
+            "blocked_sources": fact_report.get("source_integrity", {}).get("prohibited_prc_sources_blocked", []),
+            "claims_count": len(fact_report.get("claims_audit", [])),
+        }
+    except Exception as fe:
+        log.warning("Fact validity check during research failed (%s); continuing", fe)
+
     data["mode"] = mode
     if has_user_research:
         data["user_research"] = user_research.strip()
