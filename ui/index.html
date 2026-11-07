@@ -3970,13 +3970,23 @@
     let pollController = null;
 
     async function apiRequest(url, options = {}) {
-      const response = await fetch(url, options);
+      let response;
+      try {
+        response = await fetch(url, options);
+      } catch (error) {
+        throw new Error(error?.message || 'Network request failed');
+      }
       if (response.ok) return response;
       const body = await response.json().catch(() => ({}));
       const detail = Array.isArray(body.detail)
         ? body.detail.map(item => item.msg || JSON.stringify(item)).join('; ')
         : (body.detail || body.message);
       throw new Error(detail || `Request failed (${response.status})`);
+    }
+
+    async function apiJson(url, options = {}) {
+      const response = await apiRequest(url, options);
+      return response.json();
     }
     let timerInterval = null;
     let cachedRerenderVoices = [];
@@ -7376,9 +7386,7 @@
       const controller = new AbortController();
       pollController = controller;
       try {
-        const res = await fetch('/api/projects/' + projectId + '/status', { signal: controller.signal });
-        if (!res.ok) throw new Error(`Project status request failed (${res.status})`);
-        const d = await res.json();
+        const d = await apiJson('/api/projects/' + projectId + '/status', { signal: controller.signal });
         if (generation !== pollGeneration || projectId !== currentProjectId) return false;
         const p = d.project;
 
@@ -8228,9 +8236,7 @@
         return;
       }
       try {
-        const res = await fetch(`/api/projects/${currentProjectId}/stop_render`, { method: 'POST' });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.detail || "Failed to stop video rendering");
+        const data = await apiJson(`/api/projects/${currentProjectId}/stop_render`, { method: 'POST' });
         alert("Video rendering stopped successfully.");
         pollProject();
       } catch (e) {
@@ -8246,8 +8252,7 @@
 
     async function loadScenesForEditor() {
       if (!currentProjectId) return;
-      const res = await fetch('/api/projects/' + currentProjectId);
-      const d = await res.json();
+      const d = await apiJson('/api/projects/' + currentProjectId);
       currentScenes = d.scenes || [];
       const tbody = document.getElementById('scenes-tbody');
       tbody.innerHTML = '';

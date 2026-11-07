@@ -149,6 +149,11 @@ def queue_pipeline_job(p: Project, background_tasks: BackgroundTasks, work: Call
         return True
 
 
+def queue_pipeline_run(p: Project, background_tasks: BackgroundTasks, **kwargs: Any) -> bool:
+    """Queue the pipeline's standard full run without repeating the lambda at call sites."""
+    return queue_pipeline_job(p, background_tasks, lambda pipeline: pipeline.run(), **kwargs)
+
+
 # ---------------- Models ----------------
 class CreateProjectRequest(BaseModel):
     topic: str
@@ -616,7 +621,7 @@ def create_project(req: CreateProjectRequest, background_tasks: BackgroundTasks)
     p.save()
 
     if req.start_now:
-        queue_pipeline_job(p, background_tasks, lambda pipeline: pipeline.run())
+        queue_pipeline_run(p, background_tasks)
 
     return {"project_id": p.id, "status": "created"}
 
@@ -1414,7 +1419,7 @@ def update_project_music(project_id: str, req: UpdateProjectMusicRequest):
 @app.post("/api/projects/{project_id}/start")
 def start_project_pipeline(project_id: str, background_tasks: BackgroundTasks, stop_at: Optional[str] = None):
     p = get_project(project_id)
-    if not queue_pipeline_job(p, background_tasks, lambda pipeline: pipeline.run(), stop_at=stop_at):
+    if not queue_pipeline_run(p, background_tasks, stop_at=stop_at):
         return {"status": "already_running"}
     return {"status": "started", "stop_at": stop_at}
 
@@ -1452,7 +1457,7 @@ def run_cascade_endpoint(project_id: str, from_stage: str, background_tasks: Bac
             project.set_stage(stage, Status.PENDING)
         project.data.activity = f"Cascading generation from {from_stage} through to final video..."
 
-    if not queue_pipeline_job(p, background_tasks, lambda pipeline: pipeline.run(), prepare=prepare):
+    if not queue_pipeline_run(p, background_tasks, prepare=prepare):
         return {"status": "already_running"}
     return {"status": "started_cascade", "from_stage": from_stage, "stages": cascade_stages}
 
@@ -1465,7 +1470,7 @@ def assemble_project_pipeline(project_id: str, background_tasks: BackgroundTasks
         project.set_stage("render", Status.PENDING)
         project.data.activity = "Stringing all stages together into final video..."
 
-    if not queue_pipeline_job(p, background_tasks, lambda pipeline: pipeline.run(), prepare=prepare):
+    if not queue_pipeline_run(p, background_tasks, prepare=prepare):
         return {"status": "already_running"}
     return {"status": "assembling"}
 
@@ -2140,7 +2145,7 @@ def regenerate_from_script_endpoint(
         project.invalidate("scenes")
         project.data.activity = "Stage 3/9: Re-segmenting storyboard scenes from proofread script..."
 
-    if not queue_pipeline_job(p, background_tasks, lambda pipeline: pipeline.run(), prepare=prepare):
+    if not queue_pipeline_run(p, background_tasks, prepare=prepare):
         return {"status": "already_running"}
 
     return {"status": "started", "from_stage": "scenes"}

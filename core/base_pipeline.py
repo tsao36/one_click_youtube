@@ -1197,13 +1197,14 @@ class BasePipeline:
                 # Check existing takes for a take synthesized with target voice
 
                 takes = meta.get("takes", [])
+                narration_hash = narration_fingerprint(sc.narration)
 
                 matching_take = None
 
                 for tk in reversed(takes):
 
                     if (tk.get("voice") == target
-                            and tk.get("narration_hash") == narration_fingerprint(sc.narration)
+                            and tk.get("narration_hash") == narration_hash
                             and tk.get("voice_config_hash") == config_hash):
 
                         tk_path = self.p.abs(tk.get("path"))
@@ -1848,6 +1849,7 @@ class BasePipeline:
                 self.p.save_scenes()
                 existing_audio_meta = dict(s.audio.meta or {})
                 prev_audio_takes = list(existing_audio_meta.get("takes", []))
+                narration_hash = narration_fingerprint(s.narration)
                 try:
                     meta = synthesize(s.narration, scene_profile, audio_path, cfg, provider_override=current_provider)
                     merged_audio_meta = dict(existing_audio_meta)
@@ -1855,7 +1857,7 @@ class BasePipeline:
                     merged_audio_meta["voice"] = scene_p_name
                     merged_audio_meta["provider"] = meta.get("provider", current_provider)
                     merged_audio_meta["takes"] = prev_audio_takes
-                    merged_audio_meta["narration_hash"] = narration_fingerprint(s.narration)
+                    merged_audio_meta["narration_hash"] = narration_hash
                     merged_audio_meta["voice_config_hash"] = config_hash
                     merged_audio_meta.pop("text_outdated", None)
                     merged_audio_meta.pop("previous_narration", None)

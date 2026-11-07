@@ -17,6 +17,11 @@ class VideoProviderError(RuntimeError):
     pass
 
 
+def _write_video_output(output: Path, content: bytes) -> None:
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_bytes(content)
+
+
 class VideoProvider(ABC):
     name = "base"
     is_cloud = True
@@ -76,8 +81,7 @@ class ComfyUIVideoProvider(VideoProvider):
         vids = [f for f in files if f[0].lower().endswith((".mp4", ".webm", ".webp", ".gif", ".mov"))]
         if not vids:
             raise VideoProviderError("ComfyUI video workflow returned no video file")
-        output.parent.mkdir(parents=True, exist_ok=True)
-        output.write_bytes(vids[0][1])
+        _write_video_output(output, vids[0][1])
         self.client.free()
         return {"provider": "comfyui_video", "workflow": self.cfg["workflow"], "seed": values["SEED"]}
 
@@ -116,8 +120,7 @@ class VeoProvider(VideoProvider):
                 samples = st["response"]["generateVideoResponse"]["generatedSamples"]
                 uri = samples[0]["video"]["uri"]
                 vid = requests.get(uri, headers=hdr, timeout=300, allow_redirects=True)
-                output.parent.mkdir(parents=True, exist_ok=True)
-                output.write_bytes(vid.content)
+                _write_video_output(output, vid.content)
                 return {"provider": "veo", "model": model}
         raise VideoProviderError("Veo timed out")
 

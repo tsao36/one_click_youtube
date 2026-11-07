@@ -12,7 +12,11 @@ from pathlib import Path
 from typing import Any, Optional
 
 import requests
-import yt_dlp
+
+try:
+    import yt_dlp
+except ImportError:  # Optional until a YouTube snippet is requested.
+    yt_dlp = None
 
 from core.config import ROOT
 from rendering.ffmpeg_utils import ffmpeg_bin, run_ffmpeg
@@ -20,6 +24,11 @@ from rendering.ffmpeg_utils import ffmpeg_bin, run_ffmpeg
 log = logging.getLogger(__name__)
 
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+
+
+def _require_yt_dlp() -> None:
+    if yt_dlp is None:
+        raise RuntimeError("yt-dlp is required for YouTube footage extraction; install requirements.txt")
 
 
 def _ensure_ffmpeg_path() -> str:
@@ -55,6 +64,7 @@ def extract_video_id(query_or_url: str) -> Optional[str]:
 
 def search_youtube_videos(query: str, limit: int = 5) -> list[dict[str, Any]]:
     """Search YouTube for footage matching the query and return metadata entries."""
+    _require_yt_dlp()
     _ensure_ffmpeg_path()
     clean_q = query.strip()
     if not clean_q:
@@ -164,6 +174,7 @@ def extract_youtube_snippet(
     Returns:
         Dictionary containing metadata, file paths, title, and source URL.
     """
+    _require_yt_dlp()
     from providers.stock_client import format_stock_image, format_stock_video
 
     ff_dir = _ensure_ffmpeg_path()
