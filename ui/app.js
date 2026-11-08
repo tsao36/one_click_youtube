@@ -6948,16 +6948,26 @@
       const themeEl = document.getElementById('set-remotion-theme');
       const densityEl = document.getElementById('set-remotion-density');
 
-      if (presetName === 'gary_chen') {
+      if (presetName === 'gary_chen' || presetName === 'modern_tech_explainer') {
         if (styleEl) styleEl.value = 'modern_tech_explainer';
         if (themeEl) themeEl.value = 'dark_obsidian';
         if (densityEl) densityEl.value = 'full';
         setRemotionAccentColor('#A855F7');
-      } else if (presetName === 'blueprint') {
+      } else if (presetName === 'blueprint' || presetName === 'tactile_blueprint') {
         if (styleEl) styleEl.value = 'tactile_blueprint';
         if (themeEl) themeEl.value = 'blueprint_grid';
         if (densityEl) densityEl.value = 'full';
         setRemotionAccentColor('#00F5FF');
+      } else if (presetName === 'coordinate_zero') {
+        if (styleEl) styleEl.value = 'coordinate_zero';
+        if (themeEl) themeEl.value = 'green_cutting_mat';
+        if (densityEl) densityEl.value = 'full';
+        setRemotionAccentColor('#0D9488');
+      } else if (presetName === 'fox_documentary') {
+        if (styleEl) styleEl.value = 'fox_documentary';
+        if (themeEl) themeEl.value = 'translucent_overlay';
+        if (densityEl) densityEl.value = 'rich';
+        setRemotionAccentColor('#38BDF8');
       }
       updateRemotionSettingsLivePreview();
     }
@@ -6982,6 +6992,22 @@
         previewPill.style.background = accent + '1f';
         previewPill.style.boxShadow = '0 0 10px ' + accent + '40';
       }
+
+      // Highlight active showcase card
+      const allStyles = ['modern_tech_explainer', 'coordinate_zero', 'tactile_blueprint', 'fox_documentary'];
+      allStyles.forEach(s => {
+        const card = document.getElementById('showcase-card-' + s);
+        if (card) {
+          const isSelected = (style === s);
+          let activeBorder = '#a855f7';
+          if (s === 'coordinate_zero') activeBorder = '#0d9488';
+          else if (s === 'tactile_blueprint') activeBorder = '#00F5FF';
+          else if (s === 'fox_documentary') activeBorder = '#38bdf8';
+          
+          card.style.border = isSelected ? `2px solid ${activeBorder}` : '1px solid #1e293b';
+          card.style.boxShadow = isSelected ? `0 0 16px ${activeBorder}40` : 'none';
+        }
+      });
 
       if (jsonEl) {
         const payload = {

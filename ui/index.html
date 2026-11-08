@@ -1969,7 +1969,106 @@
         配置 100% Remotion 模式的核心視覺體系、背景畫布主題、圖表覆蓋密度與主視覺強調色。所有新專案與 Stage 8 動畫算繪階段將預設套用此組配置，完全無需耗費 GPU 跑 AI 影片即可生成流暢專業的科技科普解說動態圖卡。
       </div>
 
-      <!-- Core 4 Controls Grid -->
+      <!-- Visual Style Snippet Showcase (風格圖庫與視覺展示卡片) -->
+      <div style="margin-bottom: 22px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+          <div style="font-size: 13px; font-weight: 800; color: #38bdf8; display: flex; align-items: center; gap: 8px;">
+            <span>🖼️</span>
+            <span>Remotion 核心視覺風格展示庫 (Style Snippet Showcase)</span>
+          </div>
+          <span style="font-size: 11px; color: #94a3b8;">點擊任一風格卡片即可一鍵套用畫布、主題色與動畫體系</span>
+        </div>
+
+        <div id="remotion-style-showcase-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px;">
+          
+          <!-- Style 1: Modern Tech Explainer (Gary Chen) -->
+          <div id="showcase-card-modern_tech_explainer" onclick="applyRemotionPresetInSettings('gary_chen')" style="border: 2px solid #a855f7; border-radius: 8px; background: #08090c; padding: 12px; cursor: pointer; transition: all 0.2s; box-shadow: 0 0 14px rgba(168,85,247,0.35);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-size: 12.5px; font-weight: 800; color: #f8fafc;">✨ Modern Tech Explainer</span>
+              <span style="font-size: 10.5px; padding: 2px 7px; border-radius: 4px; background: rgba(168,85,247,0.25); color: #c4b5fd; font-weight: 700;">Gary Chen</span>
+            </div>
+            <!-- Snippet Thumbnails -->
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-bottom: 8px;">
+              <img src="/remotion/style_frameworkmatrix.png" alt="Framework Matrix" style="width: 100%; height: 50px; object-fit: cover; border-radius: 4px; border: 1px solid #1e293b;">
+              <img src="/remotion/style_promptcomparison.png" alt="Prompt Comparison" style="width: 100%; height: 50px; object-fit: cover; border-radius: 4px; border: 1px solid #1e293b;">
+              <img src="/remotion/style_chatsimulation.png" alt="Chat Simulation" style="width: 100%; height: 50px; object-fit: cover; border-radius: 4px; border: 1px solid #1e293b;">
+            </div>
+            <div style="font-size: 11px; color: #94a3b8; line-height: 1.4; margin-bottom: 8px;">
+              純黑曜石畫布 · 四象限思維矩陣 · 提示詞策略對比 · AI對話模擬
+            </div>
+            <div style="display: flex; gap: 5px; align-items: center;">
+              <span style="font-size: 10px; padding: 2px 6px; border-radius: 3px; background: #1e1b4b; color: #c4b5fd; border: 1px solid #a855f7;">#A855F7 紫</span>
+              <span style="font-size: 10px; padding: 2px 6px; border-radius: 3px; background: #0f172a; color: #94a3b8; border: 1px solid #334155;">黑曜石純黑</span>
+            </div>
+          </div>
+
+          <!-- Style 2: Coordinate Zero (座標零) -->
+          <div id="showcase-card-coordinate_zero" onclick="applyRemotionPresetInSettings('coordinate_zero')" style="border: 1px solid #1e293b; border-radius: 8px; background: #0a1b14; padding: 12px; cursor: pointer; transition: all 0.2s;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-size: 12.5px; font-weight: 800; color: #f8fafc;">🧭 Coordinate Zero</span>
+              <span style="font-size: 10.5px; padding: 2px 7px; border-radius: 4px; background: rgba(13,148,136,0.25); color: #5eead4; font-weight: 700;">座標零</span>
+            </div>
+            <!-- Snippet Thumbnails -->
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-bottom: 8px;">
+              <img src="/remotion/style_coordinate_scale.png" alt="Coordinate Scale" style="width: 100%; height: 50px; object-fit: cover; border-radius: 4px; border: 1px solid #163c2e;">
+              <img src="/remotion/style_coordinate_experiment.png" alt="Coordinate Experiment" style="width: 100%; height: 50px; object-fit: cover; border-radius: 4px; border: 1px solid #163c2e;">
+              <img src="/remotion/style_coordinate_split.png" alt="Coordinate Split" style="width: 100%; height: 50px; object-fit: cover; border-radius: 4px; border: 1px solid #163c2e;">
+            </div>
+            <div style="font-size: 11px; color: #94a3b8; line-height: 1.4; margin-bottom: 8px;">
+              墨綠雕刻墊工坊 · 等緯尺度動態縮放 · 垂直對數倍率尺規 · 各對一半
+            </div>
+            <div style="display: flex; gap: 5px; align-items: center;">
+              <span style="font-size: 10px; padding: 2px 6px; border-radius: 3px; background: #134e4a; color: #5eead4; border: 1px solid #0d9488;">#0D9488 湖綠</span>
+              <span style="font-size: 10px; padding: 2px 6px; border-radius: 3px; background: #064e3b; color: #a7f3d0; border: 1px solid #047857;">墨綠雕刻墊</span>
+            </div>
+          </div>
+
+          <!-- Style 3: Tactile Blueprint (硬核藍圖) -->
+          <div id="showcase-card-tactile_blueprint" onclick="applyRemotionPresetInSettings('blueprint')" style="border: 1px solid #1e293b; border-radius: 8px; background: #070e1b; padding: 12px; cursor: pointer; transition: all 0.2s;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-size: 12.5px; font-weight: 800; color: #f8fafc;">⚛️ Tactile Blueprint</span>
+              <span style="font-size: 10.5px; padding: 2px 7px; border-radius: 4px; background: rgba(0,245,255,0.2); color: #00F5FF; font-weight: 700;">科技藍圖</span>
+            </div>
+            <!-- Snippet Thumbnails -->
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-bottom: 8px;">
+              <img src="/remotion/style_branchpathway.png" alt="Branch Pathway" style="width: 100%; height: 50px; object-fit: cover; border-radius: 4px; border: 1px solid #1e293b;">
+              <img src="/remotion/style_leadercallout.png" alt="Leader Callout" style="width: 100%; height: 50px; object-fit: cover; border-radius: 4px; border: 1px solid #1e293b;">
+              <img src="/remotion/style_scalecompare.png" alt="Scale Compare" style="width: 100%; height: 50px; object-fit: cover; border-radius: 4px; border: 1px solid #1e293b;">
+            </div>
+            <div style="font-size: 11px; color: #94a3b8; line-height: 1.4; margin-bottom: 8px;">
+              深藍工程網格 · 多路徑排除分支 · HUD動態引線 · 20X微米放大鏡
+            </div>
+            <div style="display: flex; gap: 5px; align-items: center;">
+              <span style="font-size: 10px; padding: 2px 6px; border-radius: 3px; background: #082f49; color: #00F5FF; border: 1px solid #0284c7;">#00F5FF 藍圖青</span>
+              <span style="font-size: 10px; padding: 2px 6px; border-radius: 3px; background: #0369a1; color: #e0f2fe; border: 1px solid #0284c7;">工程網格</span>
+            </div>
+          </div>
+
+          <!-- Style 4: fOx Hsiao Documentary (紀錄片) -->
+          <div id="showcase-card-fox_documentary" onclick="applyRemotionPresetInSettings('fox_documentary')" style="border: 1px solid #1e293b; border-radius: 8px; background: #0f172a; padding: 12px; cursor: pointer; transition: all 0.2s;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-size: 12.5px; font-weight: 800; color: #f8fafc;">📌 fOx Hsiao Documentary</span>
+              <span style="font-size: 10.5px; padding: 2px 7px; border-radius: 4px; background: rgba(56,189,248,0.2); color: #38bdf8; font-weight: 700;">調查紀錄片</span>
+            </div>
+            <!-- Snippet Thumbnails -->
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-bottom: 8px;">
+              <img src="/remotion/style_foxheader.png" alt="Fox Header" style="width: 100%; height: 50px; object-fit: cover; border-radius: 4px; border: 1px solid #1e293b;">
+              <img src="/remotion/style_foxmetric.png" alt="Fox Metric" style="width: 100%; height: 50px; object-fit: cover; border-radius: 4px; border: 1px solid #1e293b;">
+              <img src="/remotion/style_foxtimeline.png" alt="Fox Timeline" style="width: 100%; height: 50px; object-fit: cover; border-radius: 4px; border: 1px solid #1e293b;">
+            </div>
+            <div style="font-size: 11px; color: #94a3b8; line-height: 1.4; margin-bottom: 8px;">
+              高通透毛玻璃 · 85%底圖保留 · 96px巨型指標 · 年代歷程滑軌
+            </div>
+            <div style="display: flex; gap: 5px; align-items: center;">
+              <span style="font-size: 10px; padding: 2px 6px; border-radius: 3px; background: #075985; color: #38bdf8; border: 1px solid #0284c7;">#38BDF8 天藍</span>
+              <span style="font-size: 10px; padding: 2px 6px; border-radius: 3px; background: #991b1b; color: #fca5a5; border: 1px solid #dc2626;">#F87171 珊瑚紅</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+            <!-- Core 4 Controls Grid -->
       <div class="form-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 16px;">
         <!-- 1. Style -->
         <div class="form-group">
@@ -1979,6 +2078,7 @@
           </label>
           <select id="set-remotion-style" onchange="onRemotionSettingsChange()" style="padding: 8px 10px; background: #060b16; border: 1px solid #1e293b; color: #e2e8f0; border-radius: 6px; font-size: 13px; font-weight: 600;">
             <option value="modern_tech_explainer" selected>Modern Tech Explainer (Gary Chen 極簡黑曜石 / 科技思考)</option>
+            <option value="coordinate_zero">Coordinate Zero (座標零 桌面實驗室 / 綠色雕刻墊)</option>
             <option value="tactile_blueprint">Tactile Blueprint (硬核科技藍圖 / 微米工程 HUD 引線)</option>
             <option value="fox_documentary">fOx Hsiao Documentary (數據與時事調查紀錄片)</option>
           </select>
@@ -1995,6 +2095,7 @@
           </label>
           <select id="set-remotion-theme" onchange="onRemotionSettingsChange()" style="padding: 8px 10px; background: #060b16; border: 1px solid #1e293b; color: #e2e8f0; border-radius: 6px; font-size: 13px; font-weight: 600;">
             <option value="dark_obsidian" selected>Dark Obsidian (純黑黑曜石 #08090C · 0% 靜態背景干擾)</option>
+            <option value="green_cutting_mat">Green Cutting Mat (墨綠雕刻墊與象牙白美術紙)</option>
             <option value="blueprint_grid">Blueprint Grid (深藍工程網格與微米十字標尺)</option>
             <option value="translucent_overlay">Translucent Overlay (半透明毛玻璃圖卡 · 保留分鏡底圖)</option>
           </select>
@@ -2071,6 +2172,9 @@
       <!-- Action Buttons Row -->
       <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 24px;">
         <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+          <button type="button" class="btn-sec" onclick="applyRemotionPresetInSettings('coordinate_zero')" style="font-size: 12px; padding: 6px 12px; border-color: #0d9488; color: #5eead4; background: rgba(13,148,136,0.15); cursor: pointer;">
+            🧭 一鍵套用 座標零 (桌面切割墊)
+          </button>
           <button type="button" class="btn-sec" onclick="applyRemotionPresetInSettings('gary_chen')" style="font-size: 12px; padding: 6px 12px; border-color: #a855f7; color: #c4b5fd; cursor: pointer;">
             ✨ 一鍵套用 Gary Chen (極簡黑曜石紫)
           </button>
