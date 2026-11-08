@@ -374,13 +374,19 @@ def extract_motion_callouts(
     scenes: list[Scene],
     slots: list[Slot],
     min_interval: float = 3.5,
+    banner_style: str = "fox_kinetic",
 ) -> list[dict[str, Any]]:
     """Extract timeline-synchronized motion graphic callouts for all scenes.
 
     Honors manual `s.callout_text` if set by user in UI Scene Inspector.
     Calculates precise on-screen timestamps aligned to narration phrase timing.
     Enforces minimum gap `min_interval` between cards to avoid visual clutter.
+    If `banner_style` is 'none', disables overlay banners entirely.
     """
+    if str(banner_style or "").strip().lower() == "none":
+        log.info("Motion banner overlays explicitly disabled (banner_style='none')")
+        return []
+
     callouts: list[dict[str, Any]] = []
     last_end_time = -999.0
     recent_titles: list[str] = []
@@ -463,6 +469,7 @@ def extract_motion_callouts(
             "title": title_str,
             "subtitle": callout_data.get("subtitle", ""),
             "style": "FoxCalloutCard",
+            "banner_style": banner_style,
             "scene_id": getattr(sc, "scene_id", 0),
         }
         callouts.append(callout_entry)

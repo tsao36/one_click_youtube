@@ -287,9 +287,12 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 continue
 
             if c_style == "FoxCalloutCard":
+                b_style = str(co.get("banner_style") or kwargs.get("callout_style") or "fox_kinetic").lower().strip()
+                if b_style in ("none", "off", "disabled"):
+                    continue
+
                 raw_tag = str(co.get("tag", "")).strip()
-                # Strip emoji characters that render as monochrome wireframes in libass, replace with geometric diamond
-                clean_tag = re.sub(r"[^\u4e00-\u9fffA-Za-z0-9\s\-_/%]", "", raw_tag).strip() or "核心重點解析"
+                clean_tag = re.sub(r"[^\u4e00-\u9fffA-Za-z0-9\s\-_/%]", "", raw_tag).strip() or "重點解析"
                 title = str(co.get("title", "")).strip()
                 subtitle = str(co.get("subtitle", "")).strip()
                 if not title and co.get("text"):
@@ -297,38 +300,67 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 if not title:
                     continue
 
-                def _est_px(s: str, fsize: float) -> float:
-                    cjk = len(re.findall(r"[\u4e00-\u9fff\u3000-\u303f\uff00-\uffef]", s))
-                    other = len(s) - cjk
-                    return (cjk * 1.05 + other * 0.62) * fsize
-
                 fs_tag = round(25 * scale)
                 fs_title = round(54 * scale)
                 fs_sub = round(29 * scale)
-
-                w_tag = _est_px(f"◆ {clean_tag} ◆", fs_tag)
-                w_title = _est_px(title, fs_title)
-                w_sub = _est_px(subtitle, fs_sub) if subtitle else 0
-                content_w = max(w_tag, w_title, w_sub)
 
                 mid_x = round(width / 2)
                 y_top_start = round(72 * scale)
                 y_top_target = round(48 * scale)
 
-                # Pure floating kinetic typography with NO background box (preserves 100% of underlying visual)
-                anim_tag = f"{{\\an8\\move({mid_x},{y_top_start},{mid_x},{y_top_target},0,320)\\fad(250,300)}}"
-
-                # Highlight numbers/metrics in warm gold (#FFD838 -> &H0038D8FF&), key concepts in crisp white
+                anim_tag = f"{\\an8\\move({mid_x},{y_top_start},{mid_x},{y_top_target},0,320)\\fad(250,300)}"
                 has_metric = bool(re.search(r"(\d|[一二三四五六七八九十百千萬兩]+\s*[尊枚把件座名位人戶個條份公釐公厘毫米公分公尺公里倍成%])", title))
-                title_color = "&H0038D8FF&" if has_metric else "&H00FFFFFF&"
 
-                # High-contrast outline & shadow to guarantee crystal-clear readability without blocking the image
-                card_lines = [
-                    f"{{\\fs{fs_tag}\\c&H00FFE500&\\3c&H00140A04&\\bord2.5\\shad3\\b1}}◆  {clean_tag}  ◆",
-                    f"{{\\fs{fs_title}\\c{title_color}\\3c&H00100804&\\bord3.5\\shad4\\b1}}{title}",
-                ]
-                if subtitle:
-                    card_lines.append(f"{{\\fs{fs_sub}\\c&H00F2E6D8&\\3c&H00100804&\\bord2.4\\shad2.5\\b0}}{subtitle}")
+                if b_style == "archival_parchment":
+                    # Historical Archival Stamp banner (Vintage Crimson Stamp + Warm Parchment Text)
+                    tag_decor = f"【  {clean_tag}  】"
+                    card_lines = [
+                        f"{\\fs{fs_tag}\\c&H001B1B99&\\3c&H000C121E&\\bord2.2\\shad3\\b1}{tag_decor}",
+                        f"{\\fs{fs_title}\\c&H00D8EDF8&\\3c&H000C121E&\\bord3.2\\shad4\\b1}{title}",
+                    ]
+                    if subtitle:
+                        card_lines.append(f"{\\fs{fs_sub}\\c&H00B0C4DE&\\3c&H000C121E&\\bord2.2\\shad2.5\\b0}{subtitle}")
+
+                elif b_style == "modern_pill":
+                    # Modern Glassmorphism Pill banner (Neon Cyan Accent)
+                    tag_decor = f"[  {clean_tag}  ]"
+                    title_color = "&H0038D8FF&" if has_metric else "&H00FFFFFF&"
+                    card_lines = [
+                        f"{\\fs{fs_tag}\\c&H00F5FF00&\\3c&H00181008&\\bord2.2\\shad3\\b1}{tag_decor}",
+                        f"{\\fs{fs_title}\\c{title_color}\\3c&H00100804&\\bord3.0\\shad3.5\\b1}{title}",
+                    ]
+                    if subtitle:
+                        card_lines.append(f"{\\fs{fs_sub}\\c&H00DDEEFF&\\3c&H00100804&\\bord2.0\\shad2.5\\b0}{subtitle}")
+
+                elif b_style == "minimal_clean":
+                    # Minimal Clean Typography with subtle soft shadow
+                    tag_decor = f"•  {clean_tag}  •"
+                    card_lines = [
+                        f"{\\fs{fs_tag}\\c&H00CBD5E1&\\3c&H00000000&\\bord1.5\\shad2\\b1}{tag_decor}",
+                        f"{\\fs{fs_title}\\c&H00FFFFFF&\\3c&H00000000&\\bord2.0\\shad3\\b1}{title}",
+                    ]
+                    if subtitle:
+                        card_lines.append(f"{\\fs{fs_sub}\\c&H0094A3B8&\\3c&H00000000&\\bord1.5\\shad2\\b0}{subtitle}")
+
+                elif b_style == "broadcast_news":
+                    # Broadcast news upper banner
+                    tag_decor = f"▶  {clean_tag}"
+                    card_lines = [
+                        f"{\\fs{fs_tag}\\c&H0015CCFA&\\3c&H00081020&\\bord2.5\\shad3\\b1}{tag_decor}",
+                        f"{\\fs{fs_title}\\c&H00FFFFFF&\\3c&H00081020&\\bord3.2\\shad4\\b1}{title}",
+                    ]
+                    if subtitle:
+                        card_lines.append(f"{\\fs{fs_sub}\\c&H00E2E8F0&\\3c&H00081020&\\bord2.2\\shad2.5\\b0}{subtitle}")
+
+                else:
+                    # fox_kinetic (Classic Cyan Diamond floating typography)
+                    title_color = "&H0038D8FF&" if has_metric else "&H00FFFFFF&"
+                    card_lines = [
+                        f"{\\fs{fs_tag}\\c&H00FFE500&\\3c&H00140A04&\\bord2.5\\shad3\\b1}◆  {clean_tag}  ◆",
+                        f"{\\fs{fs_title}\\c{title_color}\\3c&H00100804&\\bord3.5\\shad4\\b1}{title}",
+                    ]
+                    if subtitle:
+                        card_lines.append(f"{\\fs{fs_sub}\\c&H00F2E6D8&\\3c&H00100804&\\bord2.4\\shad2.5\\b0}{subtitle}")
 
                 formatted_content = "\\N".join(card_lines)
                 raw_events.append((

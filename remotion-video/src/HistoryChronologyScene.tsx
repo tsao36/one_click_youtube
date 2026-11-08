@@ -88,26 +88,83 @@ export const HistoryChronologyScene: React.FC<HistoryChronologySceneProps> = ({
                 }}
               >
                 {/* Year Seal Badge */}
-                <div
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    width: 70,
-                    height: 70,
-                    borderRadius: "50%",
-                    border: `3px solid ${accentColor}`,
-                    color: accentColor,
-                    fontSize: 20,
-                    fontWeight: 900,
-                    fontFamily: "monospace",
-                    marginBottom: 14,
-                    backgroundColor: "rgba(255, 255, 255, 0.8)",
-                    boxShadow: "0 4px 10px rgba(153, 27, 27, 0.2)",
-                  }}
-                >
-                  {ev.year}
-                </div>
+                {(() => {
+                  const rawYear = String(ev.year || "").trim();
+                  const stageMatch = rawYear.match(/^STAGE\s*(\d+)$/i);
+                  if (stageMatch) {
+                    return (
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          width: 68,
+                          height: 68,
+                          borderRadius: "50%",
+                          border: `2.5px solid ${accentColor}`,
+                          color: accentColor,
+                          marginBottom: 14,
+                          backgroundColor: "rgba(255, 255, 255, 0.95)",
+                          boxShadow: "0 4px 10px rgba(153, 27, 27, 0.2)",
+                          boxSizing: "border-box",
+                          lineHeight: 1,
+                          flexShrink: 0,
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 800,
+                            letterSpacing: 1.2,
+                            fontFamily: "sans-serif",
+                            textTransform: "uppercase",
+                            opacity: 0.85,
+                            marginBottom: 2,
+                            lineHeight: 1,
+                          }}
+                        >
+                          STAGE
+                        </span>
+                        <span
+                          style={{
+                            fontSize: 22,
+                            fontWeight: 900,
+                            fontFamily: "monospace",
+                            lineHeight: 1,
+                          }}
+                        >
+                          {stageMatch[1]}
+                        </span>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        width: 68,
+                        height: 68,
+                        borderRadius: "50%",
+                        border: `2.5px solid ${accentColor}`,
+                        color: accentColor,
+                        fontSize: rawYear.length > 4 ? 13 : 18,
+                        fontWeight: 900,
+                        fontFamily: "monospace",
+                        marginBottom: 14,
+                        backgroundColor: "rgba(255, 255, 255, 0.95)",
+                        boxShadow: "0 4px 10px rgba(153, 27, 27, 0.2)",
+                        boxSizing: "border-box",
+                        lineHeight: 1,
+                        flexShrink: 0,
+                      }}
+                    >
+                      {rawYear}
+                    </div>
+                  );
+                })()}
 
                 <div style={{ fontSize: 20, fontWeight: 900, color: "#2B1810", marginBottom: 8 }}>
                   {ev.title}
