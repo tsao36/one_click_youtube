@@ -13750,13 +13750,23 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
         if (cfg.contrast_ratio !== undefined) {
           updateContrastBadge(cfg.contrast_ratio, cfg.contrast_is_enough, cfg.contrast_rating, cfg.contrast_palette_name);
         }
-        document.getElementById('ts-top-kicker').value = cfg.top_kicker || '';
-        document.getElementById('ts-main-title').value = cfg.main_title || '';
-        document.getElementById('ts-left-1').value = cfg.left_line1 || '';
-        document.getElementById('ts-left-2').value = cfg.left_line2 || '';
-        document.getElementById('ts-right-1').value = cfg.right_line1 || '';
-        document.getElementById('ts-right-2').value = cfg.right_line2 || '';
-        document.getElementById('ts-duration-badge').value = cfg.duration_badge || '';
+        if (cfg.clear_text) {
+          document.getElementById('ts-top-kicker').value = '';
+          document.getElementById('ts-main-title').value = '';
+          document.getElementById('ts-left-1').value = '';
+          document.getElementById('ts-left-2').value = '';
+          document.getElementById('ts-right-1').value = '';
+          document.getElementById('ts-right-2').value = '';
+          document.getElementById('ts-duration-badge').value = '';
+        } else {
+          document.getElementById('ts-top-kicker').value = cfg.top_kicker || '';
+          document.getElementById('ts-main-title').value = cfg.main_title || '';
+          document.getElementById('ts-left-1').value = cfg.left_line1 || '';
+          document.getElementById('ts-left-2').value = cfg.left_line2 || '';
+          document.getElementById('ts-right-1').value = cfg.right_line1 || '';
+          document.getElementById('ts-right-2').value = cfg.right_line2 || '';
+          document.getElementById('ts-duration-badge').value = cfg.duration_badge || '';
+        }
         document.getElementById('ts-subject-overlap').checked = cfg.subject_overlap !== false;
 
         const leftCastEl = document.getElementById('ts-left-cast');
@@ -13788,7 +13798,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
         const prevImg = document.getElementById('ts-preview-img');
         prevImg.src = data.thumbnail_url;
         document.getElementById('btn-ts-download').href = data.thumbnail_url;
-        document.getElementById('ts-render-status').textContent = '✓ 已載入 1280×720 縮圖';
+        document.getElementById('ts-render-status').textContent = cfg.clear_text ? '✓ 已載入 1280×720 縮圖 (純底圖無文字)' : '✓ 已載入 1280×720 縮圖';
       } catch (e) {
         document.getElementById('ts-render-status').textContent = '載入失敗: ' + e.message;
       }
@@ -13823,6 +13833,35 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
         btn.textContent = oldTxt;
         btn.disabled = false;
       }
+    }
+
+    async function clearAllThumbnailText() {
+      const ids = [
+        'ts-top-kicker',
+        'ts-main-title',
+        'ts-left-1',
+        'ts-left-2',
+        'ts-right-1',
+        'ts-right-2',
+        'ts-duration-badge',
+        'ts-left-cast',
+        'ts-right-cast'
+      ];
+      ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      });
+      // If a custom image is chosen, also reset darken to 0% so the custom image is completely clean
+      const bgSel = document.getElementById('ts-bg-source');
+      if (bgSel && bgSel.value === 'custom') {
+        const darkenEl = document.getElementById('ts-darken');
+        if (darkenEl) {
+          darkenEl.value = '0.0';
+          const darkenValEl = document.getElementById('ts-darken-val');
+          if (darkenValEl) darkenValEl.textContent = '0%';
+        }
+      }
+      await renderCustomThumbnail(false, false, true);
     }
 
     async function uploadCustomThumbnailBg(inputEl) {
@@ -13880,7 +13919,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       renderCustomThumbnail(false);
     }
 
-    async function renderCustomThumbnail(autoCopy = false, randomColor = false) {
+    async function renderCustomThumbnail(autoCopy = false, randomColor = false, clearText = false) {
       if (!currentProjectId) return;
       const statusEl = document.getElementById('ts-render-status');
       statusEl.textContent = '🎨 正在合成 1280×720 繁體中文縮圖 (高對比檢測中)...';
@@ -13888,6 +13927,18 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
         const presetVal = document.getElementById('ts-color-preset').value;
         const isRandom = randomColor || presetVal === 'random';
         const primaryColorVal = document.getElementById('ts-primary-color').value;
+
+        const topKicker = document.getElementById('ts-top-kicker') ? document.getElementById('ts-top-kicker').value : '';
+        const mainTitle = document.getElementById('ts-main-title') ? document.getElementById('ts-main-title').value : '';
+        const left1 = document.getElementById('ts-left-1') ? document.getElementById('ts-left-1').value : '';
+        const left2 = document.getElementById('ts-left-2') ? document.getElementById('ts-left-2').value : '';
+        const right1 = document.getElementById('ts-right-1') ? document.getElementById('ts-right-1').value : '';
+        const right2 = document.getElementById('ts-right-2') ? document.getElementById('ts-right-2').value : '';
+        const leftCast = document.getElementById('ts-left-cast') ? document.getElementById('ts-left-cast').value : '';
+        const rightCast = document.getElementById('ts-right-cast') ? document.getElementById('ts-right-cast').value : '';
+        const isAllEmpty = !topKicker.trim() && !mainTitle.trim() && !left1.trim() && !left2.trim() && !right1.trim() && !right2.trim() && !leftCast.trim() && !rightCast.trim();
+        const shouldClearText = !autoCopy && (clearText || isAllEmpty);
+
         const payload = {
           template: document.getElementById('ts-template').value,
           color_preset: isRandom ? 'random' : (presetVal || 'custom'),
@@ -13897,20 +13948,21 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
           random_color: isRandom,
           font_family: document.getElementById('ts-font-family') ? document.getElementById('ts-font-family').value : 'jf-openhuninn-2.1',
           font_weight: document.getElementById('ts-font-weight') ? document.getElementById('ts-font-weight').value : 'bold',
-          top_kicker: document.getElementById('ts-top-kicker').value,
-          main_title: document.getElementById('ts-main-title').value,
-          left_line1: document.getElementById('ts-left-1').value,
-          left_line2: document.getElementById('ts-left-2').value,
-          right_line1: document.getElementById('ts-right-1').value,
-          right_line2: document.getElementById('ts-right-2').value,
+          top_kicker: shouldClearText ? '' : topKicker,
+          main_title: shouldClearText ? '' : mainTitle,
+          left_line1: shouldClearText ? '' : left1,
+          left_line2: shouldClearText ? '' : left2,
+          right_line1: shouldClearText ? '' : right1,
+          right_line2: shouldClearText ? '' : right2,
           bg_source: document.getElementById('ts-bg-source').value,
           subject_overlap: document.getElementById('ts-subject-overlap').checked,
           title_scale: parseFloat(document.getElementById('ts-title-scale').value || '1.0'),
           darken: parseFloat(document.getElementById('ts-darken').value || '0.20'),
-          duration_badge: document.getElementById('ts-duration-badge').value,
-          left_lines: document.getElementById('ts-left-cast') ? document.getElementById('ts-left-cast').value : null,
-          right_lines: document.getElementById('ts-right-cast') ? document.getElementById('ts-right-cast').value : null,
+          duration_badge: shouldClearText ? '' : (document.getElementById('ts-duration-badge') ? document.getElementById('ts-duration-badge').value : ''),
+          left_lines: shouldClearText ? '' : leftCast,
+          right_lines: shouldClearText ? '' : rightCast,
           auto_copy: autoCopy,
+          clear_text: shouldClearText,
         };
         const res = await apiRequest(`/api/projects/${currentProjectId}/thumbnail/render`, {
           method: 'POST',
@@ -13936,7 +13988,11 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
         if (tc.contrast_ratio !== undefined) {
           updateContrastBadge(tc.contrast_ratio, tc.contrast_is_enough, tc.contrast_rating, tc.contrast_palette_name);
         }
-        statusEl.textContent = `✓ 縮圖已更新！(對比度 ${tc.contrast_ratio || '--'}:1 ${tc.contrast_palette_name ? '• ' + tc.contrast_palette_name : ''})`;
+        if (shouldClearText) {
+          statusEl.textContent = '✓ 已清空所有文字，縮圖更新為純底圖！';
+        } else {
+          statusEl.textContent = `✓ 縮圖已更新！(對比度 ${tc.contrast_ratio || '--'}:1 ${tc.contrast_palette_name ? '• ' + tc.contrast_palette_name : ''})`;
+        }
 
         // Also update the YouTube Upload Modal preview if open
         const ytPrev = document.getElementById('yt-modal-thumb-preview');
@@ -13949,13 +14005,19 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
         }
         const thumbCopySummary = document.getElementById('yt-modal-thumb-copy-summary');
         if (thumbCopySummary) {
-          thumbCopySummary.innerHTML = `
-            <div><b style="color:#4ade80;">主標題：</b>${tc.main_title || ''} &nbsp;|&nbsp; <b style="color:#93c5fd;">頂部小標：</b>${tc.top_kicker || ''}</div>
-            <div style="color:#94a3b8; font-size:11px; margin-top:3px;">
-              左側：${tc.left_line1 || ''} / ${tc.left_line2 || ''}<br>
-              右側：${tc.right_line1 || ''} / ${tc.right_line2 || ''}
-            </div>
-          `;
+          if (tc.clear_text || (!tc.main_title && !tc.top_kicker)) {
+            thumbCopySummary.innerHTML = `
+              <div><b style="color:#4ade80;">純底圖無文字縮圖</b> (已清空文字疊加，保留純底圖設計)</div>
+            `;
+          } else {
+            thumbCopySummary.innerHTML = `
+              <div><b style="color:#4ade80;">主標題：</b>${tc.main_title || ''} &nbsp;|&nbsp; <b style="color:#93c5fd;">頂部小標：</b>${tc.top_kicker || ''}</div>
+              <div style="color:#94a3b8; font-size:11px; margin-top:3px;">
+                左側：${tc.left_line1 || ''} / ${tc.left_line2 || ''}<br>
+                右側：${tc.right_line1 || ''} / ${tc.right_line2 || ''}
+              </div>
+            `;
+          }
         }
       } catch (e) {
         statusEl.textContent = '合成失敗: ' + e.message;

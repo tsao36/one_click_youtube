@@ -3353,7 +3353,7 @@
                   </div>
                 </div>
               </div>
-              <div style="display:flex; gap:8px;">
+              <div style="display:flex; gap:8px; flex-wrap:wrap;">
                 <button type="button" class="btn-sec" onclick="openThumbnailStudioModal()" style="font-size:12px; padding:6px 12px; border-color:#00e626; color:#4ade80; font-weight:700;">
                   🎨 編輯縮圖文字與版型 (Customize 縮圖)
                 </button>
@@ -3487,7 +3487,7 @@
               </div>
               <div>
                 <label style="font-size:11px; color:#cbd5e1; display:block; margin-bottom:4px;">或上傳自訂照片/人像</label>
-                <input type="file" id="ts-bg-upload" accept="image/*" onchange="uploadCustomThumbnailBg(this)" style="width:100%; font-size:11px; color:#94a3b8;">
+                <input type="file" id="ts-bg-upload" accept="image/*" onchange="uploadCustomThumbnailBg(this)" style="width:100%; font-size:11px; color:#94a3b8;"><div style="font-size:10px; color:#94a3b8; margin-top:4px; line-height:1.4;">💡 若自訂圖片已設計完成，可點擊「<a href="javascript:void(0)" onclick="clearAllThumbnailText()" style="color:#fca5a5; text-decoration:underline; font-weight:700;">🧹 清空所有文字</a>」以純底圖作為縮圖。</div>
               </div>
             </div>
 
@@ -3535,12 +3535,15 @@
         <div style="background:#080d16; border:1px solid #1e293b; border-radius:8px; padding:14px;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
             <div style="font-size:13px; font-weight:700; color:#4ade80;">✍️ 繁體中文縮圖文案與版型設定</div>
-            <div style="display:flex; gap:8px;">
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
               <button type="button" class="btn-pri" onclick="renderCustomThumbnail(false)" style="font-size:11px; padding:5px 10px; font-weight:700;">
                 🔄 立即套用文字
               </button>
               <button type="button" class="btn-sec" onclick="autoGenerateThumbnailCopy()" id="btn-ts-ai-copy" style="font-size:11px; padding:5px 10px; border-color:#3b82f6; color:#93c5fd; font-weight:700;">
                 🤖 AI 一鍵生成繁中文案
+              </button>
+              <button type="button" class="btn-sec" onclick="clearAllThumbnailText()" id="btn-ts-clear-text" style="font-size:11px; padding:5px 10px; border-color:#ef4444; color:#fca5a5; font-weight:700; background:rgba(239,68,68,0.14); display:flex; align-items:center; gap:4px;" title="清空所有標題文字與副標（特別適用於已上傳完整自訂封面圖或欲保留純背景圖片）">
+                🧹 清空所有文字 (Clear All Text)
               </button>
             </div>
           </div>

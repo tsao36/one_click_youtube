@@ -4429,6 +4429,7 @@ class ThumbnailRenderRequest(BaseModel):
     show_avatar_badge: Optional[bool] = None
     default_top_kicker: Optional[str] = None
     use_llm_copy: Optional[bool] = None
+    clear_text: Optional[bool] = None
 
 
 @app.get("/api/settings/thumbnail-defaults")
@@ -4451,6 +4452,8 @@ def get_thumbnail_default_settings():
 def preview_default_thumbnail(req: ThumbnailRenderRequest):
     from generators.thumbnail_generator import COLOR_PRESETS, render_sample_thumbnail
     opts = req.model_dump(exclude_none=True)
+    if req.clear_text is not None:
+        opts["clear_text"] = req.clear_text
     if req.random_color or req.color_preset == "random":
         opts["primary_color"] = None
         opts["secondary_color"] = None
@@ -4540,6 +4543,8 @@ def render_custom_project_thumbnail(project_id: str, req: ThumbnailRenderRequest
     from generators.thumbnail_generator import COLOR_PRESETS, render_project_thumbnail
     p = get_project(project_id)
     opts = req.model_dump(exclude_none=True)
+    if req.clear_text is not None:
+        opts["clear_text"] = req.clear_text
     if req.random_color or req.color_preset == "random":
         opts["primary_color"] = None
         opts["secondary_color"] = None

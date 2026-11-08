@@ -785,7 +785,7 @@ def _render_editorial_chill(
         )
 
     # 3. Optional Subject Foreground Depth Overlap (person/subject slightly overlaps bottom of giant title)
-    if bool(config.get("subject_overlap", False)):
+    if bool(config.get("subject_overlap", False)) and main_title:
         _apply_subject_depth_overlap(canvas, bg_processed, strength=float(config.get("overlap_strength", 0.75)))
 
     # 4. Mid-Left Two-Line Callouts (replaces "AUTUMN MOOD" / "BOOM BAP REVIVAL")
@@ -877,20 +877,25 @@ def _render_cinema_impact(
 ) -> None:
     """Render Template 2: 'cinema_impact' (台灣知識型百萬YTR大字風)."""
     primary_rgba = _hex_to_rgba(config.get("primary_color", "#FFE600"), 255)
-    top_kicker = (config.get("top_kicker") or "深度調查報告").strip()
-    main_title = (config.get("main_title") or "真相大公開").strip()
+    top_kicker = (config.get("top_kicker") if config.get("top_kicker") is not None else "深度調查報告").strip()
+    main_title = (config.get("main_title") if config.get("main_title") is not None else "真相大公開").strip()
     left_line1 = (config.get("left_line1") or "").strip()
     right_line1 = (config.get("right_line1") or "").strip()
     left_line2 = (config.get("left_line2") or "").strip()
     right_line2 = (config.get("right_line2") or "").strip()
 
-    # Bottom gradient bar for heavy readability
-    grad = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
-    g_draw = ImageDraw.Draw(grad)
-    for y in range(THUMB_H // 2, THUMB_H):
-        alpha = int(215 * ((y - THUMB_H // 2) / (THUMB_H // 2)) ** 1.3)
-        g_draw.line([(0, y), (THUMB_W, y)], fill=(8, 10, 15, alpha))
-    canvas.alpha_composite(grad)
+    line1 = " ｜ ".join(x for x in [left_line1, right_line1] if x)
+    line2 = " ｜ ".join(x for x in [left_line2, right_line2] if x)
+    has_any_text = bool(top_kicker or main_title or line1 or line2)
+
+    # Bottom gradient bar for heavy readability (only when text is present)
+    if has_any_text:
+        grad = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
+        g_draw = ImageDraw.Draw(grad)
+        for y in range(THUMB_H // 2, THUMB_H):
+            alpha = int(215 * ((y - THUMB_H // 2) / (THUMB_H // 2)) ** 1.3)
+            g_draw.line([(0, y), (THUMB_W, y)], fill=(8, 10, 15, alpha))
+        canvas.alpha_composite(grad)
 
     # Top-left pill badge
     if top_kicker:
@@ -986,8 +991,8 @@ def _render_minimal_poster(
 ) -> None:
     """Render Template 3: 'minimal_poster' (電影海報極簡置中風)."""
     primary_rgba = _hex_to_rgba(config.get("primary_color", "#00E626"), 255)
-    top_kicker = (config.get("top_kicker") or "特別企劃").strip()
-    main_title = (config.get("main_title") or "核心解密").strip()
+    top_kicker = (config.get("top_kicker") if config.get("top_kicker") is not None else "特別企劃").strip()
+    main_title = (config.get("main_title") if config.get("main_title") is not None else "核心解密").strip()
     left_line1 = (config.get("left_line1") or "").strip()
     right_line1 = (config.get("right_line1") or "").strip()
     left_line2 = (config.get("left_line2") or "").strip()
@@ -1090,64 +1095,65 @@ def _render_indie_mv_film(
     primary_rgba = _hex_to_rgba(config.get("primary_color", "#FED631"), 255)
     font_family = config.get("font_family") or "genyo_min"
 
-    main_title = (config.get("main_title") or "做夢的人").strip()
-    en_title = (config.get("top_kicker") or config.get("en_title") or "DREAMERS").strip()
+    main_title = (config.get("main_title") if config.get("main_title") is not None else "做夢的人").strip()
+    en_title = (config.get("top_kicker") if config.get("top_kicker") is not None else (config.get("en_title") if config.get("en_title") is not None else "DREAMERS")).strip()
     title_scale = float(config.get("title_scale", 1.0))
 
-    # Bottom vignette for text contrast
-    vignette = Image.new("RGBA", (THUMB_W, THUMB_H), (0, 0, 0, 0))
-    v_draw = ImageDraw.Draw(vignette)
-    for y in range(int(THUMB_H * 0.70), THUMB_H):
-        ratio = max(0.0, min(1.0, (y - THUMB_H * 0.70) / (THUMB_H * 0.30)))
-        alpha = int(140 * (ratio ** 1.3))
-        v_draw.line([(0, y), (THUMB_W, y)], fill=(6, 8, 10, alpha))
-    canvas.alpha_composite(vignette)
+    if main_title:
+        # Bottom vignette for text contrast
+        vignette = Image.new("RGBA", (THUMB_W, THUMB_H), (0, 0, 0, 0))
+        v_draw = ImageDraw.Draw(vignette)
+        for y in range(int(THUMB_H * 0.70), THUMB_H):
+            ratio = max(0.0, min(1.0, (y - THUMB_H * 0.70) / (THUMB_H * 0.30)))
+            alpha = int(140 * (ratio ** 1.3))
+            v_draw.line([(0, y), (THUMB_W, y)], fill=(6, 8, 10, alpha))
+        canvas.alpha_composite(vignette)
 
-    # 1. Giant Songti Main Title (e.g. 做夢的人)
-    n_chars = max(1, len(main_title))
-    if n_chars <= 4:
-        title_sz = 265
-        scale_y = 1.18
-    elif n_chars == 5:
-        title_sz = 220
-        scale_y = 1.15
-    elif n_chars == 6:
-        title_sz = 185
-        scale_y = 1.12
-    else:
-        title_sz = max(110, int(1000 / n_chars))
-        scale_y = 1.08
+        # 1. Giant Songti Main Title (e.g. 做夢的人)
+        n_chars = max(1, len(main_title))
+        if n_chars <= 4:
+            title_sz = 265
+            scale_y = 1.18
+        elif n_chars == 5:
+            title_sz = 220
+            scale_y = 1.15
+        elif n_chars == 6:
+            title_sz = 185
+            scale_y = 1.12
+        else:
+            title_sz = max(110, int(1000 / n_chars))
+            scale_y = 1.08
 
-    title_sz = int(round(title_sz * title_scale))
-    title_font = _find_zh_font(title_sz, weight="bold", font_family=font_family)
+        title_sz = int(round(title_sz * title_scale))
+        title_font = _find_zh_font(title_sz, weight="bold", font_family=font_family)
 
-    dummy = Image.new("RGBA", (10, 10))
-    d_draw = ImageDraw.Draw(dummy)
-    char_boxes = []
-    for c in main_title:
-        bb = d_draw.textbbox((0, 0), c, font=title_font)
-        char_boxes.append((bb[2] - bb[0], bb[3] - bb[1], bb[0], bb[1]))
+        dummy = Image.new("RGBA", (10, 10))
+        d_draw = ImageDraw.Draw(dummy)
+        char_boxes = []
+        for c in main_title:
+            bb = d_draw.textbbox((0, 0), c, font=title_font)
+            char_boxes.append((bb[2] - bb[0], bb[3] - bb[1], bb[0], bb[1]))
 
-    margin_x = 42
-    avail_w = THUMB_W - margin_x * 2
-    total_raw_w = sum(b[0] for b in char_boxes)
-    gap = (avail_w - total_raw_w) / max(1, (n_chars - 1)) if n_chars > 1 else 0
+        margin_x = 42
+        avail_w = THUMB_W - margin_x * 2
+        total_raw_w = sum(b[0] for b in char_boxes)
+        gap = (avail_w - total_raw_w) / max(1, (n_chars - 1)) if n_chars > 1 else 0
 
-    title_y = 28
-    cur_x = margin_x
+        title_y = 28
+        cur_x = margin_x
 
-    for i, c in enumerate(main_title):
-        cw, ch, ox, oy = char_boxes[i]
-        char_img = Image.new("RGBA", (cw + 24, ch + 24), (0, 0, 0, 0))
-        ci_draw = ImageDraw.Draw(char_img)
-        ci_draw.text((12 - ox, 12 - oy + 3), c, font=title_font, fill=(0, 0, 0, 175))
-        ci_draw.text((12 - ox, 12 - oy), c, font=title_font, fill=primary_rgba)
+        for i, c in enumerate(main_title):
+            cw, ch, ox, oy = char_boxes[i]
+            char_img = Image.new("RGBA", (cw + 24, ch + 24), (0, 0, 0, 0))
+            ci_draw = ImageDraw.Draw(char_img)
+            ci_draw.text((12 - ox, 12 - oy + 3), c, font=title_font, fill=(0, 0, 0, 175))
+            ci_draw.text((12 - ox, 12 - oy), c, font=title_font, fill=primary_rgba)
 
-        stretched_h = int(round(char_img.height * scale_y))
-        char_stretched = char_img.resize((char_img.width, stretched_h), Image.Resampling.BICUBIC)
+            stretched_h = int(round(char_img.height * scale_y))
+            char_stretched = char_img.resize((char_img.width, stretched_h), Image.Resampling.BICUBIC)
 
-        canvas.alpha_composite(char_stretched, (int(round(cur_x - 12)), title_y))
-        cur_x += cw + gap
+            canvas.alpha_composite(char_stretched, (int(round(cur_x - 12)), title_y))
+            cur_x += cw + gap
 
     # 2. English Title (DREAMERS)
     if en_title:
@@ -1218,12 +1224,15 @@ def _render_hiphop_mv_3d(
     font_family = config.get("font_family")
     font_weight = config.get("font_weight", "bold")
 
-    top_kicker = (config.get("top_kicker") or "").strip()
-    main_title = (config.get("main_title") or "核心解密").strip()
+    top_kicker = (config.get("top_kicker") if config.get("top_kicker") is not None else "").strip()
+    main_title = (config.get("main_title") if config.get("main_title") is not None else "核心解密").strip()
     left_1 = (config.get("left_line1") or "").strip()
     right_1 = (config.get("right_line1") or "").strip()
     left_2 = (config.get("left_line2") or "").strip()
     right_2 = (config.get("right_line2") or "").strip()
+
+    if not main_title:
+        return
 
     # 1. Warm amber ambient spotlight glow behind title
     radial = Image.new("RGBA", (THUMB_W, THUMB_H), (0, 0, 0, 0))
@@ -1480,8 +1489,12 @@ def _render_cinematic_cast(
     left_lines = _parse_lines(config.get("left_lines"))
     right_lines = _parse_lines(config.get("right_lines"))
 
+    is_clear = bool(config.get("clear_text")) or (config.get("left_lines") == "" and config.get("right_lines") == "")
+    if is_clear:
+        return
+
     # Fallbacks from standard inputs if left_lines/right_lines are empty
-    if not left_lines:
+    if not left_lines and config.get("left_lines") is None:
         candidates = []
         for k in ("left_line1", "left_line2", "top_kicker"):
             v = config.get(k)
@@ -1490,7 +1503,7 @@ def _render_cinematic_cast(
                 candidates.extend(parts)
         left_lines = candidates
 
-    if not right_lines:
+    if not right_lines and config.get("right_lines") is None:
         candidates = []
         for k in ("right_line1", "right_line2", "main_title"):
             v = config.get(k)
@@ -1500,10 +1513,13 @@ def _render_cinematic_cast(
         right_lines = candidates
 
     # Default iconic cast if still empty (matching user reference image)
-    if not left_lines:
+    if not left_lines and config.get("left_lines") is None:
         left_lines = ["宋芸樺", "許光漢", "高捷", "李康生", "曾敬驊", "王淨"]
-    if not right_lines:
+    if not right_lines and config.get("right_lines") is None:
         right_lines = ["邱澤", "桂綸鎂", "舒華", "葉芷妤", "張震", "林嘉欣"]
+
+    if not left_lines and not right_lines:
+        return
 
     # Limit to at most 8 lines per column to keep typography bold & legible
     left_lines = left_lines[:8]
@@ -1856,7 +1872,21 @@ def render_project_thumbnail(
         opts.update({k: v for k, v in options.items() if v is not None})
 
     # Populate Traditional Mandarin Chinese text if missing or requested
-    if not opts.get("main_title") or opts.get("auto_copy"):
+    is_clear_text = bool(opts.get("clear_text"))
+    if is_clear_text:
+        opts["clear_text"] = True
+        opts["main_title"] = ""
+        opts["top_kicker"] = ""
+        opts["left_line1"] = ""
+        opts["left_line2"] = ""
+        opts["right_line1"] = ""
+        opts["right_line2"] = ""
+        opts["duration_badge"] = ""
+        opts["left_lines"] = ""
+        opts["right_lines"] = ""
+        opts["stamp_text"] = ""
+        opts.pop("auto_copy", None)
+    elif opts.get("main_title") is None or opts.get("auto_copy"):
         copy_zh = generate_thumbnail_copy_zh_tw(project, use_llm=bool(opts.get("use_llm_copy", True)))
         for k, v in copy_zh.items():
             if not opts.get(k) or opts.get("auto_copy"):
@@ -1878,7 +1908,13 @@ def render_project_thumbnail(
 
     darken = float(opts.get("darken", 0.20))
     grain = float(opts.get("grain", 0.032))
-    processed_bg = _apply_editorial_film_look(cropped_bg, darken=darken, grain_amount=grain)
+    if is_clear_text and (darken <= 0.02 or bg_source == "custom"):
+        if darken <= 0.02:
+            processed_bg = cropped_bg
+        else:
+            processed_bg = _apply_editorial_film_look(cropped_bg, darken=darken, grain_amount=grain)
+    else:
+        processed_bg = _apply_editorial_film_look(cropped_bg, darken=darken, grain_amount=grain)
 
     preset_key = opts.get("color_preset") or "random"
     random_flag = opts.get("random_color")
@@ -1939,18 +1975,19 @@ def render_project_thumbnail(
 
     canvas = processed_bg.convert("RGBA")
 
-    if template_id == "cinema_impact":
-        _render_cinema_impact(canvas, processed_bg, opts)
-    elif template_id == "minimal_poster":
-        _render_minimal_poster(canvas, processed_bg, opts)
-    elif template_id == "hiphop_mv_3d":
-        _render_hiphop_mv_3d(canvas, processed_bg, opts, project=project)
-    elif template_id == "indie_mv_film":
-        _render_indie_mv_film(canvas, processed_bg, opts, project=project)
-    elif template_id == "cinematic_cast":
-        _render_cinematic_cast(canvas, processed_bg, opts, project=project)
-    else:
-        _render_editorial_chill(canvas, processed_bg, opts)
+    if not is_clear_text:
+        if template_id == "cinema_impact":
+            _render_cinema_impact(canvas, processed_bg, opts)
+        elif template_id == "minimal_poster":
+            _render_minimal_poster(canvas, processed_bg, opts)
+        elif template_id == "hiphop_mv_3d":
+            _render_hiphop_mv_3d(canvas, processed_bg, opts, project=project)
+        elif template_id == "indie_mv_film":
+            _render_indie_mv_film(canvas, processed_bg, opts, project=project)
+        elif template_id == "cinematic_cast":
+            _render_cinematic_cast(canvas, processed_bg, opts, project=project)
+        else:
+            _render_editorial_chill(canvas, processed_bg, opts)
 
     out_dir = project.path("output")
     out_dir.mkdir(parents=True, exist_ok=True)
