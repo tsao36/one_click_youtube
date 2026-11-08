@@ -828,6 +828,7 @@
       window.activeRemotionPreset = 'archival_history';
       setVal('model-stage-animation', 'remotion_archival_doc');
       setVal('ai-video-pct', '0');
+      setVal('creator-callout-style', 'archival_parchment');
 
       setVal('creator-presenter-placement', 'none');
       if (typeof onPresenterPlacementChange === 'function') onPresenterPlacementChange();
@@ -877,6 +878,7 @@
       window.activeRemotionPreset = 'vox_journalism';
       setVal('model-stage-animation', 'remotion_vox_split');
       setVal('ai-video-pct', '0');
+      setVal('creator-callout-style', 'broadcast_news');
 
       setVal('creator-presenter-placement', 'none');
       if (typeof onPresenterPlacementChange === 'function') onPresenterPlacementChange();
@@ -926,6 +928,7 @@
       window.activeRemotionPreset = 'coordinate_zero';
       setVal('model-stage-animation', 'remotion_coordinate_scale');
       setVal('ai-video-pct', '0');
+      setVal('creator-callout-style', 'modern_pill');
 
       // Turn off virtual presenter for 100% pure tactile desktop graphics
       setVal('creator-presenter-placement', 'none');
@@ -1286,6 +1289,18 @@
     }
 
     function onCreatorStyleChange(styleKey) {
+      // Suggest matching top motion banner style
+      const bannerEl = document.getElementById('creator-callout-style');
+      if (bannerEl) {
+        if (styleKey === 'ink_wash_history' || styleKey === 'vintage_archive') {
+          bannerEl.value = 'archival_parchment';
+        } else if (styleKey === 'tech_schematic') {
+          bannerEl.value = 'fox_kinetic';
+        } else if (styleKey === 'photorealistic_cinema' || styleKey === 'cinematic_documentary') {
+          bannerEl.value = 'modern_pill';
+        }
+      }
+
       if (isCloudAccelerationActive()) return;
       const sel = document.getElementById('checkpoint-select');
       if (!sel) return;
@@ -1715,16 +1730,90 @@
         }
       }
       syncCloudVisualControls();
-      // Keep checkpoint-select (Creator mode) and model-stage-images (Stage 5) perfectly in sync
+
+      // 1. Stage 5 Images <-> Checkpoint Sync
       const _stImg = document.getElementById('model-stage-images');
       const _ckSel = document.getElementById('checkpoint-select');
-      if (_stImg && _ckSel && _ckSel.value !== _stImg.value) {
-        _ckSel.value = _stImg.value;
+      const _hintImg = document.getElementById('stage-images-sync-hint');
+      if (_stImg && _ckSel) {
+        if (_ckSel.value !== _stImg.value) {
+          _ckSel.value = _stImg.value;
+        }
+        if (_hintImg) {
+          _hintImg.innerHTML = `🔗 Synced: <b>${formatModelLabel(_stImg.value)}</b>`;
+        }
       }
-      if (changedStage === 'animation' || !changedStage) updateCreatorRemotionStrip();
 
+      // 2. Stage 6 Voice <-> Voice Profile Sync
       if ((changedStage === 'voice' || !changedStage) && typeof onStageVoiceModelChange === 'function') {
         onStageVoiceModelChange();
+      }
+
+      // 3. Stage 7 Music <-> Progression / Category Sync
+      const _stMusic = document.getElementById('model-stage-music');
+      const _progSel = document.getElementById('music-progression-select');
+      const _catSel = document.getElementById('music-category-select');
+      const _hintMusic = document.getElementById('stage-music-sync-hint');
+      if (_stMusic) {
+        const mVal = _stMusic.value;
+        if (changedStage === 'music') {
+          if (mVal === 'none') {
+            if (_catSel && _catSel.value !== 'none') {
+              _catSel.value = 'none';
+              if (typeof onCreatorMusicCategoryChange === 'function') onCreatorMusicCategoryChange('none');
+            }
+          } else {
+            if (_catSel && _catSel.value === 'none') {
+              _catSel.value = 'auto';
+              if (typeof onCreatorMusicCategoryChange === 'function') onCreatorMusicCategoryChange('auto');
+            }
+            if (_progSel && _progSel.value !== mVal) {
+              _progSel.value = mVal;
+            }
+          }
+        }
+        if (_hintMusic) {
+          const mLabel = mVal === 'none' ? '無配樂 (Silent)' : (mVal === 'narrative_evolving' ? '多樂章演進 (3-Movement)' : '單曲循環 (Loop)');
+          _hintMusic.innerHTML = `🔗 Synced: <b>${mLabel}</b>`;
+        }
+      }
+
+      // 4. Stage 8 Animation <-> Remotion Strip & AI Video Pct Sync
+      const _stAnim = document.getElementById('model-stage-animation');
+      const _aiPct = document.getElementById('ai-video-pct');
+      const _hintAnim = document.getElementById('stage-animation-sync-hint');
+      if (_stAnim) {
+        const aVal = _stAnim.value;
+        if (aVal.startsWith('remotion')) {
+          updateCreatorRemotionStrip();
+          if (changedStage === 'animation') {
+            if (_aiPct && _aiPct.value !== '0') _aiPct.value = '0';
+          }
+          if (_hintAnim) {
+            _hintAnim.innerHTML = `🔗 Synced: <b>Remotion (${aVal.replace('remotion_', '').replace('remotion', 'blueprint')})</b>`;
+          }
+        } else if (aVal === 'kenburns') {
+          updateCreatorRemotionStrip();
+          if (changedStage === 'animation') {
+            if (_aiPct && _aiPct.value !== '0') _aiPct.value = '0';
+          }
+          if (_hintAnim) {
+            _hintAnim.innerHTML = `🔗 Synced: <b>Ken Burns 2.5D Motion</b>`;
+          }
+        } else if (['veo', 'kling', 'runway', 'hedra', 'comfyui_video'].includes(aVal)) {
+          updateCreatorRemotionStrip();
+          if (changedStage === 'animation') {
+            if (_aiPct && (_aiPct.value === '0' || !_aiPct.value)) _aiPct.value = '10';
+          }
+          if (_hintAnim) {
+            _hintAnim.innerHTML = `🔗 Synced: <b>AI Video (${aVal.toUpperCase()})</b>`;
+          }
+        } else {
+          updateCreatorRemotionStrip();
+          if (_hintAnim) {
+            _hintAnim.innerHTML = `🔗 Synced: <b>${aVal}</b>`;
+          }
+        }
       }
 
       if (changedStage && currentProjectId) {
@@ -3639,6 +3728,7 @@
             ai_video_percentage: ai_pct,
             cloud_enabled: cloud,
             stage_models: stageModels,
+            callout_style: (document.getElementById('creator-callout-style')?.value || document.getElementById('set-callout-banner-style')?.value || 'fox_kinetic'),
             music_track: musicTrack,
             music_category: musicCategory,
             music_progression: musicProgression,
@@ -6391,9 +6481,23 @@
       }
       if (catKey === 'none') {
         if (groupEl) groupEl.style.display = 'none';
+        const stMusic = document.getElementById('model-stage-music');
+        if (stMusic && stMusic.value !== 'none') {
+          stMusic.value = 'none';
+          onStageModelChange('music');
+        }
         return;
       }
       if (groupEl) groupEl.style.display = 'block';
+      const stMusic = document.getElementById('model-stage-music');
+      const progEl = document.getElementById('music-progression-select');
+      if (stMusic) {
+        const pVal = progEl ? progEl.value : 'narrative_evolving';
+        if (stMusic.value !== pVal) {
+          stMusic.value = pVal;
+          onStageModelChange('music');
+        }
+      }
       updateCreatorMusicSelect(catKey);
     }
 
@@ -6944,6 +7048,10 @@
           if (sf && sub.font) sf.value = sub.font;
           const ss = document.getElementById('set-sub-style');
           if (ss && sub.style) ss.value = sub.style;
+          const scs = document.getElementById('set-callout-banner-style');
+          if (scs && sub.callout_style) scs.value = sub.callout_style;
+          const ccs = document.getElementById('creator-callout-style');
+          if (ccs && sub.callout_style) ccs.value = sub.callout_style;
         }
 
         if (data.settings && data.settings.rendering && data.settings.rendering.phase_turn_duration) {
@@ -7034,6 +7142,9 @@
       const font = document.getElementById('set-sub-font') ? document.getElementById('set-sub-font').value : 'Microsoft JhengHei UI';
       const style = document.getElementById('set-sub-style') ? document.getElementById('set-sub-style').value : 'youtube_standard';
       const phaseTurnDur = document.getElementById('set-phase-turn-dur') ? parseFloat(document.getElementById('set-phase-turn-dur').value) || 3.0 : 3.0;
+      const calloutBannerStyle = document.getElementById('set-callout-banner-style') ? document.getElementById('set-callout-banner-style').value : 'fox_kinetic';
+      const ccs = document.getElementById('creator-callout-style');
+      if (ccs) ccs.value = calloutBannerStyle;
       try {
         await apiRequest('/api/settings', {
           method: 'POST',
@@ -7044,7 +7155,8 @@
                 motion_graphics_callouts: motion,
                 callouts_enabled: motion,
                 font: font,
-                style: style
+                style: style,
+                callout_style: calloutBannerStyle
               },
               rendering: {
                 phase_turn_duration: phaseTurnDur
@@ -7149,6 +7261,16 @@
         if (themeEl) themeEl.value = 'vox_charcoal';
         if (densityEl) densityEl.value = 'full';
         setRemotionAccentColor('#FACC15');
+      }
+      const stageAnimEl = document.getElementById('model-stage-animation');
+      if (stageAnimEl) {
+        if (presetName === 'coordinate_zero') stageAnimEl.value = 'remotion_coordinate_scale';
+        else if (presetName === 'finance_market') stageAnimEl.value = 'remotion_finance_candlestick';
+        else if (presetName === 'archival_history') stageAnimEl.value = 'remotion_archival_doc';
+        else if (presetName === 'vox_journalism') stageAnimEl.value = 'remotion_vox_split';
+        else if (presetName === 'fox_documentary') stageAnimEl.value = 'remotion';
+        else stageAnimEl.value = 'remotion';
+        onStageModelChange('animation');
       }
       updateRemotionSettingsLivePreview();
     }
@@ -15145,6 +15267,70 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       loadTopicQueue();
       loadDramaFormulas();
       loadCharactersLibrary();
+
+      // Dynamic two-way listeners for Stage Model Selection
+      const mProg = document.getElementById('music-progression-select');
+      if (mProg) {
+        mProg.addEventListener('change', () => {
+          const stMusic = document.getElementById('model-stage-music');
+          if (stMusic && stMusic.value !== mProg.value) {
+            stMusic.value = mProg.value;
+            onStageModelChange('music');
+          }
+        });
+      }
+
+      const stAnim = document.getElementById('model-stage-animation');
+      if (stAnim) {
+        stAnim.addEventListener('change', () => {
+          onStageModelChange('animation');
+        });
+      }
+
+      const stVoice = document.getElementById('model-stage-voice');
+      if (stVoice) {
+        stVoice.addEventListener('change', () => {
+          onStageModelChange('voice');
+        });
+      }
+
+      const stImg = document.getElementById('model-stage-images');
+      if (stImg) {
+        stImg.addEventListener('change', () => {
+          onStageModelChange('images');
+        });
+      }
+
+      const stRes = document.getElementById('model-stage-research');
+      if (stRes) {
+        stRes.addEventListener('change', () => {
+          onStageModelChange('research');
+        });
+      }
+
+      const calloutCreator = document.getElementById('creator-callout-style');
+      if (calloutCreator) {
+        calloutCreator.addEventListener('change', () => {
+          const setCallout = document.getElementById('set-callout-banner-style');
+          if (setCallout && setCallout.value !== calloutCreator.value) {
+            setCallout.value = calloutCreator.value;
+          }
+        });
+      }
+
+      const calloutSettings = document.getElementById('set-callout-banner-style');
+      if (calloutSettings) {
+        calloutSettings.addEventListener('change', () => {
+          const setCreator = document.getElementById('creator-callout-style');
+          if (setCreator && setCreator.value !== calloutSettings.value) {
+            setCreator.value = calloutSettings.value;
+          }
+        });
+      }
+
+      setTimeout(() => {
+        onStageModelChange();
+      }, 500);
     });
 
     // ==================== OPENOPUS CLASSICAL MUSIC INTEGRATION ====================

@@ -1948,9 +1948,17 @@ class BasePipeline:
         srt_file = self.p.path("subtitles", "subtitles.srt")
         ass_file = self.p.path("subtitles", "subtitles.ass")
         write_srt(cues, srt_file)
-        # Check if fOx Hsiao style motion graphics callouts are enabled (toggleable)
+        # Check if fOx Hsiao style motion graphics callouts / banners are enabled and configured
+        sub_callout_style = (
+            sub_cfg.get("callout_style")
+            or self.p.data.settings.get("callout_style")
+            or self.p.settings.get("callout_style")
+            or "fox_kinetic"
+        )
         enabled_motion_callouts = bool(
-            callouts_allowed and sub_cfg.get("motion_graphics_callouts", True)
+            callouts_allowed
+            and sub_callout_style != "none"
+            and sub_cfg.get("motion_graphics_callouts", True)
             and sub_cfg.get("motion_graphics", True)
             and sub_cfg.get("callouts_enabled", True)
             and self.p.data.settings.get("motion_callouts", True)
@@ -1958,7 +1966,7 @@ class BasePipeline:
         callouts = None
         if enabled_motion_callouts:
             from generators.motion_callout_generator import extract_motion_callouts
-            callouts = extract_motion_callouts(scenes, slots)
+            callouts = extract_motion_callouts(scenes, slots, banner_style=sub_callout_style)
         write_ass(
             cues, ass_file,
             style=sub_cfg.get("style", "youtube_standard"),
@@ -1967,6 +1975,7 @@ class BasePipeline:
             callouts=callouts,
             font_override=sub_cfg.get("font"),
             ai_watermark=bool(sub_cfg.get("ai_watermark", watermark_default)),
+            callout_style=sub_callout_style,
         )
         elapsed = round(max(0.1, time.perf_counter() - t0), 1)
         callouts_info = f" with {len(callouts)} motion graphic cards" if callouts else " (motion callouts disabled)"

@@ -308,60 +308,59 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 y_top_start = round(72 * scale)
                 y_top_target = round(48 * scale)
 
-                anim_tag = f"{\\an8\\move({mid_x},{y_top_start},{mid_x},{y_top_target},0,320)\\fad(250,300)}"
+                anim_tag = f"{{\\an8\\move({mid_x},{y_top_start},{mid_x},{y_top_target},0,320)\\fad(250,300)}}"
                 has_metric = bool(re.search(r"(\d|[一二三四五六七八九十百千萬兩]+\s*[尊枚把件座名位人戶個條份公釐公厘毫米公分公尺公里倍成%])", title))
 
                 if b_style == "archival_parchment":
                     # Historical Archival Stamp banner (Vintage Crimson Stamp + Warm Parchment Text)
                     tag_decor = f"【  {clean_tag}  】"
                     card_lines = [
-                        f"{\\fs{fs_tag}\\c&H001B1B99&\\3c&H000C121E&\\bord2.2\\shad3\\b1}{tag_decor}",
-                        f"{\\fs{fs_title}\\c&H00D8EDF8&\\3c&H000C121E&\\bord3.2\\shad4\\b1}{title}",
+                        f"{{\\fs{fs_tag}\\c&H001B1B99&\\3c&H000C121E&\\bord2.2\\shad3\\b1}}{tag_decor}",
+                        f"{{\\fs{fs_title}\\c&H00D8EDF8&\\3c&H000C121E&\\bord3.2\\shad4\\b1}}{title}",
                     ]
                     if subtitle:
-                        card_lines.append(f"{\\fs{fs_sub}\\c&H00B0C4DE&\\3c&H000C121E&\\bord2.2\\shad2.5\\b0}{subtitle}")
+                        card_lines.append(f"{{\\fs{fs_sub}\\c&H00B0C4DE&\\3c&H000C121E&\\bord2.2\\shad2.5\\b0}}{subtitle}")
 
                 elif b_style == "modern_pill":
                     # Modern Glassmorphism Pill banner (Neon Cyan Accent)
                     tag_decor = f"[  {clean_tag}  ]"
                     title_color = "&H0038D8FF&" if has_metric else "&H00FFFFFF&"
                     card_lines = [
-                        f"{\\fs{fs_tag}\\c&H00F5FF00&\\3c&H00181008&\\bord2.2\\shad3\\b1}{tag_decor}",
-                        f"{\\fs{fs_title}\\c{title_color}\\3c&H00100804&\\bord3.0\\shad3.5\\b1}{title}",
+                        f"{{\\fs{fs_tag}\\c&H00F5FF00&\\3c&H00181008&\\bord2.2\\shad3\\b1}}{tag_decor}",
+                        f"{{\\fs{fs_title}\\c{title_color}\\3c&H00100804&\\bord3.0\\shad3.5\\b1}}{title}",
                     ]
                     if subtitle:
-                        card_lines.append(f"{\\fs{fs_sub}\\c&H00DDEEFF&\\3c&H00100804&\\bord2.0\\shad2.5\\b0}{subtitle}")
+                        card_lines.append(f"{{\\fs{fs_sub}\\c&H00DDEEFF&\\3c&H00100804&\\bord2.0\\shad2.5\\b0}}{subtitle}")
 
                 elif b_style == "minimal_clean":
                     # Minimal Clean Typography with subtle soft shadow
                     tag_decor = f"•  {clean_tag}  •"
                     card_lines = [
-                        f"{\\fs{fs_tag}\\c&H00CBD5E1&\\3c&H00000000&\\bord1.5\\shad2\\b1}{tag_decor}",
-                        f"{\\fs{fs_title}\\c&H00FFFFFF&\\3c&H00000000&\\bord2.0\\shad3\\b1}{title}",
+                        f"{{\\fs{fs_tag}\\c&H00CBD5E1&\\3c&H00000000&\\bord1.5\\shad2\\b1}}{tag_decor}",
+                        f"{{\\fs{fs_title}\\c&H00FFFFFF&\\3c&H00000000&\\bord2.0\\shad3\\b1}}{title}",
                     ]
                     if subtitle:
-                        card_lines.append(f"{\\fs{fs_sub}\\c&H0094A3B8&\\3c&H00000000&\\bord1.5\\shad2\\b0}{subtitle}")
+                        card_lines.append(f"{{\\fs{fs_sub}\\c&H0094A3B8&\\3c&H00000000&\\bord1.5\\shad2\\b0}}{subtitle}")
 
                 elif b_style == "broadcast_news":
                     # Broadcast news upper banner
                     tag_decor = f"▶  {clean_tag}"
                     card_lines = [
-                        f"{\\fs{fs_tag}\\c&H0015CCFA&\\3c&H00081020&\\bord2.5\\shad3\\b1}{tag_decor}",
-                        f"{\\fs{fs_title}\\c&H00FFFFFF&\\3c&H00081020&\\bord3.2\\shad4\\b1}{title}",
+                        f"{{\\fs{fs_tag}\\c&H0015CCFA&\\3c&H00081020&\\bord2.5\\shad3\\b1}}{tag_decor}",
+                        f"{{\\fs{fs_title}\\c&H00FFFFFF&\\3c&H00081020&\\bord3.2\\shad4\\b1}}{title}",
                     ]
                     if subtitle:
-                        card_lines.append(f"{\\fs{fs_sub}\\c&H00E2E8F0&\\3c&H00081020&\\bord2.2\\shad2.5\\b0}{subtitle}")
+                        card_lines.append(f"{{\\fs{fs_sub}\\c&H00E2E8F0&\\3c&H00081020&\\bord2.2\\shad2.5\\b0}}{subtitle}")
 
                 else:
                     # fox_kinetic (Classic Cyan Diamond floating typography)
                     title_color = "&H0038D8FF&" if has_metric else "&H00FFFFFF&"
                     card_lines = [
-                        f"{\\fs{fs_tag}\\c&H00FFE500&\\3c&H00140A04&\\bord2.5\\shad3\\b1}◆  {clean_tag}  ◆",
-                        f"{\\fs{fs_title}\\c{title_color}\\3c&H00100804&\\bord3.5\\shad4\\b1}{title}",
+                        f"{{\\fs{fs_tag}\\c&H00FFE500&\\3c&H00140A04&\\bord2.5\\shad3\\b1}}◆  {clean_tag}  ◆",
+                        f"{{\\fs{fs_title}\\c{title_color}\\3c&H00100804&\\bord3.5\\shad4\\b1}}{title}",
                     ]
                     if subtitle:
-                        card_lines.append(f"{\\fs{fs_sub}\\c&H00F2E6D8&\\3c&H00100804&\\bord2.4\\shad2.5\\b0}{subtitle}")
-
+                        card_lines.append(f"{{\\fs{fs_sub}\\c&H00F2E6D8&\\3c&H00100804&\\bord2.4\\shad2.5\\b0}}{subtitle}")
                 formatted_content = "\\N".join(card_lines)
                 raw_events.append((
                     c_start,

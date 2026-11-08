@@ -535,6 +535,22 @@
                 <option value="-24">-24 dB (極度安靜低語)</option>
               </select>
             </div>
+
+            <!-- Motion Graphic & Banner Callout Style -->
+            <div class="form-group" id="creator-callout-style-group">
+              <label style="display: flex; justify-content: space-between; align-items: center;">
+                <span>🏷️ 頂部動態字卡與橫幅風格 (Top Motion Banner)</span>
+                <span id="callout-style-hint" style="font-size: 11px; color: #38bdf8; font-weight: 600;">✨ 支援古籍牛皮紙/極簡膠囊</span>
+              </label>
+              <select id="creator-callout-style">
+                <option value="fox_kinetic" selected>經典漂浮動態字卡 (fOx Hsiao 風格 · 青藍菱形光標)</option>
+                <option value="modern_pill">極簡深色毛玻璃膠囊橫幅 (Modern Glass Pill · 現代俐落質感)</option>
+                <option value="archival_parchment">歷史檔案古籍牛皮紙印章 (Archival Parchment · 歷史紀錄片推薦)</option>
+                <option value="minimal_clean">極簡無框俐落字體 (Minimal Clean · 清透極簡風格)</option>
+                <option value="broadcast_news">專題電視新聞橫條 (Broadcast News Bar · 新聞專題風格)</option>
+                <option value="none">停用頂部橫幅 · 純淨圖像 (No Banner Overlay · 僅 Ken Burns/AI 圖像)</option>
+              </select>
+            </div>
           </div>
         </div>
 
@@ -623,7 +639,10 @@
               </select>
             </div>
             <div class="form-group">
-              <label id="label-stage-model-music">Stage 7: Ambient Music & Soundtrack (配樂風格與多樂章演進)</label>
+              <label style="display: flex; justify-content: space-between; align-items: center;">
+                <span id="label-stage-model-music">Stage 7: Ambient Music & Soundtrack (配樂風格與多樂章演進)</span>
+                <span id="stage-music-sync-hint" style="font-size: 11px; color: #10b981; font-weight: 600;">🔗 Synced with Music Settings</span>
+              </label>
               <select id="model-stage-music" data-ui-change="static_071">
                 <option value="narrative_evolving" selected>🌟 多樂章劇情演進 (3-Movement Progression · Auto Grounding)</option>
                 <option value="single_loop">🔄 單曲循環 (Single Track Loop)</option>
@@ -631,7 +650,10 @@
               </select>
             </div>
             <div class="form-group">
-              <label id="label-stage-model-animation">Stage 8: Animation & AI Video</label>
+              <label style="display: flex; justify-content: space-between; align-items: center;">
+                <span id="label-stage-model-animation">Stage 8: Animation & AI Video</span>
+                <span id="stage-animation-sync-hint" style="font-size: 11px; color: #10b981; font-weight: 600;">🔗 Synced with Remotion & AI Video</span>
+              </label>
               <select id="model-stage-animation" data-ui-change="static_072">
                 <option value="remotion_coordinate_scale">🧭 Remotion: Coordinate Scale 等緯尺度 (+ Ken Burns)</option>
                 <option value="remotion_coordinate_experiment">🔬 Remotion: Coordinate Experiment 桌面實驗 (+ Ken Burns)</option>
@@ -1975,6 +1997,20 @@
           <input type="number" id="set-phase-turn-dur" min="1.0" max="10.0" step="0.5" value="3.0" style="padding: 7px 10px; background: #060b16; border: 1px solid #1e293b; color: #38bdf8; border-radius: 4px; font-size: 13px; font-weight: 600;">
           <div style="font-size: 11px; color: #94a3b8; margin-top: 3px;">
             黑底轉折字卡停留時間（預設 3.0 秒，確保觀眾有充足時間完整閱讀）
+          </div>
+        </div>
+        <div class="form-group">
+          <label>🏷️ 頂部動態字卡與橫幅風格 (Top Motion Banner Style)</label>
+          <select id="set-callout-banner-style">
+            <option value="fox_kinetic" selected>經典漂浮動態字卡 (fOx Hsiao 風格 · 青藍菱形光標)</option>
+            <option value="modern_pill">極簡深色毛玻璃膠囊橫幅 (Modern Glass Pill · 現代俐落質感)</option>
+            <option value="archival_parchment">歷史檔案古籍牛皮紙印章 (Archival Parchment · 歷史紀錄片推薦)</option>
+            <option value="minimal_clean">極簡無框俐落字體 (Minimal Clean · 清透極簡風格)</option>
+            <option value="broadcast_news">專題電視新聞橫條 (Broadcast News Bar · 新聞專題風格)</option>
+            <option value="none">停用頂部橫幅 · 純淨圖像 (No Banner Overlay · 僅 Ken Burns/AI 圖像)</option>
+          </select>
+          <div style="font-size: 11px; color: #94a3b8; margin-top: 3px;">
+            可自由切換或停用畫面上方重點字卡橫幅，擺脫早期單一硬編碼的青藍菱形樣式，亦可隨歷史題材切換為牛皮紙古籍風。
           </div>
         </div>
       </div>

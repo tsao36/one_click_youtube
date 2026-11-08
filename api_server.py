@@ -156,6 +156,7 @@ class CreateProjectRequest(BaseModel):
     aspect_ratio: Optional[str] = "16:9"
     drama_formula: Optional[str] = "workplace_revenge"
     drama_duration_seconds: Optional[int] = 50
+    callout_style: Optional[str] = None
     drama_characters: Optional[list[dict[str, Any]]] = None
     drama_script: Optional[str] = None
     remotion_style: Optional[str] = None
@@ -203,6 +204,7 @@ class ProjectSubtitleSettingsRequest(BaseModel):
     motion_graphics_callouts: Optional[bool] = None
     style: Optional[str] = None
     font: Optional[str] = None
+    callout_style: Optional[str] = None
 
 
 class YouTubeUploadRequest(BaseModel):
@@ -457,6 +459,9 @@ def build_project_settings(
     if req.drama_script:
         settings["drama_script"] = req.drama_script
         settings["user_research"] = req.drama_script
+
+    if req.callout_style:
+        settings.setdefault("subtitles", {})["callout_style"] = req.callout_style
 
     if project_mode == "short_drama":
         width, height = (1080, 1920) if aspect_ratio == "9:16" else (1920, 1080)
@@ -2548,6 +2553,8 @@ def update_project_subtitle_settings(project_id: str, req: ProjectSubtitleSettin
         sub_s["style"] = req.style
     if req.font is not None:
         sub_s["font"] = req.font
+    if req.callout_style is not None:
+        sub_s["callout_style"] = req.callout_style
     p.save()
     p.set_stage("subtitles", Status.PENDING)
     p.invalidate("render")
