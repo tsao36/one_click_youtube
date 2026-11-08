@@ -272,3 +272,70 @@ def test_gary_chen_modern_archetypes(tmp_path):
     assert rendered.exists()
     assert rendered.stat().st_size > 10000
     print(f"Rendered Remotion FrameworkMatrixScene successfully: {rendered.stat().st_size} bytes")
+
+
+def test_director_full_density_100_percent_coverage(tmp_path):
+    """Verify that density='full' achieves 100% Remotion coverage with diverse archetypes."""
+    from unittest.mock import MagicMock
+    p = Project.create("test_full_density")
+    
+    mock_client = MagicMock()
+    # Simulate LLM returning a valid Gary Chen archetype for scene 1 and 2
+    mock_client.text.return_value = '''{
+        "scenes": [
+            {
+                "scene_id": 1,
+                "sceneType": "PromptComparisonScene",
+                "props": {
+                    "title": "傳統藍牙 vs 藍牙7.0 HDT",
+                    "leftTitle": "傳統 2Mbps 瓶頸",
+                    "leftContent": "頻寬不足導致無損音訊必須壓縮",
+                    "rightTitle": "8Mbps 極速躍升",
+                    "rightContent": "真實物理層 4 倍頻寬突破",
+                    "takeaway": "徹底解放無線高傳真音訊"
+                }
+            },
+            {
+                "scene_id": 2,
+                "sceneType": "FrameworkMatrixScene",
+                "props": {
+                    "title": "藍牙 7.0 四大核心支柱",
+                    "subtitle": "頻寬 · 延遲 · 功耗 · 相容",
+                    "pillars": [
+                        {"id": "p1", "title": "4倍頻寬", "subtitle": "8Mbps", "points": ["突破極限"]},
+                        {"id": "p2", "title": "超低延遲", "subtitle": "次毫秒級", "points": ["即時傳輸"]}
+                    ]
+                }
+            }
+        ]
+    }'''
+
+    director = MotionGraphicsDirector(p, client=mock_client)
+    
+    # 5 test scenes
+    scenes = [
+        Scene(scene_id=1, section="Hook", narration="傳統藍牙傳輸速度受限，但藍牙 7.0 帶來了根本性的規格突破。", audio_duration=5.0),
+        Scene(scene_id=2, section="Architecture", narration="我們來檢視四大核心技術支柱，從實體層到封包重傳機制。", audio_duration=6.0),
+        Scene(scene_id=3, section="Process", narration="第一步建立連線，接著切換高頻寬模式，最後進行區塊級校驗。", audio_duration=4.5),
+        Scene(scene_id=4, section="Detail", narration="這項技術將傳輸速率直接翻了四倍，徹底改寫產業規則。", audio_duration=4.0),
+        Scene(scene_id=5, section="Conclusion", narration="想在次世代穿戴市場領先，你必須全面理解這套標準。", audio_duration=5.5),
+    ]
+
+    timeline = director.plan_motion_graphics(scenes, density="full")
+    
+    # Verify 100% of scenes are covered
+    assert len(timeline.scenes) == 5, f"Expected 5/5 scenes covered, got {len(timeline.scenes)}"
+    covered_ids = [s.scene_id for s in timeline.scenes]
+    assert covered_ids == [1, 2, 3, 4, 5]
+    
+    # Verify scene 1 is PromptComparisonScene, scene 2 is FrameworkMatrixScene
+    assert timeline.scenes[0].scene_type == SceneType.PROMPT_COMPARISON
+    assert timeline.scenes[1].scene_type == SceneType.FRAMEWORK_MATRIX
+    # Scenes 3, 4, 5 backfilled with KineticTypographyScene
+    assert timeline.scenes[2].scene_type == SceneType.KINETIC_TYPOGRAPHY
+    assert timeline.scenes[3].scene_type == SceneType.KINETIC_TYPOGRAPHY
+    assert timeline.scenes[4].scene_type == SceneType.KINETIC_TYPOGRAPHY
+    import shutil
+    shutil.rmtree(p.dir, ignore_errors=True)
+    print("test_director_full_density_100_percent_coverage passed with 100% coverage!")
+

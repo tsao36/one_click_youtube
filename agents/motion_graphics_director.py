@@ -60,7 +60,7 @@ DIRECTOR_SYSTEM_PROMPT = """你是一位專門為深度科技科普、AI 工作�
 1. 寧缺勿濫：動態圖卡只在「能大幅提升理解」時使用。不是每一句都要配圖表。
 2. 絕對不可憑空編造數據：必須忠於旁白內容。
 3. 嚴格使用台灣繁體中文 (zh-TW)，避免中國大陸用語（如：視頻->影片、內存->記憶體、芯片->晶片）。
-4. 密度控制：通常一支 5-10 分鐘的影片，最多挑選 3 到 6 個最值得視覺化的關鍵節點，且不可連續兩個節點都放圖卡。
+4. 密度與風格適應：若為 100% Remotion / Gary Chen 模式，請為「每一個被請求的場景」挑選最合適的動態視覺組件（可連續使用，每個場景不可留空），優先交替使用 FrameworkMatrixScene、PromptComparisonScene、WorkflowStepScene、ChatSimulationScene、KineticQuoteScene 與 KineticTypographyScene。
 5. 輸出格式：必須輸出合法的純 JSON 格式，包含一個 "scenes" 陣列。
 
 JSON 格式示範：
@@ -161,14 +161,31 @@ class MotionGraphicsDirector:
 
         raw_resp = ""
         try:
-            raw_resp = self.client.generate(
-                prompt=user_prompt,
-                system=DIRECTOR_SYSTEM_PROMPT,
-                temperature=0.2,
-            )
+            # LLMClient provides text() and json() methods
+            if hasattr(self.client, "text"):
+                raw_resp = self.client.text(
+                    prompt=user_prompt,
+                    system=DIRECTOR_SYSTEM_PROMPT,
+                    temperature=0.2,
+                )
+            elif hasattr(self.client, "generate"):
+                raw_resp = self.client.generate(
+                    prompt=user_prompt,
+                    system=DIRECTOR_SYSTEM_PROMPT,
+                    temperature=0.2,
+                )
+            elif hasattr(self.client, "provider") and hasattr(self.client.provider, "generate"):
+                raw_resp = self.client.provider.generate(
+                    user_prompt,
+                    DIRECTOR_SYSTEM_PROMPT,
+                    json_mode=True,
+                    temperature=0.2,
+                )
+            else:
+                raise AttributeError("LLMClient has no text() or generate() method")
         except Exception as e:
             log.warning("LLM MotionGraphicsDirector call failed: %s; falling back to rule-based fallback", e)
-            return self._rule_based_fallback(eligible_scenes, scenes, max_quota, fps)
+            return self._rule_based_fallback(eligible_scenes, scenes, max_quota, fps, density=density)
 
         # Extract and parse JSON
         json_match = re.search(r"\{[\s\S]*\}", raw_resp)
@@ -207,8 +224,8 @@ class MotionGraphicsDirector:
                 sid = int(item.get("scene_id", 0))
                 if sid not in scene_start_frames:
                     continue
-                # Spacing check: avoid consecutive scenes
-                if (sid - 1) in chosen_ids or (sid + 1) in chosen_ids:
+                # Spacing check: avoid consecutive scenes only when not full density
+                if density != "full" and ((sid - 1) in chosen_ids or (sid + 1) in chosen_ids):
                     continue
 
                 item_id = item.get("id") or f"motion-{sid:03d}"
@@ -237,9 +254,38 @@ class MotionGraphicsDirector:
             except Exception as ve:
                 log.warning("Skipping invalid motion graphic scene item (%s): %s", item, ve)
 
+        # If density is full, backfill any unassigned eligible scene with KineticTypographyScene
+        if density == "full":
+            for s in eligible_scenes:
+                if s.scene_id not in chosen_ids:
+                    sid = s.scene_id
+                    narr = (s.narration or "").strip()
+                    first_sentence = re.split(r"[，。！？,!?\n]", narr)[0].strip() or narr[:25]
+                    valid_scenes.append(MotionGraphicScene(
+                        id=f"kinetic-{sid:03d}",
+                        scene_id=sid,
+                        sceneType=SceneType.KINETIC_TYPOGRAPHY,
+                        layout=LayoutType.FULL_SCREEN,
+                        priority=1,
+                        confidence=0.85,
+                        reason="100% Remotion 全程覆蓋動態文字推進",
+                        startFrame=scene_start_frames.get(sid, 0),
+                        durationInFrames=scene_duration_frames.get(sid, 120),
+                        props={
+                            "badge": s.section or "KEY TAKEAWAY",
+                            "text": narr[:120] if len(narr) <= 120 else narr[:117] + "...",
+                            "highlightPhrase": first_sentence[:28],
+                            "subtext": s.section or "MODERN TECH EXPLAINER",
+                            "accentColor": "#38BDF8",
+                        },
+                    ))
+                    chosen_ids.add(sid)
+            # Sort valid_scenes by scene_id
+            valid_scenes.sort(key=lambda item: item.scene_id)
+
         # If LLM returned zero graphics, run rule-based fallback
         if not valid_scenes:
-            return self._rule_based_fallback(eligible_scenes, scenes, max_quota, fps)
+            return self._rule_based_fallback(eligible_scenes, scenes, max_quota, fps, density=density)
 
         timeline.scenes = valid_scenes
         return timeline
@@ -250,9 +296,10 @@ class MotionGraphicsDirector:
         all_scenes: List[Scene],
         max_quota: int,
         fps: int = 30,
+        density: str = "balanced",
     ) -> MotionGraphicsTimeline:
         """Deterministic rule-based fallback if LLM is unavailable or outputs malformed data."""
-        log.info("Running deterministic rule-based Motion Graphics extraction fallback...")
+        log.info("Running deterministic rule-based Motion Graphics extraction fallback (density=%s)...", density)
         out_scenes: List[MotionGraphicScene] = []
         chosen_ids: set[int] = set()
 
@@ -266,35 +313,39 @@ class MotionGraphicsDirector:
             scene_duration_frames[s.scene_id] = dur_f
             accum_frames += dur_f
 
-        # 0. Check for comparison / prompt / vs keywords -> PromptComparisonScene
+        # 0. Modern Archetype 1: PromptComparisonScene (對比/差別/傳統 vs 新型/優劣)
         for s in eligible:
             if len(out_scenes) >= max_quota:
                 break
             sid = s.scene_id
-            if (sid - 1) in chosen_ids or (sid + 1) in chosen_ids:
+            if density != "full" and ((sid - 1) in chosen_ids or (sid + 1) in chosen_ids):
                 continue
 
-            if any(k in (s.narration or "") for k in ("vs", "對比", "差別", "普通人", "高手", "一般人", "提問", "提示詞", "prompt")):
+            narr = (s.narration or "").strip()
+            if any(k in narr.lower() for k in ("prompt", "提示詞", "提問", "指令", "普通人", "高手做法", "一般用法", "高手思維", "before vs", "after")):
+                sentences = [st.strip() for st in re.split(r"[，。！？,!?\n]", narr) if len(st.strip()) > 4]
+                left_txt = sentences[0] if sentences else narr[:60]
+                right_txt = sentences[1] if len(sentences) > 1 else (narr[len(left_txt):][:60] or "全新技術突破與極限提升")
                 mg_scene = MotionGraphicScene(
                     id=f"prompt-{sid:03d}",
                     scene_id=sid,
                     sceneType=SceneType.PROMPT_COMPARISON,
-                    layout=LayoutType.OVERLAY,
+                    layout=LayoutType.FULL_SCREEN,
                     startFrame=scene_start_frames[sid],
                     durationInFrames=scene_duration_frames[sid],
-                    reason="自動識別提問策略與普通人vs高手對比",
+                    reason="自動識別技術代差與Before/After對比",
                     props={
-                        "title": s.section or "一般用法 vs 高手思維",
-                        "subtitle": "指令深度決定成果高度",
-                        "leftBadge": "一般用法 (Basic)",
-                        "leftTitle": "交出過程，缺乏驗收標準",
-                        "leftContent": (s.narration or "")[:140],
-                        "leftTags": ["單一動作", "被動執行"],
-                        "rightBadge": "高手做法 (Ambitious)",
-                        "rightTitle": "交出成果，設定專家規格",
-                        "rightContent": "設定資深專家角色，要求結構化診斷、方案規劃與完整交付物。",
-                        "rightTags": ["專家角色", "端到端交付"],
-                        "takeaway": "💡 核心轉變：從「幫我寫」到「幫我解決問題並產出成果」",
+                        "title": s.section or "規格代差與架構升級對比",
+                        "subtitle": "傳統架構限制 vs 新世代核心突破",
+                        "leftBadge": "前代標準 / 舊版限制",
+                        "leftTitle": "傳統傳輸架構",
+                        "leftContent": left_txt[:120],
+                        "leftTags": ["舊代協定", "頻寬瓶頸"],
+                        "rightBadge": "新世代標準 / 突破",
+                        "rightTitle": "新技術實體層架構",
+                        "rightContent": right_txt[:120],
+                        "rightTags": ["次世代架構", "極速傳輸"],
+                        "takeaway": f"💡 關鍵差異：{right_txt[:35]}",
                         "accentColor": "#38BDF8",
                     },
                 )
@@ -302,25 +353,71 @@ class MotionGraphicsDirector:
                 chosen_ids.add(sid)
                 continue
 
-            if any(k in (s.narration or "") for k in ("四個", "三個", "維度", "支柱", "框架", "高度", "深度", "廣度", "速度", "原則")):
+            # Modern Archetype 2: FrameworkMatrixScene (多維度/支柱/原則/四項/三項)
+            if any(k in narr for k in ("四大維度", "三大維度", "四大支柱", "三大支柱", "核心架構", "核心框架", "四個維度", "三個要素", "四大要素", "多維度矩陣")):
+                clauses = [cl.strip() for cl in re.split(r"[，。、；\n]", narr) if len(cl.strip()) >= 2][:4]
+                p_titles = ["核心頻寬", "封包延遲", "能耗管理", "硬體相容"]
+                icons = ["⚡", "⏱️", "🔋", "📡"]
+                pillars = []
+                for i in range(4):
+                    t = p_titles[i] if i < len(p_titles) else f"維度 {i+1}"
+                    desc = clauses[i] if i < len(clauses) else f"關鍵技術指標優化"
+                    pillars.append({
+                        "id": f"p{i+1}",
+                        "title": t,
+                        "subtitle": "核心技術亮點",
+                        "icon": icons[i],
+                        "metric": f"優化 {i+1}",
+                        "points": [desc[:28], "符合次世代通訊協定規範"],
+                        "isHighlighted": (i == 0),
+                    })
                 mg_scene = MotionGraphicScene(
                     id=f"matrix-{sid:03d}",
                     scene_id=sid,
                     sceneType=SceneType.FRAMEWORK_MATRIX,
-                    layout=LayoutType.OVERLAY,
+                    layout=LayoutType.FULL_SCREEN,
                     startFrame=scene_start_frames[sid],
                     durationInFrames=scene_duration_frames[sid],
-                    reason="自動識別核心框架與多維度矩陣",
+                    reason="自動識別多維度技術架構矩陣",
                     props={
-                        "title": s.section or "核心框架四維度",
-                        "subtitle": "速度 · 高度 · 深度 · 廣度",
-                        "pillars": [
-                            {"id": "p1", "title": "高度 (Height)", "subtitle": "直接要求成果規格", "icon": "🎯", "metric": "結果導向", "points": ["不只是過程，要求完成整份成果", "設定清晰的驗收標準"]},
-                            {"id": "p2", "title": "深度 (Depth)", "subtitle": "專家批判性思維", "icon": "🧠", "metric": "思維層次", "points": ["導入領域頂尖框架", "要求挑戰與反直覺觀點"]},
-                            {"id": "p3", "title": "廣度 (Breadth)", "subtitle": "跨領域多維檢視", "icon": "🌐", "metric": "全局視角", "points": ["從多職能角度全盤審視", "打破單一信息繭房"]},
-                            {"id": "p4", "title": "速度 (Speed)", "subtitle": "極速並行探索", "icon": "⚡", "metric": "快速迭代", "points": ["數分鐘內生成多個方向", "將精力聚焦在決策"]},
-                        ],
+                        "title": s.section or "核心架構四大維度矩陣",
+                        "subtitle": "傳輸速率 · 延遲控制 · 功耗效能 · 協定相容",
+                        "badge": "TECHNICAL ARCHITECTURE",
+                        "pillars": pillars,
                         "activePillarId": "p1",
+                        "accentColor": "#38BDF8",
+                    },
+                )
+                out_scenes.append(mg_scene)
+                chosen_ids.add(sid)
+                continue
+
+            # Modern Archetype 3: WorkflowStepScene (流程/步驟/階段/01/02)
+            if any(k in narr for k in ("步驟", "流程", "階段", "首先", "接著", "最後", "第一", "第二", "第三")):
+                parts = [p.strip() for p in re.split(r"[，。；\n]", narr) if len(p.strip()) >= 4][:3]
+                steps = []
+                for i in range(3):
+                    detail = parts[i] if i < len(parts) else f"第 {i+1} 階段關鍵處理流程"
+                    steps.append({
+                        "stepNumber": f"0{i+1}",
+                        "label": f"PHASE 0{i+1}",
+                        "detail": detail[:36],
+                        "tag": "EXECUTION",
+                    })
+                mg_scene = MotionGraphicScene(
+                    id=f"workflow-{sid:03d}",
+                    scene_id=sid,
+                    sceneType=SceneType.WORKFLOW_STEP,
+                    layout=LayoutType.FULL_SCREEN,
+                    startFrame=scene_start_frames[sid],
+                    durationInFrames=scene_duration_frames[sid],
+                    reason="自動識別循序工作流程節點",
+                    props={
+                        "badge": "EXECUTION PIPELINE",
+                        "title": s.section or "循序處理與傳輸工作流",
+                        "subtitle": "多階段協同傳輸機制",
+                        "steps": steps,
+                        "activeStepIndex": 0,
                         "accentColor": "#38BDF8",
                     },
                 )
@@ -338,7 +435,7 @@ class MotionGraphicsDirector:
             if len(out_scenes) >= max_quota:
                 break
             sid = s.scene_id
-            if (sid - 1) in chosen_ids or (sid + 1) in chosen_ids:
+            if density != "full" and ((sid - 1) in chosen_ids or (sid + 1) in chosen_ids):
                 continue
 
             m = metric_re.search(s.narration or "")
@@ -449,6 +546,34 @@ class MotionGraphicsDirector:
                 out_scenes.append(mg_scene)
                 chosen_ids.add(sid)
                 continue
+
+        # If density is full, backfill every remaining eligible scene with KineticTypographyScene
+        if density == "full":
+            for s in eligible:
+                if s.scene_id not in chosen_ids:
+                    sid = s.scene_id
+                    narr = (s.narration or "").strip()
+                    first_sent = re.split(r"[，。！？,!?\n]", narr)[0].strip() or narr[:25]
+                    out_scenes.append(MotionGraphicScene(
+                        id=f"kinetic-{sid:03d}",
+                        scene_id=sid,
+                        sceneType=SceneType.KINETIC_TYPOGRAPHY,
+                        layout=LayoutType.FULL_SCREEN,
+                        priority=1,
+                        confidence=0.85,
+                        reason="100% Remotion 全程覆蓋動態文字推進 (Fallback)",
+                        startFrame=scene_start_frames.get(sid, 0),
+                        durationInFrames=scene_duration_frames.get(sid, 120),
+                        props={
+                            "badge": s.section or "KEY TAKEAWAY",
+                            "text": narr[:120] if len(narr) <= 120 else narr[:117] + "...",
+                            "highlightPhrase": first_sent[:28],
+                            "subtext": s.section or "MODERN TECH EXPLAINER",
+                            "accentColor": "#38BDF8",
+                        },
+                    ))
+                    chosen_ids.add(sid)
+            out_scenes.sort(key=lambda item: item.scene_id)
 
         return MotionGraphicsTimeline(
             videoId=self.p.id,

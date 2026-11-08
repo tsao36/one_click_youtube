@@ -2494,17 +2494,32 @@ class DocumentaryPipeline(BasePipeline):
                 from agents.motion_graphics_director import MotionGraphicsDirector
                 from generators.motion_graphics_renderer import render_timeline_motion_graphics
 
-                density = (self.p.settings.get("animation") or {}).get("motion_graphics_density") or self.p.data.settings.get("motion_graphics_density", "balanced")
+                remotion_cfg = (self.p.settings.get("remotion") or {})
+                data_settings = getattr(self.p, "data", None) and getattr(self.p.data, "settings", None) or {}
+                data_rem_cfg = (data_settings.get("remotion") or {})
+                density = (
+                    remotion_cfg.get("density")
+                    or data_rem_cfg.get("density")
+                    or (self.p.settings.get("animation") or {}).get("motion_graphics_density")
+                    or data_settings.get("motion_graphics_density")
+                    or "balanced"
+                )
+                is_modern = (
+                    remotion_cfg.get("style") == "modern_tech_explainer"
+                    or data_rem_cfg.get("style") == "modern_tech_explainer"
+                    or density == "full"
+                )
+                candidate_scenes = scenes if is_modern else non_presenter_scenes
                 director = MotionGraphicsDirector(self.p)
-                timeline = director.plan_motion_graphics(non_presenter_scenes, density=density, cancel_check=self.is_cancelled)
+                timeline = director.plan_motion_graphics(candidate_scenes, density=density, cancel_check=self.is_cancelled)
 
                 targets_count = len(timeline.scenes)
                 self.p.set_stage("animation", Status.RUNNING, done=0, total=max(1, targets_count))
-                self.p.activity(f"Stage 8/10: Rendering {targets_count} AI Motion Graphics scene(s) via Remotion...")
+                self.p.activity(f"Stage 8/10: Rendering {targets_count} AI Motion Graphics scene(s) via Remotion (density={density})...")
 
                 done_ids = render_timeline_motion_graphics(
                     self.p,
-                    non_presenter_scenes,
+                    candidate_scenes,
                     timeline,
                     progress_callback=lambda d, t: self.p.progress("animation", d, max(1, t)),
                     cancel_check=self.is_cancelled,
