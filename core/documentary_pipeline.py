@@ -2538,6 +2538,24 @@ class DocumentaryPipeline(BasePipeline):
                 comp = "FoxDataListScene"
             elif anim_prov_name in ("remotion_foxtimeline", "foxtimeline", "timeline"):
                 comp = "FoxTimelineScene"
+            elif anim_prov_name in ("remotion_coordinate_scale", "coordinate_scale"):
+                comp = "CoordinateZeroScaleScene"
+            elif anim_prov_name in ("remotion_coordinate_experiment", "coordinate_experiment"):
+                comp = "CoordinateZeroExperimentScene"
+            elif anim_prov_name in ("remotion_coordinate_split", "coordinate_split"):
+                comp = "CoordinateZeroSplitScene"
+            elif anim_prov_name in ("remotion_finance_candlestick", "finance_candlestick"):
+                comp = "FinanceCandlestickScene"
+            elif anim_prov_name in ("remotion_finance_metrics", "finance_metrics"):
+                comp = "FinanceMetricCompareScene"
+            elif anim_prov_name in ("remotion_archival_doc", "archival_document"):
+                comp = "ArchivalDocumentScene"
+            elif anim_prov_name in ("remotion_history_chrono", "history_chronology"):
+                comp = "HistoryChronologyScene"
+            elif anim_prov_name in ("remotion_vox_split", "vox_splitscreen"):
+                comp = "VoxSplitScreenScene"
+            elif anim_prov_name in ("remotion_vox_keystat", "vox_keystat"):
+                comp = "VoxKeyStatScene"
             elif anim_prov_name in ("remotion_pathway", "pathway", "branch"):
                 comp = "BranchPathwayScene"
             elif anim_prov_name in ("remotion_callout", "callout", "leader"):
@@ -2547,7 +2565,22 @@ class DocumentaryPipeline(BasePipeline):
             elif anim_prov_name in ("remotion_evidence", "evidence", "highlight"):
                 comp = "EvidenceHighlightScene"
             elif anim_prov_name == "remotion":
-                comp = (self.p.data.settings or {}).get("remotion_style", "FoxHeaderScene")
+                rem_settings = (self.p.data.settings or {}).get("remotion") or {}
+                style_pref = rem_settings.get("style") or (self.p.data.settings or {}).get("remotion_style", "")
+                if style_pref == "coordinate_zero":
+                    comp = "CoordinateZeroScaleScene"
+                elif style_pref == "finance_market":
+                    comp = "FinanceCandlestickScene"
+                elif style_pref == "archival_history":
+                    comp = "ArchivalDocumentScene"
+                elif style_pref == "vox_journalism":
+                    comp = "VoxSplitScreenScene"
+                elif style_pref == "modern_tech_explainer":
+                    comp = "FrameworkMatrixScene"
+                elif style_pref == "tactile_blueprint":
+                    comp = "BranchPathwayScene"
+                else:
+                    comp = (self.p.data.settings or {}).get("remotion_style", "FoxHeaderScene")
 
             targets = [s for s in select_critical_scenes(non_presenter_scenes)
                        if not (s.animation.status == Status.COMPLETED

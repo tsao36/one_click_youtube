@@ -759,6 +759,12 @@
           if (v === 'remotion_coordinate_scale') activeName.textContent = '🧭 等緯尺度 (Coordinate Scale)';
           else if (v === 'remotion_coordinate_experiment') activeName.textContent = '🔬 桌面實驗 (Coordinate Experiment)';
           else if (v === 'remotion_coordinate_split') activeName.textContent = '⚖️ 各對一半 (Coordinate Split)';
+          else if (v === 'remotion_finance_candlestick') activeName.textContent = '📈 盤勢結構 (Finance Candlestick)';
+          else if (v === 'remotion_finance_metrics') activeName.textContent = '📊 財務基本面 (Finance Metrics)';
+          else if (v === 'remotion_archival_doc') activeName.textContent = '📜 解密檔案 (Archival Document)';
+          else if (v === 'remotion_history_chrono') activeName.textContent = '⏳ 年代編年 (History Chronology)';
+          else if (v === 'remotion_vox_split') activeName.textContent = '🗞️ 政策對照 (Vox Split-Screen)';
+          else if (v === 'remotion_vox_keystat') activeName.textContent = '⚡ 核心發現 (Vox Key Stat)';
           else if (v === 'remotion_pathway') activeName.textContent = '🔀 分支決策 (Branch Pathway)';
           else if (v === 'remotion_callout') activeName.textContent = '🎯 引線標註 (Leader Callout)';
           else if (v === 'remotion_scale') activeName.textContent = '🔬 尺度對比 (Scale Loupe)';
@@ -767,6 +773,153 @@
       } else {
         strip.style.display = 'none';
       }
+    }
+
+    function applyFinanceMarketRemotionPreset() {
+      window.activeRemotionPreset = 'finance_market';
+      setVal('model-stage-animation', 'remotion_finance_candlestick');
+      setVal('ai-video-pct', '0');
+
+      setVal('creator-presenter-placement', 'none');
+      if (typeof onPresenterPlacementChange === 'function') onPresenterPlacementChange();
+      const autoPres = document.getElementById('creator-auto-presenter');
+      if (autoPres) autoPres.checked = false;
+
+      const styleEl = document.getElementById('visual-style');
+      if (styleEl && styleEl.value !== 'tech_schematic') {
+        styleEl.value = 'tech_schematic';
+        if (typeof onCreatorStyleChange === 'function') onCreatorStyleChange('tech_schematic');
+      }
+      onStageModelChange('animation');
+      updateCreatorRemotionStrip();
+      if (currentProjectId) {
+        const sm = getSelectedStageModels();
+        sm.animation = 'remotion_finance_candlestick';
+        apiRequest(`/api/projects/${currentProjectId}/stage-models`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ stage_models: sm })
+        }).catch(e => console.error(e));
+
+        apiRequest(`/api/projects/${currentProjectId}/settings`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            presenter_placement: 'none',
+            auto_presenter: false,
+            avatar_enabled: false,
+            animation: {
+              motion_graphics_density: 'full',
+              ai_video_percentage: 0
+            },
+            remotion: {
+              style: 'finance_market',
+              theme: 'finance_grid',
+              density: 'full',
+              accentColor: '#10B981'
+            }
+          })
+        }).catch(e => console.error(e));
+      }
+      showToast('📈 已一鍵配置為「金融市場 (Finance Market)」風格！(100% Remotion K線走勢、支撐壓力標線、營運利差對比)');
+    }
+
+    function applyArchivalHistoryRemotionPreset() {
+      window.activeRemotionPreset = 'archival_history';
+      setVal('model-stage-animation', 'remotion_archival_doc');
+      setVal('ai-video-pct', '0');
+
+      setVal('creator-presenter-placement', 'none');
+      if (typeof onPresenterPlacementChange === 'function') onPresenterPlacementChange();
+      const autoPres = document.getElementById('creator-auto-presenter');
+      if (autoPres) autoPres.checked = false;
+
+      const styleEl = document.getElementById('visual-style');
+      if (styleEl && styleEl.value !== 'documentary') {
+        styleEl.value = 'documentary';
+        if (typeof onCreatorStyleChange === 'function') onCreatorStyleChange('documentary');
+      }
+      onStageModelChange('animation');
+      updateCreatorRemotionStrip();
+      if (currentProjectId) {
+        const sm = getSelectedStageModels();
+        sm.animation = 'remotion_archival_doc';
+        apiRequest(`/api/projects/${currentProjectId}/stage-models`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ stage_models: sm })
+        }).catch(e => console.error(e));
+
+        apiRequest(`/api/projects/${currentProjectId}/settings`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            presenter_placement: 'none',
+            auto_presenter: false,
+            avatar_enabled: false,
+            animation: {
+              motion_graphics_density: 'full',
+              ai_video_percentage: 0
+            },
+            remotion: {
+              style: 'archival_history',
+              theme: 'parchment_paper',
+              density: 'full',
+              accentColor: '#C2410C'
+            }
+          })
+        }).catch(e => console.error(e));
+      }
+      showToast('📜 已一鍵配置為「歷史檔案 (Archival History)」風格！(100% Remotion 羊皮紙解密檔案、紅色官印、年代編年進程)');
+    }
+
+    function applyVoxJournalismRemotionPreset() {
+      window.activeRemotionPreset = 'vox_journalism';
+      setVal('model-stage-animation', 'remotion_vox_split');
+      setVal('ai-video-pct', '0');
+
+      setVal('creator-presenter-placement', 'none');
+      if (typeof onPresenterPlacementChange === 'function') onPresenterPlacementChange();
+      const autoPres = document.getElementById('creator-auto-presenter');
+      if (autoPres) autoPres.checked = false;
+
+      const styleEl = document.getElementById('visual-style');
+      if (styleEl && styleEl.value !== 'editorial') {
+        styleEl.value = 'editorial';
+        if (typeof onCreatorStyleChange === 'function') onCreatorStyleChange('editorial');
+      }
+      onStageModelChange('animation');
+      updateCreatorRemotionStrip();
+      if (currentProjectId) {
+        const sm = getSelectedStageModels();
+        sm.animation = 'remotion_vox_split';
+        apiRequest(`/api/projects/${currentProjectId}/stage-models`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ stage_models: sm })
+        }).catch(e => console.error(e));
+
+        apiRequest(`/api/projects/${currentProjectId}/settings`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            presenter_placement: 'none',
+            auto_presenter: false,
+            avatar_enabled: false,
+            animation: {
+              motion_graphics_density: 'full',
+              ai_video_percentage: 0
+            },
+            remotion: {
+              style: 'vox_journalism',
+              theme: 'vox_charcoal',
+              density: 'full',
+              accentColor: '#FACC15'
+            }
+          })
+        }).catch(e => console.error(e));
+      }
+      showToast('🗞️ 已一鍵配置為「Vox 深度調查 (Vox Journalism)」風格！(100% Remotion 政策雙分割對照、140px巨型數據、螢光標記)');
     }
 
     function applyCoordinateZeroRemotionPreset() {
@@ -7129,6 +7282,12 @@
     window.onRemotionAccentHexInput = onRemotionAccentHexInput;
     window.setRemotionAccentColor = setRemotionAccentColor;
     window.applyRemotionPresetInSettings = applyRemotionPresetInSettings;
+    window.applyFinanceMarketRemotionPreset = applyFinanceMarketRemotionPreset;
+    window.applyArchivalHistoryRemotionPreset = applyArchivalHistoryRemotionPreset;
+    window.applyVoxJournalismRemotionPreset = applyVoxJournalismRemotionPreset;
+    window.applyCoordinateZeroRemotionPreset = applyCoordinateZeroRemotionPreset;
+    window.applyGaryChenRemotionPreset = applyGaryChenRemotionPreset;
+    window.apply100PercentRemotionPreset = apply100PercentRemotionPreset;
     window.updateRemotionSettingsLivePreview = updateRemotionSettingsLivePreview;
     window.saveRemotionGlobalSettings = saveRemotionGlobalSettings;
 
