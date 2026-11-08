@@ -223,8 +223,17 @@ def get_avatar_test_speech_audio(voice_profile_name: Optional[str] = None) -> Pa
 def delete_avatar(name: str) -> None:
     """Delete avatar directory."""
     d = AVATARS_DIR / name
-    if d.exists() and d.is_dir():
-        shutil.rmtree(d, ignore_errors=True)
+    for attempt in range(4):
+        if not d.exists():
+            return
+        try:
+            shutil.rmtree(d)
+            return
+        except PermissionError as exc:
+            if attempt == 3:
+                log.warning("Could not delete avatar '%s': %s", name, exc)
+                return
+            time.sleep(0.1 * (attempt + 1))
 
 
 # ---------------- Generation Engines ----------------
