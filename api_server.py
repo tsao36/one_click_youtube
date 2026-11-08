@@ -4487,10 +4487,14 @@ def get_project_thumbnail(project_id: str):
         TEMPLATES,
         get_default_thumbnail_config,
         render_project_thumbnail,
+        get_scene_visual_path,
     )
     p = get_project(project_id)
     thumb_file = p.path("output", "thumbnail.png")
-    if not thumb_file.exists():
+    final_rel = p.data.outputs.get("final") or f"final/{project_id}.mp4"
+    final_file = p.abs(final_rel)
+    # Re-render if missing or if final video was rendered after thumbnail
+    if not thumb_file.exists() or (final_file and final_file.exists() and final_file.stat().st_mtime > thumb_file.stat().st_mtime):
         render_project_thumbnail(p)
     cfg = dict(get_default_thumbnail_config())
     proj_cfg = p.data.settings.get("thumbnail_config") or {}
@@ -4498,11 +4502,12 @@ def get_project_thumbnail(project_id: str):
         cfg.update({k: v for k, v in proj_cfg.items() if v is not None})
     scenes_list = []
     for s in p.scenes:
-        if s.image and s.image.path and p.abs(s.image.path).exists():
+        vis_path = get_scene_visual_path(p, s)
+        if vis_path and vis_path.exists():
             scenes_list.append({
                 "scene_id": s.scene_id,
                 "label": f"Scene {s.scene_id}: {(s.narration or s.visual_description or '')[:32]}",
-                "image_url": f"/media/{project_id}/{s.image.path}",
+                "image_url": f"/media/{project_id}/{p.rel(vis_path)}",
             })
     has_custom_bg = p.path("output", "thumbnail_bg_custom.png").exists()
     return {

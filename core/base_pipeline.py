@@ -1965,10 +1965,8 @@ class BasePipeline:
             mp4_path = render_project(self.p, draft=False, progress=on_prog, cancel=self.is_cancelled)
             self.p.data.outputs["final"] = self.p.rel(mp4_path)
             try:
-                thumb_file = self.p.path("output", "thumbnail.png")
-                if not thumb_file.exists():
-                    from generators.thumbnail_generator import render_project_thumbnail
-                    render_project_thumbnail(self.p)
+                from generators.thumbnail_generator import render_project_thumbnail
+                render_project_thumbnail(self.p)
             except Exception as th_err:
                 log.warning("Auto thumbnail generation skipped: %s", th_err)
             elapsed = round(max(0.1, time.perf_counter() - t0), 1)

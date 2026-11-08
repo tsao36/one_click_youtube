@@ -793,7 +793,12 @@ def generate_youtube_metadata(project: Project) -> dict[str, Any]:
     thumbnail_path = None
     thumbnail_rel = "output/thumbnail.png"
     styled_thumb = project.path("output", "thumbnail.png")
-    if not styled_thumb.exists():
+    needs_render = not styled_thumb.exists()
+    if styled_thumb.exists() and final_abs and final_abs.exists():
+        if final_abs.stat().st_mtime > styled_thumb.stat().st_mtime:
+            needs_render = True
+
+    if needs_render:
         try:
             from generators.thumbnail_generator import render_project_thumbnail
             render_project_thumbnail(project)
@@ -804,12 +809,12 @@ def generate_youtube_metadata(project: Project) -> dict[str, Any]:
         thumbnail_path = str(styled_thumb)
         thumbnail_rel = project.rel(styled_thumb)
     elif scenes:
+        from generators.thumbnail_generator import get_scene_visual_path
         sc1 = scenes[0]
-        if sc1.image and sc1.image.path:
-            p_img = project.abs(sc1.image.path)
-            if p_img and p_img.exists():
-                thumbnail_path = str(p_img)
-                thumbnail_rel = sc1.image.path
+        vis = get_scene_visual_path(project, sc1)
+        if vis and vis.exists():
+            thumbnail_path = str(vis)
+            thumbnail_rel = project.rel(vis)
 
     return {
         "project_id": project.id,

@@ -13244,8 +13244,20 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       }
     }
 
-    async function openYouTubeUploadModal() {
-      if (!currentProjectId) return alert("Please select or render a project first.");
+    async function openYouTubeUploadModal(targetPid) {
+      let pid = targetPid;
+      if (!pid) {
+        const previewTab = document.getElementById('tab-preview');
+        const pSel = document.getElementById('preview-project-select');
+        if (previewTab && previewTab.classList.contains('active') && pSel && pSel.value) {
+          pid = pSel.value;
+        }
+      }
+      if (!pid) pid = currentProjectId;
+      if (!pid) return alert("Please select or render a project first.");
+      if (pid !== currentProjectId && typeof selectProject === 'function') {
+        selectProject(pid);
+      }
 
       const modal = document.getElementById('youtube-upload-modal');
       if (modal) modal.style.display = 'flex';
@@ -13685,10 +13697,22 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       await renderCustomThumbnail(false, true);
     }
 
-    async function openThumbnailStudioModal() {
-      if (!currentProjectId) {
+    async function openThumbnailStudioModal(targetPid) {
+      let pid = targetPid;
+      if (!pid) {
+        const previewTab = document.getElementById('tab-preview');
+        const pSel = document.getElementById('preview-project-select');
+        if (previewTab && previewTab.classList.contains('active') && pSel && pSel.value) {
+          pid = pSel.value;
+        }
+      }
+      if (!pid) pid = currentProjectId;
+      if (!pid) {
         alert("請先選擇一個專案 (Please select a project first).");
         return;
+      }
+      if (pid !== currentProjectId && typeof selectProject === 'function') {
+        selectProject(pid);
       }
       const modal = document.getElementById('thumbnail-studio-modal');
       modal.style.display = 'flex';

@@ -1526,6 +1526,75 @@ def generate_thumbnail_copy_zh_tw(project, use_llm: bool = True) -> dict[str, st
     }
 
 
+def get_scene_visual_path(project, scene) -> Optional[Path]:
+    """Return the absolute path to the actual visual representation of the scene.
+
+    Priority:
+    1. If scene has an animation clip / video clip (e.g. Remotion, AI video, avatar clip)
+       or an MP4 exists in animation/{scene.tag}.mp4, extract/cache a high-quality 1080p frame
+       from that clip so the thumbnail reflects the real video footage that is on screen.
+    2. If scene has an image path and it exists, use that.
+    3. If scene image file exists on disk (images/{scene.tag}.png), use that.
+    """
+    # 1. Animation clip / Video clip
+    anim_clip = None
+    if getattr(scene, "animation", None) and scene.animation.path:
+        cand = project.abs(scene.animation.path)
+        if cand and cand.exists():
+            anim_clip = cand
+    if not anim_clip:
+        default_anim = project.path("animation", f"{scene.tag}.mp4")
+        if default_anim.exists():
+            anim_clip = default_anim
+
+    if anim_clip and anim_clip.exists() and anim_clip.stat().st_size > 0:
+        frames_dir = project.path("output", "scene_frames")
+        frames_dir.mkdir(parents=True, exist_ok=True)
+        frame_file = frames_dir / f"{scene.tag}.png"
+
+        # Check if frame_file is already extracted and up-to-date
+        if (
+            frame_file.exists()
+            and frame_file.stat().st_size > 0
+            and frame_file.stat().st_mtime >= anim_clip.stat().st_mtime
+        ):
+            return frame_file
+
+        # Extract frame using ffmpeg
+        try:
+            from rendering.ffmpeg_utils import ffmpeg_bin
+            ff = ffmpeg_bin()
+            if ff:
+                import subprocess
+                # Seek to 1.5s to ensure motion graphic cards / typography are fully visible
+                cmd = [
+                    ff, "-y",
+                    "-ss", "00:00:01.500",
+                    "-i", str(anim_clip),
+                    "-vframes", "1",
+                    "-update", "1",
+                    str(frame_file),
+                ]
+                subprocess.run(cmd, capture_output=True, timeout=10)
+                if frame_file.exists() and frame_file.stat().st_size > 0:
+                    return frame_file
+        except Exception as ex:
+            log.warning("Could not extract frame from animation clip %s: %s", anim_clip, ex)
+
+    # 2. Scene image
+    if getattr(scene, "image", None) and scene.image.path:
+        p_img = project.abs(scene.image.path)
+        if p_img and p_img.exists() and p_img.stat().st_size > 0:
+            return p_img
+
+    # 3. Disk image fallback
+    cand_img = project.path("images", f"{scene.tag}.png")
+    if cand_img.exists() and cand_img.stat().st_size > 0:
+        return cand_img
+
+    return None
+
+
 def resolve_background_image(project, bg_source: str = "auto") -> Image.Image:
     """Resolve the background image for the thumbnail from project scenes or custom upload."""
     # 1. Explicit custom image path inside project
@@ -1537,9 +1606,9 @@ def resolve_background_image(project, bg_source: str = "auto") -> Image.Image:
             try:
                 sid = int(bg_source.replace("scene_", ""))
                 for s in project.scenes:
-                    if s.scene_id == sid and s.image and s.image.path:
-                        p = project.abs(s.image.path)
-                        if p.exists():
+                    if s.scene_id == sid:
+                        p = get_scene_visual_path(project, s)
+                        if p and p.exists():
                             return Image.open(p).convert("RGB")
             except Exception:
                 pass
@@ -1555,14 +1624,19 @@ def resolve_background_image(project, bg_source: str = "auto") -> Image.Image:
     if bg_source == "custom" and custom_bg.exists():
         return Image.open(custom_bg).convert("RGB")
 
-    # 3. First available completed non-placeholder scene image
+    # 3. First available completed scene visual from active scenes
     for s in project.active_scenes():
-        if s.image and s.image.path:
-            p = project.abs(s.image.path)
-            if p.exists() and (s.image.meta or {}).get("provider") != "placeholder":
-                return Image.open(p).convert("RGB")
+        p = get_scene_visual_path(project, s)
+        if p and p.exists():
+            return Image.open(p).convert("RGB")
 
-    # 4. Any scene image on disk
+    # 4. Any scene frame or scene image on disk
+    frames_dir = project.path("output", "scene_frames")
+    if frames_dir.exists():
+        pngs = sorted(frames_dir.glob("scene_*.png"))
+        if pngs:
+            return Image.open(pngs[0]).convert("RGB")
+
     img_dir = project.path("images")
     if img_dir.exists():
         pngs = sorted(img_dir.glob("scene_*.png"))
