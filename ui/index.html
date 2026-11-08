@@ -692,6 +692,18 @@
                     <span style="font-size: 10px; color: #00F5FF; font-weight: 700; display: block; padding: 3px 0;">📑 文獻劃記</span>
                   </div>
                 </div>
+                <!-- Quick Density Selector (100% vs 50/50) -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 8px; border-top: 1px dashed rgba(255,255,255,0.12); flex-wrap: wrap; gap: 8px;">
+                  <span style="font-size: 11px; color: #94a3b8; font-weight: 600;">動態圖卡比例 (Density):</span>
+                  <div style="display: flex; gap: 6px;">
+                    <button type="button" id="btn-density-full" class="btn-sec" onclick="setCreatorRemotionDensity('full')" style="font-size: 11px; padding: 3px 10px; background: #0ea5e9; color: #fff; border: 1px solid #38bdf8; font-weight: 700; border-radius: 4px; cursor: pointer;" title="100% 全部分鏡皆由 Remotion 動態代碼算繪">
+                      100% 全 Remotion
+                    </button>
+                    <button type="button" id="btn-density-half" class="btn-sec" onclick="setCreatorRemotionDensity('half')" style="font-size: 11px; padding: 3px 10px; background: rgba(255,255,255,0.05); color: #94a3b8; border: 1px solid #334155; font-weight: 700; border-radius: 4px; cursor: pointer;" title="50% 分鏡為 AI 實景底圖(Ken Burns 2.5D)，50% 分鏡為 Remotion 動態圖表">
+                      50% 實景 + 50% Remotion
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
             <div class="form-group">

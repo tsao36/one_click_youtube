@@ -7281,6 +7281,46 @@
     window.onRemotionAccentColorChange = onRemotionAccentColorChange;
     window.onRemotionAccentHexInput = onRemotionAccentHexInput;
     window.setRemotionAccentColor = setRemotionAccentColor;
+    
+    function setCreatorRemotionDensity(density) {
+      window.creatorRemotionDensity = density;
+      const setEl = document.getElementById('set-remotion-density');
+      if (setEl) setEl.value = density;
+
+      const pill100 = document.getElementById('btn-density-full');
+      const pill50 = document.getElementById('btn-density-half');
+      if (pill100 && pill50) {
+        if (density === 'half') {
+          pill50.style.background = '#10b981';
+          pill50.style.color = '#ffffff';
+          pill50.style.borderColor = '#34d399';
+          pill100.style.background = 'rgba(255,255,255,0.05)';
+          pill100.style.color = '#94a3b8';
+          pill100.style.borderColor = '#334155';
+        } else {
+          pill100.style.background = '#0ea5e9';
+          pill100.style.color = '#ffffff';
+          pill100.style.borderColor = '#38bdf8';
+          pill50.style.background = 'rgba(255,255,255,0.05)';
+          pill50.style.color = '#94a3b8';
+          pill50.style.borderColor = '#334155';
+        }
+      }
+
+      if (currentProjectId) {
+        apiRequest(`/api/projects/${currentProjectId}/settings`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            animation: { motion_graphics_density: density },
+            remotion: { density: density }
+          })
+        }).catch(e => console.error(e));
+      }
+      showToast(density === 'half' ? '✨ 已設定為：50% 實景圖片 + 50% Remotion 動態圖表！' : '✨ 已設定為：100% 全程 Remotion 動態圖表！');
+    }
+    window.setCreatorRemotionDensity = setCreatorRemotionDensity;
+
     window.applyRemotionPresetInSettings = applyRemotionPresetInSettings;
     window.applyFinanceMarketRemotionPreset = applyFinanceMarketRemotionPreset;
     window.applyArchivalHistoryRemotionPreset = applyArchivalHistoryRemotionPreset;
