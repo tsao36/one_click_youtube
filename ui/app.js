@@ -760,6 +760,7 @@
     }
 
     function applyGaryChenRemotionPreset() {
+      window.activeRemotionPreset = 'gary_chen';
       setVal('model-stage-animation', 'remotion');
       setVal('ai-video-pct', '0');
       
@@ -809,6 +810,7 @@
     }
 
     function apply100PercentRemotionPreset() {
+      window.activeRemotionPreset = 'blueprint';
       setVal('model-stage-animation', 'remotion');
       setVal('ai-video-pct', '0');
       const styleEl = document.getElementById('visual-style');
@@ -3438,9 +3440,22 @@
             music_category: musicCategory,
             music_progression: musicProgression,
             music_volume_db: musicVolume,
-            auto_presenter: autoPresenter,
-            presenter_placement: presenterPlacement,
+            auto_presenter: ((window.activeRemotionPreset === 'gary_chen' || (stageModels.animation === 'remotion' && ai_pct === 0 && window.activeRemotionPreset !== 'blueprint')) ? false : autoPresenter),
+            presenter_placement: ((window.activeRemotionPreset === 'gary_chen' || (stageModels.animation === 'remotion' && ai_pct === 0 && window.activeRemotionPreset !== 'blueprint')) ? 'none' : presenterPlacement),
             default_avatar: defaultAvatar,
+            remotion_density: ((window.activeRemotionPreset === 'gary_chen' || window.activeRemotionPreset === 'blueprint' || (stageModels.animation === 'remotion' && ai_pct === 0)) ? 'full' : null),
+            remotion_style: ((window.activeRemotionPreset === 'gary_chen' || (stageModels.animation === 'remotion' && ai_pct === 0 && window.activeRemotionPreset !== 'blueprint')) ? 'modern_tech_explainer' : (window.activeRemotionPreset === 'blueprint' ? 'EvidenceHighlightScene' : null)),
+            remotion_theme: ((window.activeRemotionPreset === 'gary_chen' || (stageModels.animation === 'remotion' && ai_pct === 0 && window.activeRemotionPreset !== 'blueprint')) ? 'dark_obsidian' : 'blueprint'),
+            remotion: ((window.activeRemotionPreset === 'gary_chen' || (stageModels.animation === 'remotion' && ai_pct === 0 && window.activeRemotionPreset !== 'blueprint')) ? {
+              style: 'modern_tech_explainer',
+              theme: 'dark_obsidian',
+              density: 'full',
+              accentColor: '#38BDF8'
+            } : (window.activeRemotionPreset === 'blueprint' ? {
+              style: 'EvidenceHighlightScene',
+              theme: 'blueprint',
+              density: 'full'
+            } : null)),
             user_research: userResearch || null,
             research_mode: researchMode,
             pause_after_research: pauseAfterResearch,

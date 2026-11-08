@@ -184,6 +184,10 @@ class CreateProjectRequest(BaseModel):
     drama_duration_seconds: Optional[int] = 50
     drama_characters: Optional[list[dict[str, Any]]] = None
     drama_script: Optional[str] = None
+    remotion_style: Optional[str] = None
+    remotion_density: Optional[str] = None
+    remotion_theme: Optional[str] = None
+    remotion: Optional[dict[str, Any]] = None
 
 
 class UpdateSettingsRequest(BaseModel):
@@ -485,7 +489,35 @@ def create_project(req: CreateProjectRequest, background_tasks: BackgroundTasks)
             overrides.setdefault("images", {})["height"] = 1080
         overrides.setdefault("subtitles", {})["ai_watermark"] = True
 
+    # Wire remotion settings
+    rem_density = req.remotion_density or (req.remotion.get("density") if req.remotion else None)
+    rem_style = req.remotion_style or (req.remotion.get("style") if req.remotion else None)
+    rem_theme = req.remotion_theme or (req.remotion.get("theme") if req.remotion else None)
+    if rem_density or rem_style or rem_theme or req.remotion:
+        overrides.setdefault("remotion", {})
+        if rem_style: overrides["remotion"]["style"] = rem_style
+        if rem_density:
+            overrides["remotion"]["density"] = rem_density
+            overrides.setdefault("animation", {})["motion_graphics_density"] = rem_density
+        if rem_theme: overrides["remotion"]["theme"] = rem_theme
+        if req.remotion: overrides["remotion"].update(req.remotion)
+        if rem_density == "full" or rem_style == "modern_tech_explainer":
+            overrides["presenter_placement"] = "none"
+            overrides["auto_presenter"] = False
+
     p = Project.create(topic=req.topic, overrides=overrides)
+
+    if rem_density or rem_style or rem_theme or req.remotion:
+        p.data.settings.setdefault("remotion", {})
+        if rem_style: p.data.settings["remotion"]["style"] = rem_style
+        if rem_density:
+            p.data.settings["remotion"]["density"] = rem_density
+            p.data.settings.setdefault("animation", {})["motion_graphics_density"] = rem_density
+        if rem_theme: p.data.settings["remotion"]["theme"] = rem_theme
+        if req.remotion: p.data.settings["remotion"].update(req.remotion)
+        if rem_density == "full" or rem_style == "modern_tech_explainer":
+            p.data.settings["presenter_placement"] = "none"
+            p.data.settings["auto_presenter"] = False
     p.data.settings.setdefault("images", {})["auto_stock_mode"] = auto_stock
     p.data.settings["project_mode"] = p_mode
     p.data.settings["aspect_ratio"] = aspect
