@@ -1,9 +1,10 @@
-const nativeFetch = window.fetch.bind(window);
+window.nativeFetch = window.nativeFetch || (window.fetch ? window.fetch.bind(window) : null);
+var nativeFetch = window.nativeFetch;
 
 async function apiRequest(url, options = {}) {
   let response;
   try {
-    response = await nativeFetch(url, options);
+    response = await (window.nativeFetch || window.fetch)(url, options);
   } catch (error) {
     throw new Error(error?.message || 'Network request failed');
   }
@@ -29,3 +30,7 @@ function escapeHtml(value) {
     "'": '&#39;'
   })[char]);
 }
+
+window.apiRequest = apiRequest;
+window.apiJson = apiJson;
+window.escapeHtml = escapeHtml;

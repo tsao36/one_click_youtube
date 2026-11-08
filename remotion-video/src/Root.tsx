@@ -25,6 +25,9 @@ import { ChatSimulationScene } from "./ChatSimulationScene";
 import { KineticQuoteScene } from "./KineticQuoteScene";
 import { WorkflowStepScene } from "./WorkflowStepScene";
 import { KineticTypographyScene } from "./KineticTypographyScene";
+import { CoordinateZeroScaleScene } from "./CoordinateZeroScaleScene";
+import { CoordinateZeroExperimentScene } from "./CoordinateZeroExperimentScene";
+import { CoordinateZeroSplitScene } from "./CoordinateZeroSplitScene";
 import {
   FrameworkMatrixSceneSchema,
   PromptComparisonSceneSchema,
@@ -32,6 +35,9 @@ import {
   KineticQuoteSceneSchema,
   WorkflowStepSceneSchema,
   KineticTypographySceneSchema,
+  CoordinateZeroScaleSceneSchema,
+  CoordinateZeroExperimentSceneSchema,
+  CoordinateZeroSplitSceneSchema,
 } from "./types";
 
 const videoDimensions = { fps: 30, width: 1920, height: 1080 };
@@ -449,6 +455,125 @@ export const RemotionRoot: React.FC = () => {
             schema={KineticTypographySceneSchema}
             durationInFrames={150}
             {...videoDimensions}
+          />
+                </Folder>
+
+        {/* 4. Coordinate Zero Geographic Lab Archetypes */}
+        <Folder name="Coordinate-Zero-Geographic-Lab">
+          <Composition
+            id="CoordinateZeroScaleScene"
+            component={CoordinateZeroScaleScene}
+            schema={CoordinateZeroScaleSceneSchema}
+            durationInFrames={150}
+            {...videoDimensions}
+            defaultProps={{
+              badge: "台灣，其實比你想像中還大",
+              initialTitle: "常見的世界地圖上：畫出來的大小",
+              calibratedTitle: "搬到台灣身邊（同一個緯度）：真實大小",
+              anchorLabel: "和台灣比",
+              items: [
+                {
+                  id: "tw",
+                  name: "台灣",
+                  initialMultiplier: 1.0,
+                  actualMultiplier: 1.0,
+                  initialLabel: "基準",
+                  actualLabel: "基準",
+                  isAnchor: true,
+                  customShape: "taiwan",
+                  color: "#F59E0B",
+                },
+                {
+                  id: "nl",
+                  name: "荷蘭",
+                  initialMultiplier: 2.3,
+                  actualMultiplier: 1.0,
+                  initialLabel: "×2.3",
+                  actualLabel: "≈ 1倍",
+                  customShape: "netherlands",
+                },
+                {
+                  id: "dk",
+                  name: "丹麥",
+                  initialMultiplier: 3.2,
+                  actualMultiplier: 1.2,
+                  initialLabel: "×3.2",
+                  actualLabel: "1.2倍",
+                  customShape: "denmark",
+                },
+                {
+                  id: "ch",
+                  name: "瑞士",
+                  initialMultiplier: 2.0,
+                  actualMultiplier: 1.1,
+                  initialLabel: "×2.0",
+                  actualLabel: "1.1倍",
+                  customShape: "switzerland",
+                },
+                {
+                  id: "be",
+                  name: "比利時",
+                  initialMultiplier: 1.8,
+                  actualMultiplier: 0.85,
+                  initialLabel: "×1.8",
+                  actualLabel: "0.85倍",
+                  isTargetFocus: true,
+                  customShape: "belgium",
+                },
+              ],
+              accentColor: "#0D9488",
+              dim: 0.15,
+            }}
+          />
+          <Composition
+            id="CoordinateZeroExperimentScene"
+            component={CoordinateZeroExperimentScene}
+            schema={CoordinateZeroExperimentSceneSchema}
+            durationInFrames={150}
+            {...videoDimensions}
+            defaultProps={{
+              experimentNo: "03",
+              experimentBadge: "實驗",
+              title: "俄羅斯 vs 非洲",
+              subtitle: "把俄羅斯搬到赤道做真實面積對比",
+              gaugeLabel: "放大倍率",
+              currentMagnification: "×4.9",
+              gaugePointerPosition: 0.58,
+              measurementHeader: "量測",
+              measurementTag: "地圖上",
+              measurementFormula: "俄羅斯 = 非洲 × 2.5",
+              measurementSubtext: "高緯度嚴重拉伸，赤道處才是真實物理尺度",
+              accentColor: "#EF4444",
+              dim: 0.15,
+            }}
+          />
+          <Composition
+            id="CoordinateZeroSplitScene"
+            component={CoordinateZeroSplitScene}
+            schema={CoordinateZeroSplitSceneSchema}
+            durationInFrames={150}
+            {...videoDimensions}
+            defaultProps={{
+              verdictBadge: "各對一半",
+              badgeColor: "#2563EB",
+              leftCard: {
+                tag: "彼得斯說對的",
+                tagColor: "#EF4444",
+                title: "高爾—彼得斯視角",
+                caption: "赤道附近，看起來比較小",
+                imgSrc: "",
+              },
+              rightCard: {
+                tag: "製圖學家說對的",
+                tagColor: "#0D9488",
+                title: "麥卡托現代製圖視角",
+                caption: "放大的規則：只看緯度",
+                imgSrc: "",
+              },
+              summary: "地圖從來不只是幾何線條，而是不同時代航海與政治意圖的投影抉擇",
+              accentColor: "#0D9488",
+              dim: 0.15,
+            }}
           />
         </Folder>
       </Folder>

@@ -3,37 +3,47 @@
     let pollGeneration = 0;
     let pollController = null;
 
-    const nativeFetch = window.fetch.bind(window);
-
-    async function apiRequest(url, options = {}) {
-      let response;
-      try {
-        response = await nativeFetch(url, options);
-      } catch (error) {
-        throw new Error(error?.message || 'Network request failed');
-      }
-      if (response.ok) return response;
-      const body = await response.json().catch(() => ({}));
-      const detail = Array.isArray(body.detail)
-        ? body.detail.map(item => item.msg || JSON.stringify(item)).join('; ')
-        : (body.detail || body.message);
-      throw new Error(detail || `Request failed (${response.status})`);
+    // Use helpers from api.js if present, or assign fallback
+    var nativeFetch = window.nativeFetch || (window.fetch ? window.fetch.bind(window) : null);
+    if (!window.apiRequest) {
+      window.apiRequest = async function apiRequest(url, options = {}) {
+        let response;
+        try {
+          response = await (window.nativeFetch || window.fetch)(url, options);
+        } catch (error) {
+          throw new Error(error?.message || 'Network request failed');
+        }
+        if (response.ok) return response;
+        const body = await response.json().catch(() => ({}));
+        const detail = Array.isArray(body.detail)
+          ? body.detail.map(item => item.msg || JSON.stringify(item)).join('; ')
+          : (body.detail || body.message);
+        throw new Error(detail || `Request failed (${response.status})`);
+      };
+    }
+    if (!window.apiJson) {
+      window.apiJson = async function apiJson(url, options = {}) {
+        const response = await window.apiRequest(url, options);
+        return response.json();
+      };
+    }
+    if (!window.escapeHtml) {
+      window.escapeHtml = function escapeHtml(value) {
+        return String(value ?? '').replace(/[&<>"']/g, char => ({
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#39;'
+        })[char]);
+      };
     }
 
-    async function apiJson(url, options = {}) {
-      const response = await apiRequest(url, options);
-      return response.json();
+    function toggleStepMode(enabled) {
+      const toggle = document.getElementById('step-mode-toggle');
+      if (toggle && typeof enabled === 'boolean') toggle.checked = enabled;
     }
-
-    function escapeHtml(value) {
-      return String(value ?? '').replace(/[&<>"']/g, char => ({
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#39;'
-      })[char]);
-    }
+    window.toggleStepMode = toggleStepMode;
     let timerInterval = null;
     let cachedRerenderVoices = [];
 
@@ -613,10 +623,12 @@
       render: "10/10 Render"
     };
 
+    window.switchTab = switchTab;
     function switchTab(name) {
       document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
       document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-      const foundTab = Array.from(document.querySelectorAll('.nav-tab')).find(t => (t.getAttribute('onclick') || '').includes(`switchTab('${name}')`));
+      const foundTab = document.querySelector(`.nav-tab[data-tab="${name}"]`)
+        || Array.from(document.querySelectorAll('.nav-tab')).find(t => (t.getAttribute('onclick') || '').includes(`switchTab('${name}')`));
       if (foundTab) foundTab.classList.add('active');
       // Both Stage Studios share one workspace DOM; each mode has its own tab, header and project list.
       const isStudioTab = (name === 'studio' || name === 'dramastudio');
@@ -725,7 +737,15 @@
       const v = el.value || '';
       if (v.startsWith('remotion')) {
         strip.style.display = 'block';
-        const styles = ['remotion_pathway', 'remotion_callout', 'remotion_scale', 'remotion_evidence'];
+        const styles = [
+          'remotion_coordinate_scale',
+          'remotion_coordinate_experiment',
+          'remotion_coordinate_split',
+          'remotion_evidence',
+          'remotion_pathway',
+          'remotion_callout',
+          'remotion_scale',
+        ];
         styles.forEach(k => {
           const card = document.getElementById('creator-style-' + k);
           if (card) {
@@ -736,7 +756,10 @@
           }
         });
         if (activeName) {
-          if (v === 'remotion_pathway') activeName.textContent = '🔀 分支決策 (Branch Pathway)';
+          if (v === 'remotion_coordinate_scale') activeName.textContent = '🧭 等緯尺度 (Coordinate Scale)';
+          else if (v === 'remotion_coordinate_experiment') activeName.textContent = '🔬 桌面實驗 (Coordinate Experiment)';
+          else if (v === 'remotion_coordinate_split') activeName.textContent = '⚖️ 各對一半 (Coordinate Split)';
+          else if (v === 'remotion_pathway') activeName.textContent = '🔀 分支決策 (Branch Pathway)';
           else if (v === 'remotion_callout') activeName.textContent = '🎯 引線標註 (Leader Callout)';
           else if (v === 'remotion_scale') activeName.textContent = '🔬 尺度對比 (Scale Loupe)';
           else activeName.textContent = '📑 文獻劃記 (Evidence Highlight)';
@@ -744,6 +767,56 @@
       } else {
         strip.style.display = 'none';
       }
+    }
+
+    function applyCoordinateZeroRemotionPreset() {
+      window.activeRemotionPreset = 'coordinate_zero';
+      setVal('model-stage-animation', 'remotion_coordinate_scale');
+      setVal('ai-video-pct', '0');
+
+      // Turn off virtual presenter for 100% pure tactile desktop graphics
+      setVal('creator-presenter-placement', 'none');
+      if (typeof onPresenterPlacementChange === 'function') onPresenterPlacementChange();
+      const autoPres = document.getElementById('creator-auto-presenter');
+      if (autoPres) autoPres.checked = false;
+
+      const styleEl = document.getElementById('visual-style');
+      if (styleEl && styleEl.value !== 'documentary') {
+        styleEl.value = 'documentary';
+        if (typeof onCreatorStyleChange === 'function') onCreatorStyleChange('documentary');
+      }
+      onStageModelChange('animation');
+      updateCreatorRemotionStrip();
+      if (currentProjectId) {
+        const sm = getSelectedStageModels();
+        sm.animation = 'remotion_coordinate_scale';
+        apiRequest(`/api/projects/${currentProjectId}/stage-models`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ stage_models: sm })
+        }).catch(e => console.error(e));
+
+        apiRequest(`/api/projects/${currentProjectId}/settings`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            presenter_placement: 'none',
+            auto_presenter: false,
+            avatar_enabled: false,
+            animation: {
+              motion_graphics_density: 'full',
+              ai_video_percentage: 0
+            },
+            remotion: {
+              style: 'coordinate_zero',
+              theme: 'green_cutting_mat',
+              density: 'full',
+              accentColor: '#0D9488'
+            }
+          })
+        }).catch(e => console.error(e));
+      }
+      showToast('🧭 已一鍵配置為「座標零 (Coordinate Zero)」桌面實驗室風格！(100% Remotion 綠色雕刻墊、等緯尺度縮放對比、垂直倍率規、雙向論證)');
     }
 
     function applyGaryChenRemotionPreset() {
@@ -2352,8 +2425,8 @@
       const topicInput = document.getElementById('topic');
       const btnCreate = document.getElementById('btn-create-video');
       const topicSub = document.getElementById('creator-topic-subtext');
-      const avatarTabBtn = document.querySelector('button[onclick="switchTab(\'avatars\')"]');
-      const dramaCastTabBtn = document.querySelector('button[onclick="switchTab(\'characters\')"]');
+      const avatarTabBtn = document.querySelector('.nav-tab[data-tab="avatars"]') || document.querySelector('button[onclick="switchTab(\'avatars\')"]');
+      const dramaCastTabBtn = document.querySelector('.nav-tab[data-tab="characters"]') || document.querySelector('button[onclick="switchTab(\'characters\')"]');
       const styleSelect = document.getElementById('visual-style');
       const ckSelect = document.getElementById('checkpoint-select');
 

@@ -92,17 +92,17 @@
   </div>
 
   <div class="nav-tabs">
-    <button class="nav-tab active" data-ui-click="static_017">🎙️ Documentary Creator</button>
-    <button class="nav-tab" data-ui-click="static_018">🎭 Short Drama Studio</button>
-    <button class="nav-tab" data-ui-click="static_019">🛠️ Documentary Stage Studio</button>
-    <button class="nav-tab" data-ui-click="static_020">🎭 Drama Stage Studio</button>
-    <button class="nav-tab" data-ui-click="static_021">📺 Player & YouTube</button>
-    <button class="nav-tab" data-ui-click="static_022">Voice Profiles</button>
-    <button class="nav-tab" data-ui-click="static_023">🎵 Ambient Music</button>
-    <button class="nav-tab" data-ui-click="static_024">🎭 Virtual Presenter</button>
-    <button class="nav-tab" data-ui-click="static_025">👥 Drama Cast</button>
-    <button class="nav-tab" data-ui-click="static_026">Settings</button>
-    <button class="nav-tab" data-ui-click="static_027">Logs</button>
+    <button class="nav-tab active" data-tab="creator" data-ui-click="static_017">🎙️ Documentary Creator</button>
+    <button class="nav-tab" data-tab="drama" data-ui-click="static_018">🎭 Short Drama Studio</button>
+    <button class="nav-tab" data-tab="studio" data-ui-click="static_019">🛠️ Documentary Stage Studio</button>
+    <button class="nav-tab" data-tab="dramastudio" data-ui-click="static_020">🎭 Drama Stage Studio</button>
+    <button class="nav-tab" data-tab="preview" data-ui-click="static_021">📺 Player & YouTube</button>
+    <button class="nav-tab" data-tab="voices" data-ui-click="static_022">Voice Profiles</button>
+    <button class="nav-tab" data-tab="music" data-ui-click="static_023">🎵 Ambient Music</button>
+    <button class="nav-tab" data-tab="avatars" data-ui-click="static_024">🎭 Virtual Presenter</button>
+    <button class="nav-tab" data-tab="characters" data-ui-click="static_025">👥 Drama Cast</button>
+    <button class="nav-tab" data-tab="settings" data-ui-click="static_026">Settings</button>
+    <button class="nav-tab" data-tab="logs" data-ui-click="static_027">Logs</button>
   </div>
 
   <!-- TAB: DOCUMENTARY CREATOR -->
@@ -119,6 +119,9 @@
           </div>
         </div>
         <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+          <button type="button" id="btn-creator-coordinate-zero-top" class="btn-primary" data-ui-click="cz_preset_top" style="font-size: 11.5px; padding: 5px 12px; background: linear-gradient(135deg, #064e3b 0%, #163c2e 100%); border: 1.5px solid #10b981; font-weight: 700; color: #fff; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 0 12px rgba(16,185,129,0.4); cursor: pointer;" title="一鍵預設為 座標零 (Coordinate Zero) 桌面實驗室風格 (100% Remotion 綠色切割墊)">
+            🧭 座標零 (Coordinate Zero)
+          </button>
           <button type="button" id="btn-creator-gary-chen-top" class="btn-primary" data-ui-click="static_028" style="font-size: 11.5px; padding: 5px 12px; background: linear-gradient(135deg, #4c1d95 0%, #1e1b4b 100%); border: 1.5px solid #a855f7; font-weight: 700; color: #fff; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 0 12px rgba(168,85,247,0.4); cursor: pointer;" title="一鍵預設為 Gary Chen 極簡現代科技解說風格 (100% Remotion 全程動態圖表)">
             ✨ Gary Chen 風格 (100% Remotion)
           </button>
@@ -205,6 +208,10 @@
             <span id="adv-active-pill" style="font-size: 11px; padding: 2px 8px; border-radius: 999px; background: rgba(193, 157, 73, 0.2); color: #fde68a; border: 1px solid rgba(193, 157, 73, 0.4); font-weight: 600;">已就緒</span>
           </button>
 
+          <button type="button" id="btn-creator-coordinate-zero" class="btn-primary" data-ui-click="cz_preset_btn" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 700; padding: 10px 18px; border-radius: 8px; font-size: 13px; background: linear-gradient(135deg, #064e3b 0%, #163c2e 100%); border: 1.5px solid #10b981; color: #fff; cursor: pointer; box-shadow: 0 0 14px rgba(16,185,129,0.45); transition: all 0.2s;" title="一鍵配置為「座標零」桌面實驗室風格（100% Remotion 綠色雕刻墊、等緯尺度縮放對比、垂直倍率規、雙向論證）">
+            <span>🧭</span>
+            <span>座標零 桌面實驗室 (100% Remotion)</span>
+          </button>
           <button type="button" id="btn-creator-gary-chen" class="btn-primary" data-ui-click="static_036" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 700; padding: 10px 18px; border-radius: 8px; font-size: 13px; background: linear-gradient(135deg, #4c1d95 0%, #1e1b4b 100%); border: 1.5px solid #a855f7; color: #fff; cursor: pointer; box-shadow: 0 0 14px rgba(168,85,247,0.45); transition: all 0.2s;" title="一鍵將專案配置為 Gary Chen 極簡科技解說風格（100% Remotion 全程動態圖表、0% AI 圖片幻燈片、四大思維矩陣與提問對比）">
             <span>✨</span>
             <span>Gary Chen 極簡科技解說 (100% Remotion)</span>
@@ -605,6 +612,9 @@
             <div class="form-group">
               <label id="label-stage-model-animation">Stage 8: Animation & AI Video</label>
               <select id="model-stage-animation" data-ui-change="static_072">
+                <option value="remotion_coordinate_scale">🧭 Remotion: Coordinate Scale 等緯尺度 (+ Ken Burns)</option>
+                <option value="remotion_coordinate_experiment">🔬 Remotion: Coordinate Experiment 桌面實驗 (+ Ken Burns)</option>
+                <option value="remotion_coordinate_split">⚖️ Remotion: Coordinate Split 各對一半 (+ Ken Burns)</option>
                 <option value="remotion_evidence">📑 Remotion: Evidence Highlight 文獻劃記 (+ Ken Burns)</option>
                 <option value="remotion_pathway">🔀 Remotion: Branch Pathway 分支決策 (+ Ken Burns)</option>
                 <option value="remotion_callout">🎯 Remotion: Leader Callout 引線標註 (+ Ken Burns)</option>
@@ -622,6 +632,20 @@
                 <div style="font-size: 11px; font-weight: 700; color: #00F5FF; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;">
                   <span>⚛️ Remotion Tactile Blueprint 樣式預覽</span>
                   <span id="creator-remotion-active-name" style="color: #93c5fd; font-size: 11px; font-weight: 600;">📑 文獻劃記 (Evidence Highlight)</span>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 8px;">
+                  <div data-ui-click="cz_style_scale" id="creator-style-remotion_coordinate_scale" style="border: 2px solid #10b981; border-radius: 6px; overflow: hidden; cursor: pointer; text-align: center; background: #064e3b; box-shadow: 0 0 10px rgba(16,185,129,0.3); transition: all 0.2s;">
+                    <img src="/remotion/style_coordinate_scale.png" alt="Coordinate Scale" style="width: 100%; height: 50px; object-fit: cover; display: block;">
+                    <span style="font-size: 10px; color: #10b981; font-weight: 700; display: block; padding: 3px 0;">🧭 等緯尺度</span>
+                  </div>
+                  <div data-ui-click="cz_style_experiment" id="creator-style-remotion_coordinate_experiment" style="border: 1px solid #1e293b; border-radius: 6px; overflow: hidden; cursor: pointer; text-align: center; background: #064e3b; transition: all 0.2s;">
+                    <img src="/remotion/style_coordinate_experiment.png" alt="Coordinate Experiment" style="width: 100%; height: 50px; object-fit: cover; display: block;">
+                    <span style="font-size: 10px; color: #f87171; font-weight: 700; display: block; padding: 3px 0;">🔬 桌面實驗</span>
+                  </div>
+                  <div data-ui-click="cz_style_split" id="creator-style-remotion_coordinate_split" style="border: 1px solid #1e293b; border-radius: 6px; overflow: hidden; cursor: pointer; text-align: center; background: #064e3b; transition: all 0.2s;">
+                    <img src="/remotion/style_coordinate_split.png" alt="Coordinate Split" style="width: 100%; height: 50px; object-fit: cover; display: block;">
+                    <span style="font-size: 10px; color: #60a5fa; font-weight: 700; display: block; padding: 3px 0;">⚖️ 各對一半</span>
+                  </div>
                 </div>
                 <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
                   <div data-ui-click="static_073" id="creator-style-remotion_pathway" style="border: 1px solid #1e293b; border-radius: 6px; overflow: hidden; cursor: pointer; text-align: center; background: #000; transition: all 0.2s;">

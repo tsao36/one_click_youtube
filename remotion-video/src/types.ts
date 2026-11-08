@@ -270,3 +270,77 @@ export const KineticTypographySceneSchema = z.object({
   accentColor: z.string().optional().default("#38BDF8"),
 });
 export type KineticTypographySceneProps = z.input<typeof KineticTypographySceneSchema>;
+
+
+// ==============================================================
+// 7. Coordinate Zero (座標零) Geographic Lab Archetypes
+// ==============================================================
+
+// 7.1 CoordinateZeroScaleScene Schema (Multi-subject scale morphing comparison)
+export const CoordinateZeroCompareItemSchema = z.object({
+  id: z.string(),
+  name: z.string().min(1).max(60),
+  initialMultiplier: z.number().default(2.0),
+  actualMultiplier: z.number().default(1.0),
+  initialLabel: z.string().max(30).optional().default(""),
+  actualLabel: z.string().max(30).optional().default(""),
+  isAnchor: z.boolean().optional().default(false),
+  isTargetFocus: z.boolean().optional().default(false),
+  customShape: z.string().optional().default(""),
+  color: z.string().optional().default(""),
+});
+export type CoordinateZeroCompareItem = z.infer<typeof CoordinateZeroCompareItemSchema>;
+
+export const CoordinateZeroScaleSceneSchema = z.object({
+  badge: z.string().max(80).optional().default("台灣，其實比你想像中還大"),
+  initialTitle: z.string().max(120).optional().default("常見的世界地圖上：畫出來的大小"),
+  calibratedTitle: z.string().max(120).optional().default("搬到台灣身邊（同一個緯度）：真實大小"),
+  anchorLabel: z.string().max(40).optional().default("和台灣比"),
+  items: z.array(CoordinateZeroCompareItemSchema).min(2).max(6),
+  accentColor: z.string().optional().default("#0D9488"),
+  bgSrc: z.string().optional().default(""),
+  dim: z.number().min(0).max(1).optional().default(0.15),
+});
+export type CoordinateZeroScaleSceneProps = z.input<typeof CoordinateZeroScaleSceneSchema>;
+
+// 7.2 CoordinateZeroExperimentScene Schema (Experiment card + vertical magnification ruler)
+export const CoordinateZeroExperimentSceneSchema = z.object({
+  experimentNo: z.string().max(20).optional().default("03"),
+  experimentBadge: z.string().max(40).optional().default("實驗"),
+  title: z.string().min(1).max(100),
+  subtitle: z.string().max(160).optional().default(""),
+  gaugeLabel: z.string().max(40).optional().default("放大倍率"),
+  currentMagnification: z.string().max(30).optional().default("×4.9"),
+  gaugePointerPosition: z.number().min(0).max(1).optional().default(0.45),
+  measurementHeader: z.string().max(40).optional().default("量測"),
+  measurementTag: z.string().max(40).optional().default("地圖上"),
+  measurementFormula: z.string().min(1).max(100).default("俄羅斯 = 非洲 × 2.5"),
+  measurementSubtext: z.string().max(160).optional().default(""),
+  accentColor: z.string().optional().default("#EF4444"),
+  bgSrc: z.string().optional().default(""),
+  dim: z.number().min(0).max(1).optional().default(0.15),
+});
+export type CoordinateZeroExperimentSceneProps = z.input<typeof CoordinateZeroExperimentSceneSchema>;
+
+// 7.3 CoordinateZeroSplitScene Schema (Dual card pro-con split verdict)
+export const CoordinateZeroSplitCardSchema = z.object({
+  tag: z.string().min(1).max(60),
+  tagColor: z.string().optional().default("#EF4444"),
+  title: z.string().min(1).max(100),
+  caption: z.string().max(160).optional().default(""),
+  imgSrc: z.string().optional().default(""),
+});
+export type CoordinateZeroSplitCard = z.infer<typeof CoordinateZeroSplitCardSchema>;
+
+export const CoordinateZeroSplitSceneSchema = z.object({
+  verdictBadge: z.string().max(60).optional().default("各對一半"),
+  badgeColor: z.string().optional().default("#3B82F6"),
+  leftCard: CoordinateZeroSplitCardSchema,
+  rightCard: CoordinateZeroSplitCardSchema,
+  summary: z.string().max(200).optional().default(""),
+  bgSrc: z.string().optional().default(""),
+  dim: z.number().min(0).max(1).optional().default(0.15),
+  accentColor: z.string().optional().default("#0D9488"),
+});
+export type CoordinateZeroSplitSceneProps = z.input<typeof CoordinateZeroSplitSceneSchema>;
+

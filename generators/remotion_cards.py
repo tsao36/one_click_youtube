@@ -293,6 +293,31 @@ REMOTION_STYLES = [
         "accentColor": "#00F5FF",
         "type": "scene",
     },
+    # 座標零 (Coordinate Zero) Geographic & Tactile Lab Archetypes
+    {
+        "id": "CoordinateZeroScaleScene",
+        "name": "🧭 等緯尺度 (Coordinate Scale)",
+        "label": "桌面實驗・等緯尺度還原",
+        "description": "厚磅米白紙張、墨綠雕刻墊、多國同緯度形體動態縮放與倍率翻轉膠囊標籤 (台灣 vs 歐洲)",
+        "accentColor": "#0D9488",
+        "type": "scene",
+    },
+    {
+        "id": "CoordinateZeroExperimentScene",
+        "name": "🔬 桌面實驗 (Coordinate Experiment)",
+        "label": "科學實驗・垂直倍率規",
+        "description": "桌面實驗編號卡、赤道真實量測算式與右側垂直對數放大倍率滑動尺規 (俄羅斯 vs 非洲)",
+        "accentColor": "#EF4444",
+        "type": "scene",
+    },
+    {
+        "id": "CoordinateZeroSplitScene",
+        "name": "⚖️ 各對一半 (Coordinate Split)",
+        "label": "爭議對決・雙向驗證",
+        "description": "雙卡桌面拍立得膠帶張貼、中央虛線分割與正反論點辯證摘要 (彼得斯 vs 製圖學家)",
+        "accentColor": "#2563EB",
+        "type": "scene",
+    },
 ]
 
 
@@ -406,6 +431,60 @@ def _normalize_props_for_composition(comp: str, raw: dict[str, Any]) -> dict[str
         p["ratioLabel"] = str(p.get("ratioLabel") or "尺度差距").strip()
         p["magnificationFactor"] = str(p.get("magnificationFactor") or "20X OPTICAL").strip()
         p["accentColor"] = p.get("accentColor") or "#00F5FF"
+
+    elif comp == "CoordinateZeroScaleScene":
+        p["badge"] = str(p.get("badge") or category or "台灣，其實比你想像中還大").strip()
+        p["initialTitle"] = str(p.get("initialTitle") or "常見的世界地圖上：畫出來的大小").strip()
+        p["calibratedTitle"] = str(p.get("calibratedTitle") or "搬到台灣身邊（同一個緯度）：真實大小").strip()
+        p["anchorLabel"] = str(p.get("anchorLabel") or "和台灣比").strip()
+        if not p.get("items") or not isinstance(p["items"], list):
+            p["items"] = [
+                {"id": "tw", "name": "台灣", "initialMultiplier": 1.0, "actualMultiplier": 1.0, "initialLabel": "基準", "actualLabel": "基準", "isAnchor": True, "customShape": "taiwan", "color": "#F59E0B"},
+                {"id": "nl", "name": "荷蘭", "initialMultiplier": 2.3, "actualMultiplier": 1.0, "initialLabel": "×2.3", "actualLabel": "≈ 1倍", "customShape": "netherlands"},
+                {"id": "dk", "name": "丹麥", "initialMultiplier": 3.2, "actualMultiplier": 1.2, "initialLabel": "×3.2", "actualLabel": "1.2倍", "customShape": "denmark"},
+                {"id": "ch", "name": "瑞士", "initialMultiplier": 2.0, "actualMultiplier": 1.1, "initialLabel": "×2.0", "actualLabel": "1.1倍", "customShape": "switzerland"},
+                {"id": "be", "name": "比利時", "initialMultiplier": 1.8, "actualMultiplier": 0.85, "initialLabel": "×1.8", "actualLabel": "0.85倍", "isTargetFocus": True, "customShape": "belgium"},
+            ]
+        p["accentColor"] = p.get("accentColor") or "#0D9488"
+        p["dim"] = float(p.get("dim") or 0.15)
+
+    elif comp == "CoordinateZeroExperimentScene":
+        p["experimentNo"] = str(p.get("experimentNo") or "01").strip()
+        p["experimentBadge"] = str(p.get("experimentBadge") or "實驗").strip()
+        p["title"] = title or "尺度探索實驗"
+        p["subtitle"] = subtext or "把目標搬到赤道做真實物理對比"
+        p["gaugeLabel"] = str(p.get("gaugeLabel") or "放大倍率").strip()
+        p["currentMagnification"] = str(p.get("currentMagnification") or (p.get("metric") or "×4.9")).strip()
+        p["gaugePointerPosition"] = float(p.get("gaugePointerPosition") or 0.58)
+        p["measurementHeader"] = str(p.get("measurementHeader") or "量測").strip()
+        p["measurementTag"] = str(p.get("measurementTag") or "地圖上").strip()
+        p["measurementFormula"] = str(p.get("measurementFormula") or f"{title} = 非洲 × {p.get('metric') or '2.5'}").strip()
+        p["measurementSubtext"] = str(p.get("measurementSubtext") or subtext or "高緯度嚴重拉伸，赤道處才是真實物理尺度").strip()
+        p["accentColor"] = p.get("accentColor") or "#EF4444"
+        p["dim"] = float(p.get("dim") or 0.15)
+
+    elif comp == "CoordinateZeroSplitScene":
+        p["verdictBadge"] = str(p.get("verdictBadge") or "各對一半").strip()
+        p["badgeColor"] = str(p.get("badgeColor") or "#2563EB").strip()
+        if not p.get("leftCard") or not isinstance(p["leftCard"], dict):
+            p["leftCard"] = {
+                "tag": "彼得斯說對的",
+                "tagColor": "#EF4444",
+                "title": title or "赤道附近視覺現象",
+                "caption": "赤道附近，看起來比較小",
+                "imgSrc": "",
+            }
+        if not p.get("rightCard") or not isinstance(p["rightCard"], dict):
+            p["rightCard"] = {
+                "tag": "製圖學家說對的",
+                "tagColor": "#0D9488",
+                "title": "幾何製圖學視角",
+                "caption": "放大的規則：只看緯度",
+                "imgSrc": "",
+            }
+        p["summary"] = str(p.get("summary") or subtext or "不同時代航海與政治意圖的投影抉擇").strip()
+        p["accentColor"] = p.get("accentColor") or "#0D9488"
+        p["dim"] = float(p.get("dim") or 0.15)
 
     else:  # EvidenceHighlightScene or fallback
         p["title"] = title
