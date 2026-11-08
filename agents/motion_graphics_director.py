@@ -130,6 +130,7 @@ class MotionGraphicsDirector:
             "minimal": max(1, min(3, round(len(scenes) * 0.1))),
             "balanced": max(2, min(6, round(len(scenes) * 0.25))),
             "rich": max(3, min(8, round(len(scenes) * 0.4))),
+            "half": max(2, round(len(eligible_scenes) * 0.5)),
             "full": len(eligible_scenes),
         }
         max_quota = density_limits.get(density, len(eligible_scenes) if density == "full" else 4)
