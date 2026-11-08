@@ -13354,6 +13354,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
 
     // ---------------- YouTube Thumbnail Studio (縮圖設計工作坊) ----------------
     const THUMB_COLOR_MAP = {
+      cinema_vermilion: '#FF4215',
       dr_beauty_gold: '#FFD000',
       indie_vintage_yellow: '#FED631',
       neon_green: '#00E626',
@@ -13365,6 +13366,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
 
     const THUMB_TEMPLATE_LABELS = {
       editorial_chill: '潮流雜誌大字風 (Editorial Chill)',
+      cinematic_cast: '電影雙側全明星卡司風 (Cinematic Ensemble Cast)',
       hiphop_mv_3d: '嘻哈MV 3D立體字卡風 (Dr. Beauty 3D)',
       indie_mv_film: '獨立樂團電影字卡風 (Indie MV Film)',
       cinema_impact: '台灣知識型大字風 (Cinema Impact)',
@@ -13757,6 +13759,24 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
         document.getElementById('ts-duration-badge').value = cfg.duration_badge || '';
         document.getElementById('ts-subject-overlap').checked = cfg.subject_overlap !== false;
 
+        const leftCastEl = document.getElementById('ts-left-cast');
+        const rightCastEl = document.getElementById('ts-right-cast');
+        if (leftCastEl) {
+          leftCastEl.value = cfg.left_lines ? (Array.isArray(cfg.left_lines) ? cfg.left_lines.join('\n') : cfg.left_lines) : '';
+        }
+        if (rightCastEl) {
+          rightCastEl.value = cfg.right_lines ? (Array.isArray(cfg.right_lines) ? cfg.right_lines.join('\n') : cfg.right_lines) : '';
+        }
+        const castDiv = document.getElementById('ts-cast-inputs');
+        const stdDiv = document.getElementById('ts-standard-inputs');
+        if (cfg.template === 'cinematic_cast') {
+          if (castDiv) castDiv.style.display = 'block';
+          if (stdDiv) stdDiv.style.display = 'none';
+        } else {
+          if (castDiv) castDiv.style.display = 'none';
+          if (stdDiv) stdDiv.style.display = 'block';
+        }
+
         const scaleVal = cfg.title_scale || 1.0;
         document.getElementById('ts-title-scale').value = scaleVal;
         document.getElementById('ts-scale-val').textContent = Math.round(scaleVal * 100) + '%';
@@ -13831,6 +13851,35 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       }
     }
 
+    function onThumbnailTemplateChange() {
+      const tmpl = document.getElementById('ts-template').value;
+      const castDiv = document.getElementById('ts-cast-inputs');
+      const stdDiv = document.getElementById('ts-standard-inputs');
+      if (tmpl === 'cinematic_cast') {
+        if (castDiv) castDiv.style.display = 'block';
+        if (stdDiv) stdDiv.style.display = 'none';
+        const fontSel = document.getElementById('ts-font-family');
+        if (fontSel && (fontSel.value === 'jf-openhuninn-2.1' || !fontSel.value)) {
+          fontSel.value = 'genyo_min';
+        }
+        const colSel = document.getElementById('ts-color-preset');
+        if (colSel && (colSel.value === 'random' || colSel.value === 'neon_green')) {
+          colSel.value = 'cinema_vermilion';
+          if (document.getElementById('ts-primary-color')) {
+            document.getElementById('ts-primary-color').value = '#FF4215';
+          }
+        }
+        const durEl = document.getElementById('ts-duration-badge');
+        if (durEl && !durEl.value) {
+          durEl.value = '1:37';
+        }
+      } else {
+        if (castDiv) castDiv.style.display = 'none';
+        if (stdDiv) stdDiv.style.display = 'block';
+      }
+      renderCustomThumbnail(false);
+    }
+
     async function renderCustomThumbnail(autoCopy = false, randomColor = false) {
       if (!currentProjectId) return;
       const statusEl = document.getElementById('ts-render-status');
@@ -13859,6 +13908,8 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
           title_scale: parseFloat(document.getElementById('ts-title-scale').value || '1.0'),
           darken: parseFloat(document.getElementById('ts-darken').value || '0.20'),
           duration_badge: document.getElementById('ts-duration-badge').value,
+          left_lines: document.getElementById('ts-left-cast') ? document.getElementById('ts-left-cast').value : null,
+          right_lines: document.getElementById('ts-right-cast') ? document.getElementById('ts-right-cast').value : null,
           auto_copy: autoCopy,
         };
         const res = await apiRequest(`/api/projects/${currentProjectId}/thumbnail/render`, {

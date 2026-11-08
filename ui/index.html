@@ -2704,6 +2704,7 @@
               <label style="font-size: 12px; color: #4ade80; font-weight: 700;">1. 預設縮圖版型 (Default Template)</label>
               <select id="set-thumb-template" onchange="previewDefaultThumbnailSettings(false)">
                 <option value="editorial_chill">潮流雜誌大字風 (Editorial Chill Lab)</option>
+                <option value="cinematic_cast">電影雙側全明星卡司風 (Cinematic Ensemble Cast — 台灣電影同款)</option>
                 <option value="hiphop_mv_3d">嘻哈MV 3D立體字卡風 (Dr. Beauty 3D)</option>
                 <option value="indie_mv_film">獨立樂團電影字卡風 (Indie MV Film — 美秀同款)</option>
                 <option value="cinema_impact">台灣知識型百萬YTR大字風 (Cinema Impact)</option>
@@ -2717,6 +2718,7 @@
                 <select id="set-thumb-color-preset" onchange="onDefaultThumbColorPresetChange()" style="flex: 1;">
                   <option value="random">🎲 隨機高對比配色 (Random High-Contrast)</option>
                   <option value="custom">🎨 自訂固定配色 (Custom Color)</option>
+                  <option value="cinema_vermilion">🎬 復古電影朱紅 (#FF4215 卡司預告同款)</option>
                   <option value="dr_beauty_gold">🏆 嘻哈MV黑金 (#FFD000)</option>
                   <option value="indie_vintage_yellow">🎞️ 復古電影銘黃 (#FED631)</option>
                   <option value="neon_green">🟢 潮流螢光綠 (#00E626)</option>
@@ -3546,8 +3548,9 @@
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px;">
             <div>
               <label style="font-size:11px; font-weight:600; color:#cbd5e1; display:block; margin-bottom:4px;">縮圖版型 (Template)</label>
-              <select id="ts-template" onchange="renderCustomThumbnail(false)" style="width:100%; font-size:12px; padding:7px 8px; background:#0f172a; color:#fff; border:1px solid #334155; border-radius:6px;">
+              <select id="ts-template" onchange="onThumbnailTemplateChange()" style="width:100%; font-size:12px; padding:7px 8px; background:#0f172a; color:#fff; border:1px solid #334155; border-radius:6px;">
                 <option value="editorial_chill">潮流雜誌大字風 (Editorial Chill Lab — 範例同款)</option>
+                <option value="cinematic_cast">電影雙側全明星卡司風 (Cinematic Ensemble Cast — 台灣電影同款)</option>
                 <option value="hiphop_mv_3d">嘻哈MV 3D立體字卡風 (Dr. Beauty 3D 範例同款)</option>
                 <option value="indie_mv_film">獨立樂團電影字卡風 (Indie MV Film — 美秀集團同款)</option>
                 <option value="cinema_impact">台灣知識型百萬YTR大字風 (Cinema Impact)</option>
@@ -3563,6 +3566,7 @@
                 <select id="ts-color-preset" onchange="onThumbnailColorPresetChange()" style="flex:1; font-size:12px; padding:7px 8px; background:#0f172a; color:#fff; border:1px solid #334155; border-radius:6px;">
                   <option value="random">🎲 隨機高對比配色 (Random High-Contrast)</option>
                   <option value="custom">🎨 自訂配色 (Custom Color)</option>
+                  <option value="cinema_vermilion">🎬 復古電影朱紅 (#FF4215 卡司預告同款)</option>
                   <option value="dr_beauty_gold">🏆 嘻哈MV黑金 (#FFD000 範例同款)</option>
                   <option value="indie_vintage_yellow">🎞️ 復古電影銘黃 (#FED631 美秀同款)</option>
                   <option value="neon_green">🟢 潮流螢光綠 (#00E626 範例經典)</option>
@@ -3580,6 +3584,28 @@
           </div>
 
           <div class="form-group" style="margin-bottom:10px;">
+          <!-- Dedicated inputs for Cinematic Cast Ensemble -->
+          <div id="ts-cast-inputs" style="display:none; margin-bottom:12px;">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+              <div>
+                <label style="font-size:11px; font-weight:700; color:#ff4215; display:block; margin-bottom:4px;">
+                  🎭 左側主演卡司群 (Left Cast — 支援多行或空格)
+                </label>
+                <textarea id="ts-left-cast" rows="6" placeholder="宋芸樺&#10;許光漢&#10;高捷&#10;李康生&#10;曾敬驊&#10;王淨" onchange="renderCustomThumbnail(false)" style="width:100%; box-sizing:border-box; font-size:13px; font-family:monospace; line-height:1.4; padding:7px 10px; background:#0f172a; color:#fff; border:1px solid #ff4215; border-radius:6px; resize:vertical;"></textarea>
+              </div>
+              <div>
+                <label style="font-size:11px; font-weight:700; color:#ff4215; display:block; margin-bottom:4px;">
+                  🎭 右側主演卡司群 (Right Cast — 支援多行或空格)
+                </label>
+                <textarea id="ts-right-cast" rows="6" placeholder="邱澤&#10;桂綸鎂&#10;舒華&#10;葉芷妤&#10;張震&#10;林嘉欣" onchange="renderCustomThumbnail(false)" style="width:100%; box-sizing:border-box; font-size:13px; font-family:monospace; line-height:1.4; padding:7px 10px; background:#0f172a; color:#fff; border:1px solid #ff4215; border-radius:6px; resize:vertical;"></textarea>
+              </div>
+            </div>
+            <div style="font-size:10px; color:#94a3b8; margin-top:4px;">
+              💡 兩端對齊提示：2 字姓名會自動兩端等寬對齊（如「高　捷」、「舒　華」），與電影預告字卡完全一致！
+            </div>
+          </div>
+
+          <div id="ts-standard-inputs">
             <label style="font-size:11px; font-weight:700; color:#94a3b8;">1. 頂部置中小標 (Top Kicker — 對應範例 TOKYO CHILL LAB)</label>
             <input type="text" id="ts-top-kicker" placeholder="例如：硬核科技實驗室" onchange="renderCustomThumbnail(false)" onkeydown="if(event.key==='Enter')renderCustomThumbnail(false)" style="width:100%; box-sizing:border-box; font-size:13px; padding:7px 10px;">
           </div>
@@ -3610,6 +3636,8 @@
               <input type="text" id="ts-right-2" placeholder="例如：極致低功耗秘密" onchange="renderCustomThumbnail(false)" onkeydown="if(event.key==='Enter')renderCustomThumbnail(false)" style="width:100%; box-sizing:border-box; font-size:13px; padding:7px 10px;">
             </div>
           </div>
+
+          </div> <!-- end ts-standard-inputs -->
 
           <div class="form-group" style="margin-bottom:4px;">
             <label style="font-size:11px; font-weight:600; color:#94a3b8;">5. 右下角選填角標 (Optional Corner Badge，留空則不顯示，例如：♪ 08:24)</label>

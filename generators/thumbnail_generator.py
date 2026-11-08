@@ -46,6 +46,12 @@ COLOR_PRESETS = {
         "secondary": "#FFFFFF",
         "kicker": "#FED631",
     },
+    "cinema_vermilion": {
+        "label": "🎬 復古電影朱紅 (#FF4215 卡司預告同款)",
+        "primary": "#FF4215",
+        "secondary": "#FFFFFF",
+        "kicker": "#FF4215",
+    },
     "dr_beauty_gold": {
         "label": "🏆 嘻哈MV黑金 (Dr. Beauty 3D Gold)",
         "primary": "#FFD000",
@@ -89,6 +95,11 @@ TEMPLATES = {
         "id": "editorial_chill",
         "name": "潮流雜誌大字風 (Editorial Chill Lab)",
         "description": "頂部實驗室小標 ＋ 滿版超粗主標題 ＋ 左右對稱雙行副標（參考 TOKYO CHILL LAB 風格，全繁體中文化）",
+    },
+    "cinematic_cast": {
+        "id": "cinematic_cast",
+        "name": "電影雙側全明星卡司風 (Cinematic Ensemble Cast — 台灣電影同款)",
+        "description": "左右對稱滿版電影全明星主演名單 ＋ 復古朱紅特粗宋體 ＋ 兩端等寬對齊（參考許光漢、舒華、桂綸鎂電影預告同款視覺）",
     },
     "indie_mv_film": {
         "id": "indie_mv_film",
@@ -418,6 +429,8 @@ def sample_background_text_region(
         box = (int(w * 0.05), int(h * 0.25), int(w * 0.95), int(h * 0.75))
     elif template_id in ("hiphop_mv_3d", "indie_mv_film"):
         box = (int(w * 0.03), int(h * 0.05), int(w * 0.97), int(h * 0.65))
+    elif template_id == "cinematic_cast":
+        box = (int(w * 0.02), int(h * 0.06), int(w * 0.32), int(h * 0.94))
     else:
         # editorial_chill: headline is in upper half
         box = (int(w * 0.02), int(h * 0.05), int(w * 0.98), int(h * 0.50))
@@ -1427,14 +1440,196 @@ def _render_hiphop_mv_3d(
             av_box.paste(av_img, (BADGE_CX - BADGE_RADIUS, BADGE_CY - BADGE_RADIUS), mask)
             canvas.alpha_composite(av_box)
 
-            rim = Image.new("RGBA", (THUMB_W, THUMB_H), (0, 0, 0, 0))
-            rim_draw = ImageDraw.Draw(rim)
-            rim_draw.ellipse(
-                [BADGE_CX - BADGE_RADIUS, BADGE_CY - BADGE_RADIUS, BADGE_CX + BADGE_RADIUS, BADGE_CY + BADGE_RADIUS],
-                outline=primary_color,
-                width=2,
-            )
-            canvas.alpha_composite(rim)
+            rim.alpha_composite(rim)
+
+
+def _render_cinematic_cast(
+    canvas: Image.Image,
+    bg_processed: Image.Image,
+    config: dict[str, Any],
+    project: Any = None,
+) -> None:
+    """Render Template: 'cinematic_cast' (電影雙側全明星卡司風 — 台灣電影同款).
+    
+    Features:
+    - Symmetrical dual-column cast billing flanking left and right edges
+    - Classic heavy Traditional Chinese Songti / Mingti (源樣明體 / 思源宋體)
+    - Full width justification for 2-character names to match 3-character width
+    - Cinematic Vermilion / Orange-red palette (#FF4215)
+    - Subtle bilateral darkening gradient on sides to guarantee contrast over any background
+    - Optional subject depth overlap
+    - Optional duration badge (e.g. "1:37" in bottom right corner)
+    """
+    primary_rgba = _hex_to_rgba(config.get("primary_color", "#FF4215"), 255)
+    shadow_color = (0, 0, 0, 205)
+    font_family = config.get("font_family") or "genyo_min"
+    font_weight = config.get("font_weight", "bold")
+    title_scale = float(config.get("title_scale", 1.0))
+
+    # 1. Parse Left & Right lines
+    def _parse_lines(raw: Any) -> list[str]:
+        if isinstance(raw, list):
+            return [str(x).strip() for x in raw if str(x).strip()]
+        if isinstance(raw, str) and raw.strip():
+            lines = [line.strip() for line in raw.strip().splitlines() if line.strip()]
+            if len(lines) == 1 and any(sep in lines[0] for sep in (" ", "、", ",", "/", "|")):
+                lines = [p.strip() for p in re.split(r"[,、/| ]+", lines[0]) if p.strip()]
+            return lines
+        return []
+
+    left_lines = _parse_lines(config.get("left_lines"))
+    right_lines = _parse_lines(config.get("right_lines"))
+
+    # Fallbacks from standard inputs if left_lines/right_lines are empty
+    if not left_lines:
+        candidates = []
+        for k in ("left_line1", "left_line2", "top_kicker"):
+            v = config.get(k)
+            if v and str(v).strip():
+                parts = [p.strip() for p in re.split(r"[,、/| \n]+", str(v).strip()) if p.strip()]
+                candidates.extend(parts)
+        left_lines = candidates
+
+    if not right_lines:
+        candidates = []
+        for k in ("right_line1", "right_line2", "main_title"):
+            v = config.get(k)
+            if v and str(v).strip():
+                parts = [p.strip() for p in re.split(r"[,、/| \n]+", str(v).strip()) if p.strip()]
+                candidates.extend(parts)
+        right_lines = candidates
+
+    # Default iconic cast if still empty (matching user reference image)
+    if not left_lines:
+        left_lines = ["宋芸樺", "許光漢", "高捷", "李康生", "曾敬驊", "王淨"]
+    if not right_lines:
+        right_lines = ["邱澤", "桂綸鎂", "舒華", "葉芷妤", "張震", "林嘉欣"]
+
+    # Limit to at most 8 lines per column to keep typography bold & legible
+    left_lines = left_lines[:8]
+    right_lines = right_lines[:8]
+
+    # 2. Dynamic sizing & typography
+    max_rows = max(len(left_lines), len(right_lines), 4)
+    if max_rows <= 4:
+        base_font_sz = 104
+    elif max_rows == 5:
+        base_font_sz = 94
+    elif max_rows == 6:
+        base_font_sz = 86
+    elif max_rows == 7:
+        base_font_sz = 76
+    else:
+        base_font_sz = 68
+
+    font_sz = int(round(base_font_sz * title_scale))
+    font = _find_zh_font(font_sz, weight=font_weight, font_family=font_family)
+
+    target_col_w = int(font_sz * 3 + 12)
+    left_margin = max(28, int(42 * title_scale))
+    right_margin = max(28, int(42 * title_scale))
+    left_x = left_margin
+    right_x = THUMB_W - right_margin - target_col_w
+
+    # 3. Subtle bilateral darkening on left and right borders for contrast
+    vignette = Image.new("RGBA", (THUMB_W, THUMB_H), (0, 0, 0, 0))
+    v_draw = ImageDraw.Draw(vignette)
+    side_w = int(target_col_w + left_margin + 50)
+    for x in range(side_w):
+        r = 1.0 - (x / float(side_w))
+        alpha = int(95 * (r ** 1.4))
+        v_draw.line([(x, 0), (x, THUMB_H)], fill=(0, 0, 0, alpha))
+    for x in range(THUMB_W - side_w, THUMB_W):
+        r = (x - (THUMB_W - side_w)) / float(side_w)
+        alpha = int(95 * (r ** 1.4))
+        v_draw.line([(x, 0), (x, THUMB_H)], fill=(0, 0, 0, alpha))
+    canvas.alpha_composite(vignette)
+
+    # 4. Vertical layout calculation
+    top_y = 44
+    bottom_y = THUMB_H - 44
+    avail_h = bottom_y - top_y
+    l_slot_h = avail_h / max(1, len(left_lines))
+    r_slot_h = avail_h / max(1, len(right_lines))
+
+    draw = ImageDraw.Draw(canvas)
+
+    def _draw_cast_line(chars: list[str], base_x: int, y: int, target_w: int) -> None:
+        n = len(chars)
+        if n == 0:
+            return
+        if n == 1:
+            bb = draw.textbbox((0, 0), chars[0], font=font)
+            cw = bb[2] - bb[0]
+            cx = base_x + (target_w - cw) // 2
+            draw.text((cx, y + 2), chars[0], font=font, fill=shadow_color)
+            draw.text((cx, y), chars[0], font=font, fill=primary_rgba)
+        elif n == 2:
+            bb0 = draw.textbbox((0, 0), chars[0], font=font)
+            cw0 = bb0[2] - bb0[0]
+            bb1 = draw.textbbox((0, 0), chars[1], font=font)
+            cw1 = bb1[2] - bb1[0]
+            draw.text((base_x, y + 2), chars[0], font=font, fill=shadow_color)
+            draw.text((base_x, y), chars[0], font=font, fill=primary_rgba)
+            x1 = base_x + target_w - cw1
+            draw.text((x1, y + 2), chars[1], font=font, fill=shadow_color)
+            draw.text((x1, y), chars[1], font=font, fill=primary_rgba)
+        elif n == 3:
+            boxes = [draw.textbbox((0, 0), c, font=font) for c in chars]
+            widths = [b[2] - b[0] for b in boxes]
+            tot_w = sum(widths)
+            gap = (target_w - tot_w) / 2
+            cur_x = float(base_x)
+            for i, c in enumerate(chars):
+                draw.text((int(round(cur_x)), y + 2), c, font=font, fill=shadow_color)
+                draw.text((int(round(cur_x)), y), c, font=font, fill=primary_rgba)
+                cur_x += widths[i] + gap
+        else:
+            # Scale down font for 4+ chars to fit column nicely
+            scale = target_w / max(1.0, (n * font_sz * 0.95))
+            sub_sz = max(38, int(font_sz * scale))
+            sub_font = _find_zh_font(sub_sz, weight=font_weight, font_family=font_family)
+            boxes = [draw.textbbox((0, 0), c, font=sub_font) for c in chars]
+            widths = [b[2] - b[0] for b in boxes]
+            tot_w = sum(widths)
+            gap = (target_w - tot_w) / max(1, (n - 1)) if n > 1 else 0
+            cur_x = float(base_x)
+            sy = y + (font_sz - sub_sz) // 2
+            for i, c in enumerate(chars):
+                draw.text((int(round(cur_x)), sy + 2), c, font=sub_font, fill=shadow_color)
+                draw.text((int(round(cur_x)), sy), c, font=sub_font, fill=primary_rgba)
+                cur_x += widths[i] + gap
+
+    # Render left column
+    for i, line_text in enumerate(left_lines):
+        y = int(round(top_y + i * l_slot_h + (l_slot_h - font_sz) / 2))
+        _draw_cast_line(list(line_text), left_x, y, target_col_w)
+
+    # Render right column
+    for i, line_text in enumerate(right_lines):
+        y = int(round(top_y + i * r_slot_h + (r_slot_h - font_sz) / 2))
+        _draw_cast_line(list(line_text), right_x, y, target_col_w)
+
+    # 5. Optional corner duration badge (e.g. 1:37)
+    duration_badge = config.get("duration_badge")
+    if duration_badge and str(duration_badge).strip():
+        badge_text = str(duration_badge).strip()
+        badge_font = _find_zh_bold_font(22, font_family=font_family)
+        bb = draw.textbbox((0, 0), badge_text, font=badge_font)
+        bw = bb[2] - bb[0] + 16
+        bh = bb[3] - bb[1] + 10
+        bx = THUMB_W - bw - 20
+        by = THUMB_H - bh - 20
+        b_layer = Image.new("RGBA", (THUMB_W, THUMB_H), (0, 0, 0, 0))
+        bl_draw = ImageDraw.Draw(b_layer)
+        bl_draw.rounded_rectangle([bx, by, bx + bw, by + bh], radius=4, fill=(0, 0, 0, 215))
+        bl_draw.text((bx + 8, by + 4), badge_text, font=badge_font, fill=(255, 255, 255, 245))
+        canvas.alpha_composite(b_layer)
+
+    # 6. Optional subject depth overlap
+    if config.get("subject_overlap", True):
+        overlap_str = float(config.get("overlap_strength", 0.78))
+        _apply_subject_depth_overlap(canvas, bg_processed, strength=overlap_str)
 
 
 def generate_thumbnail_copy_zh_tw(project, use_llm: bool = True) -> dict[str, str]:
@@ -1752,6 +1947,8 @@ def render_project_thumbnail(
         _render_hiphop_mv_3d(canvas, processed_bg, opts, project=project)
     elif template_id == "indie_mv_film":
         _render_indie_mv_film(canvas, processed_bg, opts, project=project)
+    elif template_id == "cinematic_cast":
+        _render_cinematic_cast(canvas, processed_bg, opts, project=project)
     else:
         _render_editorial_chill(canvas, processed_bg, opts)
 
@@ -1885,6 +2082,8 @@ def render_sample_thumbnail(
         _render_hiphop_mv_3d(canvas, processed_bg, opts, project=None)
     elif template_id == "indie_mv_film":
         _render_indie_mv_film(canvas, processed_bg, opts, project=None)
+    elif template_id == "cinematic_cast":
+        _render_cinematic_cast(canvas, processed_bg, opts, project=None)
     else:
         _render_editorial_chill(canvas, processed_bg, opts)
 

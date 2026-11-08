@@ -4423,6 +4423,8 @@ class ThumbnailRenderRequest(BaseModel):
     duration_badge: Optional[str] = None
     auto_copy: Optional[bool] = False
     billing_credits: Optional[Any] = None
+    left_lines: Optional[Any] = None
+    right_lines: Optional[Any] = None
     stamp_text: Optional[str] = None
     show_avatar_badge: Optional[bool] = None
     default_top_kicker: Optional[str] = None
