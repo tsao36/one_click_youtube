@@ -272,10 +272,10 @@ class MotionGraphicsDirector:
                         startFrame=scene_start_frames.get(sid, 0),
                         durationInFrames=scene_duration_frames.get(sid, 120),
                         props={
-                            "badge": s.section or "KEY TAKEAWAY",
+                            "badge": "CONCLUSION" if (s.section or "").lower() in ("conclusion", "總結", "結語") else (s.section or "KEY TAKEAWAY"),
                             "text": narr[:120] if len(narr) <= 120 else narr[:117] + "...",
                             "highlightPhrase": first_sentence[:28],
-                            "subtext": s.section or "MODERN TECH EXPLAINER",
+                            "subtext": "結論" if (s.section or "").lower() in ("conclusion", "總結", "結語") else "重點整理",
                             "accentColor": "#38BDF8",
                         },
                     ))
@@ -565,10 +565,10 @@ class MotionGraphicsDirector:
                         startFrame=scene_start_frames.get(sid, 0),
                         durationInFrames=scene_duration_frames.get(sid, 120),
                         props={
-                            "badge": s.section or "KEY TAKEAWAY",
+                            "badge": "CONCLUSION" if (s.section or "").lower() in ("conclusion", "總結", "結語") else (s.section or "KEY TAKEAWAY"),
                             "text": narr[:120] if len(narr) <= 120 else narr[:117] + "...",
                             "highlightPhrase": first_sent[:28],
-                            "subtext": s.section or "MODERN TECH EXPLAINER",
+                            "subtext": "結論" if (s.section or "").lower() in ("conclusion", "總結", "結語") else "重點整理",
                             "accentColor": "#38BDF8",
                         },
                     ))

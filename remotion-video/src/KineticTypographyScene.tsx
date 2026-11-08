@@ -30,6 +30,12 @@ export const KineticTypographyScene: React.FC<KineticTypographySceneProps> = ({
   const sOpacity = interpolate(sSpring, [0, 1], [0, 1]);
   const sY = interpolate(sSpring, [0, 1], [20, 0]);
 
+  // Prevent duplicate text between top badge and bottom subtext (e.g. Conclusion vs Conclusion)
+  const isDuplicate = Boolean(subtext && badge && subtext.trim().toLowerCase() === badge.trim().toLowerCase());
+  const displaySubtext = isDuplicate
+    ? (badge?.trim().toLowerCase() === "conclusion" ? "結論" : "")
+    : subtext;
+
   // Glow pulsing on highlight
   const glowPulse = interpolate(
     Math.sin(frame / 20),
@@ -160,7 +166,7 @@ export const KineticTypographyScene: React.FC<KineticTypographySceneProps> = ({
         </div>
 
         {/* Subtext Card */}
-        {subtext && (
+        {displaySubtext && (
           <div
             style={{
               opacity: sOpacity,
@@ -177,7 +183,7 @@ export const KineticTypographyScene: React.FC<KineticTypographySceneProps> = ({
               backdropFilter: "blur(12px)",
             }}
           >
-            {subtext}
+            {displaySubtext}
           </div>
         )}
       </div>
