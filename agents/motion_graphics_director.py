@@ -217,6 +217,11 @@ class MotionGraphicsDirector:
             scene_duration_frames[s.scene_id] = dur_f
             accum_frames += dur_f
 
+        rem_cfg = (self.p.settings.get("remotion") or {})
+        data_settings = getattr(self.p, "data", None) and getattr(self.p.data, "settings", None) or {}
+        data_rem_cfg = (data_settings.get("remotion") or {})
+        configured_accent = rem_cfg.get("accentColor") or data_rem_cfg.get("accentColor")
+
         for item in raw_scenes:
             if len(valid_scenes) >= max_quota:
                 break
@@ -232,6 +237,8 @@ class MotionGraphicsDirector:
                 stype = item.get("sceneType") or item.get("scene_type")
                 layout = item.get("layout", "overlay")
                 props = item.get("props", {})
+                if configured_accent:
+                    props["accentColor"] = configured_accent
 
                 start_f = scene_start_frames[sid]
                 dur_f = scene_duration_frames[sid]
@@ -276,7 +283,7 @@ class MotionGraphicsDirector:
                             "text": narr[:120] if len(narr) <= 120 else narr[:117] + "...",
                             "highlightPhrase": first_sentence[:28],
                             "subtext": "結論" if (s.section or "").lower() in ("conclusion", "總結", "結語") else "重點整理",
-                            "accentColor": "#38BDF8",
+                            "accentColor": configured_accent or "#38BDF8",
                         },
                     ))
                     chosen_ids.add(sid)
@@ -300,6 +307,10 @@ class MotionGraphicsDirector:
     ) -> MotionGraphicsTimeline:
         """Deterministic rule-based fallback if LLM is unavailable or outputs malformed data."""
         log.info("Running deterministic rule-based Motion Graphics extraction fallback (density=%s)...", density)
+        rem_cfg = (self.p.settings.get("remotion") or {})
+        data_settings = getattr(self.p, "data", None) and getattr(self.p.data, "settings", None) or {}
+        data_rem_cfg = (data_settings.get("remotion") or {})
+        configured_accent = rem_cfg.get("accentColor") or data_rem_cfg.get("accentColor")
         out_scenes: List[MotionGraphicScene] = []
         chosen_ids: set[int] = set()
 
@@ -346,7 +357,7 @@ class MotionGraphicsDirector:
                         "rightContent": right_txt[:120],
                         "rightTags": ["次世代架構", "極速傳輸"],
                         "takeaway": f"💡 關鍵差異：{right_txt[:35]}",
-                        "accentColor": "#38BDF8",
+                        "accentColor": configured_accent or "#38BDF8",
                     },
                 )
                 out_scenes.append(mg_scene)
@@ -385,7 +396,7 @@ class MotionGraphicsDirector:
                         "badge": "TECHNICAL ARCHITECTURE",
                         "pillars": pillars,
                         "activePillarId": "p1",
-                        "accentColor": "#38BDF8",
+                        "accentColor": configured_accent or "#38BDF8",
                     },
                 )
                 out_scenes.append(mg_scene)
@@ -418,7 +429,7 @@ class MotionGraphicsDirector:
                         "subtitle": "多階段協同傳輸機制",
                         "steps": steps,
                         "activeStepIndex": 0,
-                        "accentColor": "#38BDF8",
+                        "accentColor": configured_accent or "#38BDF8",
                     },
                 )
                 out_scenes.append(mg_scene)
@@ -569,7 +580,7 @@ class MotionGraphicsDirector:
                             "text": narr[:120] if len(narr) <= 120 else narr[:117] + "...",
                             "highlightPhrase": first_sent[:28],
                             "subtext": "結論" if (s.section or "").lower() in ("conclusion", "總結", "結語") else "重點整理",
-                            "accentColor": "#38BDF8",
+                            "accentColor": configured_accent or "#38BDF8",
                         },
                     ))
                     chosen_ids.add(sid)

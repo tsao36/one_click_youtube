@@ -8,7 +8,7 @@ import threading
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Any, Callable, Optional
 
 from core.config import ROOT, get_secret, load_providers
 from core.logging_setup import log
@@ -19,6 +19,7 @@ from generators.subtitle_generator import build_cues, write_ass, write_srt
 from generators.voice_generator import (default_profile_name, load_profile, synthesize,
                                        audio_is_current, narration_fingerprint, voice_fingerprint)
 from providers.llm.base import LLMProvider
+from providers.images import get_image_provider
 from rendering.ffmpeg_renderer import project_timeline, render_project
 
 
@@ -208,6 +209,30 @@ class BasePipeline:
         self._lock = threading.RLock()
 
         self._stage_models_override: dict[str, str] = {}
+
+    def _completed_image_count(self, scenes: list[Scene]) -> int:
+        """Count scene images that are both marked complete and present on disk."""
+        return sum(
+            1
+            for scene in scenes
+            if scene.image.status == Status.COMPLETED
+            and self.p.abs(scene.image.path)
+            and self.p.abs(scene.image.path).exists()
+        )
+
+    def _resolve_image_provider(self, requested: str, fallback: str) -> tuple[Any, str]:
+        """Return an available image provider and the model name actually selected."""
+        provider = get_image_provider(requested, self.p.settings)
+        available, reason = provider.available()
+        if available:
+            return provider, requested
+        log.warning(
+            "Image provider '%s' unavailable (%s); using fallback '%s'",
+            requested,
+            reason,
+            fallback,
+        )
+        return get_image_provider(fallback, self.p.settings), fallback
 
 
 

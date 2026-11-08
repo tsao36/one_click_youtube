@@ -6725,8 +6725,8 @@
           if (pt) pt.value = data.settings.rendering.phase_turn_duration;
         }
 
-        if (data.settings && data.settings.remotion && data.settings.remotion.default_style) {
-          selectRemotionGlobalStyle(data.settings.remotion.default_style);
+        if (data.settings && data.settings.remotion) {
+          populateRemotionSettingsUI(data.settings.remotion);
         }
 
         if (data.settings) {
@@ -6818,6 +6818,189 @@
         alert("Failed to save settings: " + e.message);
       }
     }
+
+    function populateRemotionSettingsUI(remCfg = {}) {
+      if (!remCfg) remCfg = {};
+      const styleEl = document.getElementById('set-remotion-style');
+      const themeEl = document.getElementById('set-remotion-theme');
+      const densityEl = document.getElementById('set-remotion-density');
+      const pickerEl = document.getElementById('set-remotion-accent-picker');
+      const hexEl = document.getElementById('set-remotion-accent-hex');
+
+      if (styleEl && remCfg.style) styleEl.value = remCfg.style;
+      if (themeEl && remCfg.theme) themeEl.value = remCfg.theme;
+      if (densityEl && remCfg.density) densityEl.value = remCfg.density;
+
+      const accent = remCfg.accentColor || '#A855F7';
+      if (pickerEl) pickerEl.value = accent;
+      if (hexEl) hexEl.value = accent;
+
+      if (remCfg.default_style) {
+        selectRemotionGlobalStyle(remCfg.default_style);
+      }
+
+      updateRemotionSettingsLivePreview();
+    }
+
+    function onRemotionSettingsChange() {
+      updateRemotionSettingsLivePreview();
+    }
+
+    function onRemotionAccentColorChange(hex) {
+      const hexEl = document.getElementById('set-remotion-accent-hex');
+      if (hexEl) hexEl.value = (hex || '').toUpperCase();
+      updateRemotionSettingsLivePreview();
+    }
+
+    function onRemotionAccentHexInput(val) {
+      let hex = (val || '').trim();
+      if (!hex.startsWith('#')) hex = '#' + hex;
+      if (/^#[0-9A-Fa-f]{6}$/.test(hex)) {
+        const pickerEl = document.getElementById('set-remotion-accent-picker');
+        if (pickerEl) pickerEl.value = hex;
+      }
+      updateRemotionSettingsLivePreview();
+    }
+
+    function setRemotionAccentColor(hex) {
+      const pickerEl = document.getElementById('set-remotion-accent-picker');
+      const hexEl = document.getElementById('set-remotion-accent-hex');
+      if (pickerEl) pickerEl.value = hex;
+      if (hexEl) hexEl.value = hex.toUpperCase();
+      updateRemotionSettingsLivePreview();
+    }
+
+    function applyRemotionPresetInSettings(presetName) {
+      const styleEl = document.getElementById('set-remotion-style');
+      const themeEl = document.getElementById('set-remotion-theme');
+      const densityEl = document.getElementById('set-remotion-density');
+
+      if (presetName === 'gary_chen') {
+        if (styleEl) styleEl.value = 'modern_tech_explainer';
+        if (themeEl) themeEl.value = 'dark_obsidian';
+        if (densityEl) densityEl.value = 'full';
+        setRemotionAccentColor('#A855F7');
+      } else if (presetName === 'blueprint') {
+        if (styleEl) styleEl.value = 'tactile_blueprint';
+        if (themeEl) themeEl.value = 'blueprint_grid';
+        if (densityEl) densityEl.value = 'full';
+        setRemotionAccentColor('#00F5FF');
+      }
+      updateRemotionSettingsLivePreview();
+    }
+
+    function updateRemotionSettingsLivePreview() {
+      const styleEl = document.getElementById('set-remotion-style');
+      const themeEl = document.getElementById('set-remotion-theme');
+      const densityEl = document.getElementById('set-remotion-density');
+      const hexEl = document.getElementById('set-remotion-accent-hex');
+      const previewPill = document.getElementById('set-remotion-accent-badge-preview');
+      const jsonEl = document.getElementById('set-remotion-json-preview');
+
+      const style = styleEl ? styleEl.value : 'modern_tech_explainer';
+      const theme = themeEl ? themeEl.value : 'dark_obsidian';
+      const density = densityEl ? densityEl.value : 'full';
+      let accent = hexEl ? (hexEl.value || '#A855F7').trim() : '#A855F7';
+      if (!accent.startsWith('#')) accent = '#' + accent;
+
+      if (previewPill) {
+        previewPill.style.color = accent;
+        previewPill.style.borderColor = accent;
+        previewPill.style.background = accent + '1f';
+        previewPill.style.boxShadow = '0 0 10px ' + accent + '40';
+      }
+
+      if (jsonEl) {
+        const payload = {
+          remotion: {
+            style: style,
+            theme: theme,
+            density: density,
+            accentColor: accent
+          }
+        };
+        jsonEl.textContent = JSON.stringify(payload, null, 2);
+      }
+    }
+
+    async function saveRemotionGlobalSettings() {
+      const styleEl = document.getElementById('set-remotion-style');
+      const themeEl = document.getElementById('set-remotion-theme');
+      const densityEl = document.getElementById('set-remotion-density');
+      const hexEl = document.getElementById('set-remotion-accent-hex');
+      const syncBadge = document.getElementById('set-remotion-sync-badge');
+
+      const style = styleEl ? styleEl.value : 'modern_tech_explainer';
+      const theme = themeEl ? themeEl.value : 'dark_obsidian';
+      const density = densityEl ? densityEl.value : 'full';
+      let accent = hexEl ? (hexEl.value || '#A855F7').trim() : '#A855F7';
+      if (!accent.startsWith('#')) accent = '#' + accent;
+
+      const remotionConfig = {
+        style: style,
+        theme: theme,
+        density: density,
+        accentColor: accent,
+        default_style: currentGlobalRemotionStyle || 'EvidenceHighlightScene'
+      };
+
+      try {
+        if (syncBadge) {
+          syncBadge.textContent = '⏳ 正在儲存...';
+          syncBadge.style.color = '#fbbf24';
+          syncBadge.style.borderColor = '#d97706';
+        }
+
+        await apiRequest('/api/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            settings: {
+              remotion: remotionConfig
+            }
+          })
+        });
+
+        if (currentProjectId) {
+          await apiRequest('/api/projects/' + currentProjectId + '/settings', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              remotion: remotionConfig
+            })
+          }).catch(e => console.warn('Could not sync current project settings:', e));
+        }
+
+        if (syncBadge) {
+          syncBadge.textContent = '✓ 已同步 settings.yaml (已儲存)';
+          syncBadge.style.color = '#34d399';
+          syncBadge.style.borderColor = '#059669';
+        }
+
+        if (typeof showToast === 'function') {
+          showToast('✨ Remotion 100% 視覺設定已成功儲存至 settings.yaml！');
+        } else {
+          alert('✨ Remotion 100% 視覺設定已成功儲存至 settings.yaml！');
+        }
+      } catch (err) {
+        console.error('Failed to save Remotion settings:', err);
+        if (syncBadge) {
+          syncBadge.textContent = '✕ 儲存失敗';
+          syncBadge.style.color = '#f87171';
+          syncBadge.style.borderColor = '#ef4444';
+        }
+        alert('儲存 Remotion 設定失敗：' + err.message);
+      }
+    }
+
+    window.populateRemotionSettingsUI = populateRemotionSettingsUI;
+    window.onRemotionSettingsChange = onRemotionSettingsChange;
+    window.onRemotionAccentColorChange = onRemotionAccentColorChange;
+    window.onRemotionAccentHexInput = onRemotionAccentHexInput;
+    window.setRemotionAccentColor = setRemotionAccentColor;
+    window.applyRemotionPresetInSettings = applyRemotionPresetInSettings;
+    window.updateRemotionSettingsLivePreview = updateRemotionSettingsLivePreview;
+    window.saveRemotionGlobalSettings = saveRemotionGlobalSettings;
 
     let currentGlobalRemotionStyle = 'EvidenceHighlightScene';
 

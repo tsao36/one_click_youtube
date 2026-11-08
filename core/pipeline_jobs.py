@@ -17,13 +17,19 @@ active_pipelines: dict[str, BasePipeline] = {}
 _jobs_lock = threading.RLock()
 
 
-def get_project(project_id: str) -> Project:
+def get_project(
+    project_id: str,
+    *,
+    projects_dir=PROJECTS_DIR,
+    pipelines: dict[str, BasePipeline] | None = None,
+) -> Project:
     """Use the job's live state instead of a competing disk snapshot."""
+    registry = active_pipelines if pipelines is None else pipelines
     with _jobs_lock:
-        pipeline = active_pipelines.get(project_id)
+        pipeline = registry.get(project_id)
         if pipeline is not None:
             return pipeline.p
-        if not (PROJECTS_DIR / project_id / "project.json").is_file():
+        if not (projects_dir / project_id / "project.json").is_file():
             raise HTTPException(status_code=404, detail="Project not found")
         return Project(project_id)
 
@@ -36,17 +42,19 @@ def queue_pipeline_job(
     prepare: Callable | None = None,
     stop_at: str | None = None,
     success_state: str = "completed",
+    pipelines: dict[str, BasePipeline] | None = None,
 ) -> bool:
     """Reserve a project before scheduling, and release it on every exit path."""
+    registry = active_pipelines if pipelines is None else pipelines
     with _jobs_lock, project.lock:
-        if project.id in active_pipelines:
+        if project.id in registry:
             return False
         if prepare:
             prepare(project)
         pipeline = get_pipeline(project, stop_at=stop_at)
         project.data.state, project.data.error = "running", None
         project.save()
-        active_pipelines[project.id] = pipeline
+        registry[project.id] = pipeline
 
         def run_job():
             try:
@@ -69,8 +77,8 @@ def queue_pipeline_job(
                     log.exception("Background job failed for project %s", project.id)
             finally:
                 with _jobs_lock:
-                    if active_pipelines.get(project.id) is pipeline:
-                        active_pipelines.pop(project.id, None)
+                    if registry.get(project.id) is pipeline:
+                        registry.pop(project.id, None)
 
         try:
             if background_tasks is None:
@@ -78,7 +86,7 @@ def queue_pipeline_job(
             else:
                 background_tasks.add_task(run_job)
         except Exception:
-            active_pipelines.pop(project.id, None)
+            registry.pop(project.id, None)
             project.data.state = "paused"
             project.save()
             raise

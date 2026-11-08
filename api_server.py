@@ -24,9 +24,13 @@ from core.config import DATA_DIR, LOGS_DIR, PROJECTS_DIR, ROOT, deep_merge, get_
 from core.logging_setup import log, setup_logging
 from core.models import STAGES, Scene, Status
 from core.pipeline import get_pipeline
-from core.pipeline_jobs import active_pipelines, get_project, queue_pipeline_job, queue_pipeline_run
+from core.pipeline_jobs import (
+    active_pipelines,
+    get_project as _get_project,
+    queue_pipeline_job as _queue_pipeline_job,
+    queue_pipeline_run as _queue_pipeline_run,
+)
 from core.project_manager import Project
-from rendering.ffmpeg_renderer import render_project
 from rendering.ffmpeg_utils import kill_all_ffmpeg_processes
 from core.versioning import (
     get_stage_versions,
@@ -44,6 +48,13 @@ from core.versioning import (
 from generators.voice_generator import batch_generate_missing_samples, delete_profile, generate_voice_sample, list_profiles, load_profile, save_profile, synthesize
 from providers.comfy_client import ComfyClient
 from providers.images import ImageRequest, get_image_provider
+from api_routes.media import (
+    router as media_router,
+    serve_project_file_from,
+    serve_voice_file_from,
+)
+from api_routes.remotion import router as remotion_router
+from api_routes.rendering import router as rendering_router
 from api_routes.system import router as system_router
 from core.youtube_uploader import (
     get_youtube_status,
@@ -71,16 +82,43 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(system_router)
+app.include_router(media_router)
+app.include_router(remotion_router)
+app.include_router(rendering_router)
 
 
-def _resolve_under(base_dir: Path, relative_path: str) -> Path:
-    base = base_dir.resolve()
-    target = (base / relative_path).resolve()
-    try:
-        target.relative_to(base)
-    except ValueError as exc:
-        raise HTTPException(status_code=403, detail="Forbidden") from exc
-    return target
+def get_project(project_id: str) -> Project:
+    """Compatibility facade using this module's configurable project registry."""
+    return _get_project(project_id, projects_dir=PROJECTS_DIR, pipelines=active_pipelines)
+
+
+def queue_pipeline_job(project, background_tasks, work, **kwargs):
+    return _queue_pipeline_job(
+        project,
+        background_tasks,
+        work,
+        pipelines=active_pipelines,
+        **kwargs,
+    )
+
+
+def queue_pipeline_run(project, background_tasks, **kwargs):
+    return _queue_pipeline_run(
+        project,
+        background_tasks,
+        pipelines=active_pipelines,
+        **kwargs,
+    )
+
+
+def serve_voice_file(voice_name: str, file_name: str):
+    """Compatibility facade retained for callers and focused tests."""
+    return serve_voice_file_from(voice_name, file_name, DATA_DIR)
+
+
+def serve_project_file(project_id: str, file_path: str):
+    """Compatibility facade retained for callers and focused tests."""
+    return serve_project_file_from(project_id, file_path, PROJECTS_DIR)
 
 # ---------------- Models ----------------
 class CreateProjectRequest(BaseModel):
@@ -192,14 +230,6 @@ class ApplyStockMediaRequest(BaseModel):
 class TogglePresenterRequest(BaseModel):
     is_presenter: Optional[bool] = None
     avatar_profile: Optional[str] = None
-
-
-class RemotionRenderRequest(BaseModel):
-    composition: str = "EvidenceHighlightScene"
-    props: dict[str, Any] = {}
-    duration_frames: Optional[int] = 120
-    fps: Optional[int] = 30
-    scene_id: Optional[int] = None
 
 
 def get_available_checkpoints() -> list[str]:
@@ -3569,198 +3599,6 @@ def apply_youtube_footage(project_id: str, scene_id: int, req: YouTubeFootageReq
     except Exception as e:
         log.error("Failed to extract YouTube footage for scene %d: %s", scene_id, e)
         raise HTTPException(status_code=500, detail=str(e))
-
-
-# ---------------- Remotion Motion Graphics ----------------
-@app.post("/api/remotion/render")
-def render_remotion_clip(req: RemotionRenderRequest):
-    """Render a standalone Remotion clip (no project). Output lives in remotion-video/out/renders."""
-    from generators.remotion_cards import RENDERS_DIR, render_card
-    out_id = f"remotion_{int(time.time())}_{random.randint(100, 999)}"
-    mp4_out = RENDERS_DIR / f"{out_id}.mp4"
-    fps = int(req.fps or 30)
-    seconds = (req.duration_frames or 120) / fps
-    try:
-        render_card(req.props, mp4_out, seconds, bg_image=None, fps=fps, composition=req.composition)
-    except Exception as e:
-        log.error("Remotion render error: %s", e)
-        raise HTTPException(status_code=500, detail=str(e))
-    return {"status": "success", "composition": req.composition, "mp4_path": str(mp4_out),
-            "mp4_url": f"/remotion-out/renders/{mp4_out.name}", "filename": mp4_out.name}
-
-
-@app.get("/api/remotion/styles")
-def get_remotion_styles():
-    """List available Remotion visual card styles."""
-    from generators.remotion_cards import REMOTION_STYLES
-    return REMOTION_STYLES
-
-
-@app.post("/api/projects/{project_id}/remotion/apply")
-def apply_remotion_to_scene(project_id: str, req: RemotionRenderRequest):
-    """Render a card over the scene's own (dimmed) image and use it as that scene's clip.
-
-    Empty props fields are filled from the scene's key information.
-    """
-    from generators.remotion_cards import extract_card_props, render_scene_card
-    if req.scene_id is None:
-        raise HTTPException(status_code=400, detail="scene_id is required")
-    p = get_project(project_id)
-    s = p.get_scene(req.scene_id)
-    if not s:
-        raise HTTPException(status_code=404, detail=f"Scene {req.scene_id} not found")
-
-    auto = extract_card_props(s)
-    props = {**auto, **{k: v for k, v in (req.props or {}).items() if v not in (None, "")}}
-    comp = req.composition or "FoxHeaderScene"
-    try:
-        render_scene_card(p, s, props=props, fps=int(req.fps or 30), composition=comp)
-    except Exception as e:
-        log.error("Remotion apply failed for scene %d: %s", req.scene_id, e)
-        raise HTTPException(status_code=500, detail=str(e))
-    s.ai_video = False
-    p.save_scenes()
-    p.set_stage("render", Status.PENDING)
-    return {"status": "applied", "scene_id": req.scene_id, "scene": s.model_dump(mode="json"),
-            "clip": {"mp4_url": f"/media/{project_id}/{s.animation.path}", "props": props, "composition": comp}}
-
-
-@app.get("/api/projects/{project_id}/remotion/props/{scene_id}")
-def get_remotion_scene_props(project_id: str, scene_id: int):
-    """Auto-extracted card text for one scene."""
-    from generators.remotion_cards import extract_card_props
-    p = get_project(project_id)
-    s = p.get_scene(scene_id)
-    if not s:
-        raise HTTPException(status_code=404, detail=f"Scene {scene_id} not found")
-    return {"scene_id": scene_id, "props": extract_card_props(s)}
-
-
-@app.get("/api/projects/{project_id}/remotion/critical")
-def preview_remotion_critical_scenes(project_id: str):
-    """Which scenes would get a card, and with what text (no rendering)."""
-    from generators.remotion_cards import extract_card_props, select_critical_scenes
-    p = get_project(project_id)
-    return {"scenes": [{"scene_id": s.scene_id, "props": extract_card_props(s)}
-                       for s in select_critical_scenes(p.active_scenes())]}
-
-
-@app.post("/api/projects/{project_id}/remotion/auto")
-def auto_remotion_critical_scenes(project_id: str, background_tasks: BackgroundTasks,
-                                  composition: str = "FoxHeaderScene"):
-    """Render cards for all critical scenes in the background."""
-    from generators.remotion_cards import render_critical_scene_cards, select_critical_scenes
-    p = get_project(project_id)
-    picked = select_critical_scenes(p.active_scenes())
-
-    def work(_pipeline: Pipeline):
-        ids = render_critical_scene_cards(p, picked, select=False, composition=composition)
-        p.save_scenes()
-        p.set_stage("render", Status.PENDING)
-        p.data.activity = f"Remotion {composition} cards ready for scenes {ids} - 請點擊 Stage 9 的「Render Final Video」以合成最新影片"
-
-    def prepare(project: Project):
-        project.data.activity = f"Rendering {len(picked)} Remotion {composition} card(s) for critical scenes..."
-
-    if not queue_pipeline_job(p, background_tasks, work, prepare=prepare, success_state="idle"):
-        return {"status": "already_running"}
-    return {"status": "started", "scene_ids": [s.scene_id for s in picked], "composition": composition}
-
-
-# ---------------- Preview & Rendering ----------------
-@app.post("/api/projects/{project_id}/render_draft")
-def render_draft(project_id: str, background_tasks: BackgroundTasks):
-    p = get_project(project_id)
-    def prepare(project: Project):
-        project.data.activity = "Rendering low-resolution draft preview..."
-
-    def do_render(pipeline: Pipeline):
-        render_project(p, draft=True, cancel=pipeline.is_cancelled)
-        p.data.activity = "Draft render ready"
-        p.data.outputs["draft"] = "final/draft_preview.mp4"
-
-    if not queue_pipeline_job(
-        p, background_tasks, do_render, prepare=prepare, success_state="idle"
-    ):
-        return {"status": "already_running"}
-    return {"status": "rendering_draft"}
-
-
-@app.post("/api/projects/{project_id}/fast_rerender_video")
-def fast_rerender_video_endpoint(project_id: str, background_tasks: BackgroundTasks):
-    """Fast re-render: re-conforms ONLY modified/uploaded scene clips, reuses all cached scenes, and updates final 1080p MP4."""
-    p = get_project(project_id)
-    def prepare(project: Project):
-        project.data.activity = "Fast re-render: Updating modified scenes & re-stitching 1080p video..."
-
-    def do_render(pipeline: Pipeline):
-        pipeline.ensure_consistent_project_voice()
-        pipeline._run_subtitles()
-        pipeline._run_render()
-        p.data.activity = "Final 1080p video successfully updated! Replaced modified scenes."
-
-    if not queue_pipeline_job(p, background_tasks, do_render, prepare=prepare):
-        return {"status": "already_running"}
-    return {"status": "started", "project_id": project_id}
-
-
-@app.post("/api/projects/{project_id}/render_final")
-def render_final(project_id: str, background_tasks: BackgroundTasks):
-    p = get_project(project_id)
-    def prepare(project: Project):
-        project.data.activity = "Starting final video assembly & rendering..."
-
-    def do_render(pipeline: Pipeline):
-        pipeline._run_subtitles()
-        pipeline._run_render()
-        p.data.activity = "Final 1080p video render complete!"
-
-    if not queue_pipeline_job(p, background_tasks, do_render, prepare=prepare):
-        return {"status": "already_running"}
-    return {"status": "rendering_final"}
-
-
-# ---------------- Media Serving ----------------
-@app.get("/media/voices/{voice_name}/{file_name}")
-def serve_voice_file(voice_name: str, file_name: str):
-    target_dir = DATA_DIR / "voices" / voice_name
-    if not (target_dir / "voice.json").exists():
-        for p in (DATA_DIR / "voices").iterdir():
-            if p.is_dir() and p.name.lower() == voice_name.lower():
-                voice_name = p.name
-                target_dir = p
-                break
-    path = _resolve_under(target_dir, file_name)
-    if not path.exists() and file_name in ("test_sample.wav", "sample.wav"):
-        try:
-            generate_voice_sample(voice_name)
-        except Exception as e:
-            log.warning("Auto-synthesizing voice sample for '%s' failed: %s", voice_name, e)
-    if not path.exists():
-        raise HTTPException(status_code=404, detail="File not found")
-    media_type = "audio/wav" if path.suffix == ".wav" else "audio/mpeg"
-    return FileResponse(path, media_type=media_type)
-
-
-@app.get("/media/{project_id}/{file_path:path}")
-def serve_project_file(project_id: str, file_path: str):
-    base_dir = PROJECTS_DIR / project_id
-    target_path = _resolve_under(base_dir, file_path)
-    if not target_path.exists() or not target_path.is_file():
-        raise HTTPException(status_code=404, detail="File not found")
-
-    ext = target_path.suffix.lower()
-    if ext == ".mp4":
-        media_type = "video/mp4"
-    elif ext in [".png", ".jpg", ".jpeg", ".webp"]:
-        media_type = f"image/{'jpeg' if ext in ['.jpg', '.jpeg'] else ext.lstrip('.')}"
-    elif ext in [".wav", ".mp3"]:
-        media_type = "audio/wav" if ext == ".wav" else "audio/mpeg"
-    else:
-        media_type = "application/octet-stream"
-
-    no_cache = {"Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache", "Expires": "0"}
-    return FileResponse(target_path, media_type=media_type, headers=no_cache)
 
 
 # ---------------- Voice Management ----------------

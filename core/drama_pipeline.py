@@ -1171,7 +1171,7 @@ class DramaPipeline(BasePipeline):
 
 
 
-        done = sum(1 for s in scenes if s.image.status == Status.COMPLETED and self.p.abs(s.image.path) and self.p.abs(s.image.path).exists())
+        done = self._completed_image_count(scenes)
 
 
 
@@ -1225,27 +1225,7 @@ class DramaPipeline(BasePipeline):
 
 
 
-        provider = get_image_provider(current_model_name, self.p.settings)
-
-
-
-        avail, reason = provider.available()
-
-
-
-        if not avail:
-
-
-
-            log.warning("Image provider '%s' unavailable (%s); using fallback '%s'", current_model_name, reason, fallback_name)
-
-
-
-            current_model_name = fallback_name
-
-
-
-            provider = get_image_provider(fallback_name, self.p.settings)
+        provider, current_model_name = self._resolve_image_provider(current_model_name, fallback_name)
 
 
 

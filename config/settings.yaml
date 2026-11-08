@@ -108,12 +108,15 @@ visual_styles:
       depth
     lens: 50mm prime lens, f/1.8, shallow depth of field, natural background blur
     mood: authentic, hyper-realistic, emotionally grounded, atmospheric
-    negative: extra arms, extra hands, multiple arms, 4 arms, bad anatomy, deformed limbs, malformed hands, extra fingers, featureless face, blurry face, low quality face, indistinct facial features, blank face, melted face, ugly, deformed, disfigured, poor details, bad anatomy, bad posture,
-      unnatural body twist, twisted limbs, broken neck, extra fingers, fused fingers,
-      missing fingers, malformed hands, awkward grip, impossible ergonomics, multiple
-      people with the same face, cloned faces, identical faces, duplicate faces, identical
-      twins, clone army, copy-paste faces, cartoon, 3d, anime, airbrushed, plastic
-      skin, render, drawing, watermark, signature, blur
+    negative: extra arms, extra hands, multiple arms, 4 arms, bad anatomy, deformed
+      limbs, malformed hands, extra fingers, featureless face, blurry face, low quality
+      face, indistinct facial features, blank face, melted face, ugly, deformed, disfigured,
+      poor details, bad anatomy, bad posture, unnatural body twist, twisted limbs,
+      broken neck, extra fingers, fused fingers, missing fingers, malformed hands,
+      awkward grip, impossible ergonomics, multiple people with the same face, cloned
+      faces, identical faces, duplicate faces, identical twins, clone army, copy-paste
+      faces, cartoon, 3d, anime, airbrushed, plastic skin, render, drawing, watermark,
+      signature, blur
     recommended_model: nano-banana-2.1
   cinematic_documentary:
     label: Cinematic Documentary
@@ -121,11 +124,14 @@ visual_styles:
     lighting: natural cinematic lighting
     lens: 35mm lens, shallow depth of field
     mood: thoughtful, informative
-    negative: extra arms, extra hands, multiple arms, 4 arms, bad anatomy, deformed limbs, malformed hands, extra fingers, featureless face, blurry face, low quality face, indistinct facial features, blank face, melted face, text, watermark, logo, signature, blurry, lowres, deformed, bad anatomy,
-      unnatural body twist, twisted limbs, extra fingers, fused fingers, malformed
-      hands, impossible ergonomics, bad posture, multiple people with the same face,
-      cloned faces, identical faces, duplicate faces, identical twins, clone army,
-      copy-paste faces, jpeg artifacts, cartoon
+    negative: extra arms, extra hands, multiple arms, 4 arms, bad anatomy, deformed
+      limbs, malformed hands, extra fingers, featureless face, blurry face, low quality
+      face, indistinct facial features, blank face, melted face, text, watermark,
+      logo, signature, blurry, lowres, deformed, bad anatomy, unnatural body twist,
+      twisted limbs, extra fingers, fused fingers, malformed hands, impossible ergonomics,
+      bad posture, multiple people with the same face, cloned faces, identical faces,
+      duplicate faces, identical twins, clone army, copy-paste faces, jpeg artifacts,
+      cartoon
   photorealistic_editorial:
     label: Photorealistic Editorial (NatGeo)
     style: National Geographic editorial documentary photograph, 8k resolution, raw
@@ -133,11 +139,14 @@ visual_styles:
     lighting: natural cinematic side lighting, rich micro-contrast
     lens: 85mm f/1.4 portrait prime lens, razor sharp center
     mood: authentic, compelling, journalistic
-    negative: extra arms, extra hands, multiple arms, 4 arms, bad anatomy, deformed limbs, malformed hands, extra fingers, featureless face, blurry face, low quality face, indistinct facial features, blank face, melted face, text, watermark, logo, deformed, bad anatomy, unnatural body twist,
-      extra fingers, fused fingers, malformed hands, impossible ergonomics, bad posture,
-      multiple people with the same face, cloned faces, identical faces, duplicate
-      faces, identical twins, clone army, copy-paste faces, CGI, 3D render, digital
-      painting, airbrushed, cartoon, smooth plastic
+    negative: extra arms, extra hands, multiple arms, 4 arms, bad anatomy, deformed
+      limbs, malformed hands, extra fingers, featureless face, blurry face, low quality
+      face, indistinct facial features, blank face, melted face, text, watermark,
+      logo, deformed, bad anatomy, unnatural body twist, extra fingers, fused fingers,
+      malformed hands, impossible ergonomics, bad posture, multiple people with the
+      same face, cloned faces, identical faces, duplicate faces, identical twins,
+      clone army, copy-paste faces, CGI, 3D render, digital painting, airbrushed,
+      cartoon, smooth plastic
   clean_explainer:
     label: Clean 3D Explainer
     style: clean 3D render, isometric explainer illustration, soft materials, minimal
@@ -158,7 +167,10 @@ visual_styles:
     lighting: dramatic volumetric lighting
     lens: wide angle composition
     mood: epic, atmospheric
-    negative: extra arms, extra hands, multiple arms, 4 arms, bad anatomy, deformed limbs, malformed hands, extra fingers, featureless face, blurry face, low quality face, indistinct facial features, blank face, melted face, text, watermark, logo, photo, blurry, deformed
+    negative: extra arms, extra hands, multiple arms, 4 arms, bad anatomy, deformed
+      limbs, malformed hands, extra fingers, featureless face, blurry face, low quality
+      face, indistinct facial features, blank face, melted face, text, watermark,
+      logo, photo, blurry, deformed
   anime_ghibli:
     label: Anime / Studio Ghibli
     style: Studio Ghibli aesthetic, vibrant hand-painted anime art, painterly anime
@@ -166,7 +178,10 @@ visual_styles:
     lighting: warm golden hour sunlight
     lens: cinematic anime composition
     mood: whimsical, enchanting, nostalgic
-    negative: extra arms, extra hands, multiple arms, 4 arms, bad anatomy, deformed limbs, malformed hands, extra fingers, featureless face, blurry face, low quality face, indistinct facial features, blank face, melted face, text, watermark, logo, 3D CGI, photo, photorealistic, blurry, distorted
+    negative: extra arms, extra hands, multiple arms, 4 arms, bad anatomy, deformed
+      limbs, malformed hands, extra fingers, featureless face, blurry face, low quality
+      face, indistinct facial features, blank face, melted face, text, watermark,
+      logo, 3D CGI, photo, photorealistic, blurry, distorted
   anime_shinkai:
     label: Anime / Makoto Shinkai (新海誠極致光影風)
     style: Makoto Shinkai anime aesthetic, CoMix Wave Films visual masterpiece, Your
@@ -181,10 +196,12 @@ visual_styles:
       hyper-detailed environmental depth, crystal-clear focus
     mood: awe-inspiring, emotionally resonant, ethereal, romantic, nostalgic, sublime,
       magical realism
-    negative: extra arms, extra hands, multiple arms, 4 arms, bad anatomy, deformed limbs, malformed hands, extra fingers, featureless face, blurry face, low quality face, indistinct facial features, blank face, melted face, text, watermark, logo, photo, photorealistic, 3D CGI render, dull colors,
-      blurry, deformed, lowres, sketch, muddy, dark dingy, multiple people with the
-      same face, cloned faces, identical faces, duplicate faces, identical twins,
-      clone army, jpeg artifacts
+    negative: extra arms, extra hands, multiple arms, 4 arms, bad anatomy, deformed
+      limbs, malformed hands, extra fingers, featureless face, blurry face, low quality
+      face, indistinct facial features, blank face, melted face, text, watermark,
+      logo, photo, photorealistic, 3D CGI render, dull colors, blurry, deformed, lowres,
+      sketch, muddy, dark dingy, multiple people with the same face, cloned faces,
+      identical faces, duplicate faces, identical twins, clone army, jpeg artifacts
     recommended_model: sd_xl_base_1.0.safetensors
   shinkai_makoto:
     label: Makoto Shinkai Aesthetic (新海誠風格)
@@ -200,10 +217,12 @@ visual_styles:
       hyper-detailed environmental depth, crystal-clear focus
     mood: awe-inspiring, emotionally resonant, ethereal, romantic, nostalgic, sublime,
       magical realism
-    negative: extra arms, extra hands, multiple arms, 4 arms, bad anatomy, deformed limbs, malformed hands, extra fingers, featureless face, blurry face, low quality face, indistinct facial features, blank face, melted face, text, watermark, logo, photo, photorealistic, 3D CGI render, dull colors,
-      blurry, deformed, lowres, sketch, muddy, dark dingy, multiple people with the
-      same face, cloned faces, identical faces, duplicate faces, identical twins,
-      clone army, jpeg artifacts
+    negative: extra arms, extra hands, multiple arms, 4 arms, bad anatomy, deformed
+      limbs, malformed hands, extra fingers, featureless face, blurry face, low quality
+      face, indistinct facial features, blank face, melted face, text, watermark,
+      logo, photo, photorealistic, 3D CGI render, dull colors, blurry, deformed, lowres,
+      sketch, muddy, dark dingy, multiple people with the same face, cloned faces,
+      identical faces, duplicate faces, identical twins, clone army, jpeg artifacts
     recommended_model: sd_xl_base_1.0.safetensors
   cyberpunk_neon:
     label: Cyberpunk Sci-Fi
@@ -212,7 +231,10 @@ visual_styles:
     lighting: vibrant neon cyan and magenta illumination, atmospheric rain mist
     lens: cinematic anamorphic lens with subtle chromatic aberration
     mood: dystopian, electrifying, moody
-    negative: extra arms, extra hands, multiple arms, 4 arms, bad anatomy, deformed limbs, malformed hands, extra fingers, featureless face, blurry face, low quality face, indistinct facial features, blank face, melted face, text, watermark, logo, daytime, vintage, sunny, blurry, oversaturated
+    negative: extra arms, extra hands, multiple arms, 4 arms, bad anatomy, deformed
+      limbs, malformed hands, extra fingers, featureless face, blurry face, low quality
+      face, indistinct facial features, blank face, melted face, text, watermark,
+      logo, daytime, vintage, sunny, blurry, oversaturated
   watercolor_art:
     label: Watercolor Illustration
     style: delicate watercolor painting, fluid pigment washes, soft wet-on-wet gradients,
@@ -220,8 +242,10 @@ visual_styles:
     lighting: gentle diffused morning daylight
     lens: artistic soft vignette composition
     mood: serene, poetic, elegant
-    negative: extra arms, extra hands, multiple arms, 4 arms, bad anatomy, deformed limbs, malformed hands, extra fingers, featureless face, blurry face, low quality face, indistinct facial features, blank face, melted face, text, watermark, logo, 3D render, photo, photorealistic, harsh stark
-      shadows
+    negative: extra arms, extra hands, multiple arms, 4 arms, bad anatomy, deformed
+      limbs, malformed hands, extra fingers, featureless face, blurry face, low quality
+      face, indistinct facial features, blank face, melted face, text, watermark,
+      logo, 3D render, photo, photorealistic, harsh stark shadows
   hyperreal_3d:
     label: Hyperreal 3D Unreal Engine 5
     style: Unreal Engine 5 architectural cinematic render, Octane render, raytraced
@@ -229,7 +253,10 @@ visual_styles:
     lighting: volumetric sun godrays, realistic subsurface scattering
     lens: cinematic IMAX composition, sharp depth of field
     mood: breathtaking, polished, majestic
-    negative: extra arms, extra hands, multiple arms, 4 arms, bad anatomy, deformed limbs, malformed hands, extra fingers, featureless face, blurry face, low quality face, indistinct facial features, blank face, melted face, text, watermark, logo, low-poly, pixelated, flat lighting, blurry
+    negative: extra arms, extra hands, multiple arms, 4 arms, bad anatomy, deformed
+      limbs, malformed hands, extra fingers, featureless face, blurry face, low quality
+      face, indistinct facial features, blank face, melted face, text, watermark,
+      logo, low-poly, pixelated, flat lighting, blurry
   retro_comic:
     label: Retro Comic Book / Pop Art
     style: vintage American comic book art, bold black ink linework, stylized halftone
@@ -254,7 +281,10 @@ visual_styles:
     lighting: dim eerie moonlight, torchlight glow in shadows
     lens: dramatic wide environmental perspective
     mood: mysterious, haunting, epic
-    negative: extra arms, extra hands, multiple arms, 4 arms, bad anatomy, deformed limbs, malformed hands, extra fingers, featureless face, blurry face, low quality face, indistinct facial features, blank face, melted face, text, watermark, logo, bright sunny, cartoon, anime, modern technology
+    negative: extra arms, extra hands, multiple arms, 4 arms, bad anatomy, deformed
+      limbs, malformed hands, extra fingers, featureless face, blurry face, low quality
+      face, indistinct facial features, blank face, melted face, text, watermark,
+      logo, bright sunny, cartoon, anime, modern technology
   ink_wash_history:
     label: Traditional Ink Wash & Historical Epic (水墨史詩歷史風)
     style: traditional Chinese ink wash painting meets cinematic epic concept art,
@@ -264,8 +294,10 @@ visual_styles:
     lighting: dramatic atmospheric lantern glow, misty dawn volumetric lighting
     lens: cinematic wide anamorphic lens, epic depth of field
     mood: poetic, ancient, mysterious, grand, historically solemn
-    negative: extra arms, extra hands, multiple arms, 4 arms, bad anatomy, deformed limbs, malformed hands, extra fingers, featureless face, blurry face, low quality face, indistinct facial features, blank face, melted face, modern buildings, text, watermark, logo, neon, sci-fi, cartoon, plastic
-      3D, blurry
+    negative: extra arms, extra hands, multiple arms, 4 arms, bad anatomy, deformed
+      limbs, malformed hands, extra fingers, featureless face, blurry face, low quality
+      face, indistinct facial features, blank face, melted face, modern buildings,
+      text, watermark, logo, neon, sci-fi, cartoon, plastic 3D, blurry
   minimalist_explainer_cartoon:
     label: Minimalist Vector Explainer (商業大師 / Doodle Cartoon)
     style: minimalist 2D vector explainer illustration, clean uniform black line-art
@@ -281,22 +313,44 @@ visual_styles:
       nose, ears, hair, fingers, gradients, harsh shadows, volumetric lighting, anime,
       messy sketch
   taiwan_political_explainer:
-    label: "Taiwan Political Explainer (一起看世界 / 台灣政論插畫風)"
-    style: "2D clean vector flat editorial illustration, Japanese and Taiwanese political caricature art style, bold clean black outlines, flat solid color fills, subtle cel-shading, distinct caricature portraits of real Taiwanese political figures with recognizable iconic facial features, hairstyles, and formal business attire, satirical and concrete visual metaphors directly visualizing the spoken narration, dramatic high-contrast pure solid black background, 8k resolution editorial art"
-    lighting: "high-contrast dramatic stage lighting, crisp highlights, isolated subjects against pitch black background"
-    lens: "flat 2D front-on or three-quarter editorial graphic composition, clean theatrical framing"
-    mood: "satirical, insightful, compelling, political explainer, sharp, analytical"
-    negative: "photorealistic, 3D, CGI, realistic skin pores, photorealistic human photo, messy cluttered background, realistic background, blurry, lowres, distorted anatomy, extra fingers, watermark, logo, text"
+    label: Taiwan Political Explainer (一起看世界 / 台灣政論插畫風)
+    style: 2D clean vector flat editorial illustration, Japanese and Taiwanese political
+      caricature art style, bold clean black outlines, flat solid color fills, subtle
+      cel-shading, distinct caricature portraits of real Taiwanese political figures
+      with recognizable iconic facial features, hairstyles, and formal business attire,
+      satirical and concrete visual metaphors directly visualizing the spoken narration,
+      dramatic high-contrast pure solid black background, 8k resolution editorial
+      art
+    lighting: high-contrast dramatic stage lighting, crisp highlights, isolated subjects
+      against pitch black background
+    lens: flat 2D front-on or three-quarter editorial graphic composition, clean theatrical
+      framing
+    mood: satirical, insightful, compelling, political explainer, sharp, analytical
+    negative: photorealistic, 3D, CGI, realistic skin pores, photorealistic human
+      photo, messy cluttered background, realistic background, blurry, lowres, distorted
+      anatomy, extra fingers, watermark, logo, text
   epic_chronicle_mural:
-    label: "Historical Chronicle & Epic Mural (史詩歷史巨畫)"
-    style: "masterful epic chronicle digital oil painting, textured impasto brushwork, rich mineral earth tones with vermilion and deep ochre accents, fine art narrative illustration, textured canvas grain, 8k resolution"
-    lighting: "dramatic natural sunlight, dusty atmospheric volumetric light beams, warm directional rim lighting, rich chiaroscuro depth"
-    lens: "cinematic 50mm lens, single clear primary focal subject, centered heroic perspective, unified single-frame composition, deep atmospheric environmental depth"
-    mood: "grand, solemn, gritty, heroic, epic realism, narratively dense"
-    negative: "split screen, multi-panel, collage, montage, multiple frames, comic panel borders, vignette borders, diptych, triptych, anime, 3D CGI plastic render, airbrushed digital art, smooth plastic skin, extra limbs, bad anatomy, duplicate faces, text, watermark, logo"
-    recommended_model: "nano-banana-2.1"
+    label: Historical Chronicle & Epic Mural (史詩歷史巨畫)
+    style: masterful epic chronicle digital oil painting, textured impasto brushwork,
+      rich mineral earth tones with vermilion and deep ochre accents, fine art narrative
+      illustration, textured canvas grain, 8k resolution
+    lighting: dramatic natural sunlight, dusty atmospheric volumetric light beams,
+      warm directional rim lighting, rich chiaroscuro depth
+    lens: cinematic 50mm lens, single clear primary focal subject, centered heroic
+      perspective, unified single-frame composition, deep atmospheric environmental
+      depth
+    mood: grand, solemn, gritty, heroic, epic realism, narratively dense
+    negative: split screen, multi-panel, collage, montage, multiple frames, comic
+      panel borders, vignette borders, diptych, triptych, anime, 3D CGI plastic render,
+      airbrushed digital art, smooth plastic skin, extra limbs, bad anatomy, duplicate
+      faces, text, watermark, logo
+    recommended_model: nano-banana-2.1
 remotion:
   default_style: EvidenceHighlightScene
+  style: modern_tech_explainer
+  theme: dark_obsidian
+  density: full
+  accentColor: '#A855F7'
 thumbnail:
   template: editorial_chill
   color_preset: dr_beauty_gold
