@@ -969,6 +969,9 @@
           <button class="btn-sec" style="padding: 10px 16px; font-size: 13px; font-weight: 700; background: rgba(16, 185, 129, 0.18); border-color: #10b981; color: #6ee7b7;" data-ui-click="static_099" title="Re-render narration voice and update final 1080p video">
             🎙️🔄 Re-render Voice & Update Video
           </button>
+          <button class="btn-sec" id="btn-studio-hook-manager" onclick="openHookStudioModal()" style="padding: 10px 16px; font-size: 13px; font-weight: 700; background: rgba(56, 189, 248, 0.15); border-color: #0284c7; color: #38bdf8;" title="檢視 Hook 逐字稿、畫面規劃、時間戳記與 30 秒觀眾留存率比較">
+            🎯 Hook 留存率中心 (Retention Center)
+          </button>
           <button class="btn-primary" id="btn-studio-assemble-stages" style="padding: 10px 22px; font-size: 13px; font-weight: 700; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);" data-ui-click="static_100">
             🔗 String All Stages Together & Create Video
           </button>
@@ -1951,6 +1954,63 @@
         </label>
       </div>
       <button data-ui-click="static_167" class="btn-sec" style="font-size: 13px;">Save Subtitle & Motion Graphic Defaults</button>
+    </div>
+
+    <!-- YOUTUBE RETENTION HOOK MODULE SETTINGS CARD -->
+    <div class="card" style="margin-top: 20px;">
+      <div class="card-title" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span>🎯</span>
+          <span>YouTube 觀眾留存 Hook 模組 (Retention Hook Settings)</span>
+        </div>
+        <span class="badge badge-blue" style="font-size: 11px;">12s 核心衝突 · 5s 核心主張 · 0 寒暄 · 不增加片長</span>
+      </div>
+      <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px; line-height: 1.5;">
+        在影片開場自動植入 12 秒高張力 Hook。從全片自動選取核心衝突場景（避免重複播放旁白），前 5 秒直奔核心主張（相符標題，無寒暄、無 Logo 動畫、不浮誇），並嚴格計入 300 秒總片長（不增加影片長度），記錄版本供追蹤 30 秒觀眾留存率。
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Hook 模組啟用狀態</label>
+          <select id="set-hook-enabled">
+            <option value="true" selected>啟用 (Enabled - 自動選取核心衝突生成 Hook)</option>
+            <option value="false">停用 (Disabled - 傳統無 Hook 開場)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>影片預設目標總長度 (秒)</label>
+          <input type="number" id="set-hook-video-dur" value="300" min="30" max="3600" step="10">
+          <div style="font-size: 11px; color: #94a3b8; margin-top: 3px;">預設 300 秒 (5 分鐘)；Hook 12 秒將自此總長中扣除</div>
+        </div>
+        <div class="form-group">
+          <label>Hook 長度 (秒)</label>
+          <input type="number" id="set-hook-dur" value="12" min="5" max="30" step="1">
+          <div style="font-size: 11px; color: #94a3b8; margin-top: 3px;">標準推薦 12 秒 (5s 核心主張 + 7s 核心衝突)</div>
+        </div>
+        <div class="form-group">
+          <label>選取模式 (Mode)</label>
+          <select id="set-hook-mode">
+            <option value="select_core_conflict" selected>從完整影片選取最能代表核心衝突片段 (Core Conflict)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>開場核心主張時間窗口 (秒)</label>
+          <input type="number" id="set-hook-claim-dur" value="5.0" min="2.0" max="8.0" step="0.5">
+          <div style="font-size: 11px; color: #94a3b8; margin-top: 3px;">開場前 5 秒直出核心論點，嚴禁寒暄與片頭動畫</div>
+        </div>
+        <div class="form-group">
+          <label>避免重複播放旁白 (Deduplication)</label>
+          <select id="set-hook-avoid-repeat">
+            <option value="true" selected>強制啟用 (依衝突畫面另擬懸念短句，不重複語音)</option>
+            <option value="false">關閉 (允許語音重複)</option>
+          </select>
+        </div>
+      </div>
+      <div style="display: flex; gap: 10px; align-items: center; margin-top: 14px;">
+        <button id="btn-save-hook-settings" onclick="saveHookSettings()" class="btn-primary" style="font-size: 13px; font-weight: 700; padding: 9px 20px;">
+          💾 儲存 Hook 模組預設設定 (Save Hook Settings)
+        </button>
+        <span id="save-hook-status" style="font-size: 12px; color: #34d399;"></span>
+      </div>
     </div>
 
     <!-- REMOTION MOTION GRAPHICS CONFIGURATION & STYLE GALLERY CARD -->
@@ -3346,6 +3406,30 @@
           <button class="btn-pri" data-ui-click="static_272">🔄 重新套用算圖 (Update)</button>
           <button class="btn-sec" data-ui-click="static_273">完成並關閉 (Done)</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HOOK STUDIO & 30-SECOND RETENTION COMPARISON MODAL -->
+  <div id="hook-studio-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:10060; justify-content:center; align-items:center; padding:20px;">
+    <div style="background:#09111e; border:1px solid #0284c7; border-radius:12px; width:100%; max-width:840px; max-height:92vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 24px 64px rgba(0,0,0,0.9);">
+      <!-- Header -->
+      <div style="padding:16px 20px; border-bottom:1px solid #1e293b; display:flex; justify-content:space-between; align-items:center; background:linear-gradient(135deg, rgba(2, 132, 199, 0.4) 0%, #060a12 100%);">
+        <div>
+          <div style="font-size:16px; font-weight:800; color:#fff; display:flex; align-items:center; gap:8px;">
+            <span>🎯 YouTube 觀眾留存 Hook 控制台 (Retention Hook Center)</span>
+            <span id="hook-modal-active-badge" class="badge badge-blue" style="font-size:11px;">Active v1</span>
+          </div>
+          <div style="font-size:12px; color:#93c5fd; margin-top:2px;">
+            預設 300 秒影片中置入 12 秒核心衝突 Hook，前 5 秒直奔核心主張（無寒暄、無Logo、旁白不重複），納入總片長
+          </div>
+        </div>
+        <button class="btn-sec" onclick="closeHookStudioModal()" style="padding:4px 10px; font-size:13px;">✕</button>
+      </div>
+
+      <!-- Body -->
+      <div id="hook-modal-body" style="padding:18px 20px; overflow-y:auto; display:flex; flex-direction:column; gap:16px; max-height:75vh;">
+        <!-- Populated dynamically by renderHookStudioModal() -->
       </div>
     </div>
   </div>

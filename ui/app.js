@@ -6805,6 +6805,19 @@
         if (data.settings) {
           populateDefaultThumbnailSettingsUI(data.settings.thumbnail || {});
         }
+        if (data.settings && data.settings.hook) {
+          const hk = data.settings.hook;
+          const setVal = (id, val) => {
+            const el = document.getElementById(id);
+            if (el && val !== undefined && val !== null) el.value = String(val);
+          };
+          setVal('set-hook-enabled', hk.enabled !== false);
+          setVal('set-hook-video-dur', hk.video_duration || 300);
+          setVal('set-hook-dur', hk.duration || 12);
+          setVal('set-hook-mode', hk.mode || 'select_core_conflict');
+          setVal('set-hook-claim-dur', hk.claim_window_seconds || 5.0);
+          setVal('set-hook-avoid-repeat', hk.avoid_repeated_narration !== false);
+        }
       } catch (e) {
         console.error("Failed to load settings secrets", e);
       }
@@ -15263,3 +15276,306 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       switchMusicSubTab('classical');
       if (typeof showToast === 'function') showToast(`🏛️ 請在古典名曲曲庫中選擇要指定至 Movement ${movementIdx + 1} 的曲目`);
     }
+
+
+    // ==========================================
+    // RETENTION HOOK MODULE (UI LOGIC)
+    // ==========================================
+
+    window.saveHookSettings = async function() {
+      const btn = document.getElementById('btn-save-hook-settings');
+      const statusEl = document.getElementById('save-hook-status');
+      if (btn) btn.disabled = true;
+      if (statusEl) statusEl.textContent = "儲存中...";
+
+      try {
+        const payload = {
+          settings: {
+            hook: {
+              enabled: document.getElementById('set-hook-enabled')?.value === 'true',
+              video_duration: parseFloat(document.getElementById('set-hook-video-dur')?.value || 300),
+              duration: parseFloat(document.getElementById('set-hook-dur')?.value || 12),
+              mode: document.getElementById('set-hook-mode')?.value || 'select_core_conflict',
+              claim_window_seconds: parseFloat(document.getElementById('set-hook-claim-dur')?.value || 5.0),
+              avoid_repeated_narration: document.getElementById('set-hook-avoid-repeat')?.value === 'true',
+              ban_greetings: true,
+              ban_logo_animation: true,
+              ban_clickbait: true,
+              include_in_total_duration: true
+            }
+          }
+        };
+        await apiRequest('/api/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (statusEl) {
+          statusEl.textContent = "✓ Hook 設定已成功儲存至 settings.yaml";
+          setTimeout(() => { if (statusEl) statusEl.textContent = ""; }, 4000);
+        }
+        showToast("✓ Hook 模組預設設定已成功更新！");
+      } catch (err) {
+        console.error("Save hook settings error:", err);
+        if (statusEl) statusEl.textContent = "❌ 儲存失敗: " + err.message;
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    };
+
+    window.openHookStudioModal = async function() {
+      const pid = currentProjectId;
+      if (!pid) {
+        showToast("請先選擇或開啟一個專案以檢視 Hook");
+        return;
+      }
+      const modal = document.getElementById('hook-studio-modal');
+      if (modal) modal.style.display = 'flex';
+      await window.renderHookStudioModal();
+    };
+
+    window.closeHookStudioModal = function() {
+      const modal = document.getElementById('hook-studio-modal');
+      if (modal) modal.style.display = 'none';
+    };
+
+    window.renderHookStudioModal = async function() {
+      const pid = currentProjectId;
+      const body = document.getElementById('hook-modal-body');
+      if (!body) return;
+      body.innerHTML = '<div style="text-align:center; padding:30px; color:#94a3b8;">載入 Hook 結構資料與留存率比對中...</div>';
+
+      try {
+        const [hookData, versionsData, compData] = await Promise.all([
+          apiJson(`/api/projects/${pid}/hook`).catch(() => null),
+          apiJson(`/api/projects/${pid}/hook/versions`).catch(() => ({ active_version: 0, versions: [] })),
+          apiJson(`/api/projects/${pid}/hook/compare`).catch(() => null)
+        ]);
+
+        const hasHook = hookData && hookData.transcript;
+        const activeVer = versionsData.active_version || (hookData ? hookData.version : 1);
+        const versions = versionsData.versions || [];
+
+        const badge = document.getElementById('hook-modal-active-badge');
+        if (badge) badge.textContent = `Active v${activeVer}`;
+
+        let html = '';
+
+        // 1. Controls Row (Version Selector & Regenerate)
+        html += `
+          <div style="background:#0c1527; border:1px solid #1e3a8a; border-radius:8px; padding:12px 16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+              <span style="font-weight:700; color:#38bdf8; font-size:13px;">切換歷史版本 (Switch Version):</span>
+              <select id="modal-hook-version-select" onchange="switchHookVersionInStudio(this.value)" style="background:#060a12; border:1px solid #0284c7; color:#fff; border-radius:6px; padding:6px 10px; font-size:12px; font-weight:700; cursor:pointer;">
+                ${versions.length > 0 ? versions.map(v => `<option value="${v.version}" ${v.version === activeVer ? 'selected' : ''}>v${v.version} (${v.created_at || 'Take'}) - 30s留存: ${v.retention_metrics?.retention_rate_30s ? (v.retention_metrics.retention_rate_30s * 100).toFixed(1) + '%' : '未填寫'}</option>`).join('') : '<option value="1">v1 (當前版本)</option>'}
+              </select>
+            </div>
+            <button onclick="generateNewHookVersionInStudio()" class="btn-primary" style="font-size:12px; font-weight:700; padding:7px 16px; background:linear-gradient(135deg, #0284c7 0%, #0369a1 100%);">
+              🔄 重新選取衝突並生成新版本 (Generate New Take)
+            </button>
+          </div>
+        `;
+
+        if (hasHook) {
+          const claim = hookData.transcript.core_claim_first_5s || '';
+          const teaser = hookData.transcript.conflict_teaser_5_to_12s || '';
+          const shots = hookData.shots || [];
+          const dur = hookData.hook_duration || 12.0;
+          const totalDur = hookData.total_video_duration || 300.0;
+          const bodyDur = totalDur - dur;
+
+          // 2. Structured Hook Shots Breakdown (0-5s and 5-12s)
+          html += `
+            <div style="background:rgba(15, 23, 42, 0.7); border:1px solid #1e293b; border-radius:8px; padding:16px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+                <div style="font-weight:800; color:#f8fafc; font-size:14px; display:flex; align-items:center; gap:6px;">
+                  <span>📋 Hook 鏡頭與逐字稿規劃</span>
+                </div>
+                <div style="font-size:12px; color:#94a3b8; display:flex; gap:12px;">
+                  <span>Hook: <b style="color:#38bdf8;">${dur}s</b></span>
+                  <span>正片主體: <b style="color:#cbd5e1;">${bodyDur}s</b></span>
+                  <span>總片長: <b style="color:#34d399;">${totalDur}s (不額外增加片長)</b></span>
+                </div>
+              </div>
+
+              <!-- Shot 1: 0 - 5s -->
+              <div style="background:#091122; border:1px solid rgba(56, 189, 248, 0.3); border-radius:6px; padding:12px 14px; margin-bottom:10px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                  <span style="font-size:12px; font-weight:800; color:#38bdf8;">🎯 Shot 1 (00:00 - 00:05) · 前 5 秒核心主張</span>
+                  <span style="font-size:11px; color:#34d399; font-weight:600;">✓ 無寒暄 · 無Logo · 標題直接相符</span>
+                </div>
+                <div style="font-size:13.5px; color:#fff; font-weight:600; line-height:1.5; margin-bottom:6px;">
+                  「${claim}」
+                </div>
+                <div style="font-size:11.5px; color:#94a3b8; line-height:1.4;">
+                  <b>畫面規劃:</b> ${shots[0]?.visual_description || '開場主視覺鏡頭，快速推軌 (push_in)，無 Logo 動畫'}
+                </div>
+              </div>
+
+              <!-- Shot 2: 5 - 12s -->
+              <div style="background:#091122; border:1px solid rgba(245, 158, 11, 0.35); border-radius:6px; padding:12px 14px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                  <span style="font-size:12px; font-weight:800; color:#fbbf24;">⚡ Shot 2 (00:05 - 00:12) · 核心衝突片段 (選自 Scene ${hookData.source_scene_id || '?'})</span>
+                  <span style="font-size:11px; color:#34d399; font-weight:600;">✓ 旁白不重複 · 懸念承接</span>
+                </div>
+                <div style="font-size:13.5px; color:#fff; font-weight:600; line-height:1.5; margin-bottom:6px;">
+                  「${teaser}」
+                </div>
+                <div style="font-size:11.5px; color:#94a3b8; line-height:1.4;">
+                  <b>畫面規劃:</b> ${shots[1]?.visual_description || '核心衝突高張力畫面'}
+                </div>
+              </div>
+            </div>
+          `;
+
+          // 3. 30-Second Audience Retention Tracker Section
+          const currentRetention = hookData.retention_metrics?.retention_rate_30s;
+          const currentPercent = currentRetention ? (currentRetention * 100).toFixed(1) : '';
+
+          html += `
+            <div style="background:linear-gradient(135deg, rgba(6, 78, 59, 0.35) 0%, rgba(15, 23, 42, 0.8) 100%); border:1px solid #059669; border-radius:8px; padding:16px;">
+              <div style="font-weight:800; color:#34d399; font-size:14px; margin-bottom:6px; display:flex; align-items:center; gap:6px;">
+                <span>📊 30 秒觀眾留存率填報 (30s Retention Rate)</span>
+              </div>
+              <div style="font-size:12px; color:#94a3b8; margin-bottom:12px;">
+                影片發布後，可在此填寫 YouTube Analytics 的 30 秒觀眾留存率（%），系統將自動比對各版表現並推薦最能挽留觀眾的 Hook。
+              </div>
+              <div style="display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap;">
+                <div>
+                  <label style="font-size:11px; color:#cbd5e1; display:block; margin-bottom:4px;">實測 30 秒留存率 (%)</label>
+                  <input type="number" id="input-modal-retention-rate" value="${currentPercent}" min="0" max="100" step="0.5" placeholder="例如 74.5" style="width:130px; padding:7px 10px; background:#060a12; border:1px solid #10b981; color:#fff; border-radius:6px; font-weight:700;">
+                </div>
+                <div style="flex:1; min-width:200px;">
+                  <label style="font-size:11px; color:#cbd5e1; display:block; margin-bottom:4px;">留存分析備註 (Notes)</label>
+                  <input type="text" id="input-modal-retention-notes" value="${hookData.retention_metrics?.notes || ''}" placeholder="例如：此版本開場地緣政治切入點觀眾停留更久" style="width:100%; box-sizing:border-box; padding:7px 10px; background:#060a12; border:1px solid #334155; color:#fff; border-radius:6px;">
+                </div>
+                <button onclick="saveHookRetentionRateInStudio(${activeVer})" class="btn-primary" style="padding:7px 18px; font-size:12px; font-weight:700; background:#059669; border-color:#10b981;">
+                  💾 儲存留存數據
+                </button>
+              </div>
+            </div>
+          `;
+
+          // 4. Multi-Take Comparison Table
+          if (compData && compData.comparison && compData.comparison.length > 0) {
+            html += `
+              <div style="background:#080d1a; border:1px solid #1e293b; border-radius:8px; padding:16px;">
+                <div style="font-weight:800; color:#f8fafc; font-size:14px; margin-bottom:10px;">
+                  📈 各版本 30 秒觀眾留存率橫向比較 (Retention Comparison)
+                </div>
+                <table style="width:100%; border-collapse:collapse; font-size:12px; text-align:left;">
+                  <thead>
+                    <tr style="border-bottom:1px solid #334155; color:#94a3b8;">
+                      <th style="padding:8px 6px;">版本</th>
+                      <th style="padding:8px 6px;">5s 核心主張</th>
+                      <th style="padding:8px 6px;">30s 留存率</th>
+                      <th style="padding:8px 6px;">等級</th>
+                      <th style="padding:8px 6px;">備註</th>
+                      <th style="padding:8px 6px;">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${compData.comparison.map(c => `
+                      <tr style="border-bottom:1px solid rgba(255,255,255,0.06); ${c.is_active ? 'background:rgba(2,132,199,0.12);' : ''}">
+                        <td style="padding:8px 6px; font-weight:700; color:${c.is_active ? '#38bdf8' : '#fff'};">
+                          v${c.version} ${c.is_active ? '<span style="font-size:10px; color:#38bdf8;">(作用中)</span>' : ''}
+                        </td>
+                        <td style="padding:8px 6px; color:#cbd5e1; max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                          ${c.core_claim || '—'}
+                        </td>
+                        <td style="padding:8px 6px; font-weight:700; color:${c.retention_30s ? (c.retention_30s >= 0.75 ? '#34d399' : '#fbbf24') : '#94a3b8'};">
+                          ${c.retention_30s_percent}
+                        </td>
+                        <td style="padding:8px 6px; color:#94a3b8;">
+                          ${c.benchmark_tier}
+                        </td>
+                        <td style="padding:8px 6px; color:#cbd5e1; max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                          ${c.notes || '—'}
+                        </td>
+                        <td style="padding:8px 6px;">
+                          ${!c.is_active ? `<button class="btn-sec" onclick="switchHookVersionInStudio(${c.version})" style="padding:3px 8px; font-size:11px;">切換</button>` : '✓'}
+                        </td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+                ${compData.analysis ? `<div style="font-size:11.5px; color:#38bdf8; margin-top:10px; padding:8px 12px; background:rgba(2,132,199,0.1); border-radius:6px; border-left:3px solid #0284c7;">💡 <b>分析洞察:</b> ${compData.analysis}</div>` : ''}
+              </div>
+            `;
+          }
+        } else {
+          html += `
+            <div style="text-align:center; padding:40px 20px; color:#94a3b8;">
+              <div style="font-size:32px; margin-bottom:10px;">🎯</div>
+              <div style="font-size:15px; font-weight:700; color:#fff; margin-bottom:8px;">尚未生成 Hook</div>
+              <div style="font-size:12px; max-width:440px; margin:0 auto 16px auto; line-height:1.5;">
+                當專案完成 Stage 3 (Scenes) 場景規劃後，管線將自動選取核心衝突生成 Hook。您亦可直接點擊下方按鈕立即生成。
+              </div>
+              <button onclick="generateNewHookVersionInStudio()" class="btn-primary" style="padding:9px 22px; font-size:13px; font-weight:700;">
+                🚀 立即生成 Hook
+              </button>
+            </div>
+          `;
+        }
+
+        body.innerHTML = html;
+      } catch (err) {
+        console.error("renderHookStudioModal error:", err);
+        body.innerHTML = `<div style="padding:30px; color:#f87171; text-align:center;">載入 Hook 失敗: ${err.message}</div>`;
+      }
+    };
+
+    window.switchHookVersionInStudio = async function(versionNum) {
+      const pid = currentProjectId;
+      if (!pid) return;
+      try {
+        await apiRequest(`/api/projects/${pid}/hook/versions/switch/${versionNum}`, { method: 'POST' });
+        showToast(`✓ 已切換至 Hook 版本 v${versionNum}`);
+        await window.renderHookStudioModal();
+      } catch (err) {
+        showToast(`❌ 切換失敗: ${err.message}`);
+      }
+    };
+
+    window.generateNewHookVersionInStudio = async function() {
+      const pid = currentProjectId;
+      if (!pid) return;
+      try {
+        showToast("⏳ 正在分析場景並生成新版本 Hook...");
+        await apiRequest(`/api/projects/${pid}/hook/generate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mode: 'select_core_conflict', duration: 12.0, video_duration: 300.0 })
+        });
+        showToast("✓ 新版本 Hook 生成成功！");
+        await window.renderHookStudioModal();
+      } catch (err) {
+        showToast(`❌ 生成 Hook 失敗: ${err.message}`);
+      }
+    };
+
+    window.saveHookRetentionRateInStudio = async function(versionNum) {
+      const pid = currentProjectId;
+      if (!pid) return;
+      const rateInput = document.getElementById('input-modal-retention-rate');
+      const notesInput = document.getElementById('input-modal-retention-notes');
+      const val = parseFloat(rateInput?.value || 0);
+      if (isNaN(val) || val < 0 || val > 100) {
+        showToast("請輸入有效的留存率百分比 (0 到 100)");
+        return;
+      }
+      try {
+        await apiRequest(`/api/projects/${pid}/hook/versions/${versionNum}/retention`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            retention_30s: val / 100.0,
+            notes: notesInput?.value || ""
+          })
+        });
+        showToast(`✓ 已儲存版本 v${versionNum} 的 30 秒觀眾留存率: ${val}%`);
+        await window.renderHookStudioModal();
+      } catch (err) {
+        showToast(`❌ 儲存留存率失敗: ${err.message}`);
+      }
+    };
