@@ -2371,7 +2371,8 @@ class DocumentaryPipeline(BasePipeline):
             FalBalanceDepletedError, turn_off_project_avatar
         )
 
-        presenter_scenes = [s for s in scenes if (getattr(s, "is_presenter", False) or s.visual_type == "talking_head")]
+        avatar_allowed = self.p.is_avatar_enabled() if hasattr(self.p, "is_avatar_enabled") else (self.p.settings.get("presenter_placement") not in ("none", "off", "disabled", False))
+        presenter_scenes = [s for s in scenes if (getattr(s, "is_presenter", False) or s.visual_type == "talking_head")] if avatar_allowed else []
 
         if presenter_scenes:
             self.p.activity(f"Stage 8/10: Generating talking avatar presenter clips for {len(presenter_scenes)} scene(s)...")
