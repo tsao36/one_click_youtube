@@ -128,15 +128,11 @@
       if (diagBox) diagBox.innerHTML = '<span style="color:#c4b5fd;">🔍 Inspecting presenter scenes in project...</span>';
 
       try {
-        const [aRes, pRes, vRes] = await Promise.all([
-          apiRequest('/api/avatars'),
-          apiRequest(`/api/projects/${currentProjectId}`),
-          apiRequest('/api/voices')
+        const [aData, pData, vData] = await Promise.all([
+          apiJson('/api/avatars'),
+          apiJson(`/api/projects/${currentProjectId}`),
+          apiJson('/api/voices')
         ]);
-
-        const aData = aRes.ok ? await aRes.json() : {};
-        const pData = pRes.ok ? await pRes.json() : {};
-        const vData = vRes.ok ? await vRes.json() : [];
 
         cachedRaAvatars = aData.avatars || [];
         cachedRaVoices = Array.isArray(vData) ? vData : (vData.voices || []);
@@ -216,8 +212,8 @@
         return;
       }
       try {
-        const res = await apiRequest(`/api/projects/${currentProjectId}/fast_rerender_video`, { method: 'POST' });
-        if (!res.ok) throw new Error(await res.text());
+        await apiRequest(`/api/projects/${currentProjectId}/fast_rerender_video`, { method: 'POST' })
+
         startPolling();
         alert("⚡ 已開始快速合成影片！系統僅會替換已修改的分鏡，其餘畫面直接套用快取。完成後將自動更新播放器。");
       } catch (err) {
@@ -262,16 +258,13 @@
           voice_scope: voiceScope,
         };
 
-        const res = await apiRequest(`/api/projects/${currentProjectId}/rerender_avatar_clips`, {
+        await apiRequest(`/api/projects/${currentProjectId}/rerender_avatar_clips`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
-        });
+        })
 
-        if (!res.ok) {
-          const errTxt = await res.text();
-          throw new Error("Failed to start avatar replacement: " + errTxt);
-        }
+
 
         closeRerenderAvatarModal();
         startPolling();
@@ -304,17 +297,14 @@
       fd.append('update_video', 'true');
 
       try {
-        const res = await apiRequest(`/api/projects/${currentProjectId}/scenes/${sceneId}/upload_avatar_clip`, {
+        const data = await apiJson(`/api/projects/${currentProjectId}/scenes/${sceneId}/upload_avatar_clip`, {
           method: 'POST',
           body: fd,
         });
 
-        if (!res.ok) {
-          const txt = await res.text();
-          throw new Error("Upload failed: " + txt);
-        }
 
-        const data = await res.json();
+
+
         alert(`✓ Scene #${sceneId} avatar video uploaded! Final video update has started in the background.`);
         startPolling();
         if (typeof loadStageStudio === 'function') loadStageStudio();
@@ -328,10 +318,10 @@
       if (!confirm(`Re-generate avatar lip-sync clip for Scene #${sceneId} and update the final video?`)) return;
 
       try {
-        const res = await apiRequest(`/api/projects/${currentProjectId}/scenes/${sceneId}/rerender_avatar_clip`, {
+        await apiRequest(`/api/projects/${currentProjectId}/scenes/${sceneId}/rerender_avatar_clip`, {
           method: 'POST',
-        });
-        if (!res.ok) throw new Error(await res.text());
+        })
+
         startPolling();
         alert(`Scene #${sceneId} avatar re-generation started!`);
       } catch (err) {
@@ -356,22 +346,22 @@
         const vp = (cachedVoiceList || []).find(v => v.name === newProfileName) ||
                    (cachedRerenderVoices || []).find(v => v.name === newProfileName);
         const prov = vp ? (vp.provider || 'bluemagpie') : 'bluemagpie';
-        const res = await apiRequest(`/api/projects/${currentProjectId}/stage-models`, {
+        await apiRequest(`/api/projects/${currentProjectId}/stage-models`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             stage_models: { voice: prov },
             voice_profile: newProfileName
           })
-        });
-        if (res.ok) {
+        })
+
           showToast(`🎙️ Switched project Active Voice Profile to "${newProfileName}" (${getVoiceProviderLabel(prov)})!`);
           if (reloadView === 'inspector') {
             openStageInspector('voice');
           } else {
             loadStageStudio('voice');
           }
-        }
+
       } catch (e) {
         alert("Failed to switch voice profile: " + e.message);
       }
@@ -418,12 +408,11 @@
       if (diagBox) diagBox.innerHTML = '⏳ Inspecting project scenes & voice tracks...';
 
       try {
-        const [vRes, pRes] = await Promise.all([
-          apiRequest('/api/voices'),
-          apiRequest(`/api/projects/${currentProjectId}`)
+        const [voiceData, pData] = await Promise.all([
+          apiJson('/api/voices'),
+          apiJson(`/api/projects/${currentProjectId}`)
         ]);
-        cachedRerenderVoices = vRes.ok ? await vRes.json() : [];
-        const pData = pRes.ok ? await pRes.json() : {};
+        cachedRerenderVoices = voiceData;
         const proj = pData.project || {};
         const scenes = pData.scenes || [];
 
@@ -562,7 +551,7 @@
       }
 
       try {
-        const res = await apiRequest(`/api/projects/${currentProjectId}/rerender_voice_and_video`, {
+        const data = await apiJson(`/api/projects/${currentProjectId}/rerender_voice_and_video`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -572,10 +561,8 @@
             scene_ids: sceneIds
           })
         });
-        const data = await res.json();
-        if (!res.ok) {
-          throw new Error(data.detail || "Failed to start voice & video re-render");
-        }
+
+
         if (data.status === 'already_running') {
           alert("This project pipeline is already running. Please wait or click Stop first.");
           return;
@@ -666,8 +653,8 @@
 
     async function loadStatus() {
       try {
-        const res = await apiRequest('/api/status');
-        const s = await res.json();
+        const s = await apiJson('/api/status');
+
         document.getElementById('hw-status-summary').innerHTML =
           `CPU: <b>${s.cpu}</b> | RAM: <b>${s.ram_avail_gb} / ${s.ram_gb} GB</b> | GPU: <b>${s.gpu} (${s.vram_gb} GB VRAM)</b> | FFmpeg: <b>${s.ffmpeg ? '✓' : '✗'}</b> | ComfyUI: <b>${s.comfyui ? '✓ ('+s.comfyui_device+')' : '✗'}</b> | Ollama: <b>${s.ollama ? '✓' : '✗'}</b>`;
       } catch (e) {
@@ -676,8 +663,8 @@
     }
 
     async function unloadVRAM() {
-      const res = await apiRequest('/api/memory/unload', { method: 'POST' });
-      const d = await res.json();
+      const d = await apiJson('/api/memory/unload', { method: 'POST' });
+
       alert("VRAM Freed: ComfyUI " + d.comfyui + ", Ollama " + d.ollama);
       loadStatus();
     }
@@ -697,8 +684,8 @@
 
     async function loadVoices() {
       try {
-        const res = await apiRequest('/api/voices');
-        const voices = await res.json();
+        const voices = await apiJson('/api/voices');
+
         cachedVoiceList = voices;
         const sel = document.getElementById('voice-select');
         if (!sel) return;
@@ -763,7 +750,7 @@
       window.activeRemotionPreset = 'gary_chen';
       setVal('model-stage-animation', 'remotion');
       setVal('ai-video-pct', '0');
-      
+
       // Turn off virtual presenter / avatars for 100% pure Remotion motion graphics
       setVal('creator-presenter-placement', 'none');
       if (typeof onPresenterPlacementChange === 'function') onPresenterPlacementChange();
@@ -1049,9 +1036,9 @@
 
     async function loadImageModels() {
       try {
-        const res = await apiRequest('/api/images/models');
-        if (!res.ok) return;
-        const d = await res.json();
+        const d = await apiJson('/api/images/models');
+
+
         if (d.models && d.models.length) {
           cachedLocalCheckpoints = d.models;
         }
@@ -1125,8 +1112,8 @@
 
     async function loadProjectsList() {
       try {
-        const res = await apiRequest('/api/projects');
-        const projects = await res.json();
+        const projects = await apiJson('/api/projects');
+
         allProjectsCache = projects || [];
         const sel = document.getElementById('global-project-select');
         const prevSel = document.getElementById('preview-project-select');
@@ -1223,9 +1210,9 @@
       if (!confirm(msg)) return;
 
       try {
-        const res = await apiRequest(`/api/projects/${pId}`, { method: 'DELETE' });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.detail || "Deletion failed");
+        const data = await apiJson(`/api/projects/${pId}`, { method: 'DELETE' });
+
+
 
         if (currentProjectId === pId) {
           if (pollInterval) {
@@ -1458,20 +1445,18 @@
     async function changeStageModelFromCard(stName, modelVal) {
       if (!currentProjectId) return;
       try {
-        const res = await apiRequest(`/api/projects/${currentProjectId}/stage-models`, {
+        await apiRequest(`/api/projects/${currentProjectId}/stage-models`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ stage_models: { [stName]: modelVal } })
-        });
-        if (res.ok) {
+        })
+
           const topSel = document.getElementById('model-stage-' + stName);
           if (topSel) topSel.value = modelVal;
           onStageModelChange();
           const fn = getStageModelFriendlyName(stName, modelVal);
           showToast(`⚡ ${stName.toUpperCase()} switched to ${fn}! Applied to upcoming & active scenes.`);
-        } else {
-          showToast(`⚠️ Failed to switch ${stName} model.`);
-        }
+
       } catch (e) {
         console.error("Failed to switch stage model from card:", e);
         showToast(`⚠️ Error switching ${stName} model: ${e.message}`);
@@ -1524,13 +1509,11 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ stage_models: { [changedStage]: val } })
-          }).then(res => {
-            if (res.ok) {
-              const cardSel = document.getElementById('stage-card-model-' + changedStage);
-              if (cardSel && cardSel.value !== val) cardSel.value = val;
-              const fn = getStageModelFriendlyName(changedStage, val);
-              showToast(`⚡ ${changedStage.toUpperCase()} switched to ${fn}! Dynamic mid-run engine updated.`);
-            }
+          }).then(() => {
+            const cardSel = document.getElementById('stage-card-model-' + changedStage);
+            if (cardSel && cardSel.value !== val) cardSel.value = val;
+            const fn = getStageModelFriendlyName(changedStage, val);
+            showToast(`⚡ ${changedStage.toUpperCase()} switched to ${fn}! Dynamic mid-run engine updated.`);
           }).catch(err => {
             console.error('Failed to sync stage model to project:', err);
           });
@@ -1568,12 +1551,12 @@
     async function updateStudioStageModel(stKey, modelVal) {
       if (!currentProjectId) return;
       try {
-        const res = await apiRequest(`/api/projects/${currentProjectId}/stage-models`, {
+        await apiRequest(`/api/projects/${currentProjectId}/stage-models`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ stage_models: { [stKey]: modelVal } })
-        });
-        if (res.ok) {
+        })
+
           const el = document.getElementById('model-stage-' + stKey);
           if (el) el.value = modelVal;
           const cardSel = document.getElementById('stage-card-model-' + stKey);
@@ -1587,7 +1570,7 @@
           showToast(`⚡ ${stKey.toUpperCase()} switched to ${fn}! Applied to upcoming & active scenes.`);
           // Reload stage workspace
           if (typeof openStudioStage === 'function') openStudioStage(stKey);
-        }
+
       } catch (e) {
         console.error('Failed to update stage model:', e);
         showToast(`⚠️ Failed to update ${stKey} model: ${e.message}`);
@@ -1810,17 +1793,14 @@
       formData.append('file', file);
 
       try {
-        const res = await apiRequest('/api/projects/parse_research_file', {
+        const data = await apiJson('/api/projects/parse_research_file', {
           method: 'POST',
           body: formData
         });
 
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.detail || `Server returned error ${res.status}`);
-        }
 
-        const data = await res.json();
+
+
         const ta = document.getElementById('creator-user-research');
         if (ta) {
           const header = `### 【文件素材：${data.filename}】\n`;
@@ -2130,11 +2110,11 @@
           fd.append('voice_profile', c.voice_profile || 'ichiehchieh');
           fd.append('file', file);
 
-          const upRes = await apiRequest('/api/characters', { method: 'POST', body: fd });
-          if (upRes.ok) {
+          await apiRequest('/api/characters', { method: 'POST', body: fd })
+
             c.image_url = `/api/characters/image/${charId}?t=${Date.now()}`;
             if (typeof showToast === 'function') showToast(`已成功保存 ${c.name} 的專屬定妝照！`);
-          }
+
         } catch (err) {
           console.warn('Auto save portrait note:', err);
         }
@@ -2150,13 +2130,13 @@
 
       try {
         const charId = c.id || ('char_' + Date.now());
-        const res = await apiRequest(`/api/characters/${encodeURIComponent(charId)}/generate_portrait`, {
+        const data = await apiJson(`/api/characters/${encodeURIComponent(charId)}/generate_portrait`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ prompt: promptText, aspect_ratio: '1:1' })
         });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
+
+
         c.image_url = data.image_url;
         c.image_data_uri = null;
         renderDramaCharactersEditor();
@@ -2219,7 +2199,7 @@
       if (btn) { btn.disabled = true; btn.innerHTML = '⏳ 正在編劇...'; }
 
       try {
-        const res = await apiRequest('/api/drama/generate_script', {
+        const data = await apiJson('/api/drama/generate_script', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -2229,8 +2209,8 @@
             characters: currentProjectDramaCharacters
           })
         });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
+
+
         if (data.script_text) {
           const scriptTa = document.getElementById('drama-custom-script');
           if (scriptTa) scriptTa.value = data.script_text;
@@ -2254,13 +2234,13 @@
       }
       if (typeof showToast === 'function') showToast('🤖 正在透過 AI 智能分析劇本角色與聲音特性...');
       try {
-        const res = await apiRequest('/api/drama/extract_characters', {
+        const data = await apiJson('/api/drama/extract_characters', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ script: scriptText, topic: topicEl ? topicEl.value : '短劇' })
         });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
+
+
         if (data.characters && data.characters.length > 0) {
           currentProjectDramaCharacters = data.characters.map((c, idx) => {
             if (!c.id || c.id === 'None') {
@@ -2667,8 +2647,8 @@
 
     async function checkDramaHedraStatus() {
       try {
-        const res = await apiRequest('/api/settings');
-        const data = await res.json();
+        const data = await apiJson('/api/settings');
+
         const isConfigured = Boolean(data.secrets_configured && data.secrets_configured.HEDRA_API_KEY);
         const badge = document.getElementById('drama-hedra-status-badge');
         const input = document.getElementById('drama-quick-hedra-input');
@@ -2697,12 +2677,12 @@
         return;
       }
       try {
-        const res = await apiRequest('/api/settings', {
+        await apiRequest('/api/settings', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ secrets: { HEDRA_API_KEY: val, HEDRA_KEY: val } })
-        });
-        if (!res.ok) throw new Error("HTTP " + res.status);
+        })
+
         if (typeof showToast === 'function') showToast("✓ Hedra API Key 已成功儲存！Character-2 對嘴已啟用。");
         checkDramaHedraStatus();
       } catch (e) {
@@ -2743,9 +2723,9 @@
     // ---------------- Characters Library Tab Functions ----------------
     async function loadCharactersLibrary() {
       try {
-        const res = await apiRequest('/api/characters');
-        if (!res.ok) return;
-        const data = await res.json();
+        const data = await apiJson('/api/characters');
+
+
         cachedCharactersLibrary = data.characters || [];
         const badge = document.getElementById('characters-count-badge');
         if (badge) badge.textContent = `${cachedCharactersLibrary.length} Characters`;
@@ -2843,8 +2823,8 @@
       if (statusEl) statusEl.innerHTML = `⏳ 正在儲存角色 <strong>${nameVal}</strong>...`;
 
       try {
-        const res = await apiRequest('/api/characters', { method: 'POST', body: fd });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        await apiRequest('/api/characters', { method: 'POST', body: fd })
+
         if (typeof showToast === 'function') showToast(`✓ 角色「${nameVal}」已成功儲存至短劇演員庫！`);
         resetCharacterForm();
         await loadCharactersLibrary();
@@ -2882,8 +2862,8 @@
     async function deleteCharacterFromLibrary(charId) {
       if (!confirm(`確定要從角色庫刪除 ${charId} 嗎？`)) return;
       try {
-        const res = await apiRequest(`/api/characters/${encodeURIComponent(charId)}`, { method: 'DELETE' });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        await apiRequest(`/api/characters/${encodeURIComponent(charId)}`, { method: 'DELETE' })
+
         if (typeof showToast === 'function') showToast(`✓ 角色 ${charId} 已刪除`);
         loadCharactersLibrary();
       } catch (err) {
@@ -2913,13 +2893,13 @@
       if (statusEl) statusEl.innerHTML = `🍌 AI 生成中...`;
 
       try {
-        const res = await apiRequest(`/api/characters/${encodeURIComponent(idVal)}/generate_portrait`, {
+        const data = await apiJson(`/api/characters/${encodeURIComponent(idVal)}/generate_portrait`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ prompt: promptVal, aspect_ratio: '1:1' })
         });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
+
+
         if (previewBox) {
           previewBox.innerHTML = `<img src="${data.image_url}" style="width:100%;height:100%;object-fit:cover;">`;
         }
@@ -2986,9 +2966,9 @@
       if (!container) return;
       container.innerHTML = '<div style="color: #94a3b8; font-size: 12px; padding: 6px;">載入公式清單中...</div>';
       try {
-        const res = await apiRequest('/api/drama/formulas');
-        if (!res.ok) throw new Error('Failed to fetch formulas');
-        const data = await res.json();
+        const data = await apiJson('/api/drama/formulas');
+
+
         modalLoadedFormulas = data.formulas || [];
         if (modalLoadedFormulas.length === 0) {
           container.innerHTML = '<div style="color: #94a3b8; font-size: 12px; padding: 6px;">尚無公式</div>';
@@ -3052,7 +3032,7 @@
       }
 
       try {
-        const res = await apiRequest('/api/drama/formulas/autocomplete', {
+        const data = await apiJson('/api/drama/formulas/autocomplete', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -3061,8 +3041,8 @@
             formula_name: formulaName
           })
         });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
+
+
         modalAutocompletedData = data;
 
         if (nameInput && !nameInput.value.trim() && data.name) {
@@ -3188,13 +3168,13 @@
       }
 
       try {
-        const res = await apiRequest('/api/drama/formulas', {
+        const result = await apiJson('/api/drama/formulas', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const result = await res.json();
+
+
         const savedFormula = result.formula;
 
         await loadDramaFormulas();
@@ -3221,8 +3201,8 @@
     async function deleteFormulaFromManager(fid) {
       if (!confirm(`確定要刪除此自訂公式嗎？此操作不可逆。`)) return;
       try {
-        const res = await apiRequest(`/api/drama/formulas/${fid}`, { method: 'DELETE' });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        await apiRequest(`/api/drama/formulas/${fid}`, { method: 'DELETE' })
+
         await refreshFormulaManagerList();
         await loadDramaFormulas();
         if (typeof showToast === 'function') showToast('✓ 自訂公式已刪除！');
@@ -3234,9 +3214,9 @@
 
     async function loadDramaFormulas() {
       try {
-        const res = await apiRequest('/api/drama/formulas');
-        if (!res.ok) return;
-        const data = await res.json();
+        const data = await apiJson('/api/drama/formulas');
+
+
         if (data && data.formulas && Array.isArray(data.formulas)) {
           const formulaSel = document.getElementById('drama-formula-select');
           const prevVal = formulaSel ? formulaSel.value : 'workplace_revenge';
@@ -3311,7 +3291,7 @@
           image_url: c.image_url || null
         }));
 
-        const res = await apiRequest('/api/projects', {
+        const data = await apiJson('/api/projects', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -3339,12 +3319,9 @@
           })
         });
 
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.detail || `伺服器回應錯誤 (HTTP ${res.status})`);
-        }
 
-        const data = await res.json();
+
+
         projectStartTime = Date.now();
         showToast(`🎬 微短劇專案已成功建立: ${data.project_id}！已啟動全自動生成。`);
         await loadProjectsList();
@@ -3423,7 +3400,7 @@
       }
 
       try {
-        const res = await apiRequest('/api/projects', {
+        const data = await apiJson('/api/projects', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -3466,12 +3443,9 @@
           })
         });
 
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.detail || `Server returned error ${res.status}`);
-        }
 
-        const data = await res.json();
+
+
         projectStartTime = Date.now();
         showToast(`🚀 Project created: ${data.project_id}`);
         await loadProjectsList();
@@ -3865,9 +3839,9 @@
 
           if (typeof activeStudioStage !== 'undefined' && activeStudioStage === 'images') {
             try {
-              const sres = await apiRequest('/api/images/live_status');
-              if (sres.ok) {
-                const sdata = await sres.json();
+              const sdata = await apiJson('/api/images/live_status');
+
+
                 const gBanner = document.getElementById('studio-gpu-metric-title');
                 if (gBanner && sdata.gpu) {
                   const loadCol = sdata.gpu.util_percent > 60 ? '#f59e0b' : (sdata.gpu.util_percent > 15 ? '#38bdf8' : '#34d399');
@@ -3892,7 +3866,7 @@
                   if (pPct) pPct.textContent = `${sdata.percent}%`;
                   if (pTitle) pTitle.textContent = `⚡ Step ${sdata.step}/${sdata.total_steps} (${sdata.percent}%)`;
                 }
-              }
+
             } catch (_) {}
           }
 
@@ -3982,8 +3956,7 @@
       if (!currentProjectId) return;
       if (!d) {
         try {
-          const res = await apiRequest('/api/projects/' + currentProjectId);
-          d = await res.json();
+          d = await apiJson('/api/projects/' + currentProjectId);
         } catch (e) {
           console.error("Failed to load project details for preview", e);
         }
@@ -4320,8 +4293,8 @@
     async function openVideoFolder() {
       if (!currentProjectId) return;
       try {
-        const res = await apiRequest(`/api/projects/${currentProjectId}/open_folder`, { method: 'POST' });
-        const d = await res.json();
+        const d = await apiJson(`/api/projects/${currentProjectId}/open_folder`, { method: 'POST' });
+
         if (d.status === 'ok') {
           showToast("📂 Opened folder in Windows File Explorer: " + (d.folder_path || ''));
         } else {
@@ -4510,8 +4483,8 @@
 
     async function refreshLogs() {
       try {
-        const res = await apiRequest('/api/logs');
-        const d = await res.json();
+        const d = await apiJson('/api/logs');
+
         document.getElementById('log-viewer').textContent = d.logs.join('\n');
       } catch (e) {
         console.error("Failed to load logs", e);
@@ -4522,9 +4495,9 @@
       const btn = event ? event.currentTarget : null;
       if (btn) { btn.disabled = true; btn.textContent = '⏳ 同步中 (Syncing VoAI Actors)...'; }
       try {
-        const res = await apiRequest('/api/voices/sync_voai', { method: 'POST' });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.detail || 'Sync failed');
+        const data = await apiJson('/api/voices/sync_voai', { method: 'POST' });
+
+
         showToast(`✅ 成功同步 ${data.count} 位 VoAI 聲優庫！`);
         loadVoices();
         await loadVoiceProfiles();
@@ -4536,8 +4509,8 @@
     }
 
     async function loadVoiceProfiles() {
-      const res = await apiRequest('/api/voices');
-      const voices = await res.json();
+      const voices = await apiJson('/api/voices');
+
       const listEl = document.getElementById('voice-profiles-list');
       listEl.innerHTML = '';
       if (!voices.length) {
@@ -4733,7 +4706,7 @@
           })
         });
         const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+
 
         showToast(`✓ 聲音音色已成功更名為: ${newDisp || newId} (${newId})`);
         loadVoices();
@@ -4779,9 +4752,9 @@
       fd.append('auto_transcribe', 'true');
       setVoiceCustStatus(vName, '⏳ Uploading, cleaning (silence trim + loudness) and transcribing… first run starts the CosyVoice server (1–3 min).', '#38bdf8');
       try {
-        const res = await apiRequest(`/api/voices/${vName}/reference`, { method: 'POST', body: fd });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.detail || 'Upload failed');
+        const data = await apiJson(`/api/voices/${vName}/reference`, { method: 'POST', body: fd });
+
+
         await loadVoiceProfiles();
         loadVoices();
         if (data.transcribe_error) {
@@ -4807,12 +4780,12 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(changes)
         });
-        if (res2.ok) {
+
           return await res2.json();
-        }
+
       }
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.detail || `Update failed (${res.status})`);
+
       return data;
     }
 
@@ -4857,9 +4830,9 @@
       if (btn) btn.disabled = true;
       setVoiceCustStatus(vName, '⏳ Transcribing with Whisper (first run starts the CosyVoice server and downloads the Whisper model)…', '#38bdf8');
       try {
-        const res = await apiRequest(`/api/voices/${vName}/transcribe`, { method: 'POST' });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.detail || 'Transcription failed');
+        const data = await apiJson(`/api/voices/${vName}/transcribe`, { method: 'POST' });
+
+
         const ta = document.getElementById(`v-reftext-${vName}`);
         if (ta) ta.value = data.reference_text || '';
         setVoiceCustStatus(vName, '✓ Transcribed and saved. Fix any wrong words, then Save transcript.', '#34d399');
@@ -4890,9 +4863,9 @@
       if (btn) { btn.disabled = true; btn.textContent = '⏳ 正在批次生成試聽樣本 (Generating)...'; }
       showToast('🚀 開始批次生成 VoAI 聲音試聽檔，請稍候...');
       try {
-        const res = await apiRequest('/api/voices/generate_missing_samples?provider=voai', { method: 'POST' });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.detail || 'Batch generation failed');
+        const data = await apiJson('/api/voices/generate_missing_samples?provider=voai', { method: 'POST' });
+
+
         showToast(`✅ 完成！成功生成 ${data.generated} 個 VoAI 試聽樣本檔！`);
         await loadVoiceProfiles();
       } catch (err) {
@@ -5059,9 +5032,9 @@
 
     async function loadVoAISpeakers() {
       try {
-        const res = await apiRequest('/api/voai/speakers');
-        if (!res.ok) return;
-        const data = await res.json();
+        const data = await apiJson('/api/voai/speakers');
+
+
         cachedVoAISpeakers = data.speakers || [];
 
         const badge = document.getElementById('v-voai-badge');
@@ -5158,8 +5131,8 @@
 
     async function loadElevenLabsVoices() {
       try {
-        const res = await apiRequest('/api/elevenlabs/voices');
-        const data = await res.json();
+        const data = await apiJson('/api/elevenlabs/voices');
+
         const badge = document.getElementById('v-elevenlabs-badge');
         const hint = document.getElementById('v-elevenlabs-key-hint');
         if (badge) {
@@ -5302,15 +5275,12 @@
       if (refText) fd.append('reference_text', refText);
 
       try {
-        const res = await apiRequest('/api/voices', {
+        const created = await apiJson('/api/voices', {
           method: 'POST',
           body: fd
         });
-        if (!res.ok) {
-          const err = await res.json();
-          throw new Error(err.detail || "Failed to create profile");
-        }
-        const created = await res.json();
+
+
         document.getElementById('v-name').value = '';
         document.getElementById('v-disp').value = '';
         const customInput = document.getElementById('v-eleven-custom-id');
@@ -5383,10 +5353,7 @@
           body: JSON.stringify({ voice_name: vName, text: text, force: force })
         });
         clearInterval(progTimer);
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err.detail || "Synthesis failed");
-        }
+
 
         const isCached = res.headers.get('X-Sample-Cached') === 'true';
 
@@ -5504,12 +5471,11 @@
       try {
         if (!cachedVoiceList || !cachedVoiceList.length) {
           try {
-            const vRes = await apiRequest('/api/voices');
-            cachedVoiceList = await vRes.json();
+            cachedVoiceList = await apiJson('/api/voices');
           } catch (e) {}
         }
-        const res = await apiRequest('/api/avatars');
-        const data = await res.json();
+        const data = await apiJson('/api/avatars');
+
         const avs = data.avatars || [];
         cachedAvatarsList = avs;
         populatePresenterAvatarSelectors(avs);
@@ -5616,12 +5582,12 @@
 
     async function updateAvatarVoiceProfile(avName, voiceName) {
       try {
-        const res = await apiRequest(`/api/avatars/${encodeURIComponent(avName)}/voice_profile`, {
+        await apiRequest(`/api/avatars/${encodeURIComponent(avName)}/voice_profile`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ voice_profile: voiceName || null })
-        });
-        if (!res.ok) throw new Error("Failed to update avatar voice profile");
+        })
+
         showToast(`✓ 主播 ${avName} 的專屬音色已設定為: ${voiceName || '專案預設'}`);
         await loadAvatars();
       } catch (err) {
@@ -5725,11 +5691,8 @@
       }
 
       try {
-        const res = await apiRequest('/api/avatars', { method: 'POST', body: fd });
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err.detail || 'Upload failed');
-        }
+        await apiRequest('/api/avatars', { method: 'POST', body: fd })
+
         if (statusEl) {
           statusEl.style.color = '#34d399';
           statusEl.textContent = hasVideo ? '✓ 主播與錄影底片建立成功！' : '✓ 主播建立成功！';
@@ -5818,7 +5781,7 @@
       try {
         const res = await apiRequest(`/api/avatars/${encodeURIComponent(avName)}/test?engine=${engineKey}`, { method: 'POST' });
         const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+
         clearInterval(tick);
         await loadAvatars();
         const st2 = document.getElementById(`cmp-status-${avName}-${engineKey}`);
@@ -5834,7 +5797,7 @@
       try {
         const res = await apiRequest(`/api/avatars/${encodeURIComponent(avName)}/provider?engine=${engineKey}`, { method: 'POST' });
         const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.detail || 'Failed');
+
         showToast(`✓ ${avName} 之後將使用 ${data.provider}`);
         await loadAvatars();
       } catch (e) {
@@ -5851,7 +5814,7 @@
       try {
         const res = await apiRequest(`/api/avatars/${encodeURIComponent(avName)}/base_video`, { method: 'POST', body: fd });
         const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.detail || 'Upload failed');
+
         showToast(`✓ 底片已儲存 (${(data.duration || 0).toFixed(1)}s)`);
         await loadAvatars();
       } catch (e) {
@@ -5868,12 +5831,9 @@
         statusEl.textContent = '⏳ 正調用 SadTalker 驅動口型與臉部表情 (約需 20~30 秒)...';
       }
       try {
-        const res = await apiRequest(`/api/avatars/${encodeURIComponent(avName)}/test`, { method: 'POST' });
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err.detail || 'Test failed');
-        }
-        const data = await res.json();
+        const data = await apiJson(`/api/avatars/${encodeURIComponent(avName)}/test`, { method: 'POST' });
+
+
         if (statusEl) {
           const prov = (data.meta && data.meta.provider) ? data.meta.provider : '';
           if (prov === 'local_fallback') {
@@ -5897,8 +5857,8 @@
 
         async function rotateAvatar(avName) {
       try {
-        const res = await apiRequest(`/api/avatars/${encodeURIComponent(avName)}/rotate?degrees=90`, { method: 'POST' });
-        if (!res.ok) throw new Error("Rotate failed");
+        await apiRequest(`/api/avatars/${encodeURIComponent(avName)}/rotate?degrees=90`, { method: 'POST' })
+
         showToast(`🔄 已將 ${avName} 肖像順時針旋轉 90°`);
         await loadAvatars();
       } catch (e) {
@@ -6000,16 +5960,13 @@
       const avatar = avatarSel ? avatarSel.value : null;
 
       try {
-        const res = await apiRequest(`/api/projects/${currentProjectId}/apply_presenter_placement`, {
+        const data = await apiJson(`/api/projects/${currentProjectId}/apply_presenter_placement`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ placement: placement, avatar_profile: avatar })
         });
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err.detail || `HTTP ${res.status}`);
-        }
-        const data = await res.json();
+
+
         const scList = data.presenter_scene_ids && data.presenter_scene_ids.length > 0 ? `第 ${data.presenter_scene_ids.join(', ')} 幕` : '無';
         showToast(`✅ 已成功套用真人主播配置！出鏡幕次：${scList} (共 ${data.presenter_scenes_count} 幕)`);
         if (typeof loadStudioStage === 'function') {
@@ -6023,13 +5980,13 @@
     async function toggleScenePresenterMode(sceneId, isChecked) {
       if (!currentProjectId) return;
       try {
-        const res = await apiRequest(`/api/projects/${currentProjectId}/scenes/${sceneId}/toggle_presenter`, {
+        const data = await apiJson(`/api/projects/${currentProjectId}/scenes/${sceneId}/toggle_presenter`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ is_presenter: isChecked })
         });
-        if (!res.ok) throw new Error("Toggle failed");
-        const data = await res.json();
+
+
         showToast(`Scene #${sceneId} 虛擬主播出鏡模式: ${data.is_presenter ? '已啟用 🎭' : '已關閉'}`);
         if (typeof activeStudioStage !== 'undefined' && activeStudioStage === 'scenes') {
           // Keep local state in sync
@@ -6048,9 +6005,9 @@
 
     async function loadMusicTracks() {
       try {
-        const res = await apiRequest('/api/music/tracks');
-        if (!res.ok) return;
-        const d = await res.json();
+        const d = await apiJson('/api/music/tracks');
+
+
         cachedMusicTracks = d.tracks || [];
         cachedMusicCategories = d.categories || {};
 
@@ -6422,12 +6379,12 @@
       if (statusEl) statusEl.textContent = `⏳ 正在批次上傳 ${filesToUpload.length} 首音軌並自動同步至 Catalog...`;
 
       try {
-        const res = await apiRequest('/api/music/upload-multiple', {
+        const data = await apiJson('/api/music/upload-multiple', {
           method: 'POST',
           body: formData
         });
-        const data = await res.json();
-        if (res.ok) {
+
+
           if (statusEl) {
             statusEl.innerHTML = `<span style="color: #34d399; font-weight: 700;">✓ 成功上傳 ${data.count || filesToUpload.length} 首音軌！已自動完成分類與 Catalog 標籤登錄。</span>`;
           }
@@ -6438,9 +6395,7 @@
           if (fileInput) fileInput.value = '';
           updateSelectedMusicCount();
           await loadMusicTracks();
-        } else {
-          if (statusEl) statusEl.textContent = `上傳失敗: ${data.detail || res.statusText}`;
-        }
+
       } catch (e) {
         if (statusEl) statusEl.textContent = `上傳發生錯誤: ${e.message}`;
       } finally {
@@ -6458,19 +6413,15 @@
           btn.disabled = true;
           btn.textContent = "⏳ Grading Inventory...";
         }
-        const res = await apiRequest('/api/music/grade-inventory', { method: 'POST' });
-        const data = await res.json();
-        if (!res.ok) {
-          alert("Failed to start grading: " + (data.detail || res.statusText));
-          if (btn) { btn.disabled = false; btn.textContent = "✨ Grade with TypeSafe AI (Jev)"; }
-          return;
-        }
+        const data = await apiJson('/api/music/grade-inventory', { method: 'POST' });
+
+
 
         // Poll progress
         const interval = setInterval(async () => {
           try {
-            const stRes = await apiRequest('/api/music/grade-status');
-            const st = await stRes.json();
+            const st = await apiJson('/api/music/grade-status');
+
             if (st.running) {
               if (btn) btn.textContent = `⏳ Grading [${st.progress}/${st.total || 89}]...`;
             } else {
@@ -6500,12 +6451,12 @@
       if (!confirm(`Delete music track "${filename}"?`)) return;
       try {
         const encodedPath = filename.split('/').map(encodeURIComponent).join('/');
-        const res = await apiRequest(`/api/music/tracks/${encodedPath}`, {
+        await apiRequest(`/api/music/tracks/${encodedPath}`, {
           method: 'DELETE'
-        });
-        if (res.ok) {
+        })
+
           await loadMusicTracks();
-        }
+
       } catch (e) {
         alert("Failed to delete track: " + e.message);
       }
@@ -6541,9 +6492,9 @@
     async function syncActiveProjectMusicSetting() {
       if (!currentProjectId) return;
       try {
-        const res = await apiRequest(`/api/projects/${currentProjectId}`);
-        if (!res.ok) return;
-        const d = await res.json();
+        const d = await apiJson(`/api/projects/${currentProjectId}`);
+
+
         const p = d.project;
         if (p && p.settings && p.settings.music) {
           const m = p.settings.music;
@@ -6565,18 +6516,18 @@
       const volume = volSel ? parseFloat(volSel.value) : -24.0;
 
       try {
-        const res = await apiRequest(`/api/projects/${currentProjectId}/music`, {
+        await apiRequest(`/api/projects/${currentProjectId}/music`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ track: track, volume_db: volume })
-        });
-        if (res.ok) {
+        })
+
           if (statusEl) {
             statusEl.textContent = "✓ Settings saved!";
             setTimeout(() => { statusEl.textContent = ""; }, 3000);
           }
           pollProject();
-        }
+
       } catch (e) {
         alert("Failed to save music settings: " + e.message);
       }
@@ -6587,13 +6538,13 @@
       await saveActiveProjectMusic();
       if (!confirm("Re-render 1080p video with the updated ambient background music now?")) return;
       try {
-        const res = await apiRequest(`/api/projects/${currentProjectId}/run_stage/render`, {
+        await apiRequest(`/api/projects/${currentProjectId}/run_stage/render`, {
           method: 'POST'
-        });
-        if (res.ok) {
+        })
+
           switchTab('preview');
           pollProject();
-        }
+
       } catch (e) {
         alert("Failed to trigger re-render: " + e.message);
       }
@@ -6663,12 +6614,12 @@
       }
 
       try {
-        const res = await apiRequest('/api/settings', {
+        const data = await apiJson('/api/settings', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ secrets: secrets })
         });
-        const data = await res.json();
+
         const validation = data.validation || {};
 
         const failedList = [];
@@ -6726,8 +6677,8 @@
 
     async function loadApiKeys(preserveErrorKeys = []) {
       try {
-        const res = await apiRequest('/api/settings');
-        const data = await res.json();
+        const data = await apiJson('/api/settings');
+
         const sc = data.secrets_configured || {};
 
         const setField = (id, keyName) => {
@@ -6802,9 +6753,9 @@
       const el = document.getElementById(badgeId);
       if (!el) return;
       try {
-        const r = await apiRequest('http://127.0.0.1:8008/health');
-        if (r.ok) {
-          const h = await r.json();
+        const h = await apiJson('http://127.0.0.1:8008/health');
+
+
           const devLabel = h.gpu_name ? `${h.device} — ${h.gpu_name}` : (h.device || 'cuda');
           if (h.loaded === false || h.status === 'loading') {
             el.innerHTML = `<span style="color:#f59e0b;">🟡 Loading model into GPU (${devLabel})...</span>`;
@@ -6813,15 +6764,15 @@
           }
           el.innerHTML = `<b style="color:#34d399;">🟢 Online (${devLabel})</b>`;
           return;
-        }
+
       } catch (_) {}
 
       if (autoStart) {
         el.innerHTML = `<span style="color:#f59e0b;">⏳ Starting BlueMagpie server on Port 8008...</span>`;
         try {
-          const sr = await apiRequest('/api/tts/bluemagpie_status?auto_start=true');
-          if (sr.ok) {
-            const sd = await sr.json();
+          const sd = await apiJson('/api/tts/bluemagpie_status?auto_start=true');
+
+
             if (sd.online) {
               const devLabel = sd.gpu_name ? `${sd.device} — ${sd.gpu_name}` : (sd.device || 'cuda');
               if (sd.loaded === false || sd.status === 'loading') {
@@ -6832,7 +6783,7 @@
               el.innerHTML = `<b style="color:#34d399;">🟢 Online (${devLabel})</b>`;
               return;
             }
-          }
+
         } catch (_) {}
       }
 
@@ -7000,8 +6951,8 @@
     async function runSingleStage(stName) {
       if (!currentProjectId) return alert("Please select or create a project first.");
       try {
-        const res = await apiRequest(`/api/projects/${currentProjectId}/run_stage/${stName}`, { method: 'POST' });
-        const d = await res.json();
+        const d = await apiJson(`/api/projects/${currentProjectId}/run_stage/${stName}`, { method: 'POST' });
+
         if (d.status === 'already_running') {
           return alert("Pipeline is already executing. Please wait or stop it first.");
         }
@@ -7014,8 +6965,8 @@
     async function runNextStage() {
       if (!currentProjectId) return alert("Please select or create a project first.");
       try {
-        const res = await apiRequest(`/api/projects/${currentProjectId}`);
-        const d = await res.json();
+        const d = await apiJson(`/api/projects/${currentProjectId}`);
+
         const p = d.project;
         for (const stName of STAGE_ORDER) {
           const st = p.stages[stName];
@@ -7055,8 +7006,8 @@
       modal.style.display = 'flex';
 
       try {
-        const res = await apiRequest(`/api/projects/${currentProjectId}/stage_data/${stageName}`);
-        const data = await res.json();
+        const data = await apiJson(`/api/projects/${currentProjectId}/stage_data/${stageName}`);
+
         inspectedStageData = data;
         renderInspectorContent(stageName, data);
       } catch (e) {
@@ -8042,12 +7993,12 @@
       }
 
       try {
-        const res = await apiRequest(`/api/projects/${currentProjectId}/stage_data/${stageName}`, {
+        await apiRequest(`/api/projects/${currentProjectId}/stage_data/${stageName}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
-        });
-        if (!res.ok) throw new Error("Save failed");
+        })
+
         alert("Stage data saved successfully!");
         if (runNextAfter) {
           closeStageInspector();
@@ -8103,7 +8054,7 @@
       }
 
       try {
-        const res = await apiRequest(`/api/projects/${currentProjectId}/text_replace`, {
+        const data = await apiJson(`/api/projects/${currentProjectId}/text_replace`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -8115,11 +8066,9 @@
           })
         });
 
-        if (!res.ok) {
-          throw new Error(await res.text());
-        }
 
-        const data = await res.json();
+
+
         const total = data.total_occurrences || 0;
         const stCounts = data.stages_affected || {};
         const affectedScenes = data.affected_scene_ids || [];
@@ -8147,14 +8096,14 @@
 
         // Also sync global currentScenes & Editor table
         try {
-          const pRes = await apiRequest(`/api/projects/${currentProjectId}`);
-          if (pRes.ok) {
-            const pData = await pRes.json();
+          const pData = await apiJson(`/api/projects/${currentProjectId}`);
+
+
             currentScenes = pData.scenes || [];
             if (typeof renderEditor === 'function') {
               renderEditor();
             }
-          }
+
         } catch (_) {}
 
         // 2. Render rich notification status and instant re-render button
@@ -8259,12 +8208,12 @@
         const payload = (sceneIds && sceneIds.length)
           ? { scope: 'custom', scene_ids: sceneIds }
           : { scope: 'mismatched' };
-        const res = await apiRequest(`/api/projects/${currentProjectId}/rerender_voice_and_video`, {
+        await apiRequest(`/api/projects/${currentProjectId}/rerender_voice_and_video`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
-        });
-        if (!res.ok) throw new Error(await res.text());
+        })
+
         startPolling();
         showToast("✓ 語音重整與影片渲染已在背景高速運行！完成後將自動刷新。");
       } catch (err) {
@@ -8331,7 +8280,7 @@
         sBox.innerHTML = '<span class="spinner-inline" style="width:12px; height:12px; margin-right:6px;"></span> 正在掃描全專案各階段出現處...';
       }
       try {
-        const res = await apiRequest(`/api/projects/${currentProjectId}/text_replace/preview`, {
+        const data = await apiJson(`/api/projects/${currentProjectId}/text_replace/preview`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -8342,7 +8291,7 @@
             auto_invalidate_voice: true
           })
         });
-        const data = await res.json();
+
         const total = data.total_occurrences || 0;
         const stCounts = data.stages_affected || {};
         const affectedScenes = data.affected_scene_ids || [];
@@ -8397,7 +8346,7 @@
       }
 
       try {
-        const res = await apiRequest(`/api/projects/${currentProjectId}/text_replace`, {
+        const data = await apiJson(`/api/projects/${currentProjectId}/text_replace`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -8408,8 +8357,8 @@
             auto_invalidate_voice: autoInval
           })
         });
-        if (!res.ok) throw new Error(await res.text());
-        const data = await res.json();
+
+
         const total = data.total_occurrences || 0;
         const stCounts = data.stages_affected || {};
         const affectedScenes = data.affected_scene_ids || [];
@@ -8614,8 +8563,8 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
         if (el) { el.value = ''; el.placeholder = '自動擷取中…'; }
       });
       try {
-        const res = await apiRequest(`/api/projects/${currentProjectId}/remotion/props/${sceneId}`);
-        const data = await res.json();
+        const data = await apiJson(`/api/projects/${currentProjectId}/remotion/props/${sceneId}`);
+
         const p = data.props || {};
         const map = { 'remotion-cat': p.category, 'remotion-headline': p.headline, 'remotion-metric': p.metric, 'remotion-subtext': p.subtext };
         for (const [id, val] of Object.entries(map)) {
@@ -8633,7 +8582,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       const st = document.getElementById('remotion-auto-status');
       const comp = document.getElementById('remotion-style-select')?.value || 'FoxHeaderScene';
       try {
-        const prev = await (await apiRequest(`/api/projects/${currentProjectId}/remotion/critical`)).json();
+        const prev = await apiJson(`/api/projects/${currentProjectId}/remotion/critical`);
         const ids = (prev.scenes || []).map(s => s.scene_id);
         if (!ids.length) {
           if (st) { st.style.color = '#fbbf24'; st.textContent = 'ℹ️ 沒有符合條件的關鍵分鏡（需要已生成圖片，且有重點字卡或高強調）。'; }
@@ -8641,8 +8590,8 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
         }
         if (!confirm(`將使用 [${comp}] 風格為以下關鍵分鏡渲染 Remotion 卡片（每個約 20–30 秒）：\nScene ${ids.join(', ')}\n\n繼續？`)) return;
         if (btn) btn.disabled = true;
-        const res = await apiRequest(`/api/projects/${currentProjectId}/remotion/auto?composition=${encodeURIComponent(comp)}`, { method: 'POST' });
-        if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || '啟動失敗');
+        await apiRequest(`/api/projects/${currentProjectId}/remotion/auto?composition=${encodeURIComponent(comp)}`, { method: 'POST' })
+
         if (st) { st.style.color = '#38bdf8'; st.textContent = `⏳ 背景渲染中 (${comp})：Scene ${ids.join(', ')}。完成後請點擊 Stage 9 的「Render Final Video」以合成最新影片（進度見上方活動列）。`; }
       } catch (e) {
         if (st) { st.style.color = '#f87171'; st.textContent = '❌ ' + e.message; }
@@ -8677,7 +8626,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       }
 
       try {
-        const res = await apiRequest(`/api/projects/${currentProjectId}/remotion/apply`, {
+        const data = await apiJson(`/api/projects/${currentProjectId}/remotion/apply`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -8687,11 +8636,8 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
             props: { category, headline, metric, subtext }
           })
         });
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err.detail || "渲染失敗");
-        }
-        const data = await res.json();
+
+
         if (statusText) {
           statusText.style.color = '#34d399';
           statusText.innerHTML = `✓ 已套用 [${comp}] 至 Scene #${sceneIdVal}。請點擊 Stage 9 的「Render Final Video」以合成最新影片。`;
@@ -8720,9 +8666,9 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       if (!pId) return alert("請先選取專案。");
       if (!confirm(`確定要清除專案 "${pId}" 的快取視訊嗎？\n\n此操作將刪除 temp/ 與 animation/ 內的暫存渲染短片以釋放硬碟空間，但會保留腳本、旁白錄音與圖像素材。`)) return;
       try {
-        const res = await apiRequest(`/api/projects/${pId}/clear_cache`, { method: 'POST' });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.detail || "清除快取失敗");
+        const data = await apiJson(`/api/projects/${pId}/clear_cache`, { method: 'POST' });
+
+
         showToast(`✓ 已成功清理 ${data.cleared_mb} MB 快取視訊。`);
       } catch (err) {
         alert("清除快取失敗: " + err.message);
@@ -8814,12 +8760,12 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
         apply_to_prompts: true
       };
       try {
-        const res = await apiRequest(`/api/projects/${currentProjectId}/image_settings`, {
+        await apiRequest(`/api/projects/${currentProjectId}/image_settings`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
-        });
-        if (!res.ok) throw new Error("Failed to apply style");
+        })
+
         alert("Visual style applied to all scene prompts!");
         openStageInspector('prompts');
       } catch (e) {
@@ -8908,20 +8854,20 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       `;
 
       try {
-        const res = await apiRequest(`/api/projects/${currentProjectId}/batch_quick_stock`, {
+        const result = await apiJson(`/api/projects/${currentProjectId}/batch_quick_stock`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ scope: scope, source: 'auto' })
         });
-        const result = await res.json();
-        if (!res.ok) throw new Error(result.detail || "Batch quick stock request failed");
+
+
 
         // Poll status every 1.2s until complete
         const pollTimer = setInterval(async () => {
           try {
-            const sres = await apiRequest(`/api/projects/${currentProjectId}/batch_quick_stock/status`);
-            if (!sres.ok) return;
-            const sdata = await sres.json();
+            const sdata = await apiJson(`/api/projects/${currentProjectId}/batch_quick_stock/status`);
+
+
 
             const pctEl = document.getElementById('qs-card-pct');
             const barEl = document.getElementById('qs-card-bar');
@@ -9031,9 +8977,9 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       let pollTimer = null;
       const pollStatus = async () => {
         try {
-          const sres = await apiRequest('/api/images/live_status');
-          if (!sres.ok) return;
-          const sdata = await sres.json();
+          const sdata = await apiJson('/api/images/live_status');
+
+
 
           if (progBox && sdata.active && sdata.scene_id === sceneId) {
             if (sdata.total_steps > 0) {
@@ -9070,15 +9016,12 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       };
 
       try {
-        const res = await apiRequest(`/api/projects/${currentProjectId}/scenes/${sceneId}/regenerate_image`, {
+        await apiRequest(`/api/projects/${currentProjectId}/scenes/${sceneId}/regenerate_image`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body)
-        });
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.detail || "Regeneration failed");
-        }
+        })
+
         if (pollTimer) clearInterval(pollTimer);
         if (progBar) progBar.style.width = "100%";
         if (progPct) progPct.textContent = "100%";
@@ -9268,8 +9211,8 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       btn.innerHTML = '⏳ 正在雙重查核事實中...';
       btn.disabled = true;
       try {
-        const res = await apiRequest(`/api/projects/${currentProjectId}/fact-check`, { method: 'POST' });
-        const data = await res.json();
+        const data = await apiJson(`/api/projects/${currentProjectId}/fact-check`, { method: 'POST' });
+
         if (data.status === 'ok') {
           if (typeof showToast === 'function') showToast('✓ 事實真偽雙重查核完成！');
           if (typeof loadStageStudio === 'function') await loadStageStudio('research');
@@ -9519,7 +9462,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
 
       try {
         if (typeof showToast === 'function') showToast(`🔍 正在以外語原生關鍵詞檢索 ${char.name} 素材...`);
-        const res = await apiRequest(`/api/projects/${currentProjectId}/characters/search`, {
+        const result = await apiJson(`/api/projects/${currentProjectId}/characters/search`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -9528,7 +9471,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
             extra_queries: kws
           })
         });
-        const result = await res.json();
+
         if (result.media) {
           char.images = result.media.images || [];
           char.clips = result.media.clips || [];
@@ -9565,7 +9508,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
 
       try {
         if (typeof showToast === 'function') showToast(`⚡ 正在批次下載與裁切 ~10s 實拍影片片段與劇照 (需數十秒)...`);
-        const res = await apiRequest(`/api/projects/${currentProjectId}/characters/boost_ratio`, {
+        const result = await apiJson(`/api/projects/${currentProjectId}/characters/boost_ratio`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -9575,7 +9518,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
             extra_queries: extraQueries
           })
         });
-        const result = await res.json();
+
         if (result.status === 'success') {
           const updated = result.updated_scenes || [];
           alert(`✓ 成功提高主角「${char.name}」真實影音佔比！\n\n已更新分鏡: [${updated.join(', ')}]\n包含約 10 秒真實影片片段與高畫質劇照。\n\n請前往 Stage 10 點擊「Render 1080p Video」合成最新畫面！`);
@@ -9595,12 +9538,12 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       }
       try {
         if (typeof showToast === 'function') showToast("⚡ 正在分析主角登場分鏡並提高真實影音佔比至 90% (需數十秒)...");
-        const res = await apiRequest(`/api/projects/${currentProjectId}/characters/enforce_real_ratio`, {
+        const result = await apiJson(`/api/projects/${currentProjectId}/characters/enforce_real_ratio`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ratio: 0.9, clip_ratio: 0.7 })
         });
-        const result = await res.json();
+
         if (result.status === 'success') {
           const updated = result.updated_scenes || [];
           alert(`✓ 成功確保主角「${result.character}」分鏡真實影音佔比達 ${result.real_percentage}%！\n\n主角登場分鏡: ${result.total_mentioned_scenes} 個\n已覆蓋真實素材: ${result.real_scenes_count} 個 (${result.real_percentage}%)\n本次新更新分鏡: [${updated.join(', ')}]\n\n請前往 Stage 10 點擊「Render 1080p Video」合成最新畫面！`);
@@ -9617,8 +9560,8 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       if (!currentProjectId) return alert("請先選取專案");
       try {
         if (typeof showToast === 'function') showToast("🔍 正在重新掃描人物與檢索網路真實素材...");
-        const res = await apiRequest(`/api/projects/${currentProjectId}/characters?rescan=true`);
-        const json = await res.json();
+        const json = await apiJson(`/api/projects/${currentProjectId}/characters?rescan=true`);
+
         const dataObj = isInspector ? inspectedStageData : studioStageData;
         if (dataObj) {
           dataObj.characters = json.characters || [];
@@ -9642,12 +9585,12 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
 
       try {
         if (typeof showToast === 'function') showToast("⏳ 正在將選定的真實肖像與歷史片段套用至分鏡...");
-        const res = await apiRequest(`/api/projects/${currentProjectId}/characters/apply`, {
+        const result = await apiJson(`/api/projects/${currentProjectId}/characters/apply`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ characters })
         });
-        const result = await res.json();
+
         const updated = result.updated_scenes || [];
         alert(`✓ 成功將真實歷史影音套用至分鏡 [${updated.join(', ')}]！
 已標記為真實素材，渲染時將使用歷史肖像或片段。`);
@@ -9794,8 +9737,8 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
 
       // Fetch project details for stepper statuses
       try {
-        const pRes = await apiRequest(`/api/projects/${currentProjectId}`);
-        const pData = await pRes.json();
+        const pData = await apiJson(`/api/projects/${currentProjectId}`);
+
         studioProject = pData.project;
         currentScenes = pData.scenes || [];
         renderStudioProjectBar();
@@ -9823,8 +9766,8 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
 
       // Fetch stage data
       try {
-        const sRes = await apiRequest(`/api/projects/${currentProjectId}/stage_data/${activeStudioStage}`);
-        const sData = await sRes.json();
+        const sData = await apiJson(`/api/projects/${currentProjectId}/stage_data/${activeStudioStage}`);
+
         studioStageData = sData;
         renderStudioWorkspace(activeStudioStage, sData, studioProject);
       } catch (e) {
@@ -10603,7 +10546,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
 
         // Query BlueMagpie server status if relevant
         if (vProf.provider === 'bluemagpie') {
-          apiRequest('http://127.0.0.1:8008/health').then(r => r.json()).then(h => {
+          apiJson('http://127.0.0.1:8008/health').then(h => {
             const el = document.getElementById('studio-bm-live-badge');
             if (el) el.innerHTML = `<b style="color:#34d399;">🟢 Online (Device: ${h.device})</b>`;
           }).catch(() => {
@@ -11223,7 +11166,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       if (stKey === 'script') {
         updateStudioScriptCount(data.script_md || '');
       } else if (stKey === 'images') {
-        apiRequest('/api/images/live_status').then(r => r.json()).then(sdata => {
+        apiJson('/api/images/live_status').then(sdata => {
           const gBanner = document.getElementById('studio-gpu-metric-title');
           if (gBanner && sdata.gpu) {
             const loadCol = sdata.gpu.util_percent > 60 ? '#f59e0b' : (sdata.gpu.util_percent > 15 ? '#38bdf8' : '#34d399');
@@ -11236,8 +11179,8 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
     async function switchStudioVersion(stKey, targetV) {
       if (!currentProjectId) return;
       try {
-        const res = await apiRequest(`/api/projects/${currentProjectId}/stages/${stKey}/versions/switch/${targetV}`, { method: 'POST' });
-        const d = await res.json();
+        const d = await apiJson(`/api/projects/${currentProjectId}/stages/${stKey}/versions/switch/${targetV}`, { method: 'POST' });
+
         if (d.status === 'error') throw new Error(d.message);
         loadStageStudio(stKey);
       } catch (e) {
@@ -11468,8 +11411,8 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
     async function switchSceneMediaTake(sceneId, targetTake, mediaType, updateView) {
       if (!currentProjectId) return;
       try {
-        const res = await apiRequest(`/api/projects/${currentProjectId}/scenes/${sceneId}/${mediaType}_take/switch/${targetTake}`, { method: 'POST' });
-        const d = await res.json();
+        const d = await apiJson(`/api/projects/${currentProjectId}/scenes/${sceneId}/${mediaType}_take/switch/${targetTake}`, { method: 'POST' });
+
         if (d.status === 'error') throw new Error(d.message);
         updateView(sceneId, targetTake, d);
       } catch (e) {
@@ -11625,8 +11568,8 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       if (!confirm(`Are you sure you want to delete ${description}?`)) return;
       try {
         const suffix = active ? mediaType : `${mediaType}_take/${takeNum}`;
-        const res = await apiRequest(`/api/projects/${currentProjectId}/scenes/${sceneId}/${suffix}`, { method: 'DELETE' });
-        const d = await res.json();
+        const d = await apiJson(`/api/projects/${currentProjectId}/scenes/${sceneId}/${suffix}`, { method: 'DELETE' });
+
         if (d.status === 'error') throw new Error(d.message);
         const deletedTake = active ? d.deleted_take : takeNum;
         [studioStageData, inspectedStageData].forEach(stageData => {
@@ -11981,9 +11924,9 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
 
       try {
         const url = `/api/youtube/search?q=${encodeURIComponent(q)}&limit=8`;
-        const res = await apiRequest(url);
-        if (!res.ok) throw new Error("YouTube search error: " + (await res.text()));
-        const data = await res.json();
+        const data = await apiJson(url);
+
+
         const results = data.results || [];
 
         if (!results.length) {
@@ -12086,18 +12029,15 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
           duration_sec: 3.0
         };
 
-        const res = await apiRequest(`/api/projects/${currentProjectId}/scenes/${sceneId}/youtube_footage`, {
+        const data = await apiJson(`/api/projects/${currentProjectId}/scenes/${sceneId}/youtube_footage`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
 
-        if (!res.ok) {
-          const errTxt = await res.text();
-          throw new Error("Extraction failed: " + errTxt);
-        }
 
-        const data = await res.json();
+
+
         const sc = data.scene;
 
         // Update local studioStageData if present
@@ -12182,9 +12122,9 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
 
       try {
         const url = `/api/stock/search?q=${encodeURIComponent(q)}&type=${type}&source=${source}&limit=18`;
-        const res = await apiRequest(url);
-        if (!res.ok) throw new Error("Search API error: " + (await res.text()));
-        const data = await res.json();
+        const data = await apiJson(url);
+
+
         const results = data.results || [];
 
         if (!results.length) {
@@ -12294,18 +12234,15 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
           license: item.license || ''
         };
 
-        const res = await apiRequest(`/api/projects/${currentProjectId}/scenes/${sceneId}/apply-stock`, {
+        const data = await apiJson(`/api/projects/${currentProjectId}/scenes/${sceneId}/apply-stock`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
 
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({ detail: res.statusText }));
-          throw new Error(errData.detail || 'Failed to apply stock media');
-        }
 
-        const data = await res.json();
+
+
         closeStockSearchModal();
 
         // Refresh studio / inspector
@@ -12453,12 +12390,12 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
           btn.innerHTML = `<span class="spinner-inline" style="width:12px; height:12px; margin-right:6px;"></span> 正在依新腳本啟動管線...`;
         }
 
-        const res = await apiRequest(`/api/projects/${currentProjectId}/regenerate_from_script`, {
+        const d = await apiJson(`/api/projects/${currentProjectId}/regenerate_from_script`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ script_md: scriptMd })
         });
-        const d = await res.json();
+
         if (d.status === 'already_running') {
           return alert("Pipeline is already executing. Please wait or stop it first.");
         }
@@ -12481,8 +12418,8 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
     async function runStudioStageOnly(stKey) {
       if (!currentProjectId) return alert("Please select or create a project first.");
       try {
-        const res = await apiRequest(`/api/projects/${currentProjectId}/run_stage/${stKey}`, { method: 'POST' });
-        const d = await res.json();
+        const d = await apiJson(`/api/projects/${currentProjectId}/run_stage/${stKey}`, { method: 'POST' });
+
         if (d.status === 'already_running') {
           return alert("Pipeline is already executing. Please wait or stop it first.");
         }
@@ -12527,8 +12464,8 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
         btn.innerHTML = `<span class="spinner-inline" style="width:10px; height:10px; margin-right:4px;"></span> Generating...`;
       }
       try {
-        const res = await apiRequest(`/api/projects/${currentProjectId}/generate_world_setting`, { method: 'POST' });
-        const data = await res.json();
+        const data = await apiJson(`/api/projects/${currentProjectId}/generate_world_setting`, { method: 'POST' });
+
         if (data.status === 'ok' && data.world_setting) {
           const ws = data.world_setting;
           const stringifyWsVal = (v) => {
@@ -12639,12 +12576,12 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       }
 
       try {
-        const res = await apiRequest(`/api/projects/${currentProjectId}/stage_data/${stKey}`, {
+        await apiRequest(`/api/projects/${currentProjectId}/stage_data/${stKey}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
-        });
-        if (!res.ok) throw new Error("Save failed");
+        })
+
         alert(`Stage '${STAGE_META[stKey].name}' data saved successfully!`);
         loadStageStudio(stKey);
       } catch (e) {
@@ -12694,12 +12631,12 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
         apply_to_prompts: true
       };
       try {
-        const res = await apiRequest(`/api/projects/${currentProjectId}/image_settings`, {
+        await apiRequest(`/api/projects/${currentProjectId}/image_settings`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
-        });
-        if (!res.ok) throw new Error("Failed to apply style");
+        })
+
         alert("Visual style applied to all scene prompts!");
         loadStageStudio('prompts');
       } catch (e) {
@@ -12757,15 +12694,12 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       }
 
       try {
-        const res = await apiRequest(`/api/projects/${currentProjectId}/scenes/${sceneId}`, {
+        await apiRequest(`/api/projects/${currentProjectId}/scenes/${sceneId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ narration: newNarr })
-        });
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.detail || "Failed to update scene");
-        }
+        })
+
 
         // Update local caches
         [studioStageData, inspectedStageData].forEach(sd => {
@@ -12850,9 +12784,9 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       let pollTimer = null;
       const pollStatus = async () => {
         try {
-          const sres = await apiRequest('/api/images/live_status');
-          if (!sres.ok) return;
-          const sdata = await sres.json();
+          const sdata = await apiJson('/api/images/live_status');
+
+
 
           // Update header GPU metrics if banner exists
           const gBanner = document.getElementById('studio-gpu-metric-title');
@@ -12908,10 +12842,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body)
         });
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.detail || "Regeneration failed");
-        }
+
         const resData = await res.json().catch(() => ({}));
         if (pollTimer) clearInterval(pollTimer);
         const curProgBar = document.getElementById(`studio-prog-bar-${sceneId}`);
@@ -13013,16 +12944,13 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       }
 
       try {
-        const res = await apiRequest(`/api/projects/${currentProjectId}/scenes/${sceneId}/regenerate_voice`, {
+        const data = await apiJson(`/api/projects/${currentProjectId}/scenes/${sceneId}/regenerate_voice`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ narration: newText })
         });
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.detail || "Voice regeneration failed");
-        }
-        const data = await res.json();
+
+
 
         // Update in-memory scene data
         if (studioStageData && studioStageData.scenes && studioStageData.scenes[idx]) {
@@ -13074,8 +13002,8 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       await saveStudioStage('scenes');
       showToast("🎙️ 正在檢查所有分鏡台詞變更，並重新生成過期語音...");
       try {
-        const res = await apiRequest(`/api/projects/${currentProjectId}/fast_rerender_video`, { method: 'POST' });
-        if (!res.ok) throw new Error(await res.text());
+        await apiRequest(`/api/projects/${currentProjectId}/fast_rerender_video`, { method: 'POST' })
+
         startPolling();
         showToast("⚡ 已啟動重新生成語音與影片！系統僅重新合成有修改台詞的分鏡。");
       } catch (err) {
@@ -13094,15 +13022,12 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       const chosenVoice = voiceSelect ? voiceSelect.value : null;
       try {
         const payload = chosenVoice ? { voice_profile: chosenVoice } : {};
-        const res = await apiRequest(`/api/projects/${currentProjectId}/scenes/${sceneId}/regenerate_voice`, {
+        await apiRequest(`/api/projects/${currentProjectId}/scenes/${sceneId}/regenerate_voice`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
-        });
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.detail || "Voice synthesis failed");
-        }
+        })
+
         await loadStageStudio('voice');
       } catch (e) {
         alert("Voice synthesis failed: " + e.message);
@@ -13122,8 +13047,8 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       if (!confirm(confirmMsg)) return;
 
       try {
-        const res = await apiRequest(`/api/projects/${currentProjectId}/run_cascade/${fromStage}`, { method: 'POST' });
-        const d = await res.json();
+        const d = await apiJson(`/api/projects/${currentProjectId}/run_cascade/${fromStage}`, { method: 'POST' });
+
         if (d.status === 'already_running') {
           return alert("Pipeline is already executing. Please wait or stop it first.");
         }
@@ -13143,8 +13068,8 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
         return;
       }
       try {
-        const res = await apiRequest(`/api/projects/${currentProjectId}/assemble`, { method: 'POST' });
-        const d = await res.json();
+        const d = await apiJson(`/api/projects/${currentProjectId}/assemble`, { method: 'POST' });
+
         if (d.status === 'already_running') {
           return alert("Pipeline is already executing. Please wait or pause first.");
         }
@@ -13164,8 +13089,8 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
 
     async function loadYouTubeStatus() {
       try {
-        const res = await apiRequest('/api/youtube/status');
-        const data = await res.json();
+        const data = await apiJson('/api/youtube/status');
+
         currentYouTubeStatus = data;
 
         // 1. Update Settings Tab elements
@@ -13298,8 +13223,8 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
 
       // Fetch metadata
       try {
-        const res = await apiRequest(`/api/projects/${currentProjectId}/youtube_metadata`);
-        const meta = await res.json();
+        const meta = await apiJson(`/api/projects/${currentProjectId}/youtube_metadata`);
+
         currentYouTubeMetadata = meta;
 
         // Fill Channel Info
@@ -13509,13 +13434,13 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
           random_color: isRandom,
           top_kicker: cfg.default_top_kicker || '硬核科技實驗室',
         });
-        const res = await apiRequest('/api/settings/thumbnail-preview', {
+        const data = await apiJson('/api/settings/thumbnail-preview', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.detail || 'Preview failed');
+
+
 
         const prevImg = document.getElementById('set-thumb-preview-img');
         if (prevImg && data.thumbnail_url) {
@@ -13543,7 +13468,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
     async function saveDefaultThumbnailSettings() {
       try {
         const cfg = collectDefaultThumbnailSettingsFromUI();
-        const res = await apiRequest('/api/settings', {
+        await apiRequest('/api/settings', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -13551,8 +13476,8 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
               thumbnail: cfg
             }
           }),
-        });
-        if (!res.ok) throw new Error('Save failed');
+        })
+
         updateDefaultThumbSummaryBanner(cfg);
         await previewDefaultThumbnailSettings(false);
         const savedBadge = document.getElementById('set-thumb-saved-badge');
@@ -13597,8 +13522,8 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
 
     async function applyGlobalDefaultToStudio() {
       try {
-        const res = await apiRequest('/api/settings/thumbnail-defaults');
-        const data = await res.json();
+        const data = await apiJson('/api/settings/thumbnail-defaults');
+
         const cfg = data.config || {};
         if (document.getElementById('ts-template')) document.getElementById('ts-template').value = cfg.template || 'editorial_chill';
         if (document.getElementById('ts-color-preset')) document.getElementById('ts-color-preset').value = cfg.color_preset || 'random';
@@ -13721,8 +13646,8 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       document.getElementById('ts-render-status').textContent = '載入縮圖中...';
 
       try {
-        const res = await apiRequest(`/api/projects/${currentProjectId}/thumbnail`);
-        const data = await res.json();
+        const data = await apiJson(`/api/projects/${currentProjectId}/thumbnail`);
+
         const cfg = data.config || {};
 
         // Populate background selector
@@ -13816,8 +13741,8 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       btn.textContent = '⏳ AI 撰寫繁中文案中...';
       btn.disabled = true;
       try {
-        const res = await apiRequest(`/api/projects/${currentProjectId}/thumbnail/auto-copy`, { method: 'POST' });
-        const d = await res.json();
+        const d = await apiJson(`/api/projects/${currentProjectId}/thumbnail/auto-copy`, { method: 'POST' });
+
         if (d.copy) {
           document.getElementById('ts-top-kicker').value = d.copy.top_kicker || '';
           document.getElementById('ts-main-title').value = d.copy.main_title || '';
@@ -13871,11 +13796,11 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       const fd = new FormData();
       fd.append('file', inputEl.files[0]);
       try {
-        const res = await apiRequest(`/api/projects/${currentProjectId}/thumbnail/upload-bg`, {
+        await apiRequest(`/api/projects/${currentProjectId}/thumbnail/upload-bg`, {
           method: 'POST',
           body: fd,
-        });
-        if (!res.ok) throw new Error('上傳失敗');
+        })
+
         const bgSel = document.getElementById('ts-bg-source');
         if (![...bgSel.options].some(o => o.value === 'custom')) {
           const opt = document.createElement('option');
@@ -13964,13 +13889,13 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
           auto_copy: autoCopy,
           clear_text: shouldClearText,
         };
-        const res = await apiRequest(`/api/projects/${currentProjectId}/thumbnail/render`, {
+        const data = await apiJson(`/api/projects/${currentProjectId}/thumbnail/render`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.detail || 'Render failed');
+
+
 
         document.getElementById('ts-preview-img').src = data.thumbnail_url;
         document.getElementById('btn-ts-download').href = data.thumbnail_url;
@@ -14051,8 +13976,8 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
     async function rebuildYouTubeMetadata() {
       if (!currentProjectId) return;
       try {
-        const res = await apiRequest(`/api/projects/${currentProjectId}/youtube_metadata`);
-        const meta = await res.json();
+        const meta = await apiJson(`/api/projects/${currentProjectId}/youtube_metadata`);
+
         currentYouTubeMetadata = meta;
         document.getElementById('yt-modal-description').value = meta.description || '';
         document.getElementById('yt-modal-tags').value = (meta.tags || []).join(', ');
@@ -14071,8 +13996,8 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       if (modalMsg) modalMsg.textContent = promptText;
 
       try {
-        const res = await apiRequest('/api/youtube/auth', { method: 'POST' });
-        const d = await res.json();
+        const d = await apiJson('/api/youtube/auth', { method: 'POST' });
+
         if (d.status === 'error') {
           if (msgEl) msgEl.textContent = "Error: " + d.message;
           if (modalMsg) modalMsg.textContent = "Error: " + d.message;
@@ -14155,13 +14080,13 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
 
     async function sendAuthCode(val) {
       try {
-        const res = await apiRequest('/api/youtube/code', {
+        const d = await apiJson('/api/youtube/code', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ code: val }),
         });
-        const d = await res.json();
-        if (!res.ok) throw new Error(d.detail || "Invalid code or token exchange error");
+
+
         if (ytAuthPollTimer) {
           clearInterval(ytAuthPollTimer);
           ytAuthPollTimer = null;
@@ -14199,12 +14124,12 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       formData.append('file', file);
 
       try {
-        const res = await apiRequest('/api/youtube/credentials', {
+        const d = await apiJson('/api/youtube/credentials', {
           method: 'POST',
           body: formData,
         });
-        const d = await res.json();
-        if (!res.ok) throw new Error(d.detail || "Failed to save client secrets");
+
+
         alert("client_secrets.json uploaded successfully! Now click Sign In & Connect YouTube Channel.");
         loadYouTubeStatus();
       } catch (e) {
@@ -14221,12 +14146,12 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       formData.append('file', file);
 
       try {
-        const res = await apiRequest('/api/youtube/credentials', {
+        const d = await apiJson('/api/youtube/credentials', {
           method: 'POST',
           body: formData,
         });
-        const d = await res.json();
-        if (!res.ok) throw new Error(d.detail || "Failed to save client secrets");
+
+
         document.getElementById('yt-modal-secrets-status').innerHTML =
           '<span style="color:#34d399;">✓ client_secrets.json uploaded! Ready to authorize below.</span>';
         loadYouTubeStatus();
@@ -14247,13 +14172,13 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       if (!text) return alert("Please paste valid JSON content.");
       try {
         const parsed = JSON.parse(text);
-        const res = await apiRequest('/api/youtube/credentials_json', {
+        const d = await apiJson('/api/youtube/credentials_json', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ credentials: parsed }),
         });
-        const d = await res.json();
-        if (!res.ok) throw new Error(d.detail || "Failed to save credentials");
+
+
         alert("OAuth credentials saved successfully! Now click Sign In & Connect.");
         document.getElementById('yt-paste-secrets-container').style.display = 'none';
         loadYouTubeStatus();
@@ -14318,14 +14243,14 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
           thumbnail_path: currentYouTubeMetadata ? currentYouTubeMetadata.thumbnail_path : null,
         };
 
-        const res = await apiRequest(`/api/projects/${currentProjectId}/youtube_upload`, {
+        const d = await apiJson(`/api/projects/${currentProjectId}/youtube_upload`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
 
-        const d = await res.json();
-        if (!res.ok) throw new Error(d.detail || "Upload initiation failed");
+
+
 
         // Start polling upload status
         pollYouTubeUpload(currentProjectId);
@@ -14341,8 +14266,8 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
 
       ytUploadPollTimer = setInterval(async () => {
         try {
-          const res = await apiRequest(`/api/projects/${pid}/youtube_upload_status`);
-          const d = await res.json();
+          const d = await apiJson(`/api/projects/${pid}/youtube_upload_status`);
+
 
           if (d.status === 'uploading') {
             const pct = d.progress_percent || 0;
@@ -14423,9 +14348,9 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
 
     async function loadTopicQueue() {
       try {
-        const res = await apiRequest('/api/topics/queue');
-        if (!res.ok) return;
-        const data = await res.json();
+        const data = await apiJson('/api/topics/queue');
+
+
         topicQueue = data.queue || [];
         renderTopicQueueDropdown();
       } catch (e) {
@@ -14508,11 +14433,9 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       if (text) text.textContent = loadingMsg;
 
       try {
-        const res = await apiRequest(`/api/topics/discover?type=${encodeURIComponent(topicType)}`, { method: 'POST' });
-        if (!res.ok) {
-          throw new Error(`Server returned HTTP ${res.status}`);
-        }
-        const data = await res.json();
+        const data = await apiJson(`/api/topics/discover?type=${encodeURIComponent(topicType)}`, { method: 'POST' });
+
+
         topicQueue = data.queue || [];
         renderTopicQueueDropdown(data.topic ? data.topic.id : null);
         const iconEmoji = isAI ? '🤖' : (isHistory ? '📜' : '🔥');
@@ -14663,9 +14586,9 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       const topicId = select.value;
 
       try {
-        const res = await apiRequest(`/api/topics/queue/${encodeURIComponent(topicId)}`, { method: 'DELETE' });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
+        const data = await apiJson(`/api/topics/queue/${encodeURIComponent(topicId)}`, { method: 'DELETE' });
+
+
         topicQueue = data.queue || [];
         renderTopicQueueDropdown();
         showToast("Topic removed from queue.");
@@ -14684,9 +14607,9 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
         return;
       }
       try {
-        const res = await apiRequest('/api/topics/queue', { method: 'DELETE' });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
+        const data = await apiJson('/api/topics/queue', { method: 'DELETE' });
+
+
         topicQueue = data.queue || [];
         renderTopicQueueDropdown();
         showToast("Topic queue cleared.");
@@ -14748,8 +14671,8 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
         const url = epoch && epoch !== 'all' && epoch !== 'popular'
           ? `/api/music/openopus/composers?epoch=${encodeURIComponent(epoch)}`
           : (epoch === 'all' ? `/api/music/openopus/composers?epoch=all` : `/api/music/openopus/composers`);
-        const res = await apiRequest(url);
-        const data = await res.json();
+        const data = await apiJson(url);
+
         currentOpenOpusComposers = data.composers || [];
         renderOpenOpusComposersGrid(currentOpenOpusComposers);
       } catch (e) {
@@ -14810,8 +14733,8 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       const grid = document.getElementById('openopus-composers-grid');
       if (grid) grid.innerHTML = '<div style="color: var(--text-muted); font-size: 13px; padding: 20px;">搜尋作曲家及作品中...</div>';
       try {
-        const res = await apiRequest(`/api/music/openopus/composers/search?q=${encodeURIComponent(q)}`);
-        const data = await res.json();
+        const data = await apiJson(`/api/music/openopus/composers/search?q=${encodeURIComponent(q)}`);
+
         currentOpenOpusComposers = data.composers || [];
         renderOpenOpusComposersGrid(currentOpenOpusComposers);
       } catch (e) {
@@ -14851,8 +14774,8 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
         const url = (genre && genre !== 'all')
           ? `/api/music/openopus/works?composer_id=${compId}&genre=${encodeURIComponent(genre)}`
           : `/api/music/openopus/works?composer_id=${compId}`;
-        const res = await apiRequest(url);
-        const data = await res.json();
+        const data = await apiJson(url);
+
         currentOpenOpusWorks = data.works || [];
 
         // Build Genre Filter Pills
@@ -14947,8 +14870,8 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       if (statusEl) statusEl.innerHTML = '<span style="color: #60a5fa;">正在檢索 Internet Archive 與 Wikimedia Commons 公有領域音訊...</span>';
 
       try {
-        const resolveRes = await apiRequest(`/api/music/openopus/resolve-audio?composer=${encodeURIComponent(compName)}&work=${encodeURIComponent(title)}`);
-        const resolveData = await resolveRes.json();
+        const resolveData = await apiJson(`/api/music/openopus/resolve-audio?composer=${encodeURIComponent(compName)}&work=${encodeURIComponent(title)}`);
+
         const candidates = resolveData.candidates || [];
 
         if (!candidates.length) {
@@ -14961,7 +14884,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
         if (btnEl) btnEl.innerText = '⬇️ 下載轉換中...';
         if (statusEl) statusEl.innerHTML = `<span style="color: #34d399;">已尋得錄音「${best.title}」，正在下載並規格化 MP3...</span>`;
 
-        const importRes = await apiRequest('/api/music/openopus/import-work', {
+        const importData = await apiJson('/api/music/openopus/import-work', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -14974,8 +14897,8 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
           })
         });
 
-        if (!importRes.ok) throw new Error("Import failed");
-        const importData = await importRes.json();
+
+
         const newTrack = importData.track;
 
         if (typeof showToast === 'function') showToast(`✓ 成功匯入古典名曲: ${newTrack.name}`);
@@ -15012,11 +14935,11 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
         formData.append('openopus_id', String(workId));
 
         try {
-          const res = await apiRequest('/api/music/openopus/upload-work', {
+          await apiRequest('/api/music/openopus/upload-work', {
             method: 'POST',
             body: formData,
-          });
-          if (!res.ok) throw new Error("Upload failed");
+          })
+
           if (typeof showToast === 'function') showToast(`✓ 已成功綁定自選音檔至: ${title}`);
           await loadMusicTracks();
           renderOpenOpusWorksList(currentOpenOpusWorks);

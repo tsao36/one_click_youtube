@@ -17,6 +17,12 @@ data/music/*
 !data/music/*/*.mp3
 !data/music/*.mp3
 .pytest_cache/
+scratch/
+temp/
+tmp/
+remotion-video/build/
+ui/voice_sample_player*.html
+ui/mytsaovoice_vs_e_player.html
 data/youtube/
 *client_secrets*.json
 *token*.json

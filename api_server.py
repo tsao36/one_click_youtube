@@ -10,9 +10,8 @@ import shutil
 import subprocess
 import sys
 import time
-import threading
 from pathlib import Path
-from typing import Any, Optional, Callable
+from typing import Any, Optional
 
 from fastapi import BackgroundTasks, FastAPI, File, Form, HTTPException, Query, UploadFile
 from typing import List
@@ -24,8 +23,8 @@ from pydantic import BaseModel
 from core.config import DATA_DIR, LOGS_DIR, PROJECTS_DIR, ROOT, deep_merge, get_secret, load_providers, load_settings, save_yaml, set_secret
 from core.logging_setup import log, setup_logging
 from core.models import STAGES, Scene, Status
-from core.base_pipeline import BasePipeline
-from core.pipeline import PipelineCancelled, get_pipeline
+from core.pipeline import get_pipeline
+from core.pipeline_jobs import active_pipelines, get_project, queue_pipeline_job, queue_pipeline_run
 from core.project_manager import Project
 from rendering.ffmpeg_renderer import render_project
 from rendering.ffmpeg_utils import kill_all_ffmpeg_processes
@@ -82,78 +81,6 @@ def _resolve_under(base_dir: Path, relative_path: str) -> Path:
     except ValueError as exc:
         raise HTTPException(status_code=403, detail="Forbidden") from exc
     return target
-
-# Active pipeline registry
-active_pipelines: dict[str, BasePipeline] = {}
-_jobs_lock = threading.RLock()
-
-
-def get_project(project_id: str) -> Project:
-    """Use the job's live state instead of a competing disk snapshot."""
-    with _jobs_lock:
-        pipeline = active_pipelines.get(project_id)
-        if pipeline is not None:
-            return pipeline.p
-        if not (PROJECTS_DIR / project_id / "project.json").is_file():
-            raise HTTPException(status_code=404, detail="Project not found")
-        return Project(project_id)
-
-
-def queue_pipeline_job(p: Project, background_tasks: BackgroundTasks, work: Callable,
-                       *, prepare: Callable | None = None, stop_at: str | None = None,
-                       success_state: str = "completed") -> bool:
-    """Reserve a project before scheduling, and release it on every exit path."""
-    with _jobs_lock, p.lock:
-        if p.id in active_pipelines:
-            return False
-        if prepare:
-            prepare(p)
-        pipeline = get_pipeline(p, stop_at=stop_at)
-        p.data.state, p.data.error = "running", None
-        p.save()
-        active_pipelines[p.id] = pipeline
-
-        def run_job():
-            try:
-                if pipeline.is_cancelled():
-                    raise PipelineCancelled()
-                work(pipeline)
-                if p.data.state == "running":
-                    p.data.state = success_state
-                    p.save()
-            except PipelineCancelled:
-                p.data.state = "paused"
-                p.activity("Cancelled by user")
-            except Exception as exc:
-                if pipeline.is_cancelled() or "cancel" in str(exc).lower() or "stopped" in str(exc).lower():
-                    p.data.state, p.data.error = "paused", None
-                    p.activity("Cancelled by user")
-                else:
-                    p.data.state, p.data.error = "failed", str(exc)
-                    p.save()
-                    log.exception("Background job failed for project %s", p.id)
-            finally:
-                with _jobs_lock:
-                    if active_pipelines.get(p.id) is pipeline:
-                        active_pipelines.pop(p.id, None)
-
-        try:
-            if background_tasks is None:
-                threading.Thread(target=run_job, daemon=True).start()
-            else:
-                background_tasks.add_task(run_job)
-        except Exception:
-            active_pipelines.pop(p.id, None)
-            p.data.state = "paused"
-            p.save()
-            raise
-        return True
-
-
-def queue_pipeline_run(p: Project, background_tasks: BackgroundTasks, **kwargs: Any) -> bool:
-    """Queue the pipeline's standard full run without repeating the lambda at call sites."""
-    return queue_pipeline_job(p, background_tasks, lambda pipeline: pipeline.run(), **kwargs)
-
 
 # ---------------- Models ----------------
 class CreateProjectRequest(BaseModel):
@@ -375,247 +302,255 @@ def list_projects():
     return items
 
 
-@app.post("/api/projects")
-def create_project(req: CreateProjectRequest, background_tasks: BackgroundTasks):
-    overrides = {
+KNOWN_VOICE_PROVIDERS = (
+    "bluemagpie", "cosyvoice", "cozyvoice", "http_clone", "elevenlabs",
+    "voai", "edge", "sapi", "openai_tts",
+)
+REMOTE_IMAGE_MODELS = {
+    "nano-banana-2.1", "dalle3", "imagen3", "gpt-image-1",
+    "imagen-3.0-generate-002", "imagen-30.0-generate-002",
+    "fal-ai/flux-1/schnell", "fal-ai/flux/schnell", "stock",
+}
+
+
+def _normalise_drama_characters(characters: list[dict[str, Any]] | None) -> list[dict[str, Any]]:
+    if not characters:
+        return []
+    from generators.character_manager import slugify_character
+
+    normalised = []
+    used_ids = set()
+    for idx, source in enumerate(characters):
+        character = dict(source)
+        raw_id = (character.get("id") or "").strip()
+        if raw_id and raw_id != "None" and not raw_id.startswith("char_None"):
+            character_id = slugify_character(raw_id)
+        else:
+            character_id = slugify_character(character.get("name") or f"actor_{idx + 1}")
+        if character_id in used_ids:
+            character_id = f"{character_id}_{idx + 1}"
+        used_ids.add(character_id)
+        character["id"] = character_id
+        normalised.append(character)
+    return normalised
+
+
+def build_project_settings(
+    req: CreateProjectRequest,
+    voice_profiles: list[dict[str, Any]],
+    resolved_voice_profile: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Build all persisted project settings once, without mutating the request."""
+    settings: dict[str, Any] = {
         "video": {
             "duration_minutes": req.duration_minutes,
             "language": req.language,
             "visual_style": req.visual_style,
         },
-        "animation": {
-            "ai_video_percentage": req.ai_video_percentage,
-        },
+        "animation": {"ai_video_percentage": req.ai_video_percentage},
         "voice_profile": req.voice_profile,
-        "cloud": {
-            "enabled": req.cloud_enabled,
-        },
+        "cloud": {"enabled": req.cloud_enabled},
     }
     if req.stage_models:
-        overrides["stage_models"] = dict(req.stage_models)
+        settings["stage_models"] = dict(req.stage_models)
         if req.stage_models.get("images") == "stock":
-            overrides.setdefault("images", {})["provider"] = "stock"
+            settings.setdefault("images", {})["provider"] = "stock"
 
-    # Automatically align voice_profile and Stage 6 TTS selection
     selected_voice = req.voice_profile
-    stage_voice_prov = req.stage_models.get("voice") if req.stage_models else None
-    KNOWN_PROVIDERS = ("bluemagpie", "cosyvoice", "cozyvoice", "http_clone", "elevenlabs", "voai", "edge", "sapi", "openai_tts")
-
-    if selected_voice in KNOWN_PROVIDERS or (stage_voice_prov and (not selected_voice or selected_voice in KNOWN_PROVIDERS)):
-        target_prov = stage_voice_prov or selected_voice
-        if target_prov == "cozyvoice":
-            target_prov = "cosyvoice"
-        matched = None
-        for vp in list_profiles():
-            if vp.get("provider") == target_prov:
-                matched = vp["name"]
-                break
+    stage_voice_provider = req.stage_models.get("voice") if req.stage_models else None
+    if selected_voice in KNOWN_VOICE_PROVIDERS or (
+        stage_voice_provider and (not selected_voice or selected_voice in KNOWN_VOICE_PROVIDERS)
+    ):
+        target_provider = stage_voice_provider or selected_voice
+        if target_provider == "cozyvoice":
+            target_provider = "cosyvoice"
+        matched = next(
+            (profile for profile in voice_profiles if profile.get("provider") == target_provider),
+            None,
+        )
         if matched:
-            overrides["voice_profile"] = matched
-            overrides.setdefault("stage_models", {})["voice"] = target_prov
-    elif selected_voice:
+            settings["voice_profile"] = matched["name"]
+            settings.setdefault("stage_models", {})["voice"] = target_provider
+    elif selected_voice and resolved_voice_profile:
+        settings["voice_profile"] = resolved_voice_profile["name"]
+        if resolved_voice_profile.get("provider"):
+            settings.setdefault("stage_models", {})["voice"] = resolved_voice_profile["provider"]
+
+    auto_stock = req.auto_stock_mode or "balanced"
+    settings.setdefault("images", {})["auto_stock_mode"] = auto_stock
+    if (
+        req.checkpoint
+        and req.checkpoint not in REMOTE_IMAGE_MODELS
+        and (not req.stage_models or req.stage_models.get("images") != "stock")
+    ):
+        settings["images"]["checkpoint"] = req.checkpoint
+
+    if req.music_track:
+        settings.setdefault("music", {})["track"] = req.music_track
+        settings["music"]["enabled"] = req.music_track.lower() not in (
+            "none", "off", "disabled", "false", "no_music",
+        )
+        if req.music_volume_db is not None:
+            settings["music"]["volume_db"] = req.music_volume_db
+    if req.music_category:
+        settings.setdefault("music", {})["category"] = req.music_category
+    if req.music_progression:
+        settings.setdefault("music", {})["progression"] = req.music_progression
+        settings["music"]["dynamic_music"] = req.music_progression == "narrative_evolving"
+
+    if req.user_research:
+        settings["user_research"] = req.user_research.strip()
+    if req.research_mode:
+        settings["research_mode"] = req.research_mode
+    if req.pause_after_research:
+        settings["pause_after_research"] = True
+
+    project_mode = req.project_mode or "documentary"
+    aspect_ratio = req.aspect_ratio or ("9:16" if project_mode == "short_drama" else "16:9")
+    duration_seconds = int(req.drama_duration_seconds or 50)
+    settings["project_mode"] = project_mode
+    settings["aspect_ratio"] = aspect_ratio
+    settings["drama_formula"] = req.drama_formula or "workplace_revenge"
+
+    drama_characters = _normalise_drama_characters(req.drama_characters)
+    if drama_characters:
+        settings["drama_characters"] = drama_characters
+    if req.drama_script:
+        settings["drama_script"] = req.drama_script
+        settings["user_research"] = req.drama_script
+
+    if project_mode == "short_drama":
+        width, height = (1080, 1920) if aspect_ratio == "9:16" else (1920, 1080)
+        settings["video"].update({
+            "duration_minutes": round(duration_seconds / 60.0, 2),
+            "duration_seconds": duration_seconds,
+            "aspect_ratio": aspect_ratio,
+            "width": width,
+            "height": height,
+        })
+        settings["images"].update({"width": width, "height": height})
+        settings.setdefault("subtitles", {}).update({
+            "ai_watermark": True,
+            "motion_graphics_callouts": False,
+            "callouts_enabled": False,
+        })
+
+    supplied_remotion = dict(req.remotion or {})
+    remotion_density = req.remotion_density or supplied_remotion.get("density")
+    remotion_style = req.remotion_style or supplied_remotion.get("style")
+    remotion_theme = req.remotion_theme or supplied_remotion.get("theme")
+    if remotion_density or remotion_style or remotion_theme or supplied_remotion:
+        remotion = {}
+        if remotion_style:
+            remotion["style"] = remotion_style
+        if remotion_density:
+            remotion["density"] = remotion_density
+            settings["animation"]["motion_graphics_density"] = remotion_density
+        if remotion_theme:
+            remotion["theme"] = remotion_theme
+        remotion.update(supplied_remotion)
+        settings["remotion"] = remotion
+        if remotion_density == "full" or remotion_style == "modern_tech_explainer":
+            settings["presenter_placement"] = "none"
+            settings["auto_presenter"] = False
+
+    if req.presenter_placement and req.presenter_placement != "none":
+        settings["presenter_placement"] = req.presenter_placement
+        settings["auto_presenter"] = True
+    elif req.auto_presenter:
+        settings["presenter_placement"] = "intro"
+        settings["auto_presenter"] = True
+    else:
+        settings["presenter_placement"] = "none"
+        settings["auto_presenter"] = False
+    if req.default_avatar:
+        settings["default_avatar"] = req.default_avatar
+    return settings
+
+
+def persist_project_inputs(p: Project, req: CreateProjectRequest) -> None:
+    """Persist uploaded project inputs that cannot live in project.json."""
+    drama_characters = p.data.settings.get("drama_characters") or []
+    if p.data.settings.get("project_mode") == "short_drama" and drama_characters:
+        import base64
+        from generators.character_manager import CHARACTERS_DIR
+
+        project_characters_dir = p.path("characters")
+        project_characters_dir.mkdir(parents=True, exist_ok=True)
+        for character in drama_characters:
+            character_id = character.get("id") or "actor"
+            uri = character.get("image_data_uri") or ""
+            image_bytes = None
+            if uri.startswith("data:image"):
+                try:
+                    _, encoded = uri.split(",", 1)
+                    image_bytes = base64.b64decode(encoded)
+                except Exception as exc:
+                    log.warning("Could not decode base64 for %s: %s", character_id, exc)
+
+            character_dir = CHARACTERS_DIR / character_id
+            character_dir.mkdir(parents=True, exist_ok=True)
+            project_image = project_characters_dir / f"{character_id}.png"
+            if image_bytes:
+                (character_dir / "portrait.png").write_bytes(image_bytes)
+                project_image.write_bytes(image_bytes)
+                character["image_filename"] = f"{character_id}.png"
+                character["image_url"] = f"/api/characters/image/{character_id}"
+                log.info("Persisted uploaded portrait for %s (%d bytes)", character_id, len(image_bytes))
+            elif not project_image.exists():
+                portrait = character_dir / "portrait.png"
+                if portrait.exists():
+                    shutil.copy2(str(portrait), str(project_image))
+                    character["image_filename"] = f"{character_id}.png"
+                    character["image_url"] = f"/api/characters/image/{character_id}"
+
+            try:
+                character_data = {
+                    "id": character_id,
+                    "name": character.get("name") or character_id,
+                    "role": character.get("role", "角色"),
+                    "gender": character.get("gender", "female"),
+                    "age": character.get("age", 28),
+                    "appearance": character.get("appearance", ""),
+                    "voice_persona": character.get("voice_persona", ""),
+                    "voice_profile": character.get("voice_profile", "ichiehchieh"),
+                    "has_portrait": (character_dir / "portrait.png").exists(),
+                }
+                (character_dir / "character.json").write_text(
+                    json.dumps(character_data, ensure_ascii=False, indent=2), encoding="utf-8"
+                )
+            except Exception:
+                pass
         try:
-            vp = load_profile(selected_voice)
-            vp_prov = vp.get("provider")
-            overrides["voice_profile"] = vp["name"]
-            if vp_prov:
-                overrides.setdefault("stage_models", {})["voice"] = vp_prov
+            p.write_json("research/character_roster.json", drama_characters)
         except Exception:
             pass
 
-    auto_stock = req.auto_stock_mode or "balanced"
-    overrides.setdefault("images", {})["auto_stock_mode"] = auto_stock
-
-    if req.checkpoint and req.checkpoint not in ("nano-banana-2.1", "dalle3", "imagen3", "gpt-image-1", "imagen-3.0-generate-002", "imagen-30.0-generate-002", "fal-ai/flux-1/schnell", "fal-ai/flux/schnell", "stock") and (not req.stage_models or req.stage_models.get("images") != "stock"):
-        overrides.setdefault("images", {})["checkpoint"] = req.checkpoint
-    if req.music_track:
-        m_enabled = req.music_track.lower() not in ("none", "off", "disabled", "false", "no_music")
-        overrides.setdefault("music", {})["track"] = req.music_track
-        overrides["music"]["enabled"] = m_enabled
-        if req.music_volume_db is not None:
-            overrides["music"]["volume_db"] = req.music_volume_db
-    if req.music_category:
-        overrides.setdefault("music", {})["category"] = req.music_category
-    if req.music_progression:
-        overrides.setdefault("music", {})["progression"] = req.music_progression
-        overrides.setdefault("music", {})["dynamic_music"] = (req.music_progression == "narrative_evolving")
-
     if req.user_research:
-        overrides["user_research"] = req.user_research.strip()
-    if req.research_mode:
-        overrides["research_mode"] = req.research_mode
-    if req.pause_after_research:
-        overrides["pause_after_research"] = True
-
-    p_mode = req.project_mode or "documentary"
-    aspect = req.aspect_ratio or ("9:16" if p_mode == "short_drama" else "16:9")
-    formula = req.drama_formula or "workplace_revenge"
-    dur_sec = int(req.drama_duration_seconds or 50)
-
-    overrides["project_mode"] = p_mode
-    overrides["aspect_ratio"] = aspect
-    overrides["drama_formula"] = formula
-    if req.drama_characters:
-        from generators.character_manager import slugify_character
-        used_ids = set()
-        for idx, c in enumerate(req.drama_characters):
-            raw_id = (c.get("id") or "").strip()
-            if raw_id and raw_id != "None" and not raw_id.startswith("char_None"):
-                cid = slugify_character(raw_id)
-            else:
-                cid = slugify_character(c.get("name") or f"actor_{idx+1}")
-            if cid in used_ids:
-                cid = f"{cid}_{idx+1}"
-            used_ids.add(cid)
-            c["id"] = cid
-        overrides["drama_characters"] = req.drama_characters
-    if req.drama_script:
-        overrides["drama_script"] = req.drama_script
-        overrides["user_research"] = req.drama_script
-
-    if p_mode == "short_drama":
-        overrides.setdefault("video", {})["duration_minutes"] = round(dur_sec / 60.0, 2)
-        overrides["video"]["duration_seconds"] = dur_sec
-        overrides["video"]["aspect_ratio"] = aspect
-        if aspect == "9:16":
-            overrides["video"]["width"] = 1080
-            overrides["video"]["height"] = 1920
-            overrides.setdefault("images", {})["width"] = 1080
-            overrides.setdefault("images", {})["height"] = 1920
-        else:
-            overrides["video"]["width"] = 1920
-            overrides["video"]["height"] = 1080
-            overrides.setdefault("images", {})["width"] = 1920
-            overrides.setdefault("images", {})["height"] = 1080
-        overrides.setdefault("subtitles", {})["ai_watermark"] = True
-
-    # Wire remotion settings
-    rem_density = req.remotion_density or (req.remotion.get("density") if req.remotion else None)
-    rem_style = req.remotion_style or (req.remotion.get("style") if req.remotion else None)
-    rem_theme = req.remotion_theme or (req.remotion.get("theme") if req.remotion else None)
-    if rem_density or rem_style or rem_theme or req.remotion:
-        overrides.setdefault("remotion", {})
-        if rem_style: overrides["remotion"]["style"] = rem_style
-        if rem_density:
-            overrides["remotion"]["density"] = rem_density
-            overrides.setdefault("animation", {})["motion_graphics_density"] = rem_density
-        if rem_theme: overrides["remotion"]["theme"] = rem_theme
-        if req.remotion: overrides["remotion"].update(req.remotion)
-        if rem_density == "full" or rem_style == "modern_tech_explainer":
-            overrides["presenter_placement"] = "none"
-            overrides["auto_presenter"] = False
-
-    p = Project.create(topic=req.topic, overrides=overrides)
-
-    if rem_density or rem_style or rem_theme or req.remotion:
-        p.data.settings.setdefault("remotion", {})
-        if rem_style: p.data.settings["remotion"]["style"] = rem_style
-        if rem_density:
-            p.data.settings["remotion"]["density"] = rem_density
-            p.data.settings.setdefault("animation", {})["motion_graphics_density"] = rem_density
-        if rem_theme: p.data.settings["remotion"]["theme"] = rem_theme
-        if req.remotion: p.data.settings["remotion"].update(req.remotion)
-        if rem_density == "full" or rem_style == "modern_tech_explainer":
-            p.data.settings["presenter_placement"] = "none"
-            p.data.settings["auto_presenter"] = False
-    p.data.settings.setdefault("images", {})["auto_stock_mode"] = auto_stock
-    p.data.settings["project_mode"] = p_mode
-    p.data.settings["aspect_ratio"] = aspect
-    p.data.settings["drama_formula"] = formula
-    if p_mode == "short_drama":
-        p.data.settings.setdefault("video", {})["aspect_ratio"] = aspect
-        p.data.settings["video"]["duration_seconds"] = dur_sec
-        p.data.settings.setdefault("subtitles", {})["motion_graphics_callouts"] = False
-        p.data.settings["subtitles"]["callouts_enabled"] = False
-        if req.drama_characters:
-            p.data.settings["drama_characters"] = req.drama_characters
-            from generators.character_manager import CHARACTERS_DIR
-            import base64
-            p_cdir = p.path("characters")
-            p_cdir.mkdir(parents=True, exist_ok=True)
-            for c in req.drama_characters:
-                cid = c.get("id") or "actor"
-                uri = c.get("image_data_uri") or ""
-                img_bytes = None
-                if uri and uri.startswith("data:image"):
-                    try:
-                        _, b64 = uri.split(",", 1)
-                        img_bytes = base64.b64decode(b64)
-                    except Exception as ex:
-                        log.warning("Could not decode base64 for %s: %s", cid, ex)
-
-                cdir = CHARACTERS_DIR / cid
-                cdir.mkdir(parents=True, exist_ok=True)
-                p_file = p_cdir / f"{cid}.png"
-
-                if img_bytes:
-                    (cdir / "portrait.png").write_bytes(img_bytes)
-                    p_file.write_bytes(img_bytes)
-                    c["image_filename"] = f"{cid}.png"
-                    c["image_url"] = f"/api/characters/image/{cid}"
-                    log.info("Persisted uploaded portrait for %s (%d bytes)", cid, len(img_bytes))
-                elif not p_file.exists():
-                    cand = cdir / "portrait.png"
-                    if cand.exists():
-                        import shutil
-                        shutil.copy2(str(cand), str(p_file))
-                        c["image_filename"] = f"{cid}.png"
-                        c["image_url"] = f"/api/characters/image/{cid}"
-
-                try:
-                    c_json = cdir / "character.json"
-                    c_data = {
-                        "id": cid,
-                        "name": c.get("name") or cid,
-                        "role": c.get("role", "角色"),
-                        "gender": c.get("gender", "female"),
-                        "age": c.get("age", 28),
-                        "appearance": c.get("appearance", ""),
-                        "voice_persona": c.get("voice_persona", ""),
-                        "voice_profile": c.get("voice_profile", "ichiehchieh"),
-                        "has_portrait": (cdir / "portrait.png").exists()
-                    }
-                    c_json.write_text(json.dumps(c_data, ensure_ascii=False, indent=2), encoding="utf-8")
-                except Exception:
-                    pass
-
-            try:
-                p.write_json("research/character_roster.json", req.drama_characters)
-            except Exception:
-                pass
-        if req.drama_script:
-            p.data.settings["drama_script"] = req.drama_script
-
-    if req.user_research:
-        user_res_text = req.user_research.strip()
-        p.data.settings["user_research"] = user_res_text
+        research_text = req.user_research.strip()
         try:
-            user_res_file = p.path("research", "user_research.md")
-            user_res_file.parent.mkdir(parents=True, exist_ok=True)
-            user_res_file.write_text(user_res_text, encoding="utf-8")
+            research_file = p.path("research", "user_research.md")
+            research_file.parent.mkdir(parents=True, exist_ok=True)
+            research_file.write_text(research_text, encoding="utf-8")
             raw_notes_file = p.path("research", "research_notes.txt")
             if not raw_notes_file.exists():
-                raw_notes_file.write_text(user_res_text, encoding="utf-8")
-        except Exception as err:
-            log.warning("Could not pre-write user research files: %s", err)
+                raw_notes_file.write_text(research_text, encoding="utf-8")
+        except Exception as exc:
+            log.warning("Could not pre-write user research files: %s", exc)
 
-    if req.research_mode:
-        p.data.settings["research_mode"] = req.research_mode
-    if req.pause_after_research:
-        p.data.settings["pause_after_research"] = True
 
-    if req.presenter_placement and req.presenter_placement != "none":
-        p.data.settings["presenter_placement"] = req.presenter_placement
-        p.data.settings["auto_presenter"] = True
-    elif req.auto_presenter:
-        p.data.settings["presenter_placement"] = "intro"
-        p.data.settings["auto_presenter"] = True
-    else:
-        p.data.settings["presenter_placement"] = "none"
-        p.data.settings["auto_presenter"] = False
-
-    if req.default_avatar:
-        p.data.settings["default_avatar"] = req.default_avatar
+@app.post("/api/projects")
+def create_project(req: CreateProjectRequest, background_tasks: BackgroundTasks):
+    profiles = list_profiles()
+    resolved_voice_profile = None
+    if req.voice_profile and req.voice_profile not in KNOWN_VOICE_PROVIDERS:
+        try:
+            resolved_voice_profile = load_profile(req.voice_profile)
+        except Exception:
+            pass
+    settings = build_project_settings(req, profiles, resolved_voice_profile)
+    p = Project.create(topic=req.topic, overrides=settings)
+    persist_project_inputs(p, req)
     p.save()
 
     if req.start_now:
@@ -1806,55 +1741,37 @@ def switch_version_endpoint(project_id: str, stage_name: str, target_version: in
 
 @app.post("/api/projects/{project_id}/scenes/{scene_id}/image_take/switch/{target_take}")
 def switch_image_take_endpoint(project_id: str, scene_id: int, target_take: int):
-    if project_id in active_pipelines:
-        p = active_pipelines[project_id].p
-    else:
-        p = get_project(project_id)
+    p = get_project(project_id)
     return switch_scene_image_take(p, scene_id, target_take)
 
 
 @app.post("/api/projects/{project_id}/scenes/{scene_id}/voice_take/switch/{target_take}")
 def switch_voice_take_endpoint(project_id: str, scene_id: int, target_take: int):
-    if project_id in active_pipelines:
-        p = active_pipelines[project_id].p
-    else:
-        p = get_project(project_id)
+    p = get_project(project_id)
     return switch_scene_voice_take(p, scene_id, target_take)
 
 
 @app.delete("/api/projects/{project_id}/scenes/{scene_id}/image")
 def delete_scene_image_endpoint(project_id: str, scene_id: int):
-    if project_id in active_pipelines:
-        p = active_pipelines[project_id].p
-    else:
-        p = get_project(project_id)
+    p = get_project(project_id)
     return delete_scene_image_take(p, scene_id, target_take=None)
 
 
 @app.delete("/api/projects/{project_id}/scenes/{scene_id}/image_take/{target_take}")
 def delete_image_take_endpoint(project_id: str, scene_id: int, target_take: int):
-    if project_id in active_pipelines:
-        p = active_pipelines[project_id].p
-    else:
-        p = get_project(project_id)
+    p = get_project(project_id)
     return delete_scene_image_take(p, scene_id, target_take=target_take)
 
 
 @app.delete("/api/projects/{project_id}/scenes/{scene_id}/voice")
 def delete_scene_voice_endpoint(project_id: str, scene_id: int):
-    if project_id in active_pipelines:
-        p = active_pipelines[project_id].p
-    else:
-        p = get_project(project_id)
+    p = get_project(project_id)
     return delete_scene_voice_take(p, scene_id, target_take=None)
 
 
 @app.delete("/api/projects/{project_id}/scenes/{scene_id}/voice_take/{target_take}")
 def delete_voice_take_endpoint(project_id: str, scene_id: int, target_take: int):
-    if project_id in active_pipelines:
-        p = active_pipelines[project_id].p
-    else:
-        p = get_project(project_id)
+    p = get_project(project_id)
     return delete_scene_voice_take(p, scene_id, target_take=target_take)
 
 
