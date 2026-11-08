@@ -269,6 +269,60 @@ def is_media_relevant_for_character(char: dict[str, Any], title: str, descriptio
     return any(tok in text for tok in valid_tokens)
 
 
+DISALLOWED_CLIP_TITLE_PATTERNS = [
+    r"\breaction\b", r"\breact\b", r"\breview\b", r"\bvlog\b", r"\bgameplay\b",
+    r"\bwalkthrough\b", r"\blet's play\b", r"\bunboxing\b", r"\bpodcast\b",
+    r"\blivestream\b", r"\bstream\b", r"\bvtuber\b", r"\bhololive\b", r"\bmeme\b",
+    r"\bparody\b", r"\btiktok\b", r"\bshorts\b", r"\basmr\b", r"\bbgm\b",
+    r"\blofi\b", r"\btier list\b", r"\bfunny\b", r"\bcomedy\b", r"\bcover\b",
+    r"\btutorial\b", r"\bhow to\b", r"\bgaming\b", r"奇葩", r"噩夢", r"漫畫",
+    r"未解之謎", r"神秘學", r"慢活", r"睡前", r"放鬆", r"催眠", r"開箱", r"搞笑",
+]
+
+
+def is_youtube_clip_relevant_to_scene(
+    clip: dict[str, Any],
+    scene: Any,
+    char: dict[str, Any],
+    project_settings: Optional[dict[str, Any]] = None,
+) -> tuple[bool, str]:
+    """Verify whether a YouTube video snippet is genuinely relevant to the scene action/narration.
+    Returns (is_relevant: bool, reason: str).
+    """
+    clip_url = clip.get("url") or ""
+    clip_id = clip.get("id") or (extract_video_id(clip_url) if "extract_video_id" in globals() else "")
+    title = (clip.get("title") or "").strip()
+
+    # 1. Project-level rejected/blacklisted URLs
+    rejected_urls = (project_settings or {}).get("rejected_media_urls") or []
+    if clip_url in rejected_urls or (clip_id and clip_id in rejected_urls):
+        return False, f"Clip '{title}' (ID: {clip_id}) is user-blacklisted"
+
+    # 2. General entertainment, gaming, reaction, and clickbait noise
+    title_lower = title.lower()
+    for pat in DISALLOWED_CLIP_TITLE_PATTERNS:
+        if re.search(pat, title_lower):
+            return False, f"Clip title contains entertainment/noise pattern '{pat}': {title}"
+
+    # 3. Scene semantic conflict check
+    narration = getattr(scene, "narration", "") or (scene.get("narration", "") if isinstance(scene, dict) else "")
+    prompt = getattr(scene, "prompt", "") or (scene.get("prompt", "") if isinstance(scene, dict) else "")
+    scene_text = f"{narration} {prompt}".lower()
+
+    # Distinct historical subject entity conflict check
+    if "天皇" in scene_text and "裕仁" not in title_lower and "hirohito" not in title_lower and "emperor" not in title_lower:
+        if "東條英機" in title_lower and "東條英機" not in narration:
+            return False, f"Scene focuses on Emperor Hirohito but clip is Tojo-specific: {title}"
+
+    if "帕爾" in scene_text and "pal" not in title_lower and "帕爾" not in title_lower and "パール" not in title_lower:
+        return False, f"Scene focuses on Judge Pal but clip does not mention Pal: {title}"
+
+    if "梅汝璈" in scene_text and "mei" not in title_lower and "梅汝璈" not in title_lower:
+        return False, f"Scene focuses on Judge Mei but clip does not mention Mei: {title}"
+
+    return True, "Clip is relevant"
+
+
 def fetch_online_media_for_character(char: dict[str, Any], extra_queries: Optional[list[str]] = None) -> dict[str, Any]:
     """Retrieve online authentic Wikipedia portraits, Wikimedia images, and YouTube clips."""
     images: list[dict[str, Any]] = []
@@ -588,10 +642,10 @@ def apply_character_media_to_scenes(project: Project, character_assignments: lis
                             download_youtube_thumbnail(vid_m.group(1), img_out)
                         else:
                             download_media_file(selected_image_url, img_out)
-                            format_stock_image(img_out, 1920, 1080)
+                            format_stock_image(img_out, img_out, target_w=1920, target_h=1080)
                     else:
                         download_media_file(selected_image_url, img_out)
-                        format_stock_image(img_out, 1920, 1080)
+                        format_stock_image(img_out, img_out, target_w=1920, target_h=1080)
                     # If scene had an old animated clip, remove it so renderer uses new authentic portrait with smooth motion
                     if clip_out.exists():
                         try:
@@ -697,8 +751,7 @@ def enforce_main_character_real_image_ratio(
             continue
         is_real = (
             getattr(s, "media_source", "ai") in ("youtube_snippet", "stock_portrait", "authentic_portrait", "celebrity_portrait", "wikimedia", "historical_footage")
-            or getattr(s, "visual_type", "") in ("historical_footage", "authentic_portrait", "talking_actor")
-            or project.path("animation", f"{s.tag}.mp4").exists()
+            or getattr(s, "visual_type", "") in ("historical_footage", "authentic_portrait")
         )
         if is_real:
             real_scene_ids.append(sid)
@@ -792,10 +845,10 @@ def enforce_main_character_real_image_ratio(
                         download_youtube_thumbnail(vid_m.group(1), img_out)
                     else:
                         download_media_file(img_url, img_out)
-                        format_stock_image(img_out, 1920, 1080)
+                        format_stock_image(img_out, img_out, target_w=1920, target_h=1080)
                 else:
                     download_media_file(img_url, img_out)
-                    format_stock_image(img_out, 1920, 1080)
+                    format_stock_image(img_out, img_out, target_w=1920, target_h=1080)
                 if clip_out.exists():
                     clip_out.unlink(missing_ok=True)
                 cid = extract_canonical_media_id(chosen_img)
@@ -949,10 +1002,10 @@ def bulk_boost_character_media(
                         download_youtube_thumbnail(vid_m.group(1), img_out)
                     else:
                         download_media_file(img_url, img_out)
-                        format_stock_image(img_out, 1920, 1080)
+                        format_stock_image(img_out, img_out, target_w=1920, target_h=1080)
                 else:
                     download_media_file(img_url, img_out)
-                    format_stock_image(img_out, 1920, 1080)
+                    format_stock_image(img_out, img_out, target_w=1920, target_h=1080)
                 if clip_out.exists():
                     clip_out.unlink(missing_ok=True)
                 cid = extract_canonical_media_id(chosen_img)
@@ -979,4 +1032,220 @@ def bulk_boost_character_media(
         "updated_scenes": updated_ids,
         "total_clips_available": len(clips_pool),
         "total_images_available": len(images_pool),
+    }
+
+
+
+def enforce_all_characters_real_image_ratio(
+    project: Project,
+    ratio: float = 0.9,
+    clip_ratio: float = 0.5,
+    extra_queries: Optional[list[str]] = None,
+) -> dict[str, Any]:
+    """Ensure that scenes mentioning ANY identified historical character (main or supporting)
+    get authentic real photos/footage rather than falling through to pure AI generation.
+    """
+    chars = project.read_json("research/characters.json", [])
+    if not chars:
+        return enforce_main_character_real_image_ratio(project, ratio=ratio, clip_ratio=clip_ratio, extra_queries=extra_queries)
+
+    scenes = project.scenes or []
+    if not scenes:
+        return {"status": "no_scenes", "updated_scenes": [], "real_percentage": 100.0}
+
+    auto_stock = project.data.settings.get("images", {}).get("auto_stock_mode") or project.settings.get("auto_stock_mode", "balanced")
+    if auto_stock in ("disabled", "off"):
+        return {"status": "disabled_by_settings", "updated_scenes": [], "real_percentage": 100.0}
+
+    from core.media_dedup import (
+        get_project_media_registry,
+        pick_best_media_candidate,
+        extract_canonical_media_id,
+        DEFAULT_MIN_SCENE_DISTANCE,
+    )
+    registry = get_project_media_registry(scenes)
+    scenes_map = {s.scene_id: s for s in scenes}
+    all_updated_ids = []
+
+    for char in chars:
+        char_name = char.get("name")
+        if not char_name or char.get("status") == "rejected":
+            continue
+
+        if not char.get("images") or not char.get("clips"):
+            fresh = fetch_online_media_for_character(char, extra_queries=extra_queries)
+            char["images"] = fresh.get("images", [])
+            char["clips"] = fresh.get("clips", [])
+
+        matched_ids = match_scenes_for_character(char, scenes, topic=getattr(project.data, "topic", "") or "")
+        if not matched_ids:
+            continue
+
+        real_scene_ids = []
+        generated_scene_ids = []
+        for sid in matched_ids:
+            s = scenes_map.get(sid)
+            if not s:
+                continue
+            is_real = (
+                getattr(s, "media_source", "ai") in ("youtube_snippet", "stock_portrait", "authentic_portrait", "celebrity_portrait", "wikimedia", "historical_footage")
+                or getattr(s, "visual_type", "") in ("historical_footage", "authentic_portrait")
+            )
+            if is_real:
+                real_scene_ids.append(sid)
+            else:
+                generated_scene_ids.append(sid)
+
+        target_real_count = math.ceil(len(matched_ids) * ratio)
+        needed_boost = max(0, target_real_count - len(real_scene_ids))
+        if needed_boost <= 0 or not generated_scene_ids:
+            continue
+
+        scenes_to_convert = generated_scene_ids[:needed_boost]
+        clips_pool = char.get("clips", [])
+        images_pool = char.get("images", [])
+
+        for idx, sid in enumerate(scenes_to_convert):
+            s = scenes_map.get(sid)
+            if not s:
+                continue
+
+            img_out = project.path("images", f"{s.tag}.png")
+            clip_out = project.path("animation", f"{s.tag}.mp4")
+            scene_len = float(s.audio_duration or s.estimated_duration or 10.0)
+            clip_dur = min(max(7.0, scene_len), 15.0)
+
+            # Try clip if eligible and relevant
+            use_clip = (idx / max(1, len(scenes_to_convert))) < clip_ratio and bool(clips_pool)
+            chosen_clip = None
+            if use_clip:
+                candidate = pick_best_media_candidate(clips_pool, sid, registry, min_distance=DEFAULT_MIN_SCENE_DISTANCE)
+                if candidate:
+                    is_rel, reason = is_youtube_clip_relevant_to_scene(candidate, s, char, project.settings)
+                    if is_rel:
+                        chosen_clip = candidate
+                    else:
+                        log.info("Scene %s: Rejected clip '%s' for character '%s': %s", sid, candidate.get("title"), char_name, reason)
+
+            if chosen_clip:
+                s.media_source = "youtube_snippet"
+                s.search_keyword = chosen_clip.get("url")
+                s.visual_type = "historical_footage"
+                try:
+                    extract_youtube_snippet(
+                        chosen_clip["url"],
+                        output_video_path=clip_out,
+                        output_image_path=img_out,
+                        duration_sec=clip_dur,
+                        as_clip=True,
+                        target_scene_id=sid,
+                        media_registry=registry,
+                        min_scene_distance=DEFAULT_MIN_SCENE_DISTANCE,
+                    )
+                    cid = extract_canonical_media_id(chosen_clip)
+                    if cid:
+                        registry.setdefault(cid, []).append(sid)
+                    all_updated_ids.append(sid)
+                    continue
+                except Exception as e:
+                    log.warning("Clip extraction failed for scene %s: %s. Falling back to authentic still image.", sid, e)
+
+            # Fallback to authentic Wikipedia / Wikimedia image
+            if images_pool:
+                chosen_img = pick_best_media_candidate(images_pool, sid, registry, min_distance=DEFAULT_MIN_SCENE_DISTANCE)
+                if chosen_img:
+                    s.media_source = "stock_portrait"
+                    s.search_keyword = chosen_img.get("title") or char_name
+                    s.visual_type = "authentic_portrait"
+                    img_url = chosen_img.get("url")
+                    try:
+                        if "youtube.com" in img_url or "ytimg.com" in img_url:
+                            vid_m = re.search(r"vi/([a-zA-Z0-9_-]{11})", img_url)
+                            if vid_m:
+                                download_youtube_thumbnail(vid_m.group(1), img_out)
+                            else:
+                                download_media_file(img_url, img_out)
+                                format_stock_image(img_out, img_out, target_w=1920, target_h=1080)
+                        else:
+                            download_media_file(img_url, img_out)
+                            format_stock_image(img_out, img_out, target_w=1920, target_h=1080)
+                        if clip_out.exists():
+                            clip_out.unlink(missing_ok=True)
+                        cid = extract_canonical_media_id(chosen_img)
+                        if cid:
+                            registry.setdefault(cid, []).append(sid)
+                        all_updated_ids.append(sid)
+                        log.info("Scene %s: Applied authentic portrait for '%s' (%s)", sid, char_name, chosen_img.get("title"))
+                    except Exception as e:
+                        log.warning("Image apply failed for scene %s: %s", sid, e)
+
+    if all_updated_ids:
+        project.save_scenes()
+        project.clear_clips_cache()
+        project.invalidate("render")
+        project.save()
+
+    return {"status": "success", "updated_scenes": all_updated_ids}
+
+
+def reject_scene_media(project: Project, scene_id: int, reason: str = "") -> dict[str, Any]:
+    """User rejection of a media clip or image in a specific scene.
+    Blacklists the clip URL in project settings and falls back to authentic image or AI generation.
+    """
+    scenes_map = {s.scene_id: s for s in project.scenes}
+    s = scenes_map.get(scene_id)
+    if not s:
+        raise ValueError(f"Scene {scene_id} not found")
+
+    bad_url = s.search_keyword or ""
+    img_meta = (getattr(s, "image", None) and getattr(s.image, "meta", None)) or {}
+    if not bad_url and img_meta.get("url"):
+        bad_url = img_meta["url"]
+
+    rejected = project.data.settings.setdefault("rejected_media_urls", [])
+    if bad_url and bad_url not in rejected:
+        rejected.append(bad_url)
+
+    clip_path = project.path("animation", f"{s.tag}.mp4")
+    if clip_path.exists():
+        clip_path.unlink(missing_ok=True)
+
+    old_source = s.media_source
+    s.media_source = "ai"
+    s.search_keyword = None
+
+    chars = project.read_json("research/characters.json", [])
+    matched_chars = [c for c in chars if scene_id in match_scenes_for_character(c, project.scenes)]
+    applied_alt = False
+    if matched_chars:
+        from core.media_dedup import get_project_media_registry, pick_best_media_candidate, extract_canonical_media_id
+        registry = get_project_media_registry(project.scenes)
+        img_out = project.path("images", f"{s.tag}.png")
+        for mc in matched_chars:
+            imgs = [img for img in mc.get("images", []) if img.get("url") not in rejected]
+            if imgs:
+                alt = pick_best_media_candidate(imgs, scene_id, registry)
+                if alt:
+                    s.media_source = "stock_portrait"
+                    s.search_keyword = alt.get("title") or mc.get("name")
+                    s.visual_type = "authentic_portrait"
+                    try:
+                        download_media_file(alt["url"], img_out)
+                        format_stock_image(img_out, img_out, target_w=1920, target_h=1080)
+                        applied_alt = True
+                        break
+                    except Exception as e:
+                        log.warning("Alternative image download failed: %s", e)
+
+    project.save_scenes()
+    project.clear_clips_cache(scene_id)
+    project.invalidate("render")
+    project.save()
+
+    return {
+        "status": "rejected",
+        "scene_id": scene_id,
+        "blacklisted_url": bad_url,
+        "fallback": "authentic_portrait" if applied_alt else "ai_generation",
+        "media_source": s.media_source
     }

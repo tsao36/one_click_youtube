@@ -157,6 +157,9 @@ class CreateProjectRequest(BaseModel):
     drama_formula: Optional[str] = "workplace_revenge"
     drama_duration_seconds: Optional[int] = 50
     callout_style: Optional[str] = None
+    author_conclusion: Optional[str] = None
+    include_author_take: bool = True
+    pause_for_conclusion: bool = False
     drama_characters: Optional[list[dict[str, Any]]] = None
     drama_script: Optional[str] = None
     remotion_style: Optional[str] = None
@@ -462,6 +465,10 @@ def build_project_settings(
 
     if req.callout_style:
         settings.setdefault("subtitles", {})["callout_style"] = req.callout_style
+    if req.author_conclusion:
+        settings["author_conclusion"] = req.author_conclusion.strip()
+    settings["include_author_take"] = req.include_author_take
+    settings["pause_for_conclusion"] = req.pause_for_conclusion
 
     if project_mode == "short_drama":
         width, height = (1080, 1920) if aspect_ratio == "9:16" else (1920, 1080)
@@ -1859,6 +1866,35 @@ def get_versions_endpoint(project_id: str, stage_name: str):
 def switch_version_endpoint(project_id: str, stage_name: str, target_version: int):
     p = get_project(project_id)
     return switch_stage_version(p, stage_name, target_version)
+
+
+@app.post("/api/projects/{project_id}/scenes/{scene_id}/reject_media")
+def reject_scene_media_endpoint(project_id: str, scene_id: int, payload: Optional[dict[str, Any]] = None):
+    """Reject irrelevant or noisy media clip/image in a scene, blacklist it, and apply authentic fallback."""
+    p = get_project(project_id)
+    reason = (payload or {}).get("reason", "Content is not relevant to scene")
+    from core.character_detector import reject_scene_media
+    try:
+        res = reject_scene_media(p, scene_id, reason=reason)
+        return res
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/api/projects/{project_id}/conclusion")
+def update_project_conclusion_endpoint(project_id: str, payload: dict[str, Any]):
+    """Update author conclusion / what's my take for a project."""
+    p = get_project(project_id)
+    author_conclusion = str(payload.get("author_conclusion", "")).strip()
+    include_author_take = bool(payload.get("include_author_take", True))
+    p.data.settings["author_conclusion"] = author_conclusion
+    p.data.settings["include_author_take"] = include_author_take
+    p.save()
+    return {
+        "status": "saved",
+        "author_conclusion": author_conclusion,
+        "include_author_take": include_author_take
+    }
 
 
 @app.post("/api/projects/{project_id}/scenes/{scene_id}/image_take/switch/{target_take}")

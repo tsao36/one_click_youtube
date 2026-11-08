@@ -629,6 +629,14 @@ def direct_scenes(topic: str, raw: list[dict], bible: dict, settings: dict, clie
         if is_first_in_sec and not phase_turn and len(scenes) > 0:
             phase_turn = extract_phase_turn_text(s["section"], s["narration"], topic)
 
+        # Detect Author's Take / Editorial Conclusion Section
+        is_author_take = any(k in (s.get("section") or "").lower() for k in ["作者觀點", "author's take", "what's my take", "我的觀點"])
+        if is_author_take:
+            if not callout_txt:
+                callout_txt = "💡 核心反思 | 作者觀點 | 歷史的迴響"
+            if vt == "image":
+                vt = "editorial_take"
+
         auto_stock_mode = settings.get("images", {}).get("auto_stock_mode") or settings.get("auto_stock_mode", "balanced")
         search_kw = (d.get("search_keyword") or "").strip()
         media_src = (d.get("media_source") or "ai").strip()

@@ -423,6 +423,27 @@
                 </label>
               </div>
             </div>
+
+            <!-- Author Conclusion / What's My Take Session -->
+            <div style="margin-top: 14px; padding-top: 14px; border-top: 1px dashed rgba(148, 163, 184, 0.25);">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 8px;">
+                <label style="font-weight: 700; font-size: 13px; color: #fde68a; display: flex; align-items: center; gap: 6px; margin: 0;">
+                  <span>💡 作者獨家觀點與結語 (Author's Take · 賦予影片靈魂與個人風格)</span>
+                  <span class="badge" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid #f59e0b; font-size: 11px;">獨家觀點</span>
+                </label>
+                <label style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-size: 12px; color: #38bdf8;">
+                  <input type="checkbox" id="creator-include-author-take" checked style="cursor: pointer;">
+                  <span>啟用結尾觀點章節</span>
+                </label>
+              </div>
+              <textarea id="creator-author-conclusion" rows="3" placeholder="（選填）請輸入您對本專題的獨家觀點、批判性思考或哲學總結（例如：這場審判並非正義的終點，而是地緣政治妥協的開端……）。若留空，AI 將自動提煉具深度的作者觀點。" style="width: 100%; box-sizing: border-box; font-size: 12.5px; line-height: 1.5; background: rgba(5, 8, 15, 0.85); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: var(--radius); padding: 8px 12px; color: #f8fafc; resize: vertical;"></textarea>
+              <div style="display: flex; justify-content: flex-end; align-items: center; margin-top: 4px;">
+                <label style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer; color: #facc15; font-size: 11.5px;">
+                  <input type="checkbox" id="creator-pause-for-conclusion" style="cursor: pointer;">
+                  <span>⏸️ 進入結尾章節前暫停，讓我手動輸入最終觀點</span>
+                </label>
+              </div>
+            </div>
           </div>
         </div>
 

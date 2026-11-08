@@ -550,14 +550,14 @@ class DocumentaryPipeline(BasePipeline):
 
             self.p.set_scenes(scenes)
 
-            # Automatically enforce >= 90% real images/footage for scenes mentioning main character
+            # Automatically enforce >= 90% real images/footage for scenes mentioning ALL identified characters
             try:
                 auto_stock_mode = self.p.data.settings.get("images", {}).get("auto_stock_mode") or self.p.settings.get("auto_stock_mode", "balanced")
                 if auto_stock_mode not in ("disabled", "off"):
-                    from core.character_detector import enforce_main_character_real_image_ratio
-                    enforce_main_character_real_image_ratio(self.p, ratio=0.9)
+                    from core.character_detector import enforce_all_characters_real_image_ratio
+                    enforce_all_characters_real_image_ratio(self.p, ratio=0.9)
             except Exception as enf_err:
-                log.warning("Auto enforcement of 90% real images for main character skipped: %s", enf_err)
+                log.warning("Auto enforcement of 90% real images for characters skipped: %s", enf_err)
 
             # Configurable Hook Module: select core conflict, budget 12s, avoid repeated narration, 5s claim
             try:

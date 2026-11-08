@@ -81,10 +81,37 @@ def write_script(topic: str, research: dict, settings: dict, on_request,
         if user_res else ""
     )
 
+    # Author's Conclusion / "What's My Take" Directive
+    author_conclusion = (settings.get("author_conclusion") or sc.get("author_conclusion") or "").strip()
+    include_author_take = bool(settings.get("include_author_take", True) if "include_author_take" in settings else sc.get("include_author_take", True))
+    author_take_prompt = ""
+    if author_conclusion:
+        author_take_prompt = (
+            f"\n=== MANDATORY AUTHOR'S UNIQUE CONCLUSION / WHAT'S MY TAKE (PRIMARY DIRECTIVE) ===\n"
+            f"{author_conclusion}\n"
+            f"(CRITICAL: The video creator provided this specific personal perspective and philosophical take. "
+            f"In the final concluding section, you MUST weave, synthesize, and champion this exact stance and insight to give the documentary an authentic, memorable personality.)\n"
+        )
+    elif include_author_take:
+        author_take_prompt = (
+            "\n=== MANDATORY AUTHOR'S EDITORIAL TAKE (WHAT'S MY TAKE) ===\n"
+            "In the concluding section, transition from objective historical recounting to a reflective, distinctive authorial take that leaves the audience with deep contemplation rather than a platitudinous summary.\n"
+        )
+
+    # If author take is active, ensure the final section structure reflects this
+    if (author_conclusion or include_author_take) and structure:
+        last_sec = structure[-1].lower()
+        if not any(k in last_sec for k in ["觀點", "take", "洞察", "反思"]):
+            if is_tw:
+                structure[-1] = "作者觀點：歷史的迴響 (Author's Take)"
+            else:
+                structure[-1] = "Author's Take: Echoes of History"
+
     brief = (f"Topic: {topic}\nMain question: {research.get('main_question')}\nAudience: {research.get('audience')}\n"
              f"Key concepts: {research.get('key_concepts')}\nMisconceptions: {research.get('misconceptions')}\n"
              f"Interesting facts: {research.get('interesting_facts')}\n"
-             f"{user_res_prompt}")
+             f"{user_res_prompt}"
+             f"{author_take_prompt}")
 
     if total <= int(sc.get("single_pass_word_limit", 350)):
         n_sections = 3 if total < 150 else 4

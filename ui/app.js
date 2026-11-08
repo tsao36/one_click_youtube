@@ -3752,6 +3752,9 @@
             user_research: userResearch || null,
             research_mode: researchMode,
             pause_after_research: pauseAfterResearch,
+            author_conclusion: (document.getElementById('creator-author-conclusion')?.value || '').trim() || null,
+            include_author_take: document.getElementById('creator-include-author-take') ? document.getElementById('creator-include-author-take').checked : true,
+            pause_for_conclusion: document.getElementById('creator-pause-for-conclusion') ? document.getElementById('creator-pause-for-conclusion').checked : false,
             auto_stock_mode: document.getElementById('auto-stock-mode')?.value || 'balanced',
             project_mode: 'documentary',
             aspect_ratio: '16:9',
@@ -8158,7 +8161,13 @@
                   </button>
                   <button class="btn-sec" style="font-size: 12px; padding: 5px 8px; background: rgba(16, 185, 129, 0.2); border-color: #059669; color: #6ee7b7; font-weight: 600;" onclick="openStockMediaModal(${s.scene_id}, \`${(s.visual_description || s.prompt || '').replace(/[`\\$]/g, ' ')}\`)" title="Search online stock videos & photos for Scene #${s.scene_id}">🔍 Stock Library</button>
                 `}
-                ${imgUrl ? `<button class="btn-sec" style="padding: 5px 8px; font-size: 12px; background: rgba(239, 68, 68, 0.15); border-color: #b91c1c; color: #fca5a5; font-weight: 600;" onclick="deleteSceneActiveImage(${s.scene_id})" title="Delete image for Scene #${s.scene_id}">🗑️ Delete</button>` : ''}
+                ${imgUrl ? `<button class="btn-sec" style="padding: 5px 8px; font-size: 12px; background: rgba(239, 68, 68, 0.15); border-color: #b91c1c; color: #fca5a5; font-weight: 600;" onclick="deleteSceneActiveImage(${s.scene_id})" 
+                ${(s.is_stock_active || s.quick_stock_available || imgUrl) ? `
+                  <button class="btn-sec" style="font-size: 12px; padding: 5px 8px; background: rgba(220, 38, 38, 0.2); border-color: #ef4444; color: #fca5a5; font-weight: 600;" onclick="rejectAndReplaceSceneMedia(${s.scene_id})" title="標記目前素材與本場景不符，加入黑名單並替換為其他相符真實素材或 AI 畫面">
+                    🚫 排除並重挑 (Reject)
+                  </button>
+                ` : ''}
+                title="Delete image for Scene #${s.scene_id}">🗑️ Delete</button>` : ''}
               </div>
             </div>
           `;
@@ -15964,3 +15973,28 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
         showToast(`❌ 儲存留存率失敗: ${err.message}`);
       }
     };
+
+
+    async function rejectAndReplaceSceneMedia(sceneId) {
+      if (!currentProjectId) return alert("Please select or open a project first.");
+      const reason = prompt(`請輸入排除 Scene #${sceneId} 目前素材的原因（例如：畫面與旁白無關、廣告/片頭雜訊、人物錯誤等）：`, "內容與旁白不符");
+      if (reason === null) return;
+      try {
+        const res = await apiJson(`/api/projects/${currentProjectId}/scenes/${sceneId}/reject_media`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reason: reason.trim() || '用戶標記不相關' })
+        });
+        if (res.ok) {
+          alert(`已成功排除 Scene #${sceneId} 素材！\n${res.message || '已替換為備選素材。'}`);
+          if (typeof openStageInspector === 'function') {
+            await openStageInspector('images');
+          }
+        } else {
+          alert(`排除失敗: ${res.detail || res.error || '未知錯誤'}`);
+        }
+      } catch (e) {
+        alert(`操作失敗: ${e.message}`);
+      }
+    }
+    window.rejectAndReplaceSceneMedia = rejectAndReplaceSceneMedia;
