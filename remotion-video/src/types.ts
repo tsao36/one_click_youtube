@@ -344,3 +344,156 @@ export const CoordinateZeroSplitSceneSchema = z.object({
 });
 export type CoordinateZeroSplitSceneProps = z.input<typeof CoordinateZeroSplitSceneSchema>;
 
+
+// ============================================================================
+// 8. Finance & Market Explainer Schemas
+// ============================================================================
+export const CandlestickDatumSchema = z.object({
+  date: z.string().optional().default(''),
+  open: z.number(),
+  high: z.number(),
+  low: z.number(),
+  close: z.number(),
+});
+export type CandlestickDatum = z.infer<typeof CandlestickDatumSchema>;
+
+export const KeyLevelSchema = z.object({
+  label: z.string(),
+  price: z.number(),
+  color: z.string().optional().default('#E2E8F0'),
+});
+export type KeyLevel = z.infer<typeof KeyLevelSchema>;
+
+export const FinanceCandlestickSceneSchema = z.object({
+  headline: z.string().max(80).optional().default('NVDA Q3 BREAKOUT STRUCTURE'),
+  ticker: z.string().max(30).optional().default('NVDA · NASDAQ'),
+  price: z.string().max(30).optional().default('.25'),
+  changePercent: z.string().max(30).optional().default('+4.82%'),
+  isBullish: z.boolean().optional().default(true),
+  candlesticks: z.array(CandlestickDatumSchema).optional().default([
+    { date: 'D1', open: 120, high: 126, low: 118, close: 124 },
+    { date: 'D2', open: 124, high: 128, low: 122, close: 121 },
+    { date: 'D3', open: 121, high: 130, low: 120, close: 129 },
+    { date: 'D4', open: 129, high: 135, low: 127, close: 134 },
+    { date: 'D5', open: 134, high: 138, low: 131, close: 132 },
+    { date: 'D6', open: 132, high: 144, low: 132, close: 141.25 },
+  ]),
+  keyLevels: z.array(KeyLevelSchema).optional().default([
+    { label: 'Resistance ', price: 140, color: '#EF4444' },
+    { label: 'Support ', price: 125, color: '#10B981' },
+  ]),
+  insightBadge: z.string().max(60).optional().default('KEY TRIGGER'),
+  insightText: z.string().max(160).optional().default('High-volume breakout confirmed above 50-day moving average'),
+  accentColor: z.string().optional().default('#10B981'),
+  bgSrc: z.string().optional().default(''),
+  dim: z.number().min(0).max(1).optional().default(0.2),
+});
+export type FinanceCandlestickSceneProps = z.input<typeof FinanceCandlestickSceneSchema>;
+
+export const MetricCompareRowSchema = z.object({
+  label: z.string(),
+  valueA: z.string(),
+  valueB: z.string(),
+  diff: z.string().optional().default(''),
+  isAdvantageA: z.boolean().optional().default(true),
+});
+export type MetricCompareRow = z.infer<typeof MetricCompareRowSchema>;
+
+export const FinanceMetricCompareSceneSchema = z.object({
+  headline: z.string().max(80).optional().default('COMPETITIVE FUNDAMENTALS'),
+  subtitle: z.string().max(160).optional().default('FY2024 Valuation & Operating Efficiency Comparison'),
+  metrics: z.array(MetricCompareRowSchema).optional().default([
+    { label: 'Revenue Growth (YoY)', valueA: '+122%', valueB: '+18%', diff: '+104% Spread', isAdvantageA: true },
+    { label: 'Gross Margin', valueA: '75.2%', valueB: '46.1%', diff: '+29.1% Spread', isAdvantageA: true },
+    { label: 'Operating Cash Flow', valueA: '.5B', valueB: '.2B', diff: '+.3B Spread', isAdvantageA: true },
+    { label: 'P/E (Forward)', valueA: '36.4x', valueB: '24.1x', diff: 'Premium Multiple', isAdvantageA: false },
+  ]),
+  legendA: z.string().max(60).optional().default('NVIDIA (NVDA)'),
+  legendB: z.string().max(60).optional().default('PEER AVERAGE'),
+  accentColor: z.string().optional().default('#38BDF8'),
+  bgSrc: z.string().optional().default(''),
+  dim: z.number().min(0).max(1).optional().default(0.2),
+});
+export type FinanceMetricCompareSceneProps = z.input<typeof FinanceMetricCompareSceneSchema>;
+
+// ============================================================================
+// 9. Archival History & Chronicles Schemas
+// ============================================================================
+export const ArchivalDocumentSceneSchema = z.object({
+  documentTitle: z.string().max(100).optional().default('DECLARATION OF EMPIRE RESTRUCTURING'),
+  date: z.string().max(60).optional().default('14 OCTOBER 1806'),
+  archiveReference: z.string().max(80).optional().default('NATIONAL ARCHIVES · DOSSIER A-791'),
+  classification: z.string().max(40).optional().default('DECLASSIFIED DISPATCH'),
+  excerpt: z.string().max(300).optional().default('His Majesty commands that all diplomatic envoys cease negotiations forthwith, asserting full sovereign jurisdiction over maritime corridors.'),
+  highlightPhrase: z.string().max(120).optional().default('full sovereign jurisdiction over maritime corridors'),
+  stampText: z.string().max(50).optional().default('OFFICIALLY ARCHIVED'),
+  accentColor: z.string().optional().default('#C2410C'),
+  bgSrc: z.string().optional().default(''),
+  dim: z.number().min(0).max(1).optional().default(0.12),
+});
+export type ArchivalDocumentSceneProps = z.input<typeof ArchivalDocumentSceneSchema>;
+
+export const ChronologyEventSchema = z.object({
+  year: z.string().max(20),
+  title: z.string().max(80),
+  description: z.string().max(160),
+  tag: z.string().max(40).optional().default('MILESTONE'),
+});
+export type ChronologyEvent = z.infer<typeof ChronologyEventSchema>;
+
+export const HistoryChronologySceneSchema = z.object({
+  headline: z.string().max(80).optional().default('CHRONICLE OF INDUSTRIAL EXPANSION'),
+  subtitle: z.string().max(160).optional().default('Key geopolitical inflection points from 1880 to 1914'),
+  events: z.array(ChronologyEventSchema).optional().default([
+    { year: '1882', title: 'Triple Alliance Signed', description: 'Secret agreement between Germany, Austria-Hungary, and Italy.', tag: 'TREATY' },
+    { year: '1898', title: 'Naval Expansion Act', description: 'Imperial fleet expansion triggers global naval arms race.', tag: 'MILITARY' },
+    { year: '1907', title: 'Triple Entente Formed', description: 'Britain, France, and Russia align against central European powers.', tag: 'DIPLOMACY' },
+    { year: '1914', title: 'Sarajevo Crisis', description: 'Assassination sparks chain reaction leading to World War I.', tag: 'TURNING POINT' },
+  ]),
+  activeYear: z.string().max(20).optional().default('1914'),
+  accentColor: z.string().optional().default('#B45309'),
+  bgSrc: z.string().optional().default(''),
+  dim: z.number().min(0).max(1).optional().default(0.12),
+});
+export type HistoryChronologySceneProps = z.input<typeof HistoryChronologySceneSchema>;
+
+// ============================================================================
+// 10. Vox Investigative Journalism Schemas
+// ============================================================================
+export const VoxSplitScreenSceneSchema = z.object({
+  headline: z.string().max(80).optional().default('HOW WE GOT HERE: THE INFRASTRUCTURE GAP'),
+  subhead: z.string().max(160).optional().default('Investigating two decades of policy vs reality'),
+  leftTitle: z.string().max(60).optional().default('1990: PROMISED CAPEX'),
+  leftDetail: z.string().max(200).optional().default('Federal projections pledged  toward high-speed regional rail networks.'),
+  leftStat: z.string().max(30).optional().default(' BILLION'),
+  leftColor: z.string().optional().default('#38BDF8'),
+  rightTitle: z.string().max(60).optional().default('2024: ACTUAL BUILT'),
+  rightDetail: z.string().max(200).optional().default('Only 18% of projected corridor miles were completed due to environmental red tape.'),
+  rightStat: z.string().max(30).optional().default('18% COMPLETED'),
+  rightColor: z.string().optional().default('#EF4444'),
+  source: z.string().max(120).optional().default('DATA SOURCE: DEPT OF TRANSPORTATION & GAO REPORTS'),
+  accentColor: z.string().optional().default('#FACC15'),
+});
+export type VoxSplitScreenSceneProps = z.input<typeof VoxSplitScreenSceneSchema>;
+
+export const SupportingPointSchema = z.object({
+  label: z.string(),
+  value: z.string(),
+  trend: z.string().optional().default('neutral'),
+});
+export type SupportingPoint = z.infer<typeof SupportingPointSchema>;
+
+export const VoxKeyStatSceneSchema = z.object({
+  headline: z.string().max(80).optional().default('GLOBAL ENERGY CRISIS'),
+  tag: z.string().max(40).optional().default('KEY FINDING'),
+  mainStat: z.string().max(40).optional().default('74%'),
+  statLabel: z.string().max(200).optional().default('of industrial supply chains disrupted by geopolitical embargoes'),
+  supportingPoints: z.array(SupportingPointSchema).optional().default([
+    { label: 'Estimated loss', value: '.4 Trillion', trend: 'down' },
+    { label: 'Affected countries', value: '48 Nations', trend: 'neutral' },
+    { label: 'Recovery timeframe', value: '24-36 Months', trend: 'neutral' },
+  ]),
+  source: z.string().max(140).optional().default('VOX INVESTIGATIVE DATABASE / WORLD BANK 2024 REPORT'),
+  accentColor: z.string().optional().default('#FACC15'),
+});
+export type VoxKeyStatSceneProps = z.input<typeof VoxKeyStatSceneSchema>;

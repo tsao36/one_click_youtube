@@ -6968,6 +6968,21 @@
         if (themeEl) themeEl.value = 'translucent_overlay';
         if (densityEl) densityEl.value = 'rich';
         setRemotionAccentColor('#38BDF8');
+      } else if (presetName === 'finance_market') {
+        if (styleEl) styleEl.value = 'finance_market';
+        if (themeEl) themeEl.value = 'finance_grid';
+        if (densityEl) densityEl.value = 'full';
+        setRemotionAccentColor('#10B981');
+      } else if (presetName === 'archival_history') {
+        if (styleEl) styleEl.value = 'archival_history';
+        if (themeEl) themeEl.value = 'parchment_paper';
+        if (densityEl) densityEl.value = 'full';
+        setRemotionAccentColor('#C2410C');
+      } else if (presetName === 'vox_journalism') {
+        if (styleEl) styleEl.value = 'vox_journalism';
+        if (themeEl) themeEl.value = 'vox_charcoal';
+        if (densityEl) densityEl.value = 'full';
+        setRemotionAccentColor('#FACC15');
       }
       updateRemotionSettingsLivePreview();
     }
@@ -6994,7 +7009,7 @@
       }
 
       // Highlight active showcase card
-      const allStyles = ['modern_tech_explainer', 'coordinate_zero', 'tactile_blueprint', 'fox_documentary'];
+      const allStyles = ['modern_tech_explainer', 'coordinate_zero', 'tactile_blueprint', 'fox_documentary', 'finance_market', 'archival_history', 'vox_journalism'];
       allStyles.forEach(s => {
         const card = document.getElementById('showcase-card-' + s);
         if (card) {
@@ -7003,6 +7018,9 @@
           if (s === 'coordinate_zero') activeBorder = '#0d9488';
           else if (s === 'tactile_blueprint') activeBorder = '#00F5FF';
           else if (s === 'fox_documentary') activeBorder = '#38bdf8';
+          else if (s === 'finance_market') activeBorder = '#10B981';
+          else if (s === 'archival_history') activeBorder = '#C2410C';
+          else if (s === 'vox_journalism') activeBorder = '#FACC15';
           
           card.style.border = isSelected ? `2px solid ${activeBorder}` : '1px solid #1e293b';
           card.style.boxShadow = isSelected ? `0 0 16px ${activeBorder}40` : 'none';

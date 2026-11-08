@@ -210,20 +210,57 @@ def extract_card_props(sc: Scene) -> dict[str, Any]:
     }
 
 
-def auto_select_style_for_scene(sc: Scene) -> str:
-    """Intelligently pick the best fOx Hsiao archetype based on scene transcript content."""
+def auto_select_style_for_scene(sc: Scene, preferred_style: str = "") -> str:
+    """Intelligently pick the best Remotion archetype based on preferred style suite and transcript."""
     text = f"{sc.callout_text or ''} {sc.narration or ''}"
-    # Check for timeline / year pattern
+    
+    if preferred_style == "coordinate_zero":
+        if any(k in text for k in ("對決", "各對一半", "爭端", "爭議", "兩派", "視角")):
+            return "CoordinateZeroSplitScene"
+        if any(k in text for k in ("實驗", "量測", "算式", "公式", "倍率", "尺規", "赤道")):
+            return "CoordinateZeroExperimentScene"
+        return "CoordinateZeroScaleScene"
+
+    if preferred_style == "finance_market":
+        if any(k in text for k in ("營收", "毛利", "財報", "利差", "指標", "估值", "同業", "本益比")):
+            return "FinanceMetricCompareScene"
+        return "FinanceCandlestickScene"
+
+    if preferred_style == "archival_history":
+        years = _YEAR_RE.findall(text)
+        if len(years) >= 2 or any(k in text for k in ("年表", "編年", "世紀", "歷史進程", "階段")):
+            return "HistoryChronologyScene"
+        return "ArchivalDocumentScene"
+
+    if preferred_style == "vox_journalism":
+        if any(k in text for k in ("對照", "承諾", "落差", "現實", "預期", "比較", "vs")):
+            return "VoxSplitScreenScene"
+        return "VoxKeyStatScene"
+
+    if preferred_style == "modern_tech_explainer":
+        if any(k in text for k in ("對話", "AI", "模擬", "回答", "指令")):
+            return "ChatSimulationScene"
+        if any(k in text for k in ("prompt", "提示詞", "對比", "策略")):
+            return "PromptComparisonScene"
+        return "FrameworkMatrixScene"
+
+    if preferred_style == "tactile_blueprint":
+        if any(k in text for k in ("尺度", "微米", "倍率", "放大鏡")):
+            return "ScaleCompareScene"
+        if any(k in text for k in ("引線", "標記", "結構", "組件")):
+            return "LeaderCalloutScene"
+        if any(k in text for k in ("路徑", "抉擇", "路線", "淘汰")):
+            return "BranchPathwayScene"
+        return "EvidenceHighlightScene"
+
+    # Default / Fox Documentary
     years = _YEAR_RE.findall(text)
     if len(years) >= 2 or re.search(r"\d+\s*年的?(?:時間|歷程|長跑|跨度|歷史)", text):
         return "FoxTimelineScene"
-    # Check for list / multi-spec patterns
     if any(k in text for k in ("分別是", "包含", "包括", "清單", "主要項目", "三項", "四項", "兩大", "第一", "第二")):
         return "FoxDataListScene"
-    # Check for metric / numeric data
     if _METRIC_RE.search(text) and re.search(r"\d", text):
         return "FoxMetricScene"
-    # Default to crisp transparent header
     return "FoxHeaderScene"
 
 
@@ -316,6 +353,57 @@ REMOTION_STYLES = [
         "label": "爭議對決・雙向驗證",
         "description": "雙卡桌面拍立得膠帶張貼、中央虛線分割與正反論點辯證摘要 (彼得斯 vs 製圖學家)",
         "accentColor": "#2563EB",
+        "type": "scene",
+    },
+    # 📈 Financial & Market Explainer Archetypes
+    {
+        "id": "FinanceCandlestickScene",
+        "name": "📈 盤勢結構 (Finance Candlestick)",
+        "label": "K線走勢・支撐壓力",
+        "description": "即時行情卡、多根紅綠K棒走勢圖、支撐壓力關鍵位水平標線與成交量突破摘要",
+        "accentColor": "#10B981",
+        "type": "scene",
+    },
+    {
+        "id": "FinanceMetricCompareScene",
+        "name": "📊 財務基本面 (Finance Metrics)",
+        "label": "同業估值・營運指標",
+        "description": "標的與同業平均數據對比、成長率利差、毛利率優勢與估值倍數差異卡片",
+        "accentColor": "#38BDF8",
+        "type": "scene",
+    },
+    # 📜 Archival History & Chronicles Archetypes
+    {
+        "id": "ArchivalDocumentScene",
+        "name": "📜 解密檔案 (Archival Document)",
+        "label": "歷史文獻・復古印戳",
+        "description": "羊皮紙仿舊紙質、官方檔案編號、機密宣判文字引言與紅色官印動態戳記",
+        "accentColor": "#C2410C",
+        "type": "scene",
+    },
+    {
+        "id": "HistoryChronologyScene",
+        "name": "⏳ 年代編年 (History Chronology)",
+        "label": "歷史節點・年代推進",
+        "description": "縱向古典時間軸、年份節點卡片、歷史重大事件動態點亮與轉折解析",
+        "accentColor": "#B45309",
+        "type": "scene",
+    },
+    # 🗞️ Vox Investigative Journalism Archetypes
+    {
+        "id": "VoxSplitScreenScene",
+        "name": "🗞️ 政策對照 (Vox Split-Screen)",
+        "label": "黃黑美學・調查對決",
+        "description": "Vox招牌對比分割畫面、雙色高對比色塊、承諾與現實巨型數據對照與官方數據來源腳註",
+        "accentColor": "#FACC15",
+        "type": "scene",
+    },
+    {
+        "id": "VoxKeyStatScene",
+        "name": "⚡ 核心發現 (Vox Key Stat)",
+        "label": "震撼數據・標籤螢光",
+        "description": "140px震撼巨型統計數字、螢光筆動態畫線、多項支撐指標排版與調查數據腳註",
+        "accentColor": "#FACC15",
         "type": "scene",
     },
 ]
@@ -486,6 +574,97 @@ def _normalize_props_for_composition(comp: str, raw: dict[str, Any]) -> dict[str
         p["accentColor"] = p.get("accentColor") or "#0D9488"
         p["dim"] = float(p.get("dim") or 0.15)
 
+    elif comp == "FinanceCandlestickScene":
+        p["headline"] = str(p.get("headline") or title or "MARKET PRICE ACTION").strip()
+        p["ticker"] = str(p.get("ticker") or category or "INDEX · QUOTE").strip()
+        p["price"] = str(p.get("price") or (p.get("metric") or "$100.00")).strip()
+        p["changePercent"] = str(p.get("changePercent") or "+5.2%").strip()
+        p["isBullish"] = bool(p.get("isBullish", True))
+        if not p.get("candlesticks"):
+            p["candlesticks"] = [
+                {"date": "D1", "open": 100, "high": 105, "low": 98, "close": 104},
+                {"date": "D2", "open": 104, "high": 107, "low": 102, "close": 101},
+                {"date": "D3", "open": 101, "high": 110, "low": 100, "close": 108},
+                {"date": "D4", "open": 108, "high": 114, "low": 106, "close": 112},
+                {"date": "D5", "open": 112, "high": 116, "low": 109, "close": 110},
+                {"date": "D6", "open": 110, "high": 120, "low": 110, "close": 118},
+            ]
+        if not p.get("keyLevels"):
+            p["keyLevels"] = [
+                {"label": "Resistance", "price": 115, "color": "#EF4444"},
+                {"label": "Support", "price": 102, "color": "#10B981"},
+            ]
+        p["insightBadge"] = str(p.get("insightBadge") or "KEY TRIGGER").strip()
+        p["insightText"] = str(p.get("insightText") or subtext or "突破關鍵均線與成交量密集區").strip()
+        p["accentColor"] = p.get("accentColor") or "#10B981"
+        p["dim"] = float(p.get("dim") or 0.2)
+
+    elif comp == "FinanceMetricCompareScene":
+        p["headline"] = str(p.get("headline") or title or "財務與營運對比").strip()
+        p["subtitle"] = str(p.get("subtitle") or subtext or "指標成長率與產業基準比較").strip()
+        if not p.get("metrics") or not isinstance(p["metrics"], list):
+            p["metrics"] = [
+                {"label": "營收年增率 (YoY)", "valueA": "+45%", "valueB": "+12%", "diff": "+33% 利差", "isAdvantageA": True},
+                {"label": "毛利率 (Margin)", "valueA": "68%", "valueB": "42%", "diff": "+26% 優勢", "isAdvantageA": True},
+                {"label": "自由現金流", "valueA": "$8.2B", "valueB": "$5.1B", "diff": "+$3.1B 領先", "isAdvantageA": True},
+            ]
+        p["legendA"] = str(p.get("legendA") or title or "主要標的").strip()
+        p["legendB"] = str(p.get("legendB") or "同業平均").strip()
+        p["accentColor"] = p.get("accentColor") or "#38BDF8"
+        p["dim"] = float(p.get("dim") or 0.2)
+
+    elif comp == "ArchivalDocumentScene":
+        p["documentTitle"] = str(p.get("documentTitle") or title or "歷史解密檔案記錄").strip()
+        p["date"] = str(p.get("date") or "HISTORICAL RECORD").strip()
+        p["archiveReference"] = str(p.get("archiveReference") or category or "ARCHIVAL DOSSIER").strip()
+        p["classification"] = str(p.get("classification") or "DECLASSIFIED").strip()
+        excerpt = str(p.get("excerpt") or subtext or title).strip()
+        p["excerpt"] = excerpt
+        p["highlightPhrase"] = str(p.get("highlightPhrase") or excerpt[:min(len(excerpt), 36)]).strip()
+        p["stampText"] = str(p.get("stampText") or "ARCHIVED").strip()
+        p["accentColor"] = p.get("accentColor") or "#C2410C"
+        p["dim"] = float(p.get("dim") or 0.12)
+
+    elif comp == "HistoryChronologyScene":
+        p["headline"] = str(p.get("headline") or title or "歷史進程演進年表").strip()
+        p["subtitle"] = str(p.get("subtitle") or subtext or "重大歷史事件節點與轉折分析").strip()
+        if not p.get("events") or not isinstance(p["events"], list):
+            p["events"] = [
+                {"year": "STAGE 1", "title": "初期萌芽與蓄積", "description": "早期秩序奠定與核心力量集結", "tag": "START"},
+                {"year": "STAGE 2", "title": "擴張與矛盾激化", "description": "利益衝突加劇引發連鎖反應", "tag": "CONFLICT"},
+                {"year": "STAGE 3", "title": "關鍵轉折與定局", "description": title or "全面轉變與歷史新局形成", "tag": "TURNING POINT"},
+            ]
+        p["activeYear"] = str(p.get("activeYear") or "STAGE 3").strip()
+        p["accentColor"] = p.get("accentColor") or "#B45309"
+        p["dim"] = float(p.get("dim") or 0.12)
+
+    elif comp == "VoxSplitScreenScene":
+        p["headline"] = str(p.get("headline") or title or "INVESTIGATIVE CONTRAST").strip()
+        p["subhead"] = str(p.get("subhead") or subtext or "承諾 vs 現實的政策差距調查").strip()
+        p["leftTitle"] = str(p.get("leftTitle") or "承諾與預期目標").strip()
+        p["leftDetail"] = str(p.get("leftDetail") or "原始政策承諾的規模與願景藍圖").strip()
+        p["leftStat"] = str(p.get("leftStat") or "100% 預期").strip()
+        p["leftColor"] = str(p.get("leftColor") or "#38BDF8").strip()
+        p["rightTitle"] = str(p.get("rightTitle") or "實際落地現狀").strip()
+        p["rightDetail"] = str(p.get("rightDetail") or subtext or "實際落實的比例與遭遇的體制瓶頸").strip()
+        p["rightStat"] = str(p.get("rightStat") or (p.get("metric") or "僅 18%")).strip()
+        p["rightColor"] = str(p.get("rightColor") or "#EF4444").strip()
+        p["source"] = str(p.get("source") or source or "VOX INVESTIGATIVE REPORTING").strip()
+        p["accentColor"] = p.get("accentColor") or "#FACC15"
+
+    elif comp == "VoxKeyStatScene":
+        p["headline"] = str(p.get("headline") or category or "KEY FINDING REPORT").strip()
+        p["tag"] = str(p.get("tag") or "CORE STAT").strip()
+        p["mainStat"] = str(p.get("mainStat") or (p.get("metric") or "74%")).strip()
+        p["statLabel"] = str(p.get("statLabel") or title or subtext or "核心調查結論與重要影響說明").strip()
+        if not p.get("supportingPoints") or not isinstance(p["supportingPoints"], list):
+            p["supportingPoints"] = [
+                {"label": "評估衝擊", "value": p.get("metric") or "重大影響", "trend": "down"},
+                {"label": "牽涉範疇", "value": "全面覆蓋", "trend": "neutral"},
+            ]
+        p["source"] = str(p.get("source") or source or "INVESTIGATIVE DATA ARCHIVE").strip()
+        p["accentColor"] = p.get("accentColor") or "#FACC15"
+
     else:  # EvidenceHighlightScene or fallback
         p["title"] = title
         p["docHeader"] = str(p.get("docHeader") or category or "ARCHIVAL RECORD / CLINICAL PROTOCOL").strip()
@@ -523,7 +702,9 @@ def render_scene_card(project, sc: Scene, props: dict[str, Any] | None = None, f
                       composition: str | None = None) -> dict[str, Any]:
     """Render a card for `sc` over its own image and attach it as the scene's animation clip."""
     # If no composition specified, intelligently auto-select the best archetype
-    target_comp = composition or auto_select_style_for_scene(sc)
+    rem_cfg = (project.settings.get("remotion") or {})
+    preferred_style = rem_cfg.get("style") or ""
+    target_comp = composition or auto_select_style_for_scene(sc, preferred_style=preferred_style)
     props = props or extract_card_props(sc)
     bg = project.abs(sc.image.path) if sc.image.status == Status.COMPLETED and sc.image.path else None
     seconds = float(sc.audio_duration or sc.estimated_duration or 6.0) + 0.6

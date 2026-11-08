@@ -39,6 +39,21 @@ import {
   CoordinateZeroExperimentSceneSchema,
   CoordinateZeroSplitSceneSchema,
 } from "./types";
+import { FinanceCandlestickScene } from "./FinanceCandlestickScene";
+import { FinanceMetricCompareScene } from "./FinanceMetricCompareScene";
+import { ArchivalDocumentScene } from "./ArchivalDocumentScene";
+import { HistoryChronologyScene } from "./HistoryChronologyScene";
+import { VoxSplitScreenScene } from "./VoxSplitScreenScene";
+import { VoxKeyStatScene } from "./VoxKeyStatScene";
+import {
+  FinanceCandlestickSceneSchema,
+  FinanceMetricCompareSceneSchema,
+  ArchivalDocumentSceneSchema,
+  HistoryChronologySceneSchema,
+  VoxSplitScreenSceneSchema,
+  VoxKeyStatSceneSchema,
+} from "./types";
+
 
 const videoDimensions = { fps: 30, width: 1920, height: 1080 };
 
@@ -577,6 +592,148 @@ export const RemotionRoot: React.FC = () => {
           />
         </Folder>
       </Folder>
+      {/* 4. Finance & Market Explainer */}
+      <Folder name="Finance-Market-Explainer">
+        <Composition
+          id="FinanceCandlestickScene"
+          component={FinanceCandlestickScene}
+          schema={FinanceCandlestickSceneSchema}
+          durationInFrames={150}
+          {...videoDimensions}
+          defaultProps={{
+            headline: "NVDA Q3 BREAKOUT STRUCTURE",
+            ticker: "NVDA · NASDAQ",
+            price: "$141.25",
+            changePercent: "+4.82%",
+            isBullish: true,
+            candlesticks: [
+              { date: "D1", open: 120, high: 126, low: 118, close: 124 },
+              { date: "D2", open: 124, high: 128, low: 122, close: 121 },
+              { date: "D3", open: 121, high: 130, low: 120, close: 129 },
+              { date: "D4", open: 129, high: 135, low: 127, close: 134 },
+              { date: "D5", open: 134, high: 138, low: 131, close: 132 },
+              { date: "D6", open: 132, high: 144, low: 132, close: 141.25 },
+            ],
+            keyLevels: [
+              { label: "Resistance $140", price: 140, color: "#EF4444" },
+              { label: "Support $125", price: 125, color: "#10B981" },
+            ],
+            insightBadge: "KEY TRIGGER",
+            insightText: "High-volume breakout confirmed above 50-day moving average",
+            accentColor: "#10B981",
+            dim: 0.2,
+          }}
+        />
+        <Composition
+          id="FinanceMetricCompareScene"
+          component={FinanceMetricCompareScene}
+          schema={FinanceMetricCompareSceneSchema}
+          durationInFrames={150}
+          {...videoDimensions}
+          defaultProps={{
+            headline: "COMPETITIVE FUNDAMENTALS",
+            subtitle: "FY2024 Valuation & Operating Efficiency Comparison",
+            metrics: [
+              { label: "Revenue Growth (YoY)", valueA: "+122%", valueB: "+18%", diff: "+104% Spread", isAdvantageA: true },
+              { label: "Gross Margin", valueA: "75.2%", valueB: "46.1%", diff: "+29.1% Spread", isAdvantageA: true },
+              { label: "Operating Cash Flow", valueA: "$14.5B", valueB: "$11.2B", diff: "+$3.3B Spread", isAdvantageA: true },
+              { label: "P/E (Forward)", valueA: "36.4x", valueB: "24.1x", diff: "Premium Multiple", isAdvantageA: false },
+            ],
+            legendA: "NVIDIA (NVDA)",
+            legendB: "PEER AVERAGE",
+            accentColor: "#38BDF8",
+            dim: 0.2,
+          }}
+        />
+      </Folder>
+
+      {/* 5. Archival History & Chronicles */}
+      <Folder name="Archival-History-Chronicles">
+        <Composition
+          id="ArchivalDocumentScene"
+          component={ArchivalDocumentScene}
+          schema={ArchivalDocumentSceneSchema}
+          durationInFrames={150}
+          {...videoDimensions}
+          defaultProps={{
+            documentTitle: "DECLARATION OF EMPIRE RESTRUCTURING",
+            date: "14 OCTOBER 1806",
+            archiveReference: "NATIONAL ARCHIVES · DOSSIER A-791",
+            classification: "DECLASSIFIED DISPATCH",
+            excerpt: "His Majesty commands that all diplomatic envoys cease negotiations forthwith, asserting full sovereign jurisdiction over maritime corridors.",
+            highlightPhrase: "full sovereign jurisdiction over maritime corridors",
+            stampText: "OFFICIALLY ARCHIVED",
+            accentColor: "#C2410C",
+            dim: 0.12,
+          }}
+        />
+        <Composition
+          id="HistoryChronologyScene"
+          component={HistoryChronologyScene}
+          schema={HistoryChronologySceneSchema}
+          durationInFrames={150}
+          {...videoDimensions}
+          defaultProps={{
+            headline: "CHRONICLE OF INDUSTRIAL EXPANSION",
+            subtitle: "Key geopolitical inflection points from 1880 to 1914",
+            events: [
+              { year: "1882", title: "Triple Alliance Signed", description: "Secret agreement between Germany, Austria-Hungary, and Italy.", tag: "TREATY" },
+              { year: "1898", title: "Naval Expansion Act", description: "Imperial fleet expansion triggers global naval arms race.", tag: "MILITARY" },
+              { year: "1907", title: "Triple Entente Formed", description: "Britain, France, and Russia align against central European powers.", tag: "DIPLOMACY" },
+              { year: "1914", title: "Sarajevo Crisis", description: "Assassination sparks chain reaction leading to World War I.", tag: "TURNING POINT" },
+            ],
+            activeYear: "1914",
+            accentColor: "#B45309",
+            dim: 0.12,
+          }}
+        />
+      </Folder>
+
+      {/* 6. Vox Investigative Journalism */}
+      <Folder name="Vox-Investigative-Journalism">
+        <Composition
+          id="VoxSplitScreenScene"
+          component={VoxSplitScreenScene}
+          schema={VoxSplitScreenSceneSchema}
+          durationInFrames={150}
+          {...videoDimensions}
+          defaultProps={{
+            headline: "HOW WE GOT HERE: THE INFRASTRUCTURE GAP",
+            subhead: "Investigating two decades of policy vs reality",
+            leftTitle: "1990: PROMISED CAPEX",
+            leftDetail: "Federal projections pledged $400B toward high-speed regional rail networks.",
+            leftStat: "$400 BILLION",
+            leftColor: "#38BDF8",
+            rightTitle: "2024: ACTUAL BUILT",
+            rightDetail: "Only 18% of projected corridor miles were completed due to environmental red tape.",
+            rightStat: "18% COMPLETED",
+            rightColor: "#EF4444",
+            source: "DATA SOURCE: DEPT OF TRANSPORTATION & GAO REPORTS",
+            accentColor: "#FACC15",
+          }}
+        />
+        <Composition
+          id="VoxKeyStatScene"
+          component={VoxKeyStatScene}
+          schema={VoxKeyStatSceneSchema}
+          durationInFrames={150}
+          {...videoDimensions}
+          defaultProps={{
+            headline: "GLOBAL ENERGY CRISIS",
+            tag: "KEY FINDING",
+            mainStat: "74%",
+            statLabel: "of industrial supply chains disrupted by geopolitical embargoes",
+            supportingPoints: [
+              { label: "Estimated loss", value: "$1.4 Trillion", trend: "down" },
+              { label: "Affected countries", value: "48 Nations", trend: "neutral" },
+              { label: "Recovery timeframe", value: "24-36 Months", trend: "neutral" },
+            ],
+            source: "VOX INVESTIGATIVE DATABASE / WORLD BANK 2024 REPORT",
+            accentColor: "#FACC15",
+          }}
+        />
+      </Folder>
+
     </>
   );
 };

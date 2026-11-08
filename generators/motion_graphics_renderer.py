@@ -63,15 +63,15 @@ def render_timeline_motion_graphics(
         rem_cfg = (project.settings.get("remotion") or {})
         data_settings = getattr(project, "data", None) and getattr(project.data, "settings", None) or {}
         data_rem_cfg = (data_settings.get("remotion") or {})
-        is_modern = (
-            rem_cfg.get("style") == "modern_tech_explainer"
-            or data_rem_cfg.get("style") == "modern_tech_explainer"
-            or rem_cfg.get("theme") == "dark_obsidian"
-            or data_rem_cfg.get("theme") == "dark_obsidian"
-            or rem_cfg.get("density") == "full"
-            or data_rem_cfg.get("density") == "full"
+        cur_style = rem_cfg.get("style") or data_rem_cfg.get("style") or ""
+        cur_theme = rem_cfg.get("theme") or data_rem_cfg.get("theme") or ""
+        cur_density = rem_cfg.get("density") or data_rem_cfg.get("density") or ""
+        is_standalone_canvas = (
+            cur_style in ("modern_tech_explainer", "coordinate_zero", "finance_market", "archival_history", "vox_journalism")
+            or cur_theme in ("dark_obsidian", "green_cutting_mat", "finance_grid", "parchment_paper", "vox_charcoal")
+            or cur_density == "full"
         )
-        bg = None if is_modern else (project.abs(sc.image.path) if sc.image.status == Status.COMPLETED and sc.image.path else None)
+        bg = None if is_standalone_canvas else (project.abs(sc.image.path) if sc.image.status == Status.COMPLETED and sc.image.path else None)
         out_clip = project.path("animation", f"{sc.tag}.mp4")
 
         try:
