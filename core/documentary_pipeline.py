@@ -344,7 +344,13 @@ class DocumentaryPipeline(BasePipeline):
 
             self.p.path("script", "script.md").write_text(script_markdown(scr), encoding="utf-8")
 
-
+            # Stage 2: Fact check script against research dossier to catch hallucinations and invalid multipliers
+            try:
+                self.p.activity("Stage 2/10: Verifying script factual grounding & numbers...")
+                from core.fact_checker import verify_script_facts
+                verify_script_facts(self.p, on_request=self._track_llm_request, provider_override=scr_prov, auto_patch=True)
+            except Exception as fce:
+                log.warning("Stage 2 script fact verification failed: %s", fce)
 
             self.p.data.title = scr.get("title", self.p.data.topic)
 

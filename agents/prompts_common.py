@@ -107,4 +107,5 @@ NARRATION_RULES = f"""Rules for narration:
 - Do not recap the previous section; move the story forward.
 - Never use these English buzzwords: {", ".join(BANNED_PHRASES)}.
 - When writing in Chinese, strictly use Taiwan Traditional Chinese (台灣正體中文 / 國語詞彙) and standard Taiwan translations (台灣翻譯名稱), and never use Mainland Chinese buzzwords, tech jargon, or translation names: {", ".join(BANNED_MAINLAND_PHRASES)}.
+- Strict factual grounding: Technical specifications, data rates, version features, and multipliers MUST strictly match the verified research dossier. Never guess or conflate version metrics (e.g. do not misattribute old speeds or bit rates to newer Bluetooth versions). Relative multipliers (e.g. "快上 X 倍") must mathematically agree with the referenced baseline number.
 """

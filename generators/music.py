@@ -88,13 +88,15 @@ CATEGORY_KEYWORDS = {
 
 # Natural narrative transitions for multi-movement music progression in long documentaries
 COMPLEMENTARY_MOVEMENT_CATEGORY = {
-    "tech_futuristic": "dramatic_tension",      # Tech setup -> dramatic tension / core problem
+    "tech_futuristic": "calm_focus",            # Tech setup -> calm/analytical focus (never creepy drama)
     "cinematic_documentary": "dramatic_tension",# History setup -> conflict / turning point
     "dramatic_tension": "mystery_cosmic",       # Investigation -> deep cosmic/forensic mystery
     "mystery_cosmic": "dramatic_tension",       # Cosmic setup -> physical dilemma / tension
     "calm_focus": "tech_futuristic",            # Study/focus setup -> advanced exploration
     "uplifting_inspirational": "calm_focus",     # Inspirational setup -> reflective depth
 }
+
+CREEPY_CRIME_TAGS = {"crime", "murder", "danger", "crisis", "stealth", "creepy", "horror"}
 
 
 def load_catalog(directory: str) -> dict[str, Any]:
@@ -341,6 +343,13 @@ def pick_track(
             if t_info.get("is_voiceover_ready") is False or t_info.get("speech_intrusive") is True:
                 continue
             ready_pool.append(t)
+            # Avoid creepy / crime / danger tracks for non-dramatic/educational topics
+            t_tags = set(t_info.get("tags", []))
+            if t_tags & CREEPY_CRIME_TAGS:
+                t_cat = detect_topic_category(topic or "") if topic else None
+                if preferred not in ("dramatic_tension",) and t_cat not in ("dramatic_tension",):
+                    continue
+
             if movement_role and movement_role not in t_info.get("movement_roles", []):
                 continue
             if energy and t_info.get("energy_level") != energy:
@@ -656,7 +665,8 @@ def plan_music_timeline(
 
         # Movement 2 track (Deep Dive / Investigation / Tension - mid energy)
         main_cat = main_track.parent.name.lower()
-        comp_cat = COMPLEMENTARY_MOVEMENT_CATEGORY.get(main_cat, "dramatic_tension")
+        default_comp = "calm_focus" if main_cat == "tech_futuristic" else "dramatic_tension"
+        comp_cat = COMPLEMENTARY_MOVEMENT_CATEGORY.get(main_cat, default_comp)
         m2_track = pick_track(
             directory,
             key + "_m2",
@@ -671,7 +681,7 @@ def plan_music_timeline(
             m2_track = pick_track(
                 directory,
                 key + "_m2_alt",
-                preferred="dramatic_tension",
+                preferred=comp_cat,
                 topic=topic,
                 context_text=context_text,
                 exclude=used_tracks,
