@@ -22,6 +22,7 @@ STAGE_FILES: dict[str, list[str]] = {
     "scenes": ["scenes.json", "visual_bible.json"],
     "prompts": ["image_prompts.json"],
     "subtitles": ["subtitles.srt", "subtitles.ass"],
+    "hook": ["hook.json"],
 }
 
 

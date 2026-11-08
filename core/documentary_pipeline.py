@@ -559,6 +559,15 @@ class DocumentaryPipeline(BasePipeline):
             except Exception as enf_err:
                 log.warning("Auto enforcement of 90% real images for main character skipped: %s", enf_err)
 
+            # Configurable Hook Module: select core conflict, budget 12s, avoid repeated narration, 5s claim
+            try:
+                hook_cfg = self.p.data.settings.get("hook") or self.p.settings.get("hook") or {}
+                if hook_cfg.get("enabled", True):
+                    from core.hook_module import apply_hook_module_to_project
+                    apply_hook_module_to_project(self.p)
+            except Exception as hook_err:
+                log.warning("Hook module generation skipped: %s", hook_err)
+
 
 
             elapsed = round(max(0.1, time.perf_counter() - t0), 1)

@@ -32,6 +32,15 @@ from core.pipeline_jobs import (
 )
 from core.project_manager import Project
 from rendering.ffmpeg_utils import kill_all_ffmpeg_processes
+from core.hook_module import (
+    HookConfig,
+    apply_hook_module_to_project,
+    compare_hook_versions,
+    get_hook_versions,
+    record_hook_version,
+    switch_hook_version,
+    update_hook_retention_rate,
+)
 from core.versioning import (
     get_stage_versions,
     record_stage_version,
@@ -1756,6 +1765,84 @@ async def get_script_fact_check_endpoint(project_id: str):
         return {"status": "ok", "report": report}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to load script fact check report: {e}")
+
+
+# ---------------- Hook Module API Endpoints ----------------
+
+class HookGenerateRequest(BaseModel):
+    video_duration: Optional[float] = 300.0
+    duration: Optional[float] = 12.0
+    mode: Optional[str] = "select_core_conflict"
+    avoid_repeated_narration: Optional[bool] = True
+    claim_window_seconds: Optional[float] = 5.0
+    ban_greetings: Optional[bool] = True
+    ban_logo_animation: Optional[bool] = True
+    ban_clickbait: Optional[bool] = True
+    include_in_total_duration: Optional[bool] = True
+
+
+class HookRetentionPayload(BaseModel):
+    retention_30s: float
+    notes: Optional[str] = ""
+
+
+@app.get("/api/projects/{project_id}/hook")
+def get_project_hook_endpoint(project_id: str):
+    p = get_project(project_id)
+    hook_file = p.path("hook", "hook.json")
+    if hook_file.exists():
+        try:
+            with open(hook_file, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return p.data.outputs.get("hook") or {"status": "not_generated"}
+
+
+@app.post("/api/projects/{project_id}/hook/generate")
+def generate_project_hook_endpoint(project_id: str, req: Optional[HookGenerateRequest] = None):
+    p = get_project(project_id)
+    overrides = req.model_dump(exclude_unset=True) if req else {}
+    try:
+        hook_res = apply_hook_module_to_project(p, config_override=overrides)
+        return {"status": "ok", "hook": hook_res.to_dict()}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.get("/api/projects/{project_id}/hook/versions")
+def get_hook_versions_endpoint(project_id: str):
+    p = get_project(project_id)
+    return get_hook_versions(p)
+
+
+@app.post("/api/projects/{project_id}/hook/versions/switch/{target_version}")
+def switch_hook_version_endpoint(project_id: str, target_version: int):
+    p = get_project(project_id)
+    res = switch_hook_version(p, target_version)
+    if res.get("status") == "error":
+        raise HTTPException(status_code=404, detail=res.get("message"))
+    return res
+
+
+@app.post("/api/projects/{project_id}/hook/versions/{target_version}/retention")
+def update_hook_retention_endpoint(project_id: str, target_version: int, payload: HookRetentionPayload):
+    p = get_project(project_id)
+    try:
+        res = update_hook_retention_rate(p, target_version, payload.retention_30s, payload.notes or "")
+        if res.get("status") == "error":
+            raise HTTPException(status_code=404, detail=res.get("message"))
+        return res
+    except ValueError as ve:
+        raise HTTPException(status_code=422, detail=str(ve))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.get("/api/projects/{project_id}/hook/compare")
+def compare_hook_versions_endpoint(project_id: str):
+    p = get_project(project_id)
+    return compare_hook_versions(p)
 
 @app.get("/api/projects/{project_id}/stages/{stage_name}/versions")
 def get_versions_endpoint(project_id: str, stage_name: str):

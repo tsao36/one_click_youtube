@@ -1,5 +1,5 @@
 video:
-  duration_minutes: 10
+  duration_minutes: 5.0
   width: 1920
   height: 1080
   aspect_ratio: '16:9'
@@ -7,6 +7,17 @@ video:
   language: Traditional Chinese
   visual_style: photorealistic_cinema
   narration_style: warm, curious, conversational documentary narrator
+hook:
+  enabled: true
+  video_duration: 300.0          # 影片預設總長 300 秒 (5 分鐘)
+  duration: 12.0                 # Hook 長度 12 秒
+  mode: select_core_conflict     # 模式：從完整影片選取最能代表核心衝突的片段
+  avoid_repeated_narration: true # 避免重複播放旁白
+  claim_window_seconds: 5.0      # 開場前 5 秒呈現與標題相符的核心主張
+  ban_greetings: true            # 避免無意義寒暄
+  ban_logo_animation: true       # 避免 Logo 動畫或過長片頭
+  ban_clickbait: true            # 避免誇大標題
+  include_in_total_duration: true # Hook 納入總片長，不得額外增加影片長度
 script:
   speech_rate_wpm: 150
   research_enabled: false
