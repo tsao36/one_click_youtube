@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from enum import Enum
 from typing import Any, Dict, List, Literal, Optional, Union
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class SceneType(str, Enum):
@@ -200,6 +200,13 @@ class WorkflowStepItem(BaseModel):
     label: str = Field(..., max_length=100)
     detail: str = Field(..., max_length=250)
     tag: Optional[str] = Field(default="", max_length=50)
+
+    @field_validator("step_number", mode="before")
+    @classmethod
+    def coerce_step_number(cls, v):
+        if isinstance(v, int):
+            return f"0{v}" if v < 10 else str(v)
+        return str(v)
 
     model_config = {"populate_by_name": True}
 
