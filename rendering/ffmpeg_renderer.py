@@ -11,7 +11,9 @@ from core.logging_setup import log
 from core.models import Scene, Status
 from core.project_manager import Project
 import json
-from generators.music import pick_track, plan_music_timeline
+import re
+import subprocess
+from generators.music import pick_track, plan_music_timeline, calculate_calibrated_bgm_level, STARTING_BGM_LEVEL_DBFS
 from providers.images import ImageRequest, PlaceholderImageProvider
 from rendering import ken_burns
 from rendering.ffmpeg_utils import FFmpegError, duration, run_ffmpeg, video_encoder_args
@@ -257,6 +259,32 @@ def build_narration(project: Project, scenes: list[Scene], slots: list[Slot], ou
     run_ffmpeg(args, cancel=cancel)
 
 
+def measure_audio_loudness(audio_path: Path) -> dict[str, float]:
+    """Measure RMS/mean and max volume in dBFS for narration audio using FFmpeg volumedetect."""
+    if not audio_path.exists():
+        return {"mean_volume": -16.0, "max_volume": -1.0}
+    try:
+        from rendering.ffmpeg_utils import ffmpeg_bin
+        cmd = [ffmpeg_bin(), "-nostdin", "-i", str(audio_path), "-filter:a", "volumedetect", "-f", "null", "-"]
+        proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=False)
+        out = proc.stderr
+        mean_vol = -16.0
+        max_vol = -1.0
+        for line in out.splitlines():
+            if "mean_volume:" in line:
+                m = re.search(r"mean_volume:\s*([-0-9\.]+)\s*dB", line)
+                if m:
+                    mean_vol = float(m.group(1))
+            elif "max_volume:" in line:
+                m = re.search(r"max_volume:\s*([-0-9\.]+)\s*dB", line)
+                if m:
+                    max_vol = float(m.group(1))
+        return {"mean_volume": mean_vol, "max_volume": max_vol}
+    except Exception as e:
+        log.warning("Could not measure audio loudness for %s: %s", audio_path, e)
+        return {"mean_volume": -16.0, "max_volume": -1.0}
+
+
 def build_audio_mix(project: Project, narration: Path, total: float, out: Path,
                     scenes: list[Scene] | None = None, slots: list[Slot] | None = None,
                     cancel: Callable[[], bool] | None = None) -> dict:
@@ -313,6 +341,11 @@ def build_audio_mix(project: Project, narration: Path, total: float, out: Path,
                 log.warning("Could not load pre-planned music timeline: %s, falling back to dynamic plan", e)
                 music_plan = []
 
+        # Measure narration loudness to calibrate BGM starting level (-24 dBFS baseline)
+        measured_nar = measure_audio_loudness(narration)
+        nar_mean = measured_nar.get("mean_volume", -16.0)
+        log.info("Measured narration loudness: mean=%.1f dBFS, max=%.1f dBFS", nar_mean, measured_nar.get("max_volume", -1.0))
+
         if not music_plan:
             music_plan = plan_music_timeline(
                 directory=m.get("directory", "data/music"),
@@ -324,7 +357,17 @@ def build_audio_mix(project: Project, narration: Path, total: float, out: Path,
                 slots=slots,
                 chapters=chapters,
                 music_settings=m,
+                measured_narration_lufs=nar_mean,
             )
+        else:
+            # Calibrate pre-planned volume using measured narration loudness and listening test offset
+            for seg in music_plan:
+                if seg.volume_db == -16.0 or not hasattr(seg, "volume_db"):
+                    seg.volume_db = calculate_calibrated_bgm_level(
+                        base_level_dbfs=m.get("volume_db", STARTING_BGM_LEVEL_DBFS),
+                        narration_loudness_db=nar_mean,
+                        listening_test_offset_db=float(m.get("listening_test_offset_db", 0.0)),
+                    )
     final_norm = f"loudnorm=I={r.get('final_lufs', -14)}:TP=-1.5:LRA=11"
 
     if not music_plan:
@@ -365,7 +408,7 @@ def build_audio_mix(project: Project, narration: Path, total: float, out: Path,
 
         fc_parts = [
             f"[0:a]aresample=48000,aformat=channel_layouts=stereo,asplit=2[nar][nsc];",
-            f"[1:a]aresample=48000,aformat=channel_layouts=stereo,loudnorm=I=-16:TP=-2,volume={vol}dB,"
+            f"[1:a]aresample=48000,aformat=channel_layouts=stereo,loudnorm=I={int(round(vol)) if vol <= -10 else -24}:TP=-2,"
             f"atrim={so:.3f}:{so + total:.3f},asetpts=PTS-STARTPTS,afade=t=in:d={fi},afade=t=out:st={max(0, total - fo):.3f}:d={fo}[mus_bed];",
             duck_filter,
         ]
@@ -408,7 +451,7 @@ def build_audio_mix(project: Project, narration: Path, total: float, out: Path,
         trim_len = dur_i + overlap
 
         fc_parts.append(
-            f"[{in_idx}:a]aresample=48000,aformat=channel_layouts=stereo,loudnorm=I=-16:TP=-2,volume={vol_i}dB,"
+            f"[{in_idx}:a]aresample=48000,aformat=channel_layouts=stereo,loudnorm=I={int(round(vol_i)) if vol_i <= -10 else -24}:TP=-2,"
             f"atrim={so_i:.3f}:{so_i + trim_len:.3f},asetpts=PTS-STARTPTS,afade=t=in:d={fi_i}:curve=qsin,afade=t=out:st={dur_i:.3f}:d={fo_i}:curve=iqsin,"
             f"adelay={start_ms}:all=1[m{i}];"
         )

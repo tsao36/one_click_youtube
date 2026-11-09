@@ -585,11 +585,13 @@ def collect_project_asset_attributions(project: Project) -> list[str]:
                     continue
                 seen_tracks.add(tr_name.lower())
                 cat_entry = catalog_by_basename.get(tr_name.lower(), {})
-                composer = cat_entry.get("composer")
-                work = cat_entry.get("work")
+                composer = cat_entry.get("composer") or cat_entry.get("license", {}).get("artist") or cat_entry.get("artist")
+                work = cat_entry.get("work") or cat_entry.get("title") or tr_name
                 desc = cat_entry.get("description")
                 source = cat_entry.get("source")
                 epoch = cat_entry.get("epoch")
+                lic_info = seg.get("license") or cat_entry.get("license") or {}
+                attr_text = seg.get("attribution_text") or lic_info.get("attribution_text")
                 music_items.append({
                     "name": tr_name,
                     "composer": composer,
@@ -597,6 +599,8 @@ def collect_project_asset_attributions(project: Project) -> list[str]:
                     "epoch": epoch,
                     "description": desc,
                     "source": source,
+                    "license": lic_info,
+                    "attribution_text": attr_text,
                 })
         except Exception as mex:
             log.warning("Could not read music plan for attributions: %s", mex)
@@ -660,9 +664,14 @@ def collect_project_asset_attributions(project: Project) -> list[str]:
     if music_items:
         if yt_items or image_items:
             lines.append("")
-        lines.append("🎵 背景音樂引用（Soundtrack & Music）：")
+        lines.append("🎵 背景音樂引用（Soundtrack & Music - Lo-Fi Instrumental）：")
         for m in music_items:
-            if m.get("composer") and m.get("work"):
+            if m.get("attribution_text"):
+                lines.append(f"• {m['attribution_text']}")
+                lic_type = m.get("license", {}).get("license_type")
+                if lic_type:
+                    lines.append(f"  授權協議（License）：{lic_type}（商業許可，依協議註明出處）")
+            elif m.get("composer") and m.get("work"):
                 epoch_str = f" ({m['epoch']})" if m.get("epoch") else ""
                 lines.append(f"• {m['composer']}：《{m['work']}》{epoch_str}（OpenOpus / 公共領域 Public Domain）")
             elif m.get("description"):

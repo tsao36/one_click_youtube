@@ -2286,6 +2286,18 @@ class DocumentaryPipeline(BasePipeline):
                     except Exception:
                         pass
 
+            # Measure narration loudness if available to calibrate starting BGM level
+            nar_mean = None
+            for cand in ("voice/narration.wav", "voice/narration.mp3", "narration.wav"):
+                np = self.p.path(cand)
+                if np.exists():
+                    try:
+                        from rendering.ffmpeg_renderer import measure_audio_loudness
+                        nar_mean = measure_audio_loudness(np).get("mean_volume")
+                    except Exception:
+                        pass
+                    break
+
             music_plan = plan_music_timeline(
                 directory=m.get("directory", "data/music"),
                 key=self.p.id,
@@ -2297,6 +2309,7 @@ class DocumentaryPipeline(BasePipeline):
                 slots=slots,
                 chapters=chapters,
                 music_settings=m,
+                measured_narration_lufs=nar_mean,
             )
 
             # Persist plan to music/music_plan.json

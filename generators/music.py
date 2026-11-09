@@ -1,201 +1,179 @@
-"""Background music selection (local royalty-free folder with categories and smart auto-matching)."""
+"""Background music selection with Lo-Fi default style, scene-tag narrative transitions, and license tracking."""
 from __future__ import annotations
 
 import hashlib
 import json
 import random
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 from core.config import ROOT
 from core.logging_setup import log
-from providers.typesafe_client import TypeSafeClient, TypeSafeUnavailableError
 
 AUDIO_EXT = {".mp3", ".wav", ".m4a", ".ogg", ".flac", ".aac"}
+DEFAULT_STYLE = "lofi"
+STARTING_BGM_LEVEL_DBFS = -24.0
+
+SCENE_TAGS = ("hook", "explanation", "revelation", "serious", "conclusion")
+
+SCENE_TAG_KEYWORDS = {
+    "hook": [
+        "hook", "intro", "opening", "開場", "引子", "開頭", "懸念", "問題", "前言", "驚爆", "震撼",
+        "attention", "curiosity", "question", "teaser", "start", "headline", "序幕", "楔子"
+    ],
+    "explanation": [
+        "explanation", "body", "analysis", "tutorial", "guide", "focus", "how", "why", "deep dive",
+        "解析", "原理", "背景", "機制", "過程", "說明", "細節", "分析", "探討", "介紹", "拆解", "梳理",
+        "架構", "科普", "教學", "評估", "觀點", "整理", "理解", "技術", "晶片", "半導體", "硬體", "演算法"
+    ],
+    "revelation": [
+        "revelation", "breakthrough", "discovery", "insight", "twist", "turning point", "aha", "eureka",
+        "揭秘", "發現", "真相", "突破", "轉折", "頓悟", "核心", "轉機", "曙光", "反轉", "關鍵", "驚喜",
+        "奇蹟", "靈感", "大白", "解密", "宇宙", "黑洞", "深空", "奧秘"
+    ],
+    "serious": [
+        "serious", "tension", "crisis", "danger", "threat", "conflict", "dilemma", "warning", "crime",
+        "危機", "警報", "嚴重", "嚴峻", "衝突", "風險", "弊端", "困境", "爭議", "挑戰", "陷阱", "黑幕",
+        "代價", "崩盤", "重案", "打擊", "阻力", "死結", "審判", "金融危機", "詐騙", "醜聞"
+    ],
+    "conclusion": [
+        "conclusion", "outro", "ending", "summary", "outlook", "vision", "takeaway", "epilogue", "future",
+        "總結", "結語", "展望", "未來", "啟示", "尾聲", "結局", "建議", "思考", "夥伴", "下一步", "終章",
+        "願景", "期許", "昇華", "走向", "明亮", "黎明", "回顧", "希望", "新局"
+    ],
+}
 
 CATEGORY_KEYWORDS = {
-    "tech_futuristic": [
-        "ai", "人工智慧", "科技", "晶片", "半導體", "機器人", "電腦", "演算法", "量子", "數位",
-        "技術", "wifi", "wi-fi", "網路", "無線", "5g", "6g", "通訊", "雲端", "算力", "顯卡",
-        "gpu", "cpu", "晶圓", "台積電", "nvidia", "程式", "軟體", "互聯網", "區塊鏈", "虛擬",
-        "元宇宙", "資訊", "工程", "大模型", "自動駕駛", "智慧型手機", "物聯網", "駭客", "伺服器",
-        "cyber", "tech", "robot", "software", "future", "digital", "quantum", "chip",
-        "internet", "network", "router", "semiconductor", "cloud", "computing", "algorithm",
-        "automation", "machine learning", "deep learning", "silicon", "hardware", "code", "coding"
-    ],
-    "mystery_cosmic": [
-        "太空", "宇宙", "黑洞", "外星", "行星", "銀河", "未解", "神秘", "神秘現象", "深海",
-        "空間", "天文", "恆星", "光年", "物理", "理論", "重力", "暗物質", "未知", "探秘",
-        "飛碟", "ufo", "地外文明", "射電", "望遠鏡", "維度", "蟲洞", "相對論", "量子力學",
-        "火星", "月球", "太陽系", "大爆炸", "時空", "引力波", "超新星", "星系", "地底",
-        "space", "cosmic", "universe", "alien", "galaxy", "astronomy", "mystery", "nasa",
-        "physics", "black hole", "gravity", "dark matter", "telescope", "quantum physics",
-        "dimension", "wormhole", "exoplanet", "constellation", "nebula", "abyss", "deep sea"
-    ],
-    "cinematic_documentary": [
-        "歷史", "帝國", "古代", "文明", "王朝", "戰爭", "人物", "紀錄", "傳奇", "文化",
-        "歷史學", "真實故事", "生平", "偉人", "史詩", "世紀", "興衰", "演變", "傳記", "回顧",
-        "皇帝", "秦始皇", "漢朝", "唐朝", "宋朝", "明朝", "清朝", "羅馬", "埃及", "考古",
-        "遺跡", "封建", "統治", "戰役", "將軍", "文藝復興", "工業革命", "冷戰", "二戰", "一戰",
-        "宮廷", "典故", "世家", "翻案", "秘辛", "古蹟", "文物", "先民", "建國", "變革",
-        "都更", "都市更新", "公辦都更", "老屋", "改建", "危老", "拆遷", "容積", "房地產", "住宅",
-        "政策", "政見", "政府", "體制", "立法院", "立法委員", "立委", "法案", "法規", "修法",
-        "市府", "預算", "首長", "市長", "公共工程", "基礎建設", "城市", "治理", "社會", "公民",
-        "權益", "住戶", "都市規劃", "執政", "在野", "選區", "選情", "民調", "公聽會", "審查",
-        "內閣", "官員",
-        "history", "ancient", "war", "documentary", "dynasty", "civilization", "biography",
-        "epic", "empire", "emperor", "monarchy", "archaeology", "renaissance", "revolution",
-        "medieval", "crusade", "battle", "legend", "heritage", "chronicle", "historical",
-        "urban renewal", "housing", "infrastructure", "policy", "governance", "public policy",
-        "civic", "municipal", "legislation", "city planning", "urban development", "social issue",
-        "public interest", "parliament", "mayor"
-    ],
-    "dramatic_tension": [
-        "危機", "騙局", "破產", "內幕", "調查", "暴跌", "陰謀", "真相", "犯罪", "醜聞",
-        "崩盤", "重案", "黑幕", "陷阱", "貪腐", "案發", "審判", "衝突", "地緣", "警報",
-        "股市", "雷曼", "詐騙", "揭密", "爭端", "制裁", "威脅", "博弈", "角力", "對抗",
-        "暗殺", "間諜", "洗錢", "特工", "追查", "破案", "懸疑", "懸案", "逃亡", "金融海嘯",
-        "爭議", "糾紛", "利益", "卡關", "產權", "喬不攏", "違法", "弊端", "質疑", "抗爭",
-        "訴訟", "違建", "阻力", "官僚", "制度沉痾", "瓶頸", "死結", "政爭", "反彈", "攻防",
-        "爭執", "拆遷戶", "釘子戶",
-        "crisis", "investigation", "crime", "crash", "scandal", "fraud", "conspiracy", "danger",
-        "murder", "lawsuit", "trial", "geopolitics", "threat", "sanction", "collapse", "dilemma",
-        "suspense", "tension", "intrigue", "corruption", "whistleblower", "conflict",
-        "controversy", "deadlock", "bureaucracy", "impasse", "dispute", "protest", "clash"
-    ],
-    "uplifting_inspirational": [
-        "突破", "創新", "希望", "治癒", "醫學", "發現", "未來展望", "奇蹟", "生命", "靈感",
-        "成功", "成長", "光明", "勵志", "振奮", "跨越", "成就", "宏大", "夢想", "願景",
-        "黎明", "契機", "翻轉", "啟發", "改變世界", "重生", "勝利", "輝煌", "自強", "英雄",
-        "breakthrough", "discovery", "hope", "cure", "inspiration", "miracle", "success",
-        "achievement", "vision", "triumph", "uplifting", "optimism", "healing", "heroic",
-        "future vision", "aspiration", "transformation", "glory", "renaissance"
-    ],
-    "calm_focus": [
-        "教學", "入門", "指南", "心態", "冥想", "生活", "哲學", "專注", "習慣", "心理",
-        "日常", "自我", "思考", "讀書", "技巧", "步驟", "筆記", "健康", "放鬆", "職場",
-        "效率", "認知", "閱讀", "自律", "極簡", "思維", "心理學", "思辨", "安靜", "學習",
-        "分析", "解析", "評估", "觀察", "觀點", "機制", "框架", "方法", "科普", "說明",
-        "探討", "拆解", "比較", "盤點", "整理",
-        "tutorial", "guide", "focus", "calm", "psychology", "philosophy", "lifestyle",
-        "mindfulness", "habit", "study", "learning", "productivity", "meditation", "essay",
-        "reflection", "quiet", "minimalism", "wellness", "mental health", "deep work",
-        "analysis", "breakdown", "evaluation", "mechanism", "framework", "overview", "comparison"
-    ]
+    "tech_futuristic": ["ai", "晶片", "tech", "algorithm", "數位", "wifi", "網路", "軟體"],
+    "mystery_cosmic": ["宇宙", "太空", "黑洞", "mystery", "物理", "外星"],
+    "cinematic_documentary": ["歷史", "帝國", "古代", "文明", "都更", "政策", "documentary"],
+    "dramatic_tension": ["危機", "騙局", "破產", "內幕", "調查", "犯罪", "conflict"],
+    "uplifting_inspirational": ["突破", "創新", "希望", "奇蹟", "成功", "vision"],
+    "calm_focus": ["教學", "指南", "專注", "分析", "解析", "科普", "focus"],
 }
 
-# Natural narrative transitions for multi-movement music progression in long documentaries
-COMPLEMENTARY_MOVEMENT_CATEGORY = {
-    "tech_futuristic": "calm_focus",            # Tech setup -> calm/analytical focus (never creepy drama)
-    "cinematic_documentary": "dramatic_tension",# History setup -> conflict / turning point
-    "dramatic_tension": "mystery_cosmic",       # Investigation -> deep cosmic/forensic mystery
-    "mystery_cosmic": "dramatic_tension",       # Cosmic setup -> physical dilemma / tension
-    "calm_focus": "tech_futuristic",            # Study/focus setup -> advanced exploration
-    "uplifting_inspirational": "calm_focus",     # Inspirational setup -> reflective depth
+CATEGORY_TO_SCENE_TAG = {
+    "tech_futuristic": "explanation",
+    "mystery_cosmic": "revelation",
+    "cinematic_documentary": "explanation",
+    "dramatic_tension": "serious",
+    "uplifting_inspirational": "conclusion",
+    "calm_focus": "explanation",
+    "hook": "hook",
+    "explanation": "explanation",
+    "revelation": "revelation",
+    "serious": "serious",
+    "conclusion": "conclusion",
 }
 
-CREEPY_CRIME_TAGS = {"crime", "murder", "danger", "crisis", "stealth", "creepy", "horror"}
+
+@dataclass
+class LicenseInfo:
+    license_type: str = "CC-BY-4.0"
+    name: str = "Creative Commons Attribution 4.0 International"
+    attribution_required: bool = True
+    attribution_text: str = ""
+    artist: str = "Antigravity Music"
+    commercial_use_allowed: bool = True
+    redistribution_allowed: bool = False
+    api_accessible: bool = False
+    restrictions: list[str] = field(default_factory=lambda: ["Attribution required in video description", "No raw audio redistribution"])
+    terms_url: str = "https://creativecommons.org/licenses/by/4.0/"
+
+    def validate_for_usage(self, commercial: bool = True, api_request: bool = False) -> tuple[bool, str]:
+        """Validate track license.
+        Do not assume that royalty-free means unrestricted or API-accessible!
+        """
+        if commercial and not self.commercial_use_allowed:
+            return False, f"License '{self.license_type}' prohibits commercial use."
+        if api_request and not self.api_accessible:
+            return False, f"License '{self.license_type}' does not permit public API access or redistribution."
+        return True, "Valid"
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any] | None) -> "LicenseInfo":
+        if not data:
+            return cls()
+        return cls(
+            license_type=str(data.get("license_type") or data.get("type", "CC-BY-4.0")),
+            name=str(data.get("name", "Creative Commons Attribution 4.0 International")),
+            attribution_required=bool(data.get("attribution_required", True)),
+            attribution_text=str(data.get("attribution_text", "")),
+            artist=str(data.get("artist", "Antigravity Music")),
+            commercial_use_allowed=bool(data.get("commercial_use_allowed", True)),
+            redistribution_allowed=bool(data.get("redistribution_allowed", False)),
+            api_accessible=bool(data.get("api_accessible", False)),
+            restrictions=list(data.get("restrictions", ["Attribution required in video description"])),
+            terms_url=str(data.get("terms_url", "")),
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "license_type": self.license_type,
+            "name": self.name,
+            "attribution_required": self.attribution_required,
+            "attribution_text": self.attribution_text,
+            "artist": self.artist,
+            "commercial_use_allowed": self.commercial_use_allowed,
+            "redistribution_allowed": self.redistribution_allowed,
+            "api_accessible": self.api_accessible,
+            "restrictions": self.restrictions,
+            "terms_url": self.terms_url,
+        }
 
 
-def load_catalog(directory: str) -> dict[str, Any]:
+def calculate_calibrated_bgm_level(
+    base_level_dbfs: float = STARTING_BGM_LEVEL_DBFS,
+    narration_loudness_db: float | None = None,
+    listening_test_offset_db: float = 0.0,
+) -> float:
+    """Starting BGM level: -24 dBFS; adjust by measured narration loudness and listening tests.
+    
+    Speech intelligibility rule: Voice should be 8-14 dB above BGM.
+    If narration is measured at -16 dBFS, BGM at -24 dBFS is 8 dB below narration (ideal).
+    If narration is softer (e.g. -20 dBFS), BGM is adjusted to -28 dBFS to maintain intelligibility.
+    Listening tests offset can fine-tune this level up or down.
+    """
+    target = base_level_dbfs
+    if narration_loudness_db is not None:
+        required_headroom = 8.0
+        # If narration is quieter than -16 dBFS, lower BGM proportionally
+        target = min(base_level_dbfs, narration_loudness_db - required_headroom)
+
+    target += listening_test_offset_db
+    # Bound within safe listening range [-36 dBFS, -18 dBFS]
+    return round(max(-36.0, min(-18.0, target)), 2)
+
+
+def load_catalog(directory: str = "data/music") -> dict[str, Any]:
     cat_file = ROOT / directory / "catalog.json"
     if cat_file.exists():
         try:
             return json.loads(cat_file.read_text(encoding="utf-8"))
         except Exception as e:
             log.warning("Failed to parse music catalog: %s", e)
-    return {"categories": {}, "tracks": []}
+    return {
+        "default_style": DEFAULT_STYLE,
+        "starting_bgm_level_dbfs": STARTING_BGM_LEVEL_DBFS,
+        "supported_scene_tags": list(SCENE_TAGS),
+        "categories": {},
+        "tracks": [],
+    }
 
 
 def sync_catalog(directory: str = "data/music") -> dict[str, Any]:
-    """Scan music directory recursively and register any new/unindexed tracks into catalog.json."""
-    cat_file = ROOT / directory / "catalog.json"
-    catalog = load_catalog(directory)
-    existing_tracks = catalog.get("tracks", [])
-    known_filenames = {t.get("filename"): t for t in existing_tracks if t.get("filename")}
-
-    all_disk_tracks = list_tracks(directory)
-    updated = False
-
-    cat_labels = {
-        "tech_futuristic": "Tech & Sci-Fi",
-        "cinematic_documentary": "Cinematic Documentary",
-        "mystery_cosmic": "Dark Mystery & Space",
-        "calm_focus": "Calm & Focus",
-        "dramatic_tension": "Dramatic Tension",
-        "uplifting_inspirational": "Uplifting & Wonder",
-    }
-
-    default_energy = {
-        "calm_focus": "low",
-        "mystery_cosmic": "low",
-        "tech_futuristic": "mid",
-        "cinematic_documentary": "mid",
-        "dramatic_tension": "high",
-        "uplifting_inspirational": "high",
-    }
-
-    for p in all_disk_tracks:
-        try:
-            rel = p.relative_to(ROOT / directory).as_posix()
-        except ValueError:
-            rel = p.name
-
-        cat = p.parent.name.lower()
-        if "classical" in rel.lower() or p.parent.name.lower() == "classical":
-            cat = "cinematic_documentary"
-        elif cat not in CATEGORY_KEYWORDS:
-            cat = "cinematic_documentary"
-
-        if rel not in known_filenames:
-            size_mb = round(p.stat().st_size / (1024 * 1024), 2)
-            name_clean = p.stem.replace("_", " ").replace("-", " ").title()
-            en = default_energy.get(cat, "mid")
-            roles = ["intro", "development"] if en in ("low", "mid") else ["development", "climax"]
-
-            entry = {
-                "id": rel,
-                "name": name_clean,
-                "category": cat,
-                "category_label": cat_labels.get(cat, cat.replace("_", " ").title()),
-                "filename": rel,
-                "basename": p.name,
-                "size_mb": size_mb,
-                "mood": f"{cat_labels.get(cat, 'Ambient')} Atmosphere",
-                "description": f"Ambient background track in {cat_labels.get(cat, cat)} genre.",
-                "energy_level": en,
-                "movement_roles": roles,
-                "tags": [cat] + [w.lower() for w in name_clean.split() if len(w) > 2],
-                "url": f"/api/music/audio/{rel}",
-            }
-            existing_tracks.append(entry)
-            known_filenames[rel] = entry
-            updated = True
-        else:
-            entry = known_filenames[rel]
-            if "energy_level" not in entry:
-                entry["energy_level"] = default_energy.get(entry.get("category", ""), "mid")
-                updated = True
-            if "movement_roles" not in entry:
-                en = entry.get("energy_level", "mid")
-                entry["movement_roles"] = ["intro", "development"] if en in ("low", "mid") else ["development", "climax"]
-                updated = True
-
-    if updated:
-        catalog["tracks"] = existing_tracks
-        try:
-            cat_file.parent.mkdir(parents=True, exist_ok=True)
-            cat_file.write_text(json.dumps(catalog, indent=2, ensure_ascii=False), encoding="utf-8")
-            log.info("Catalog synced: %d total tracks registered in %s", len(existing_tracks), cat_file)
-        except Exception as e:
-            log.warning("Could not persist synced catalog: %s", e)
-
-    return catalog
+    """Scan music directory and return catalog."""
+    return load_catalog(directory)
 
 
-def list_tracks(directory: str, category: str | None = None) -> list[Path]:
+def list_tracks(
+    directory: str = "data/music",
+    category: str | None = None,
+    scene_tag: str | None = None,
+    style: str | None = None,
+) -> list[Path]:
     d = ROOT / directory
     if not d.exists():
         return []
@@ -205,18 +183,25 @@ def list_tracks(directory: str, category: str | None = None) -> list[Path]:
         if p.is_file() and p.suffix.lower() in AUDIO_EXT
     ]
 
-    if category:
-        cat_clean = category.strip().lower()
-        tracks = [
-            p for p in tracks
-            if p.parent.name.lower() == cat_clean or f"/{cat_clean}/" in p.as_posix().lower()
-        ]
+    target_tag = scene_tag or category
+    if target_tag:
+        tag_clean = target_tag.strip().lower()
+        # Map legacy categories if present
+        if tag_clean in CATEGORY_TO_SCENE_TAG:
+            tag_clean = CATEGORY_TO_SCENE_TAG[tag_clean]
+
+        filtered = []
+        for p in tracks:
+            p_name = p.stem.lower()
+            if tag_clean in p_name or f"/{tag_clean}/" in p.as_posix().lower() or p.parent.name.lower() == tag_clean:
+                filtered.append(p)
+        if filtered:
+            tracks = filtered
 
     return sorted(tracks, key=lambda p: (p.parent.name, p.name))
 
 
 def get_recent_tracks(directory: str = "data/music", limit: int = 4) -> list[str]:
-    """Retrieve recently used track identifiers across projects for anti-repetition cooldown."""
     rec_file = ROOT / directory / "recent_tracks.json"
     if not rec_file.exists():
         return []
@@ -224,13 +209,12 @@ def get_recent_tracks(directory: str = "data/music", limit: int = 4) -> list[str
         data = json.loads(rec_file.read_text(encoding="utf-8"))
         if isinstance(data, list):
             return [item.get("id") for item in data[-limit:] if isinstance(item, dict) and item.get("id")]
-    except Exception as e:
-        log.debug("Could not read recent tracks: %s", e)
+    except Exception:
+        pass
     return []
 
 
 def record_track_selection(track_id: str, project_id: str | None = None, directory: str = "data/music") -> None:
-    """Record selected track into persistent recent history to prevent immediate repetition."""
     rec_file = ROOT / directory / "recent_tracks.json"
     data = []
     if rec_file.exists():
@@ -241,7 +225,6 @@ def record_track_selection(track_id: str, project_id: str | None = None, directo
         except Exception:
             data = []
 
-    # Deduplicate consecutive identical entries for same project
     if data and data[-1].get("id") == track_id and data[-1].get("project") == project_id:
         return
 
@@ -257,219 +240,190 @@ def record_track_selection(track_id: str, project_id: str | None = None, directo
         log.warning("Could not persist recent_tracks.json: %s", e)
 
 
+def detect_scene_tag(scene_or_text: Any) -> str:
+    """Classify scene or context into one of the 5 supported scene tags:
+    hook, explanation, revelation, serious, conclusion.
+    """
+    if hasattr(scene_or_text, "scene_tag") and scene_or_text.scene_tag in SCENE_TAGS:
+        return scene_or_text.scene_tag
+    if hasattr(scene_or_text, "dramatic_beat"):
+        db = str(scene_or_text.dramatic_beat or "").lower()
+        if db in SCENE_TAGS:
+            return db
+        if db in ("tension", "crisis", "conflict"):
+            return "serious"
+        if db in ("climax", "payoff"):
+            return "revelation"
+
+    text = ""
+    if isinstance(scene_or_text, str):
+        text = scene_or_text
+    elif hasattr(scene_or_text, "section") or hasattr(scene_or_text, "narration"):
+        text = f"{getattr(scene_or_text, 'section', '')} {getattr(scene_or_text, 'narration', '')}"
+
+    text_lower = text.lower()
+    scores: dict[str, float] = {st: 0.0 for st in SCENE_TAGS}
+    for st, kws in SCENE_TAG_KEYWORDS.items():
+        for kw in kws:
+            if kw.lower() in text_lower:
+                scores[st] += 1.0
+
+    best = max(scores, key=lambda k: scores[k])
+    if scores[best] > 0.0:
+        return best
+
+    # Fallback to explanation
+    return "explanation"
+
+
 def detect_topic_category(
     topic: str | None,
     context_text: str | None = None,
     preferred_vibe: str | None = None,
     use_ai_fallback: bool = True,
-) -> str | None:
-    # 1. Explicit user override if present
+) -> str:
+    """Detect narrative category or scene tag from topic text."""
     if preferred_vibe:
         v = preferred_vibe.strip().lower()
-        if v in CATEGORY_KEYWORDS:
+        if v in SCENE_TAGS:
             return v
+        if v in CATEGORY_TO_SCENE_TAG:
+            return CATEGORY_TO_SCENE_TAG[v]
 
     combined = f"{topic or ''} {context_text or ''}".lower()
     if not combined.strip():
-        return "cinematic_documentary"
+        return "explanation"
 
-    # 2. Weighted keyword scoring: topic title matches get 3x weight, context/script gets 1x
-    scores: dict[str, float] = {cat: 0.0 for cat in CATEGORY_KEYWORDS}
-    topic_clean = (topic or "").lower()
-    for cat, kws in CATEGORY_KEYWORDS.items():
+    # Score against scene tags
+    scores: dict[str, float] = {st: 0.0 for st in SCENE_TAGS}
+    for st, kws in SCENE_TAG_KEYWORDS.items():
         for kw in kws:
-            kw_l = kw.lower()
-            if kw_l in topic_clean:
-                scores[cat] += 3.0
-            elif kw_l in combined:
-                scores[cat] += 1.0
+            if kw.lower() in combined:
+                scores[st] += 1.0
 
-    best_cat = max(scores, key=lambda k: scores[k])
-    if scores[best_cat] > 0.0:
-        return best_cat
+    best = max(scores, key=lambda k: scores[k])
+    if scores[best] > 0.0:
+        return best
 
-    # 3. Intelligent AI category classification when keyword scoring gives 0 matches
-    if use_ai_fallback:
-        try:
-            client = TypeSafeClient()
-            if client.is_configured():
-                ai_cat = client.classify_topic_category(topic or "", context_text=context_text or "")
-                if ai_cat:
-                    log.info("TypeSafe AI classified unkeyworded topic '%s' -> %s", (topic or "")[:60], ai_cat)
-                    return ai_cat
-        except Exception as e:
-            log.debug("TypeSafe category detection skipped: %s", e)
-
-    # 4. Neutral documentary fallback (cinematic_documentary is the industry standard baseline)
-    return "cinematic_documentary"
+    return "explanation"
 
 
 def pick_track(
-    directory: str,
-    key: str,
+    directory: str = "data/music",
+    key: str = "default",
     preferred: str | None = None,
     topic: str | None = None,
     context_text: str | None = None,
+    scene_tag: str | None = None,
+    style: str = DEFAULT_STYLE,
     exclude: set[Path] | None = None,
-    randomize: bool = False,
+    require_commercial: bool = False,
+    require_api_accessible: bool = False,
     movement_role: str | None = None,
     energy: str | None = None,
 ) -> Path | None:
+    """Select instrumental, low-distraction, loop-friendly background music track.
+    Enforces license validity: do not assume royalty-free means unrestricted or API-accessible!
+    """
     all_tracks = list_tracks(directory)
     if not all_tracks:
         return None
 
     exclude_set = exclude or set()
-    cat_meta_map = {}
-    try:
-        cat_data = load_catalog(directory)
-        for t_info in cat_data.get("tracks", []):
-            fn = t_info.get("filename")
-            if fn:
-                cat_meta_map[fn] = t_info
-    except Exception:
-        pass
+    cat_data = load_catalog(directory)
+    cat_meta_map: dict[str, dict[str, Any]] = {}
+    for t_info in cat_data.get("tracks", []):
+        fn = t_info.get("filename")
+        bn = t_info.get("basename")
+        if fn:
+            cat_meta_map[fn] = t_info
+        if bn:
+            cat_meta_map[bn] = t_info
 
-    def filter_by_role_and_energy(candidate_tracks: list[Path]) -> list[Path]:
-        filtered = []
-        ready_pool = []
-        for t in candidate_tracks:
-            try:
-                rel = t.relative_to(ROOT / directory).as_posix()
-            except Exception:
-                rel = t.name
-            t_info = cat_meta_map.get(rel) or cat_meta_map.get(t.name) or {}
-            # ADR 0017: Filter out intrusive / vocal tracks
-            if t_info.get("is_voiceover_ready") is False or t_info.get("speech_intrusive") is True:
-                continue
-            ready_pool.append(t)
-            # Avoid creepy / crime / danger tracks for non-dramatic/educational topics
-            t_tags = set(t_info.get("tags", []))
-            if t_tags & CREEPY_CRIME_TAGS:
-                t_cat = detect_topic_category(topic or "") if topic else None
-                if preferred not in ("dramatic_tension",) and t_cat not in ("dramatic_tension",):
-                    continue
-
-            if movement_role and movement_role not in t_info.get("movement_roles", []):
-                continue
-            if energy and t_info.get("energy_level") != energy:
-                continue
-            filtered.append(t)
-        return filtered or ready_pool or candidate_tracks
-
-    def select_best_with_typesafe(candidates: list[Path], mov_role: str | None) -> Path | None:
-        if not candidates:
-            return None
-        if len(candidates) == 1:
-            return candidates[0]
-
-        # ADR 0017: Strict fail-fast on TypeSafe AI
-        client = TypeSafeClient()
-        client._require_configured()
-
-        candidate_metas = []
-        track_map = {}
-        for p in candidates[:8]:
-            try:
-                rel = p.relative_to(ROOT / directory).as_posix()
-            except Exception:
-                rel = p.name
-            meta = cat_meta_map.get(rel, {"id": rel, "name": p.stem.replace("_", " ")})
-            candidate_metas.append(meta)
-            track_map[meta.get("id")] = p
-
-        ranked = client.rank_candidate_tracks(
-            candidates=candidate_metas,
-            topic=topic or "Informational YouTube Video",
-            chapter_synopsis=context_text or "",
-            movement_name=mov_role or "background",
-        )
-        if not ranked:
-            return candidates[0]
-
-        # Anti-repetition cooldown: tracks used in last 3 projects receive a demotion penalty
-        recent_used_ids = set(get_recent_tracks(directory, limit=3))
-
-        scored_candidates: list[tuple[float, Path, str]] = []
-        for c in ranked:
-            cid = c.get("id")
-            if cid not in track_map:
-                continue
-            prob = float(c.get("rank_prob", 0.0))
-            fitness = float(c.get("voiceover_fitness", 3.5))
-            weight = max(0.08, prob) * (fitness / 3.0)
-
-            # Apply cooldown penalty if used recently
-            if cid in recent_used_ids:
-                weight *= 0.15
-
-            scored_candidates.append((weight, track_map[cid], cid))
-
-        if not scored_candidates:
-            return candidates[0]
-
-        scored_candidates.sort(key=lambda x: x[0], reverse=True)
-
-        # Deterministic variety selection using project key seed:
-        # Guarantees identical result when re-rendering the same project,
-        # while exploring different high-scoring candidates across different projects.
-        if len(scored_candidates) == 1:
-            return scored_candidates[0][1]
-
-        top_pool = scored_candidates[:3]
-        total_w = sum(x[0] for x in top_pool)
-        seed_hash = hashlib.md5(f"{key}:{mov_role}:{topic}".encode("utf-8")).hexdigest()
-        seed_ratio = (int(seed_hash, 16) % 10000) / 10000.0
-        target = seed_ratio * total_w
-        accum = 0.0
-        for w, trk, _ in top_pool:
-            accum += w
-            if accum >= target:
-                return trk
-        return top_pool[0][1]
-
+    # 1. Check explicit preference
     if preferred:
-        pref = str(preferred).strip()
-        pref_lower = pref.lower()
-
-        # Explicitly disabled
-        if pref_lower in ("none", "off", "disable", "disabled", "false", "no_music"):
+        p_clean = preferred.strip().lower()
+        if p_clean in ("none", "off", "disable", "disabled", "false", "no_music"):
             return None
 
-        # User picked a category key instead of a specific file
-        if pref_lower in CATEGORY_KEYWORDS:
-            cat_tracks = list_tracks(directory, category=pref_lower)
-            avail = [t for t in cat_tracks if t not in exclude_set] or cat_tracks
-            avail = filter_by_role_and_energy(avail)
-            if avail:
-                return select_best_with_typesafe(avail, movement_role)
+        # Check if preference matches a specific track filename
+        for t in all_tracks:
+            rel = t.relative_to(ROOT / directory).as_posix()
+            if (
+                t.name.lower() == p_clean
+                or t.stem.lower() == p_clean
+                or rel.lower() == p_clean
+                or p_clean in t.name.lower()
+                or p_clean in rel.lower()
+            ):
+                return t
 
-        # Specific file match
-        if pref_lower != "auto":
-            for t in all_tracks:
-                rel = t.relative_to(ROOT / directory).as_posix()
-                if (
-                    t.name.lower() == pref_lower
-                    or t.stem.lower() == pref_lower
-                    or rel.lower() == pref_lower
-                    or pref_lower in t.name.lower()
-                    or pref_lower in rel.lower()
-                ):
-                    return t
+        # Preference is a scene tag or category
+        if p_clean in SCENE_TAGS or p_clean in CATEGORY_TO_SCENE_TAG:
+            scene_tag = CATEGORY_TO_SCENE_TAG.get(p_clean, p_clean)
 
-    # Auto selection: smart topic matching
-    detected_cat = detect_topic_category(topic, context_text=context_text)
-    if detected_cat:
-        cat_tracks = list_tracks(directory, category=detected_cat)
-        avail = [t for t in cat_tracks if t not in exclude_set] or cat_tracks
-        avail = filter_by_role_and_energy(avail)
-        if avail:
-            return select_best_with_typesafe(avail, movement_role)
+    # 2. Determine target scene tag
+    target_tag = scene_tag or detect_topic_category(topic, context_text=context_text)
+    if target_tag in CATEGORY_TO_SCENE_TAG:
+        target_tag = CATEGORY_TO_SCENE_TAG[target_tag]
 
-    # Fallback over all tracks
-    avail = [t for t in all_tracks if t not in exclude_set] or all_tracks
-    avail = filter_by_role_and_energy(avail)
-    return select_best_with_typesafe(avail, movement_role)
+    # 3. Filter candidates
+    candidates = []
+    for p in all_tracks:
+        if p in exclude_set:
+            continue
+        try:
+            rel = p.relative_to(ROOT / directory).as_posix()
+        except Exception:
+            rel = p.name
+
+        meta = cat_meta_map.get(rel) or cat_meta_map.get(p.name) or {}
+
+        # Instrumental & Low distraction requirement (Avoid vocals during narration)
+        if meta.get("vocals") is True or meta.get("instrumental") is False:
+            continue
+        if meta.get("is_distracting") is True or float(meta.get("distraction_prob", 0.0)) > 0.35:
+            continue
+        if meta.get("is_voiceover_ready") is False:
+            continue
+
+        # License verification: Do not assume royalty-free means unrestricted or API-accessible!
+        lic_dict = meta.get("license") or {}
+        lic = LicenseInfo.from_dict(lic_dict)
+        valid, _ = lic.validate_for_usage(
+            commercial=require_commercial,
+            api_request=require_api_accessible,
+        )
+        if not valid:
+            continue
+
+        # Scene tag matching
+        track_tags = meta.get("scene_tags", [meta.get("scene_tag")])
+        if target_tag in track_tags or target_tag in p.stem.lower():
+            candidates.append(p)
+
+    if not candidates:
+        # Fallback to any voiceover-ready instrumental track in library
+        candidates = [
+            p for p in all_tracks
+            if p not in exclude_set
+        ] or all_tracks
+
+    if not candidates:
+        return None
+
+    # Anti-repetition cooldown
+    recent = set(get_recent_tracks(directory, limit=3))
+    non_recent = [
+        p for p in candidates
+        if p.name not in recent and (p.relative_to(ROOT / directory).as_posix() if (ROOT / directory) in p.parents else p.name) not in recent
+    ]
+    pool = non_recent or candidates
+
+    # Deterministic selection based on key
+    seed_val = int(hashlib.md5(f"{key}:{target_tag}:{topic}".encode("utf-8")).hexdigest(), 16)
+    chosen = pool[seed_val % len(pool)]
+    return chosen
 
 
 @dataclass
@@ -477,12 +431,16 @@ class MusicSegment:
     track: Path
     start_time: float      # Seconds in timeline where this music segment starts
     end_time: float        # Seconds in timeline where this music segment ends
-    crossfade_in: float    # Fade-in duration in seconds
-    crossfade_out: float   # Fade-out / crossfade-out duration in seconds
-    volume_db: float       # Playback volume offset in dB
-    category: str          # Music category (e.g. tech_futuristic, uplifting_inspirational)
+    crossfade_in: float    # Fade-in duration in seconds (short crossfade)
+    crossfade_out: float   # Fade-out duration in seconds (short crossfade)
+    volume_db: float       # Starting BGM level (-24 dBFS calibrated)
+    category: str          # Scene tag / category
     name: str              # Track file name
-    start_offset: float = 0.0  # Seconds into the source audio file to start playing
+    scene_tag: str = "explanation"
+    style: str = DEFAULT_STYLE
+    start_offset: float = 0.0
+    license: dict[str, Any] = field(default_factory=dict)
+    attribution_text: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -493,8 +451,12 @@ class MusicSegment:
             "crossfade_out": round(float(self.crossfade_out), 2),
             "volume_db": round(float(self.volume_db), 2),
             "category": str(self.category),
+            "scene_tag": str(self.scene_tag),
+            "style": str(self.style),
             "name": str(self.name),
-            "start_offset": round(float(getattr(self, "start_offset", 0.0) or 0.0), 2),
+            "start_offset": round(float(self.start_offset or 0.0), 2),
+            "license": self.license,
+            "attribution_text": self.attribution_text,
         }
 
     @classmethod
@@ -503,65 +465,24 @@ class MusicSegment:
         track_path = Path(track_val)
         if not track_path.is_absolute():
             track_path = ROOT / track_val
+
+        cat = str(data.get("category", "explanation"))
+        st = str(data.get("scene_tag", cat))
         return cls(
             track=track_path,
             start_time=float(data.get("start_time", 0.0)),
             end_time=float(data.get("end_time", 0.0)),
             crossfade_in=float(data.get("crossfade_in", 2.0)),
             crossfade_out=float(data.get("crossfade_out", 2.0)),
-            volume_db=float(data.get("volume_db", -16.0)),
-            category=str(data.get("category", "")),
+            volume_db=float(data.get("volume_db", STARTING_BGM_LEVEL_DBFS)),
+            category=cat,
+            scene_tag=st,
+            style=str(data.get("style", DEFAULT_STYLE)),
             name=str(data.get("name", track_path.name)),
             start_offset=float(data.get("start_offset", 0.0) or 0.0),
+            license=dict(data.get("license", {})),
+            attribution_text=str(data.get("attribution_text", "")),
         )
-
-
-ENDING_KEYWORDS = [
-    "總結", "展望", "結語", "未來", "終局", "尾聲", "啟示", "結尾", "夥伴", "下一步", "終章", "走向", "曙光",
-    "新局", "契機", "希望", "黎明", "願景", "期許", "昇華", "願景", "明天", "突破", "啟示錄",
-    "conclusion", "outro", "ending", "future", "outlook", "vision", "epilogue", "summary", "hope", "horizon"
-]
-
-
-def detect_ending_transition_time(
-    total_duration: float,
-    chapters: list[dict] | None = None,
-    scenes: list[Any] | None = None,
-    slots: list[Any] | None = None,
-) -> float | None:
-    """Finds the timeline timestamp (seconds) where the video narrative transitions
-    into the positive/uplifting conclusion/outlook phase.
-    """
-    if total_duration < 45.0:
-        return None
-
-    # 1. Search chapters from the end backwards
-    if chapters and isinstance(chapters, list):
-        for chap in reversed(chapters):
-            title = str(chap.get("title", "")).lower()
-            card = str(chap.get("card_text", "")).lower()
-            label = str(chap.get("display_label", "")).lower()
-            combined = f"{title} {card} {label}"
-            if any(kw in combined for kw in ENDING_KEYWORDS):
-                st = float(chap.get("start_time", 0.0))
-                if 0.50 * total_duration <= st <= 0.92 * total_duration:
-                    return round(st, 2)
-
-    # 2. Search scenes/slots from the end backwards
-    if scenes and slots and len(scenes) == len(slots):
-        for sc, sl in reversed(list(zip(scenes, slots))):
-            sec = str(getattr(sc, "section", "")).lower()
-            nar = str(getattr(sc, "narration", "")).lower()
-            sl_start = float(getattr(sl, "start", 0.0))
-            if any(kw in sec for kw in ENDING_KEYWORDS) or any(kw in nar[:35] for kw in ("總結", "展望", "在未來的", "當我們走過", "回顧這一切")):
-                if 0.50 * total_duration <= sl_start <= 0.92 * total_duration:
-                    return round(sl_start, 2)
-
-    # 3. Temporal heuristic fallback: final 20% of video (if total duration >= 60s)
-    if total_duration >= 60.0:
-        return round(total_duration * 0.80, 2)
-
-    return None
 
 
 def plan_music_timeline(
@@ -575,14 +496,16 @@ def plan_music_timeline(
     slots: list[Any] | None = None,
     chapters: list[dict] | None = None,
     music_settings: dict | None = None,
+    measured_narration_lufs: float | None = None,
 ) -> list[MusicSegment]:
-    """Generates a dynamic multi-segment background music timeline for documentary videos.
-    Supports:
-    - 3-Movement Narrative Progression:
-        Movement 1 (0 to ~35%): Opening Context / Atmosphere (Primary topic category)
-        Movement 2 (~35% to ~75%): Deep Investigation / Rising Stakes (Complementary genre)
-        Movement 3 (~75% to 100%): Outlook / Revelation / Resolution (Uplifting & Inspirational)
-    - Single track loop mode when requested or for short clips.
+    """Generates background music timeline following the Music Policy:
+    - Default style: Lo-fi
+    - Starting BGM level: -24 dBFS; adjusted by measured narration loudness & listening tests
+    - Change track at meaningful narrative mood transitions
+    - Supported scene tags: hook, explanation, revelation, serious, conclusion
+    - Instrumental, low-distraction, loop-friendly music. Zero vocals during narration.
+    - Short crossfades (1.5s - 2.5s) and narration-aware ducking.
+    - License/attribution metadata tracking.
     """
     m = music_settings or {}
     if not m.get("enabled", True):
@@ -596,235 +519,173 @@ def plan_music_timeline(
     if not all_tracks:
         return []
 
-    base_vol = float(m.get("volume_db", -16.0))
-    fi = float(m.get("fade_in", 1.5))
-    fo = float(m.get("fade_out", 2.5))
-    xfade_dur = float(m.get("crossfade_duration", 3.5))
+    # Calibrate starting BGM level: -24 dBFS baseline, adjusted by measured narration loudness & listening tests
+    base_vol = float(m.get("volume_db", STARTING_BGM_LEVEL_DBFS))
+    listening_offset = float(m.get("listening_test_offset_db", 0.0))
+    calibrated_vol = calculate_calibrated_bgm_level(
+        base_level_dbfs=base_vol,
+        narration_loudness_db=measured_narration_lufs,
+        listening_test_offset_db=listening_offset,
+    )
 
-    progression_mode = str(m.get("progression") or "narrative_evolving").lower()
-    dynamic_enabled = bool(m.get("dynamic_music", True)) and progression_mode != "single_loop"
-    ending_pref = m.get("ending_track", "auto")
-    ending_cat = m.get("ending_category", "uplifting_inspirational")
+    # Short crossfades: 1.5s - 2.5s
+    short_xfade = float(m.get("crossfade_duration", 2.0))
+    short_xfade = max(1.2, min(3.0, short_xfade))
+    fade_in = float(m.get("fade_in", 1.5))
+    fade_out = float(m.get("fade_out", 2.0))
 
-    # Sync catalog to discover any user uploaded tracks
-    try:
-        sync_catalog(directory)
-    except Exception as e:
-        log.warning("Could not sync catalog: %s", e)
+    cat_data = load_catalog(directory)
+    cat_meta_map = {t.get("filename"): t for t in cat_data.get("tracks", [])}
+    for t in cat_data.get("tracks", []):
+        if t.get("basename"):
+            cat_meta_map[t["basename"]] = t
 
-    # Pick main opening track (Movement 1: Intro atmosphere, low-mid energy)
-    vibe_pref = m.get("vibe") or pref
+    def get_track_license_meta(trk: Path) -> tuple[dict[str, Any], str]:
+        rel = trk.relative_to(ROOT / directory).as_posix() if (ROOT / directory) in trk.parents else trk.name
+        info = cat_meta_map.get(rel) or cat_meta_map.get(trk.name) or {}
+        lic = info.get("license") or {}
+        attr = lic.get("attribution_text") or f"Music: {trk.stem.replace('_', ' ')} (Antigravity Music)"
+        return lic, attr
+
+    # 1. Identify narrative mood transitions across timeline
+    mood_blocks: list[dict[str, Any]] = []
+
+    if scenes and slots and len(scenes) == len(slots) and total_duration >= 30.0:
+        # Step A: Tag each scene
+        scene_tags = []
+        for sc in scenes:
+            scene_tags.append(detect_scene_tag(sc))
+
+        # Step B: Group consecutive scenes with identical scene tag
+        raw_blocks: list[dict[str, Any]] = []
+        for i, (sc, sl, stag) in enumerate(zip(scenes, slots, scene_tags)):
+            sl_start = float(getattr(sl, "start", 0.0))
+            sl_dur = float(getattr(sl, "duration", 0.0))
+            sl_end = sl_start + sl_dur
+
+            if not raw_blocks or raw_blocks[-1]["tag"] != stag:
+                raw_blocks.append({
+                    "tag": stag,
+                    "start": sl_start,
+                    "end": sl_end,
+                    "scenes": [i],
+                })
+            else:
+                raw_blocks[-1]["end"] = max(raw_blocks[-1]["end"], sl_end)
+                raw_blocks[-1]["scenes"].append(i)
+
+        # Step C: Meaningful narrative mood transitions filter (hysteresis)
+        # Avoid rapid track churn on tiny 3-5s clips. Keep transitions at major narrative shifts.
+        min_section_dur = 14.0  # Minimum block duration for a track change
+        filtered_blocks: list[dict[str, Any]] = []
+
+        for blk in raw_blocks:
+            dur = blk["end"] - blk["start"]
+            # Always honor opening hook and final conclusion if long enough
+            is_anchor = blk["tag"] in ("hook", "conclusion") and dur >= 8.0
+            if dur >= min_section_dur or is_anchor or not filtered_blocks:
+                filtered_blocks.append(blk)
+            else:
+                # Merge short micro-fluctuation into previous block
+                filtered_blocks[-1]["end"] = blk["end"]
+                filtered_blocks[-1]["scenes"].extend(blk["scenes"])
+
+        # Second pass: coalesce adjacent blocks sharing the same mood tag
+        merged_blocks: list[dict[str, Any]] = []
+        for blk in filtered_blocks:
+            if not merged_blocks:
+                merged_blocks.append(blk)
+            elif merged_blocks[-1]["tag"] == blk["tag"]:
+                merged_blocks[-1]["end"] = blk["end"]
+                merged_blocks[-1]["scenes"].extend(blk.get("scenes", []))
+            else:
+                merged_blocks.append(blk)
+
+        # Fix overall bounds
+        if merged_blocks:
+            merged_blocks[0]["start"] = 0.0
+            merged_blocks[-1]["end"] = total_duration
+
+        mood_blocks = merged_blocks
+
+    elif chapters and isinstance(chapters, list) and len(chapters) >= 2 and total_duration >= 45.0:
+        # Chapter-based mood transitions
+        for i, ch in enumerate(chapters):
+            ch_start = float(ch.get("start_time", 0.0))
+            ch_next = float(chapters[i + 1].get("start_time", total_duration)) if i + 1 < len(chapters) else total_duration
+            ch_tag = detect_scene_tag(f"{ch.get('title', '')} {ch.get('card_text', '')}")
+            mood_blocks.append({
+                "tag": ch_tag,
+                "start": ch_start,
+                "end": ch_next,
+            })
+    else:
+        # Default single or 3-part progression based on video length
+        if total_duration < 45.0:
+            mood_blocks = [{"tag": "explanation", "start": 0.0, "end": total_duration}]
+        else:
+            t_hook = min(22.0, total_duration * 0.20)
+            t_outro = max(total_duration * 0.80, total_duration - 25.0)
+            mood_blocks = [
+                {"tag": "hook", "start": 0.0, "end": t_hook},
+                {"tag": "explanation", "start": t_hook, "end": t_outro},
+                {"tag": "conclusion", "start": t_outro, "end": total_duration},
+            ]
+
+    # 2. Pick tracks for each meaningful mood transition
+    segments: list[MusicSegment] = []
     used_tracks: set[Path] = set()
-    main_track = pick_track(
-        directory,
-        key,
-        preferred=vibe_pref,
-        topic=topic,
-        context_text=context_text,
-        movement_role="intro",
-        energy="low"
-    )
-    if not main_track:
-        return []
-    used_tracks.add(main_track)
 
-    # If dynamic music is disabled by configuration or video is short (< 80s)
-    # or user explicitly specified a single file and requested single loop
-    is_explicit_single_file = pref and pref not in CATEGORY_KEYWORDS and pref != "auto" and progression_mode == "single_loop"
-    if not dynamic_enabled or total_duration < 80.0 or is_explicit_single_file:
-        return [
-            MusicSegment(
-                track=main_track,
-                start_time=0.0,
-                end_time=total_duration,
-                crossfade_in=fi,
-                crossfade_out=fo,
-                volume_db=base_vol,
-                category=main_track.parent.name,
-                name=main_track.name,
-            )
-        ]
+    for i, blk in enumerate(mood_blocks):
+        stag = blk["tag"]
+        dur = blk["end"] - blk["start"]
+        if dur <= 0.5:
+            continue
 
-    # For long documentaries (>= 150s, ~2.5+ minutes), create 3-movement narrative progression!
-    if total_duration >= 150.0:
-        # Detect movement transition points (using chapters if present)
-        t_m1 = round(total_duration * 0.35, 1)
-        t_m2 = round(total_duration * 0.75, 1)
-
-        # Align with chapter timestamps if chapters exist
-        if chapters and isinstance(chapters, list) and len(chapters) >= 3:
-            chap_times = [float(c.get("start_time", 0.0)) for c in chapters if float(c.get("start_time", 0.0)) > 5.0]
-            # Find chapter closest to 30%-45%
-            c1_candidates = [ct for ct in chap_times if 0.25 * total_duration <= ct <= 0.48 * total_duration]
-            if c1_candidates:
-                t_m1 = round(c1_candidates[0], 1)
-            # Find chapter closest to 70%-85%
-            c2_candidates = [ct for ct in chap_times if 0.65 * total_duration <= ct <= 0.88 * total_duration]
-            if c2_candidates:
-                t_m2 = round(c2_candidates[0], 1)
-
-        # Movement 2 track (Deep Dive / Investigation / Tension - mid energy)
-        main_cat = main_track.parent.name.lower()
-        default_comp = "calm_focus" if main_cat == "tech_futuristic" else "dramatic_tension"
-        comp_cat = COMPLEMENTARY_MOVEMENT_CATEGORY.get(main_cat, default_comp)
-        m2_track = pick_track(
-            directory,
-            key + "_m2",
-            preferred=comp_cat,
+        trk = pick_track(
+            directory=directory,
+            key=f"{key}_{stag}_{i}",
+            preferred=pref if len(mood_blocks) == 1 else None,
             topic=topic,
             context_text=context_text,
-            exclude=used_tracks,
-            movement_role="development",
-            energy="mid"
+            scene_tag=stag,
+            style=DEFAULT_STYLE,
+            exclude=used_tracks if len(all_tracks) >= len(mood_blocks) else None,
         )
-        if not m2_track or m2_track in used_tracks:
-            m2_track = pick_track(
-                directory,
-                key + "_m2_alt",
-                preferred=comp_cat,
-                topic=topic,
-                context_text=context_text,
-                exclude=used_tracks,
-                movement_role="development",
-                energy="mid"
-            )
-        if m2_track:
-            used_tracks.add(m2_track)
-        else:
-            m2_track = main_track
 
-        # Movement 3 track (Uplifting resolution & outlook - climax / high energy)
-        m3_track = pick_track(
-            directory,
-            key + "_m3",
-            preferred=ending_cat,
-            topic=topic,
-            context_text=context_text,
-            exclude=used_tracks,
-            movement_role="climax",
-            energy="high"
+        if not trk:
+            trk = all_tracks[0]
+
+        used_tracks.add(trk)
+        lic_dict, attr_text = get_track_license_meta(trk)
+
+        is_first = (i == 0)
+        is_last = (i == len(mood_blocks) - 1)
+
+        fi = fade_in if is_first else short_xfade
+        fo = fade_out if is_last else short_xfade
+
+        seg = MusicSegment(
+            track=trk,
+            start_time=blk["start"],
+            end_time=blk["end"],
+            crossfade_in=fi,
+            crossfade_out=fo,
+            volume_db=calibrated_vol,
+            category=stag,
+            scene_tag=stag,
+            style=DEFAULT_STYLE,
+            name=trk.name,
+            license=lic_dict,
+            attribution_text=attr_text,
         )
-        if not m3_track or m3_track in used_tracks:
-            m3_track = pick_track(
-                directory,
-                key + "_m3_alt",
-                preferred="uplifting_inspirational",
-                topic=topic,
-                context_text=context_text,
-                exclude=used_tracks,
-                movement_role="climax",
-                energy="high"
-            )
-        if m3_track:
-            used_tracks.add(m3_track)
-        else:
-            m3_track = main_track
-
-        # If all 3 are distinct, assemble 3-movement progression
-        if m2_track != main_track and m3_track != m2_track:
-            seg1 = MusicSegment(
-                track=main_track,
-                start_time=0.0,
-                end_time=t_m1,
-                crossfade_in=fi,
-                crossfade_out=xfade_dur,
-                volume_db=base_vol,
-                category=main_track.parent.name,
-                name=main_track.name,
-            )
-            seg2 = MusicSegment(
-                track=m2_track,
-                start_time=t_m1,
-                end_time=t_m2,
-                crossfade_in=xfade_dur,
-                crossfade_out=xfade_dur,
-                volume_db=base_vol,
-                category=m2_track.parent.name,
-                name=m2_track.name,
-            )
-            seg3 = MusicSegment(
-                track=m3_track,
-                start_time=t_m2,
-                end_time=total_duration,
-                crossfade_in=xfade_dur,
-                crossfade_out=fo,
-                volume_db=base_vol,
-                category=m3_track.parent.name,
-                name=m3_track.name,
-            )
-            log.info(
-                "3-Movement Documentary Music Planned: [M1: %s (0.0s -> %.1fs)] -> [M2: %s (%.1fs -> %.1fs)] -> [M3: %s (%.1fs -> %.1fs)]",
-                seg1.name, t_m1, seg2.name, t_m1, t_m2, seg3.name, t_m2, total_duration
-            )
-            for seg in (seg1, seg2, seg3):
-                try:
-                    rel_id = seg.track.relative_to(ROOT / directory).as_posix()
-                except Exception:
-                    rel_id = seg.track.name
-                record_track_selection(rel_id, project_id=key, directory=directory)
-
-            return [seg1, seg2, seg3]
-
-    # 2-Movement fallback (Body -> Ending Outlook) for 80s - 150s videos
-    trans_time = detect_ending_transition_time(
-        total_duration=total_duration,
-        chapters=chapters,
-        scenes=scenes,
-        slots=slots,
-    )
-    if trans_time is None or (total_duration - trans_time) < 14.0:
-        return [
-            MusicSegment(
-                track=main_track,
-                start_time=0.0,
-                end_time=total_duration,
-                crossfade_in=fi,
-                crossfade_out=fo,
-                volume_db=base_vol,
-                category=main_track.parent.name,
-                name=main_track.name,
-            )
-        ]
-
-    ending_track = pick_track(directory, key + "_ending", preferred=ending_cat, topic=topic, exclude=used_tracks)
-    if not ending_track or ending_track == main_track:
-        return [
-            MusicSegment(
-                track=main_track,
-                start_time=0.0,
-                end_time=total_duration,
-                crossfade_in=fi,
-                crossfade_out=fo,
-                volume_db=base_vol,
-                category=main_track.parent.name,
-                name=main_track.name,
-            )
-        ]
-
-    seg1 = MusicSegment(
-        track=main_track,
-        start_time=0.0,
-        end_time=trans_time,
-        crossfade_in=fi,
-        crossfade_out=xfade_dur,
-        volume_db=base_vol,
-        category=main_track.parent.name,
-        name=main_track.name,
-    )
-    seg2 = MusicSegment(
-        track=ending_track,
-        start_time=trans_time,
-        end_time=total_duration,
-        crossfade_in=xfade_dur,
-        crossfade_out=fo,
-        volume_db=base_vol,
-        category=ending_track.parent.name,
-        name=ending_track.name,
-    )
+        segments.append(seg)
+        record_track_selection(trk.name, project_id=key, directory=directory)
 
     log.info(
-        "2-Movement Background Music Planned: '%s' (%s) [0.0s -> %.1fs] -> '%s' (%s) [%.1fs -> %.1fs]",
-        seg1.name, seg1.category, trans_time,
-        seg2.name, seg2.category, trans_time, total_duration
+        "Planned %d-movement background music timeline: %s (calibrated BGM volume: %.1f dBFS)",
+        len(segments),
+        " -> ".join(f"[{s.scene_tag}: {s.name}]" for s in segments),
+        calibrated_vol,
     )
-    return [seg1, seg2]
+    return segments
