@@ -194,20 +194,40 @@ class MotionGraphicsDirector:
             return self._rule_based_fallback(eligible_scenes, scenes, max_quota, fps, density=density)
 
         # Extract and parse JSON
+        raw_scenes = []
         json_match = re.search(r"\{[\s\S]*\}", raw_resp)
-        if not json_match:
-            log.warning("MotionGraphicsDirector LLM returned no JSON block; falling back")
-            return self._rule_based_fallback(eligible_scenes, scenes, max_quota, fps)
+        if json_match:
+            try:
+                parsed = json.loads(json_match.group(0))
+                if isinstance(parsed, dict) and isinstance(parsed.get("scenes"), list):
+                    raw_scenes = parsed.get("scenes", [])
+            except Exception as pe:
+                log.warning("MotionGraphicsDirector JSON parse error: %s; attempting resilient chunk recovery", pe)
 
-        try:
-            parsed = json.loads(json_match.group(0))
-        except Exception as pe:
-            log.warning("MotionGraphicsDirector JSON parse error: %s", pe)
-            return self._rule_based_fallback(eligible_scenes, scenes, max_quota, fps)
+        if not raw_scenes and raw_resp:
+            # Resilient chunk recovery for long / truncated LLM outputs
+            try:
+                dec = json.JSONDecoder()
+                pos = 0
+                while pos < len(raw_resp):
+                    b = raw_resp.find('{', pos)
+                    if b == -1:
+                        break
+                    try:
+                        obj, end = dec.raw_decode(raw_resp[b:])
+                        if isinstance(obj, dict) and ("scene_id" in obj or "sceneType" in obj or "scene_type" in obj):
+                            raw_scenes.append(obj)
+                        pos = b + max(1, end)
+                    except Exception:
+                        pos = b + 1
+                if raw_scenes:
+                    log.info("Resilient chunk recovery salvaged %d motion graphic scene(s) from LLM output", len(raw_scenes))
+            except Exception as rec_err:
+                log.debug("Chunk recovery failed: %s", rec_err)
 
-        raw_scenes = parsed.get("scenes", [])
-        if not isinstance(raw_scenes, list):
-            raw_scenes = []
+        if not raw_scenes:
+            log.warning("MotionGraphicsDirector LLM returned no valid scenes; falling back to rule-based fallback (density=%s)", density)
+            return self._rule_based_fallback(eligible_scenes, scenes, max_quota, fps, density=density)
 
         # Validate with Pydantic and calculate exact frame offsets
         valid_scenes: List[MotionGraphicScene] = []

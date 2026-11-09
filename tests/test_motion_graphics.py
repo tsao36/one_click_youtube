@@ -339,3 +339,110 @@ def test_director_full_density_100_percent_coverage(tmp_path):
     shutil.rmtree(p.dir, ignore_errors=True)
     print("test_director_full_density_100_percent_coverage passed with 100% coverage!")
 
+
+
+def test_director_full_density_truncated_json_salvage():
+    """Verify that truncated LLM output is salvaged and backfilled to 100% Remotion coverage."""
+    from unittest.mock import MagicMock
+    import shutil
+    p = Project.create("test_truncated_json_salvage")
+    try:
+        mock_client = MagicMock()
+        # Simulated truncated JSON response (like hitting token limit mid-generation)
+        mock_client.text.return_value = '''{"scenes": [
+            {
+                "scene_id": 1,
+                "sceneType": "PromptComparisonScene",
+                "props": {
+                    "title": "對比分析",
+                    "leftTitle": "傳統模式",
+                    "leftContent": "頻寬不足",
+                    "rightTitle": "新世代標準",
+                    "rightContent": "四倍躍升"
+                }
+            },
+            {
+                "scene_id": 2,
+                "sceneType": "FrameworkMatrixScene",
+                "props": {
+                    "title": "核心架構四大支柱",
+                    "pillars": [
+                        {"id": "p1", "title": "頻寬", "points": ["8Mbps"]},
+                        {"id": "p2", "title": "延遲", "points": ["次毫秒"]}
+                    ]
+                }
+            },
+            {
+                "scene_id": 3,
+                "sceneType": "WorkflowStepScene",
+                "props": {
+                    "title": "執行流程",
+                    "steps": [
+                        {"stepNumber": "01", "label": "INIT", "detail": "連線初始化"},
+                        {"stepNumber": "02", "label": "RUN", "detail": "高頻寬傳輸"}
+                    ]
+                }
+            },
+            {
+                "scene_id": 4,
+                "sceneType": "KineticQuoteScene",
+                "props": {
+                    "quote": "極致的效能來自於架構簡化",
+                    "author": "系統架構師"
+                }
+            },
+            {"scene_id": 5, "sceneType": "truncated mid-stream...'''
+
+        director = MotionGraphicsDirector(p, client=mock_client)
+        scenes = [
+            Scene(scene_id=1, section="Hook", narration="傳統藍牙傳輸速度受限，但新世代帶來了突破。", audio_duration=5.0),
+            Scene(scene_id=2, section="Architecture", narration="四大核心技術支柱，從實體層到封包重傳機制。", audio_duration=6.0),
+            Scene(scene_id=3, section="Process", narration="第一步建立連線，接著切換高頻寬模式，最後區塊校驗。", audio_duration=4.5),
+            Scene(scene_id=4, section="Quote", narration="極致的效能來自於架構簡化與零拷貝傳輸。", audio_duration=4.0),
+            Scene(scene_id=5, section="Conclusion", narration="想在次世代穿戴市場領先，必須全面理解這套標準。", audio_duration=5.5),
+        ]
+
+        timeline = director.plan_motion_graphics(scenes, density="full")
+
+        # Crucial check: 100% of scenes MUST be covered, none left to fallback images
+        assert len(timeline.scenes) == 5, f"Expected 5/5 scenes covered, got {len(timeline.scenes)}"
+        covered_ids = [s.scene_id for s in timeline.scenes]
+        assert covered_ids == [1, 2, 3, 4, 5]
+
+        # First 4 were salvaged from truncated JSON
+        assert timeline.scenes[0].scene_type == SceneType.PROMPT_COMPARISON
+        assert timeline.scenes[1].scene_type == SceneType.FRAMEWORK_MATRIX
+        assert timeline.scenes[2].scene_type == SceneType.WORKFLOW_STEP
+        assert timeline.scenes[3].scene_type == SceneType.KINETIC_QUOTE
+        # 5th was backfilled cleanly
+        assert timeline.scenes[4].scene_type == SceneType.KINETIC_TYPOGRAPHY
+    finally:
+        shutil.rmtree(p.dir, ignore_errors=True)
+
+
+def test_director_full_density_fallback_100_percent():
+    """Verify that complete LLM failure falls back to rule-based with 100% coverage when density='full'."""
+    from unittest.mock import MagicMock
+    import shutil
+    p = Project.create("test_full_fallback_coverage")
+    try:
+        mock_client = MagicMock()
+        mock_client.text.side_effect = RuntimeError("LLM rate limit / network error")
+
+        director = MotionGraphicsDirector(p, client=mock_client)
+        scenes = [
+            Scene(scene_id=1, section="Hook", narration="四大雲端服務巨頭資本支出合計突破 2000 億美元。", audio_duration=5.0),
+            Scene(scene_id=2, section="Comparison", narration="相較於傳統模式的高昂擴展成本，新世代解方導入了全自動化流線架構。", audio_duration=4.0),
+            Scene(scene_id=3, section="Scale", narration="探針的核心直徑僅有 5 微米，展現出驚人的 20 倍極限尺度差距。", audio_duration=4.5),
+            Scene(scene_id=4, section="Detail", narration="內部構造包含了核心處理單元與訊號隔離基底。", audio_duration=4.0),
+            Scene(scene_id=5, section="Conclusion", narration="這項技術將成為未來的通用基礎設施。", audio_duration=5.5),
+        ]
+
+        timeline = director.plan_motion_graphics(scenes, density="full")
+
+        # 100% of scenes MUST be covered
+        assert len(timeline.scenes) == 5, f"Expected 5/5 scenes covered, got {len(timeline.scenes)}"
+        covered_ids = [s.scene_id for s in timeline.scenes]
+        assert covered_ids == [1, 2, 3, 4, 5]
+    finally:
+        shutil.rmtree(p.dir, ignore_errors=True)
