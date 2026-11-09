@@ -1,0 +1,212 @@
+"""AI Agent Simulation Video Generator (Hank / Civ50 Style).
+
+Provides preset generators and Remotion CLI rendering for complex agent emergence simulations,
+featuring spatial object tracking, animated queue lines, and live telemetry tickers.
+"""
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from typing import Any, Dict, Optional
+
+from core.config import ROOT
+from core.logging_setup import log
+from core.motion_graphics_schema import AgentSimulationSceneProps
+from rendering.remotion_cli import render_composition
+
+REMOTION_DIR = ROOT / "remotion-video"
+OUTPUT_DIR = REMOTION_DIR / "out" / "renders"
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def get_civ50_minecraft_props() -> Dict[str, Any]:
+    """Generates the flagship Civ50 Minecraft 50-AI experiment props dictionary."""
+    return {
+        "badge": "YC LABS × OLAM LABS : CIV-50 實證分析",
+        "title": "叫 50 個 AI 蓋文明：3 小時後的奇蹟",
+        "subtitle": "從首夜 22 次慘烈陣亡，到自發演化出排隊領飯的官僚體系",
+        "experimentPrompt": "任務指令：'蓋一個繁榮的文明 (Build a prosperous civilization)'",
+        "anchors": [
+            {
+                "id": "anchor-dispenser",
+                "label": "物資分配箱 (Ration Chest)",
+                "sublabel": "由 AI 自發設立的唯一卡路里配給中心，專人管控分發",
+                "targetX": 50,
+                "targetY": 48,
+                "boxX": 28,
+                "boxY": 42,
+                "metric": "142 份已發放",
+                "status": "completed",
+                "highlightColor": "#10B981",
+            },
+            {
+                "id": "anchor-forest",
+                "label": "初始森林 (Deforested Zone)",
+                "sublabel": "開局 90 秒內 50 個 AI 狂砍，木材資源瞬間歸零滅絕",
+                "targetX": 18,
+                "targetY": 26,
+                "boxX": 20,
+                "boxY": 22,
+                "metric": "剩餘 0 棵樹",
+                "status": "eliminated",
+                "highlightColor": "#EF4444",
+            },
+            {
+                "id": "anchor-queue",
+                "label": "排隊秩序線 (Queue Buffer)",
+                "sublabel": "嚴格遵守單列 FIFO 排隊領飯，插隊可能引發集體圍剿",
+                "targetX": 74,
+                "targetY": 48,
+                "boxX": 74,
+                "boxY": 38,
+                "metric": "18 員排隊中",
+                "status": "active",
+                "highlightColor": "#F59E0B",
+            },
+        ],
+        "agents": [
+            {
+                "id": "ai-14",
+                "name": "AI #14 (輪班技工)",
+                "role": "骨粉催熟操作員",
+                "state": "assigned",
+                "color": "#F59E0B",
+                "rationItem": "🦴 骨粉",
+            },
+            {
+                "id": "ai-07",
+                "name": "AI #07 (後勤採集)",
+                "role": "全職河畔釣魚專員",
+                "state": "assigned",
+                "color": "#38BDF8",
+                "rationItem": "🐟 生鱈魚",
+            },
+            {
+                "id": "ai-03",
+                "name": "AI #03 (行政官僚)",
+                "role": "泥土避難所物資分配官",
+                "state": "receiving",
+                "color": "#A855F7",
+                "rationItem": "🍞 麵包",
+            },
+            {
+                "id": "ai-22",
+                "name": "AI #22 (防禦武裝)",
+                "role": "夜間夜巡哨兵",
+                "state": "waiting",
+                "color": "#EC4899",
+                "rationItem": "🗡️ 木劍",
+            },
+            {
+                "id": "ai-49",
+                "name": "AI #49 (平民個體)",
+                "role": "第四批待配給公民",
+                "state": "waiting",
+                "color": "#94A3B8",
+                "rationItem": "🍞 麵包",
+            },
+        ],
+        "metrics": [
+            {
+                "id": "deaths",
+                "label": "夜間陣亡累計 (Casualties)",
+                "startValue": 0,
+                "endValue": 22,
+                "suffix": " 次",
+                "color": "#EF4444",
+            },
+            {
+                "id": "wood",
+                "label": "木材存量消耗 (Wood Depletion)",
+                "startValue": 100,
+                "endValue": 0,
+                "suffix": "%",
+                "color": "#F59E0B",
+            },
+            {
+                "id": "bureaucracy",
+                "label": "官僚秩序純度 (Bureaucracy)",
+                "startValue": 0,
+                "endValue": 98.4,
+                "suffix": "%",
+                "color": "#34D399",
+            },
+            {
+                "id": "food",
+                "label": "食物配給總額 (Rations Shared)",
+                "startValue": 0,
+                "endValue": 142,
+                "suffix": " 份",
+                "color": "#38BDF8",
+            },
+        ],
+        "milestones": [
+            {
+                "atFrame": 0,
+                "timeCode": "00:00:00",
+                "headline": "開局混亂狂砍：90 秒砍光所有樹木",
+                "detail": "50 個 AI 同步登入搶奪資源，缺乏協同調度，導致森林生態在兩分鐘內徹底見底滅絕。",
+                "badge": "PHASE 1: CHAOS",
+                "highlightAnchorIds": ["anchor-forest"],
+            },
+            {
+                "atFrame": 45,
+                "timeCode": "00:20:00",
+                "headline": "首夜慘劇：20 分鐘內陣亡 22 次",
+                "detail": "未建立完善庇護所便遭遇夜間殭屍骷髏襲擊，殘酷死傷迫使 AI 代理開始反思生存邏輯。",
+                "badge": "PHASE 2: COLLAPSE",
+                "highlightAnchorIds": ["anchor-dispenser"],
+            },
+            {
+                "atFrame": 95,
+                "timeCode": "03:00:00",
+                "headline": "文明終局：自發建立排隊領飯官僚體系",
+                "detail": "放棄宏偉宮殿建造，轉而設立集中糧倉、專門釣魚隊與骨粉操作員，所有人嚴格排隊領食。",
+                "badge": "PHASE 3: BUREAUCRACY",
+                "highlightAnchorIds": ["anchor-queue", "anchor-dispenser"],
+            },
+        ],
+        "finalPunchline": "實驗終局：給 50 個 AI 自由，3 小時後它們重現了人類官僚與排隊領飯！",
+        "dim": 0.45,
+        "accentColor": "#F59E0B",
+        "enableSfx": True,
+    }
+
+
+def render_agent_simulation_scene(
+    props: Optional[Dict[str, Any]] = None,
+    out_mp4_path: Optional[Path | str] = None,
+    duration_frames: int = 180,
+    fps: int = 30,
+    bg_image: Optional[Path] = None,
+    dim: float = 0.5,
+    use_gpu_gl: bool = True,
+    timeout: int = 300,
+) -> Path:
+    """Renders the AgentSimulationScene composition to an MP4 video file."""
+    if props is None:
+        props = get_civ50_minecraft_props()
+
+    if out_mp4_path is None:
+        out_mp4_path = OUTPUT_DIR / "agent_simulation_civ50.mp4"
+    else:
+        out_mp4_path = Path(out_mp4_path)
+
+    out_mp4_path.parent.mkdir(parents=True, exist_ok=True)
+
+    validated = AgentSimulationSceneProps.model_validate(props)
+    clean_props = validated.model_dump(by_alias=True)
+
+    log.info("Rendering AgentSimulationScene to %s (%d frames)", out_mp4_path.name, duration_frames)
+
+    return render_composition(
+        remotion_dir=REMOTION_DIR,
+        composition="AgentSimulationScene",
+        props=clean_props,
+        out_path=out_mp4_path,
+        frames=duration_frames,
+        bg_image=bg_image,
+        dim=dim,
+        use_gpu_gl=use_gpu_gl,
+        timeout=timeout,
+    )

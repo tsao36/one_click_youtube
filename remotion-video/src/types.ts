@@ -501,3 +501,6 @@ export type VoxKeyStatSceneProps = z.input<typeof VoxKeyStatSceneSchema>;
 
 // Wireless Network Visualization Schemas
 export * from "./wireless/wirelessTypes";
+
+// AI Agent Simulation Archetype Schemas
+export * from "./simulation/simulationTypes";

@@ -19,6 +19,7 @@ class SceneType(str, Enum):
     WORKFLOW_STEP = "WorkflowStepScene"
     KINETIC_TYPOGRAPHY = "KineticTypographyScene"
     # Wireless Protocol & Spectrum Visualizer Archetypes
+    AGENT_SIMULATION = "AgentSimulationScene"
     WIRELESS_NETWORK = "WirelessNetworkScene"
     WIFI_ASSOCIATION = "WifiAssociationScene"
     WIFI7_MLO_STR = "Wifi7MloStrScene"
@@ -250,6 +251,71 @@ class KineticTypographySceneProps(BaseSceneProps):
 
 
 
+
+# AI Agent Simulation Archetype Models (Hank / Civ50 Style)
+class TrackingAnchorModel(BaseModel):
+    id: str = Field(...)
+    label: str = Field(..., min_length=1, max_length=100)
+    sublabel: Optional[str] = Field(default="", max_length=160)
+    target_x: float = Field(..., ge=0.0, le=100.0, alias="targetX")
+    target_y: float = Field(..., ge=0.0, le=100.0, alias="targetY")
+    box_x: float = Field(..., ge=0.0, le=100.0, alias="boxX")
+    box_y: float = Field(..., ge=0.0, le=100.0, alias="boxY")
+    metric: Optional[str] = Field(default="", max_length=60)
+    status: Literal["active", "warning", "eliminated", "completed", "normal"] = Field(default="normal")
+    highlight_color: Optional[str] = Field(default="#38BDF8", alias="highlightColor")
+    model_config = {"populate_by_name": True}
+
+
+class QueuedAgentModel(BaseModel):
+    id: str = Field(...)
+    name: str = Field(..., max_length=80)
+    role: str = Field(..., max_length=100)
+    state: Literal["waiting", "receiving", "assigned", "chaotic"] = Field(default="waiting")
+    color: Optional[str] = Field(default="#38BDF8")
+    ration_item: Optional[str] = Field(default="🍞 Bread", alias="rationItem")
+    model_config = {"populate_by_name": True}
+
+
+class SimulationMetricModel(BaseModel):
+    id: str = Field(...)
+    label: str = Field(..., max_length=60)
+    start_value: float = Field(..., alias="startValue")
+    end_value: float = Field(..., alias="endValue")
+    suffix: Optional[str] = Field(default="")
+    color: Optional[str] = Field(default="#38BDF8")
+    model_config = {"populate_by_name": True}
+
+
+class SimulationMilestoneModel(BaseModel):
+    at_frame: int = Field(default=0, ge=0, alias="atFrame")
+    time_code: str = Field(..., max_length=30, alias="timeCode")
+    headline: str = Field(..., max_length=120)
+    detail: str = Field(..., max_length=300)
+    badge: Optional[str] = Field(default="SIMULATION EVENT")
+    highlight_anchor_ids: List[str] = Field(default_factory=list, alias="highlightAnchorIds")
+    model_config = {"populate_by_name": True}
+
+
+class AgentSimulationSceneProps(BaseSceneProps):
+    title: str = Field(default="50 AI Agents in Sandbox Simulation")
+    subtitle: Optional[str] = Field(default="From early chaos to self-organizing bureaucracy")
+    badge: Optional[str] = Field(default="AI EMERGENCE EXPERIMENT")
+    experiment_prompt: Optional[str] = Field(
+        default="MISSION PROMPT: 'Build a prosperous civilization'", alias="experimentPrompt"
+    )
+    anchors: List[TrackingAnchorModel] = Field(default_factory=list)
+    agents: List[QueuedAgentModel] = Field(default_factory=list)
+    metrics: List[SimulationMetricModel] = Field(default_factory=list)
+    milestones: List[SimulationMilestoneModel] = Field(default_factory=list)
+    final_punchline: Optional[str] = Field(
+        default="RESULT: 3 HOURS LATER -> ORDERLY FOOD QUEUING & BUREAUCRACY", alias="finalPunchline"
+    )
+    enable_sfx: Optional[bool] = Field(default=True, alias="enableSfx")
+    accent_color: Optional[str] = Field(default="#F59E0B", alias="accentColor")
+    model_config = {"populate_by_name": True}
+
+
 # Wireless Traffic & Protocol Models
 class WirelessDeviceModel(BaseModel):
     id: str = Field(...)
@@ -313,6 +379,7 @@ class WirelessSceneProps(BaseSceneProps):
 
 
 PROPS_SCHEMA_MAP = {
+    SceneType.AGENT_SIMULATION: AgentSimulationSceneProps,
     SceneType.WIRELESS_NETWORK: WirelessSceneProps,
     SceneType.WIFI_ASSOCIATION: WirelessSceneProps,
     SceneType.WIFI7_MLO_STR: WirelessSceneProps,

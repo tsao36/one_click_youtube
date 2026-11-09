@@ -1,3 +1,6 @@
+import { AgentSimulationScene } from "./simulation/AgentSimulationScene";
+import { AgentSimulationScenePropsSchema } from "./simulation/simulationTypes";
+import { createCiv50MinecraftPreset } from "./simulation/simulationPresets";
 import { WirelessNetworkScene } from "./wireless/WirelessNetworkScene";
 import { WirelessScenePropsSchema } from "./wireless/wirelessTypes";
 import {
@@ -742,7 +745,17 @@ export const RemotionRoot: React.FC = () => {
         />
       </Folder>
       {/* Wireless Network Visualization Archetypes */}
-      <Folder name="Wireless-Traffic-Archetypes">
+      
+        <Composition
+          id="AgentSimulationScene"
+          component={AgentSimulationScene}
+          schema={AgentSimulationScenePropsSchema}
+          durationInFrames={180}
+          {...videoDimensions}
+          defaultProps={createCiv50MinecraftPreset()}
+        />
+
+<Folder name="Wireless-Traffic-Archetypes">
         <Composition
           id="WirelessNetworkScene"
           component={WirelessNetworkScene}
