@@ -1,3 +1,4 @@
+from core.text_distiller import distill_to_punchline
 """Transcript-driven motion graphic callout extraction for video overlays.
 
 Inspired by fOx Hsiao's tech explainers:
@@ -434,6 +435,11 @@ def extract_motion_callouts(
 
         if not callout_data:
             continue
+
+        # Ensure callout title and subtitle never match the narration/caption verbatim
+        narr_text = sc.narration or ""
+        callout_data["title"] = distill_to_punchline(callout_data.get("title", ""), narr_text, max_chars=16, concept_prefix="核心重點")
+        callout_data["subtitle"] = distill_to_punchline(callout_data.get("subtitle", ""), narr_text, max_chars=22, concept_prefix="觀念解析")
 
         # Avoid showing the exact same auto-extracted card title twice in a row
         title_str = callout_data.get("title", "")

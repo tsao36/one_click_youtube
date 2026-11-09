@@ -6,6 +6,7 @@ Adopts the documentary motion graphics style inspired by fOx Hsiao:
 - Four core signature archetypes: FoxHeaderScene, FoxMetricScene, FoxDataListScene, FoxTimelineScene
 """
 from __future__ import annotations
+from core.text_distiller import distill_to_punchline, sanitize_props_against_caption
 
 import re
 from pathlib import Path
@@ -180,17 +181,21 @@ def extract_card_props(sc: Scene) -> dict[str, Any]:
             {"label": "實務評估與驗證", "value": "已確認", "note": "符合規格要求"}
         ]
 
-    return {
+    narr = (sc.narration or "").strip()
+    distilled_headline = distill_to_punchline(headline or category or "關鍵核心議題", narr, max_chars=16, concept_prefix="核心重點")
+    distilled_subtext = distill_to_punchline(subtext or narr, narr, max_chars=22, concept_prefix="觀念解析")
+
+    out_props = {
         # General props
         "category": category,
-        "headline": headline,
+        "headline": distilled_headline,
         "metric": metric,
         "unit": unit,
         "value": val_str or metric or "100",
-        "subtext": subtext or (sc.narration[:60] if sc.narration else ""),
+        "subtext": distilled_subtext,
         "source": source,
-        "title": headline or category or "關鍵核心議題",
-        "subtitle": subtext or (sc.narration[:60] if sc.narration else ""),
+        "title": distilled_headline,
+        "subtitle": distilled_subtext,
         # fOx Hsiao Metric props
         "badge": category or "核心數據分析",
         "description": headline or subtext or "關鍵數據表現",
@@ -208,6 +213,7 @@ def extract_card_props(sc: Scene) -> dict[str, Any]:
         "middleYear": "",
         "middleLabel": "",
     }
+    return sanitize_props_against_caption(out_props, narr)
 
 
 def auto_select_style_for_scene(sc: Scene, preferred_style: str = "") -> str:
@@ -705,7 +711,7 @@ def render_scene_card(project, sc: Scene, props: dict[str, Any] | None = None, f
     rem_cfg = (project.settings.get("remotion") or {})
     preferred_style = rem_cfg.get("style") or ""
     target_comp = composition or auto_select_style_for_scene(sc, preferred_style=preferred_style)
-    props = props or extract_card_props(sc)
+    props = sanitize_props_against_caption(props or extract_card_props(sc), sc.narration or '')
     bg = project.abs(sc.image.path) if sc.image.status == Status.COMPLETED and sc.image.path else None
     seconds = float(sc.audio_duration or sc.estimated_duration or 6.0) + 0.6
     out_clip = project.path("animation", f"{sc.tag}.mp4")

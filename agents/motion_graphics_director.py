@@ -5,6 +5,7 @@ explanations, selects suitable Remotion components from a controlled registry,
 validates properties with Pydantic schemas, and anchors timing to real TTS audio durations.
 """
 from __future__ import annotations
+from core.text_distiller import sanitize_props_against_caption, distill_to_punchline
 
 import json
 import logging
@@ -61,7 +62,11 @@ DIRECTOR_SYSTEM_PROMPT = """你是一位專門為深度科技科普、AI 工作�
 2. 絕對不可憑空編造數據：必須忠於旁白內容。
 3. 嚴格使用台灣繁體中文 (zh-TW)，避免中國大陸用語（如：視頻->影片、內存->記憶體、芯片->晶片）。
 4. 密度與風格適應：若為 100% Remotion / Gary Chen 模式，請為「每一個被請求的場景」挑選最合適的動態視覺組件（可連續使用，每個場景不可留空），優先交替使用 FrameworkMatrixScene、PromptComparisonScene、WorkflowStepScene、ChatSimulationScene、KineticQuoteScene 與 KineticTypographyScene。
-5. 輸出格式：必須輸出合法的純 JSON 格式，包含一個 "scenes" 陣列。
+5. 【鐵律：動態圖卡金句與文字絕不可照抄旁白字幕】
+   動態圖卡上的文字（特別是 quote, text, highlightPhrase, title, subtitle, takeaway）「絕對不能」與下方旁白字幕完全相同！
+   觀眾下方已有字幕在說話，若畫面中央出現一模一樣的長句會造成嚴重視覺冗餘與閱讀疲勞。
+   畫面文字必須是字幕的「精煉提煉版」、「重點資訊」或「核心觀念摘要」（例如旁白：「國外研究團隊叫 50 個 AI 蓋文明，3 小時後它們在排隊領飯」，圖卡金句應為「自由演化終局：排隊領飯官僚體系」或「自發秩序：糧食配給制」，長度請控制在 16 字以內，嚴禁直接複製旁白完整句子）。
+6. 輸出格式：必須輸出合法的純 JSON 格式，包含一個 "scenes" 陣列。
 
 JSON 格式示範：
 {
@@ -240,6 +245,12 @@ class MotionGraphicsDirector:
                 props = item.get("props", {})
                 if configured_accent:
                     props["accentColor"] = configured_accent
+
+                # Ensure motion graphic text never matches the caption verbatim
+                sc_curr = scene_start_frames.get(sid)
+                target_sc = next((s for s in scenes if s.scene_id == sid), None)
+                if target_sc and target_sc.narration:
+                    props = sanitize_props_against_caption(props, target_sc.narration)
 
                 start_f = scene_start_frames[sid]
                 dur_f = scene_duration_frames[sid]
