@@ -1,3 +1,11 @@
+import { WirelessNetworkScene } from "./wireless/WirelessNetworkScene";
+import { WirelessScenePropsSchema } from "./wireless/wirelessTypes";
+import {
+  createWifiAssociationPreset,
+  createWifi7MloPreset,
+  createBleLifecyclePreset,
+  createWirelessCoexistenceMasterPreset,
+} from "./wireless/wirelessPresets";
 import React from "react";
 import { Composition, Folder } from "remotion";
 import { BranchPathwayScene } from "./BranchPathwayScene";
@@ -733,6 +741,58 @@ export const RemotionRoot: React.FC = () => {
           }}
         />
       </Folder>
+      {/* Wireless Network Visualization Archetypes */}
+      <Folder name="Wireless-Traffic-Archetypes">
+        <Composition
+          id="WirelessNetworkScene"
+          component={WirelessNetworkScene}
+          schema={WirelessScenePropsSchema}
+          durationInFrames={900}
+          {...videoDimensions}
+          defaultProps={createWirelessCoexistenceMasterPreset()}
+        />
+        <Composition
+          id="WifiAssociationScene"
+          component={WirelessNetworkScene}
+          schema={WirelessScenePropsSchema}
+          durationInFrames={300}
+          {...videoDimensions}
+          defaultProps={createWifiAssociationPreset()}
+        />
+        <Composition
+          id="Wifi7MloStrScene"
+          component={WirelessNetworkScene}
+          schema={WirelessScenePropsSchema}
+          durationInFrames={180}
+          {...videoDimensions}
+          defaultProps={createWifi7MloPreset("str")}
+        />
+        <Composition
+          id="Wifi7MloeMlsrScene"
+          component={WirelessNetworkScene}
+          schema={WirelessScenePropsSchema}
+          durationInFrames={180}
+          {...videoDimensions}
+          defaultProps={createWifi7MloPreset("emlsr")}
+        />
+        <Composition
+          id="BleLifecycleScene"
+          component={WirelessNetworkScene}
+          schema={WirelessScenePropsSchema}
+          durationInFrames={210}
+          {...videoDimensions}
+          defaultProps={createBleLifecyclePreset()}
+        />
+        <Composition
+          id="WirelessCoexistenceScene"
+          component={WirelessNetworkScene}
+          schema={WirelessScenePropsSchema}
+          durationInFrames={900}
+          {...videoDimensions}
+          defaultProps={createWirelessCoexistenceMasterPreset()}
+        />
+      </Folder>
+
 
     </>
   );

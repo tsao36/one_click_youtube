@@ -18,6 +18,13 @@ class SceneType(str, Enum):
     KINETIC_QUOTE = "KineticQuoteScene"
     WORKFLOW_STEP = "WorkflowStepScene"
     KINETIC_TYPOGRAPHY = "KineticTypographyScene"
+    # Wireless Protocol & Spectrum Visualizer Archetypes
+    WIRELESS_NETWORK = "WirelessNetworkScene"
+    WIFI_ASSOCIATION = "WifiAssociationScene"
+    WIFI7_MLO_STR = "Wifi7MloStrScene"
+    WIFI7_MLO_EMLSR = "Wifi7MloeMlsrScene"
+    BLE_LIFECYCLE = "BleLifecycleScene"
+    WIRELESS_COEXISTENCE = "WirelessCoexistenceScene"
 
 
 class LayoutType(str, Enum):
@@ -242,7 +249,76 @@ class KineticTypographySceneProps(BaseSceneProps):
     model_config = {"populate_by_name": True}
 
 
+
+# Wireless Traffic & Protocol Models
+class WirelessDeviceModel(BaseModel):
+    id: str = Field(...)
+    name: str = Field(...)
+    role: Literal["ap", "sta", "laptop", "smartphone", "bt_controller", "headphones", "iot"] = Field(default="sta")
+    x: float = Field(default=50.0, ge=0.0, le=100.0)
+    y: float = Field(default=50.0, ge=0.0, le=100.0)
+    mac: Optional[str] = Field(default="")
+    status: Literal["idle", "transmitting", "receiving", "interfered", "backoff", "roaming"] = Field(default="idle")
+    active_band: Literal["2.4GHz", "5GHz", "6GHz", "dual", "tri"] = Field(default="2.4GHz", alias="activeBand")
+    mlo_mode: Literal["none", "str", "emlsr"] = Field(default="none", alias="mloMode")
+    sublabel: Optional[str] = Field(default="")
+    model_config = {"populate_by_name": True}
+
+
+class RadioEventModel(BaseModel):
+    id: str = Field(...)
+    start_frame: int = Field(default=0, ge=0, alias="startFrame")
+    duration_frames: int = Field(default=20, gt=0, alias="durationFrames")
+    protocol: Literal["wifi_80211", "ble", "bt_classic"] = Field(default="wifi_80211")
+    frame_category: Literal["management", "control", "data"] = Field(default="data", alias="frameCategory")
+    frame_subtype: str = Field(default="Data", alias="frameSubtype")
+    source_id: str = Field(..., alias="sourceId")
+    target_id: str = Field(default="broadcast", alias="targetId")
+    channel: Union[int, str] = Field(default=6)
+    frequency_mhz: float = Field(default=2437.0, alias="frequencyMhz")
+    bandwidth_mhz: Optional[float] = Field(default=20.0, alias="bandwidthMhz")
+    link_id: Optional[int] = Field(default=0, alias="linkId")
+    signal_state: Literal["ok", "collision", "lost", "retrying", "coex_blocked", "mlo_switch_pause"] = Field(default="ok", alias="signalState")
+    rssi_dbm: Optional[float] = Field(default=-50.0, alias="rssiDbm")
+    annotation: Optional[str] = Field(default="")
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+    unavailable_fields: List[str] = Field(default_factory=list, alias="unavailableFields")
+    model_config = {"populate_by_name": True}
+
+
+class NarrativeBeatModel(BaseModel):
+    at_frame: int = Field(default=0, ge=0, alias="atFrame")
+    headline: str = Field(...)
+    detail: str = Field(...)
+    highlight_device_ids: List[str] = Field(default_factory=list, alias="highlightDeviceIds")
+    callout_type: Literal["wifi", "ble", "coex", "mlo", "csma", "roam"] = Field(default="wifi", alias="calloutType")
+    model_config = {"populate_by_name": True}
+
+
+class WirelessSceneProps(BaseSceneProps):
+    title: str = Field(default="Wi-Fi & Bluetooth Traffic Visualizer")
+    subtitle: Optional[str] = Field(default="Real-time physical layer and packet protocol choreography")
+    badge: Optional[str] = Field(default="WIRELESS SPECTRUM ENGINE")
+    mode: Literal["simplified", "trace_replay"] = Field(default="simplified")
+    devices: List[WirelessDeviceModel] = Field(default_factory=list)
+    events: List[RadioEventModel] = Field(default_factory=list)
+    narrative_beats: List[NarrativeBeatModel] = Field(default_factory=list, alias="narrativeBeats")
+    show_spectrum_timeline: Optional[bool] = Field(default=True, alias="showSpectrumTimeline")
+    show_sequence_diagram: Optional[bool] = Field(default=True, alias="showSequenceDiagram")
+    show_coex_monitor: Optional[bool] = Field(default=True, alias="showCoexMonitor")
+    show_mlo_dual_links: Optional[bool] = Field(default=False, alias="showMloDualLinks")
+    time_scale: Optional[float] = Field(default=1.0, alias="timeScale")
+    caption_audio_src: Optional[str] = Field(default="", alias="captionAudioSrc")
+    model_config = {"populate_by_name": True}
+
+
 PROPS_SCHEMA_MAP = {
+    SceneType.WIRELESS_NETWORK: WirelessSceneProps,
+    SceneType.WIFI_ASSOCIATION: WirelessSceneProps,
+    SceneType.WIFI7_MLO_STR: WirelessSceneProps,
+    SceneType.WIFI7_MLO_EMLSR: WirelessSceneProps,
+    SceneType.BLE_LIFECYCLE: WirelessSceneProps,
+    SceneType.WIRELESS_COEXISTENCE: WirelessSceneProps,
     SceneType.BRANCH_PATHWAY: BranchPathwaySceneProps,
     SceneType.LEADER_CALLOUT: LeaderCalloutSceneProps,
     SceneType.SCALE_COMPARE: ScaleCompareSceneProps,
