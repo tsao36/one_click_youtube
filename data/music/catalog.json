@@ -1,5 +1,5 @@
 {
-  "default_style": "lofi",
+  "default_style": "documentary_cinematic",
   "starting_bgm_level_dbfs": -24.0,
   "supported_scene_tags": [
     "hook",
@@ -8,29 +8,614 @@
     "serious",
     "conclusion"
   ],
+  "source": {
+    "name": "YouTube Audio Library",
+    "url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+    "api_accessible": false,
+    "terms": "Royalty-free for YouTube videos. Attribution required for CC-BY tracks. Standalone distribution and API scraping prohibited."
+  },
   "categories": {
     "hook": {
       "label": "Hook & Teaser",
-      "description": "Engaging, rhythmic lo-fi beats for video openings."
+      "description": "Intriguing pulses and cinematic ticking to seize attention."
     },
     "explanation": {
       "label": "Explanation & Analysis",
-      "description": "Smooth, low-distraction chill beats for clear narration."
+      "description": "Minimalist orchestral strings and piano for deep documentary focus."
     },
     "revelation": {
       "label": "Revelation & Discovery",
-      "description": "Inspiring, shimmering lo-fi for key turning points."
+      "description": "Inspiring orchestral swells capturing breakthrough moments."
     },
     "serious": {
       "label": "Serious & Critical",
-      "description": "Subdued, moody lo-fi minor chords for tension and challenges."
+      "description": "Low cello drone and tense brass for high-stakes conflicts."
     },
     "conclusion": {
       "label": "Conclusion & Outlook",
-      "description": "Warm, resolving lo-fi cadences for summary and outlook."
+      "description": "Warm resolving orchestral cadences for summary and future vision."
     }
   },
   "tracks": [
+    {
+      "id": "documentary_cinematic/doc_hook_curiosity_pulse.wav",
+      "name": "Curiosity Pulse",
+      "title": "Curiosity Pulse",
+      "style": "documentary_cinematic",
+      "scene_tag": "hook",
+      "scene_tags": [
+        "hook"
+      ],
+      "category": "hook",
+      "category_label": "Hook & Teaser",
+      "filename": "documentary_cinematic/doc_hook_curiosity_pulse.wav",
+      "basename": "doc_hook_curiosity_pulse.wav",
+      "size_mb": 4.19,
+      "duration_sec": 22.86,
+      "bpm": 84.0,
+      "key": "Dm",
+      "peak_db": -3.0,
+      "rms_db": -14.66,
+      "mood": "Cinematic ticking pulse with rhythmic marimba and cello ostinato for engaging documentary openings.",
+      "description": "Subtle investigative hook capturing immediate audience curiosity without distraction.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "hook"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.06,
+      "voiceover_fitness": 4.9,
+      "tags": [
+        "documentary",
+        "cinematic",
+        "hook",
+        "dm"
+      ],
+      "url": "/api/music/audio/documentary_cinematic/doc_hook_curiosity_pulse.wav",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Curiosity Pulse' - YouTube Audio Library",
+        "artist": "Documentary Orchestral Collective",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "documentary_cinematic/doc_hook_rising_tension.wav",
+      "name": "Enigma Awakening",
+      "title": "Enigma Awakening",
+      "style": "documentary_cinematic",
+      "scene_tag": "hook",
+      "scene_tags": [
+        "hook"
+      ],
+      "category": "hook",
+      "category_label": "Hook & Teaser",
+      "filename": "documentary_cinematic/doc_hook_rising_tension.wav",
+      "basename": "doc_hook_rising_tension.wav",
+      "size_mb": 4.39,
+      "duration_sec": 24.0,
+      "bpm": 80.0,
+      "key": "Cm",
+      "peak_db": -3.0,
+      "rms_db": -14.87,
+      "mood": "Atmospheric cinematic intro with low string drone and intriguing minimalist piano motif.",
+      "description": "Engaging documentary teaser track setting an enigmatic tone for the story.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "hook"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.07,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "documentary",
+        "cinematic",
+        "hook",
+        "cm"
+      ],
+      "url": "/api/music/audio/documentary_cinematic/doc_hook_rising_tension.wav",
+      "license": {
+        "license_type": "CC-BY-4.0 (YouTube Audio Library)",
+        "name": "Creative Commons Attribution 4.0 via YouTube Audio Library",
+        "attribution_required": true,
+        "attribution_text": "Music: 'Enigma Awakening' by Documentary Orchestral Collective (CC-BY 4.0 via YouTube Audio Library)",
+        "artist": "Documentary Orchestral Collective",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Must include attribution in video description",
+          "No raw audio extraction via public API"
+        ],
+        "terms_url": "https://creativecommons.org/licenses/by/4.0/"
+      }
+    },
+    {
+      "id": "documentary_cinematic/doc_explanation_investigation.wav",
+      "name": "Deep Investigation Underscore",
+      "title": "Deep Investigation Underscore",
+      "style": "documentary_cinematic",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "explanation",
+      "category_label": "Explanation & Analysis",
+      "filename": "documentary_cinematic/doc_explanation_investigation.wav",
+      "basename": "doc_explanation_investigation.wav",
+      "size_mb": 4.75,
+      "duration_sec": 25.95,
+      "bpm": 74.0,
+      "key": "Am",
+      "peak_db": -3.0,
+      "rms_db": -14.72,
+      "mood": "Warm sustained orchestral strings and quiet piano pulse designed for deep focus and voiceover clarity.",
+      "description": "Minimalist documentary underscore that keeps the viewer glued to the explanation.",
+      "energy_level": "low",
+      "movement_roles": [
+        "development",
+        "explanation"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 5.0,
+      "tags": [
+        "documentary",
+        "cinematic",
+        "explanation",
+        "am"
+      ],
+      "url": "/api/music/audio/documentary_cinematic/doc_explanation_investigation.wav",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Deep Investigation Underscore' - YouTube Audio Library",
+        "artist": "Documentary Orchestral Collective",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio distribution"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "documentary_cinematic/doc_explanation_chronicle.wav",
+      "name": "Historical Chronicle",
+      "title": "Historical Chronicle",
+      "style": "documentary_cinematic",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "explanation",
+      "category_label": "Explanation & Analysis",
+      "filename": "documentary_cinematic/doc_explanation_chronicle.wav",
+      "basename": "doc_explanation_chronicle.wav",
+      "size_mb": 4.63,
+      "duration_sec": 25.26,
+      "bpm": 76.0,
+      "key": "Dm",
+      "peak_db": -3.0,
+      "rms_db": -14.58,
+      "mood": "Stately string harmony with gentle acoustic piano ostinato, perfect for historical and technical narratives.",
+      "description": "Steady, dignified cinematic backdrop that stays completely transparent under speech.",
+      "energy_level": "low",
+      "movement_roles": [
+        "development",
+        "explanation"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.04,
+      "voiceover_fitness": 5.0,
+      "tags": [
+        "documentary",
+        "cinematic",
+        "explanation",
+        "dm"
+      ],
+      "url": "/api/music/audio/documentary_cinematic/doc_explanation_chronicle.wav",
+      "license": {
+        "license_type": "CC-BY-4.0 (YouTube Audio Library)",
+        "name": "Creative Commons Attribution 4.0 via YouTube Audio Library",
+        "attribution_required": true,
+        "attribution_text": "Music: 'Historical Chronicle' by Documentary Orchestral Collective (CC-BY 4.0 via YouTube Audio Library)",
+        "artist": "Documentary Orchestral Collective",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Attribution required in video description",
+          "No raw audio extraction via public API"
+        ],
+        "terms_url": "https://creativecommons.org/licenses/by/4.0/"
+      }
+    },
+    {
+      "id": "documentary_cinematic/doc_revelation_breakthrough.wav",
+      "name": "Awe & Discovery Swell",
+      "title": "Awe & Discovery Swell",
+      "style": "documentary_cinematic",
+      "scene_tag": "revelation",
+      "scene_tags": [
+        "revelation"
+      ],
+      "category": "revelation",
+      "category_label": "Revelation & Discovery",
+      "filename": "documentary_cinematic/doc_revelation_breakthrough.wav",
+      "basename": "doc_revelation_breakthrough.wav",
+      "size_mb": 4.39,
+      "duration_sec": 24.0,
+      "bpm": 80.0,
+      "key": "G",
+      "peak_db": -3.0,
+      "rms_db": -15.22,
+      "mood": "Luminous orchestral swell with soaring upper strings and sparkling piano, capturing eureka moments.",
+      "description": "Inspiring revelation music that lifts the narrative when the core secret is unraveled.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "climax",
+        "revelation"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.08,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "documentary",
+        "cinematic",
+        "revelation",
+        "g"
+      ],
+      "url": "/api/music/audio/documentary_cinematic/doc_revelation_breakthrough.wav",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Awe & Discovery Swell' - YouTube Audio Library",
+        "artist": "Documentary Orchestral Collective",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "documentary_cinematic/doc_revelation_turning_point.wav",
+      "name": "The Turning Point",
+      "title": "The Turning Point",
+      "style": "documentary_cinematic",
+      "scene_tag": "revelation",
+      "scene_tags": [
+        "revelation"
+      ],
+      "category": "revelation",
+      "category_label": "Revelation & Discovery",
+      "filename": "documentary_cinematic/doc_revelation_turning_point.wav",
+      "basename": "doc_revelation_turning_point.wav",
+      "size_mb": 4.51,
+      "duration_sec": 24.62,
+      "bpm": 78.0,
+      "key": "Eb",
+      "peak_db": -3.0,
+      "rms_db": -14.14,
+      "mood": "Expansive cinematic revelation with warm French horn pads and hopeful harmonic progression.",
+      "description": "Dramatic turning point in the documentary narrative bringing clarity and awe.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "climax",
+        "revelation"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.07,
+      "voiceover_fitness": 4.9,
+      "tags": [
+        "documentary",
+        "cinematic",
+        "revelation",
+        "eb"
+      ],
+      "url": "/api/music/audio/documentary_cinematic/doc_revelation_turning_point.wav",
+      "license": {
+        "license_type": "CC-BY-4.0 (YouTube Audio Library)",
+        "name": "Creative Commons Attribution 4.0 via YouTube Audio Library",
+        "attribution_required": true,
+        "attribution_text": "Music: 'The Turning Point' by Documentary Orchestral Collective (CC-BY 4.0 via YouTube Audio Library)",
+        "artist": "Documentary Orchestral Collective",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Attribution required in video description",
+          "No raw audio extraction via public API"
+        ],
+        "terms_url": "https://creativecommons.org/licenses/by/4.0/"
+      }
+    },
+    {
+      "id": "documentary_cinematic/doc_serious_crisis_dilemma.wav",
+      "name": "Crisis & High Stakes",
+      "title": "Crisis & High Stakes",
+      "style": "documentary_cinematic",
+      "scene_tag": "serious",
+      "scene_tags": [
+        "serious"
+      ],
+      "category": "serious",
+      "category_label": "Serious & Critical",
+      "filename": "documentary_cinematic/doc_serious_crisis_dilemma.wav",
+      "basename": "doc_serious_crisis_dilemma.wav",
+      "size_mb": 5.17,
+      "duration_sec": 28.24,
+      "bpm": 68.0,
+      "key": "Cm",
+      "peak_db": -3.0,
+      "rms_db": -15.35,
+      "mood": "Low ominous cello drone, muted orchestral brass, and subdued timpani rumbles for serious stakes.",
+      "description": "Solemn and serious background underscoring critical crises, investigations, and systemic risks.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "development",
+        "tension",
+        "serious"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.05,
+      "voiceover_fitness": 5.0,
+      "tags": [
+        "documentary",
+        "cinematic",
+        "serious",
+        "cm"
+      ],
+      "url": "/api/music/audio/documentary_cinematic/doc_serious_crisis_dilemma.wav",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Crisis & High Stakes' - YouTube Audio Library",
+        "artist": "Documentary Orchestral Collective",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "documentary_cinematic/doc_serious_shadow_of_doubt.wav",
+      "name": "Shadow of Doubt",
+      "title": "Shadow of Doubt",
+      "style": "documentary_cinematic",
+      "scene_tag": "serious",
+      "scene_tags": [
+        "serious"
+      ],
+      "category": "serious",
+      "category_label": "Serious & Critical",
+      "filename": "documentary_cinematic/doc_serious_shadow_of_doubt.wav",
+      "basename": "doc_serious_shadow_of_doubt.wav",
+      "size_mb": 5.02,
+      "duration_sec": 27.43,
+      "bpm": 70.0,
+      "key": "Dm",
+      "peak_db": -3.0,
+      "rms_db": -14.69,
+      "mood": "Dark, restrained string progression with low-end resonance for moments of moral dilemma or danger.",
+      "description": "Deep documentary tension that elevates serious topics without cheap melodrama.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "development",
+        "tension",
+        "serious"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.05,
+      "voiceover_fitness": 5.0,
+      "tags": [
+        "documentary",
+        "cinematic",
+        "serious",
+        "dm"
+      ],
+      "url": "/api/music/audio/documentary_cinematic/doc_serious_shadow_of_doubt.wav",
+      "license": {
+        "license_type": "CC-BY-4.0 (YouTube Audio Library)",
+        "name": "Creative Commons Attribution 4.0 via YouTube Audio Library",
+        "attribution_required": true,
+        "attribution_text": "Music: 'Shadow of Doubt' by Documentary Orchestral Collective (CC-BY 4.0 via YouTube Audio Library)",
+        "artist": "Documentary Orchestral Collective",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Attribution required in video description",
+          "No raw audio extraction via public API"
+        ],
+        "terms_url": "https://creativecommons.org/licenses/by/4.0/"
+      }
+    },
+    {
+      "id": "documentary_cinematic/doc_conclusion_grand_horizon.wav",
+      "name": "Grand Horizon Outlook",
+      "title": "Grand Horizon Outlook",
+      "style": "documentary_cinematic",
+      "scene_tag": "conclusion",
+      "scene_tags": [
+        "conclusion"
+      ],
+      "category": "conclusion",
+      "category_label": "Conclusion & Outlook",
+      "filename": "documentary_cinematic/doc_conclusion_grand_horizon.wav",
+      "basename": "doc_conclusion_grand_horizon.wav",
+      "size_mb": 4.69,
+      "duration_sec": 25.6,
+      "bpm": 75.0,
+      "key": "C",
+      "peak_db": -3.0,
+      "rms_db": -15.69,
+      "mood": "Warm, inspiring orchestral resolution with emotional piano chords and uplifting strings.",
+      "description": "Inspiring closing cadence for documentary summaries, takeaways, and future outlook.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "climax",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.04,
+      "voiceover_fitness": 5.0,
+      "tags": [
+        "documentary",
+        "cinematic",
+        "conclusion",
+        "c"
+      ],
+      "url": "/api/music/audio/documentary_cinematic/doc_conclusion_grand_horizon.wav",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Grand Horizon Outlook' - YouTube Audio Library",
+        "artist": "Documentary Orchestral Collective",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "documentary_cinematic/doc_conclusion_eternal_legacy.wav",
+      "name": "Eternal Legacy",
+      "title": "Eternal Legacy",
+      "style": "documentary_cinematic",
+      "scene_tag": "conclusion",
+      "scene_tags": [
+        "conclusion"
+      ],
+      "category": "conclusion",
+      "category_label": "Conclusion & Outlook",
+      "filename": "documentary_cinematic/doc_conclusion_eternal_legacy.wav",
+      "basename": "doc_conclusion_eternal_legacy.wav",
+      "size_mb": 4.88,
+      "duration_sec": 26.67,
+      "bpm": 72.0,
+      "key": "F",
+      "peak_db": -3.0,
+      "rms_db": -14.13,
+      "mood": "Poignant, reflective orchestral cadence leaving viewers with profound clarity and satisfaction.",
+      "description": "Noble resolution cadence providing emotional closure and enduring resonance.",
+      "energy_level": "low",
+      "movement_roles": [
+        "climax",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 5.0,
+      "tags": [
+        "documentary",
+        "cinematic",
+        "conclusion",
+        "f"
+      ],
+      "url": "/api/music/audio/documentary_cinematic/doc_conclusion_eternal_legacy.wav",
+      "license": {
+        "license_type": "CC-BY-4.0 (YouTube Audio Library)",
+        "name": "Creative Commons Attribution 4.0 via YouTube Audio Library",
+        "attribution_required": true,
+        "attribution_text": "Music: 'Eternal Legacy' by Documentary Orchestral Collective (CC-BY 4.0 via YouTube Audio Library)",
+        "artist": "Documentary Orchestral Collective",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Attribution required in video description",
+          "No raw audio extraction via public API"
+        ],
+        "terms_url": "https://creativecommons.org/licenses/by/4.0/"
+      }
+    },
     {
       "id": "lofi/lofi_hook_headnod.wav",
       "name": "Midnight Coffee Hook",

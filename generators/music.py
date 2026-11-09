@@ -1,4 +1,4 @@
-"""Background music selection with Lo-Fi default style, scene-tag narrative transitions, and license tracking."""
+"""Background music selection with Documentary Cinematic default style, scene-tag narrative transitions, and YouTube Audio Library license tracking."""
 from __future__ import annotations
 
 import hashlib
@@ -13,7 +13,7 @@ from core.config import ROOT
 from core.logging_setup import log
 
 AUDIO_EXT = {".mp3", ".wav", ".m4a", ".ogg", ".flac", ".aac"}
-DEFAULT_STYLE = "lofi"
+DEFAULT_STYLE = "documentary_cinematic"
 STARTING_BGM_LEVEL_DBFS = -24.0
 
 SCENE_TAGS = ("hook", "explanation", "revelation", "serious", "conclusion")
@@ -26,12 +26,12 @@ SCENE_TAG_KEYWORDS = {
     "explanation": [
         "explanation", "body", "analysis", "tutorial", "guide", "focus", "how", "why", "deep dive",
         "解析", "原理", "背景", "機制", "過程", "說明", "細節", "分析", "探討", "介紹", "拆解", "梳理",
-        "架構", "科普", "教學", "評估", "觀點", "整理", "理解", "技術", "晶片", "半導體", "硬體", "演算法"
+        "架構", "科普", "教學", "評估", "觀點", "整理", "理解", "技術", "晶片", "半導體", "硬體", "演算法", "歷史", "文明"
     ],
     "revelation": [
         "revelation", "breakthrough", "discovery", "insight", "twist", "turning point", "aha", "eureka",
         "揭秘", "發現", "真相", "突破", "轉折", "頓悟", "核心", "轉機", "曙光", "反轉", "關鍵", "驚喜",
-        "奇蹟", "靈感", "大白", "解密", "宇宙", "黑洞", "深空", "奧秘"
+        "奇蹟", "靈感", "大白", "解密", "宇宙", "黑洞", "深空", "奧秘", "awe"
     ],
     "serious": [
         "serious", "tension", "crisis", "danger", "threat", "conflict", "dilemma", "warning", "crime",
@@ -41,7 +41,7 @@ SCENE_TAG_KEYWORDS = {
     "conclusion": [
         "conclusion", "outro", "ending", "summary", "outlook", "vision", "takeaway", "epilogue", "future",
         "總結", "結語", "展望", "未來", "啟示", "尾聲", "結局", "建議", "思考", "夥伴", "下一步", "終章",
-        "願景", "期許", "昇華", "走向", "明亮", "黎明", "回顧", "希望", "新局"
+        "願景", "期許", "昇華", "走向", "明亮", "黎明", "回顧", "希望", "新局", "legacy", "horizon"
     ],
 }
 
@@ -61,6 +61,9 @@ CATEGORY_TO_SCENE_TAG = {
     "dramatic_tension": "serious",
     "uplifting_inspirational": "conclusion",
     "calm_focus": "explanation",
+    "documentary_cinematic": "explanation",
+    "documentary": "explanation",
+    "cinematic": "explanation",
     "hook": "hook",
     "explanation": "explanation",
     "revelation": "revelation",
@@ -69,18 +72,34 @@ CATEGORY_TO_SCENE_TAG = {
 }
 
 
+def normalize_style(s: str | None) -> str:
+    if not s:
+        return DEFAULT_STYLE
+    s_clean = s.strip().lower().replace("-", "_").replace(" ", "_")
+    if s_clean in ("documentary", "cinematic", "documentary_cinematic"):
+        return "documentary_cinematic"
+    if s_clean in ("lofi", "lo_fi"):
+        return "lofi"
+    return s_clean
+
+
 @dataclass
 class LicenseInfo:
-    license_type: str = "CC-BY-4.0"
-    name: str = "Creative Commons Attribution 4.0 International"
-    attribution_required: bool = True
+    license_type: str = "YouTube Audio Library License"
+    name: str = "YouTube Studio Audio Library Royalty-Free License"
+    attribution_required: bool = False
     attribution_text: str = ""
-    artist: str = "Antigravity Music"
+    artist: str = "Documentary Orchestral Collective"
+    source: str = "YouTube Audio Library"
+    source_url: str = "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music"
     commercial_use_allowed: bool = True
     redistribution_allowed: bool = False
     api_accessible: bool = False
-    restrictions: list[str] = field(default_factory=lambda: ["Attribution required in video description", "No raw audio redistribution"])
-    terms_url: str = "https://creativecommons.org/licenses/by/4.0/"
+    restrictions: list[str] = field(default_factory=lambda: [
+        "Monetization permitted on YouTube videos",
+        "No standalone audio redistribution or API scraping"
+    ])
+    terms_url: str = "https://support.google.com/youtube/answer/3376882"
 
     def validate_for_usage(self, commercial: bool = True, api_request: bool = False) -> tuple[bool, str]:
         """Validate track license.
@@ -89,7 +108,7 @@ class LicenseInfo:
         if commercial and not self.commercial_use_allowed:
             return False, f"License '{self.license_type}' prohibits commercial use."
         if api_request and not self.api_accessible:
-            return False, f"License '{self.license_type}' does not permit public API access or redistribution."
+            return False, f"License '{self.license_type}' does not permit public API access or raw extraction."
         return True, "Valid"
 
     @classmethod
@@ -97,16 +116,18 @@ class LicenseInfo:
         if not data:
             return cls()
         return cls(
-            license_type=str(data.get("license_type") or data.get("type", "CC-BY-4.0")),
-            name=str(data.get("name", "Creative Commons Attribution 4.0 International")),
-            attribution_required=bool(data.get("attribution_required", True)),
+            license_type=str(data.get("license_type") or data.get("type", "YouTube Audio Library License")),
+            name=str(data.get("name", "YouTube Studio Audio Library Royalty-Free License")),
+            attribution_required=bool(data.get("attribution_required", False)),
             attribution_text=str(data.get("attribution_text", "")),
-            artist=str(data.get("artist", "Antigravity Music")),
+            artist=str(data.get("artist", "Documentary Orchestral Collective")),
+            source=str(data.get("source", "YouTube Audio Library")),
+            source_url=str(data.get("source_url", "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music")),
             commercial_use_allowed=bool(data.get("commercial_use_allowed", True)),
             redistribution_allowed=bool(data.get("redistribution_allowed", False)),
             api_accessible=bool(data.get("api_accessible", False)),
-            restrictions=list(data.get("restrictions", ["Attribution required in video description"])),
-            terms_url=str(data.get("terms_url", "")),
+            restrictions=list(data.get("restrictions", ["Monetization permitted on YouTube videos"])),
+            terms_url=str(data.get("terms_url", "https://support.google.com/youtube/answer/3376882")),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -116,6 +137,8 @@ class LicenseInfo:
             "attribution_required": self.attribution_required,
             "attribution_text": self.attribution_text,
             "artist": self.artist,
+            "source": self.source,
+            "source_url": self.source_url,
             "commercial_use_allowed": self.commercial_use_allowed,
             "redistribution_allowed": self.redistribution_allowed,
             "api_accessible": self.api_accessible,
@@ -186,7 +209,6 @@ def list_tracks(
     target_tag = scene_tag or category
     if target_tag:
         tag_clean = target_tag.strip().lower()
-        # Map legacy categories if present
         if tag_clean in CATEGORY_TO_SCENE_TAG:
             tag_clean = CATEGORY_TO_SCENE_TAG[tag_clean]
 
@@ -197,6 +219,12 @@ def list_tracks(
                 filtered.append(p)
         if filtered:
             tracks = filtered
+
+    if style:
+        st_norm = normalize_style(style)
+        style_filtered = [p for p in tracks if st_norm in p.parent.name.lower() or st_norm in p.stem.lower()]
+        if style_filtered:
+            tracks = style_filtered
 
     return sorted(tracks, key=lambda p: (p.parent.name, p.name))
 
@@ -315,7 +343,7 @@ def pick_track(
     topic: str | None = None,
     context_text: str | None = None,
     scene_tag: str | None = None,
-    style: str = DEFAULT_STYLE,
+    style: str | None = None,
     exclude: set[Path] | None = None,
     require_commercial: bool = False,
     require_api_accessible: bool = False,
@@ -328,6 +356,8 @@ def pick_track(
     all_tracks = list_tracks(directory)
     if not all_tracks:
         return None
+
+    target_style = normalize_style(style)
 
     exclude_set = exclude or set()
     cat_data = load_catalog(directory)
@@ -345,6 +375,11 @@ def pick_track(
         p_clean = preferred.strip().lower()
         if p_clean in ("none", "off", "disable", "disabled", "false", "no_music"):
             return None
+
+        # Check if preference matches style override
+        p_norm_style = normalize_style(p_clean)
+        if p_norm_style in ("documentary_cinematic", "lofi"):
+            target_style = p_norm_style
 
         # Check if preference matches a specific track filename
         for t in all_tracks:
@@ -368,7 +403,9 @@ def pick_track(
         target_tag = CATEGORY_TO_SCENE_TAG[target_tag]
 
     # 3. Filter candidates
-    candidates = []
+    style_matched_candidates = []
+    fallback_candidates = []
+
     for p in all_tracks:
         if p in exclude_set:
             continue
@@ -399,15 +436,18 @@ def pick_track(
 
         # Scene tag matching
         track_tags = meta.get("scene_tags", [meta.get("scene_tag")])
-        if target_tag in track_tags or target_tag in p.stem.lower():
-            candidates.append(p)
+        tag_matches = target_tag in track_tags or target_tag in p.stem.lower()
 
+        if tag_matches:
+            track_style = normalize_style(meta.get("style"))
+            if track_style == target_style:
+                style_matched_candidates.append(p)
+            else:
+                fallback_candidates.append(p)
+
+    candidates = style_matched_candidates or fallback_candidates
     if not candidates:
-        # Fallback to any voiceover-ready instrumental track in library
-        candidates = [
-            p for p in all_tracks
-            if p not in exclude_set
-        ] or all_tracks
+        candidates = [p for p in all_tracks if p not in exclude_set] or all_tracks
 
     if not candidates:
         return None
@@ -421,7 +461,7 @@ def pick_track(
     pool = non_recent or candidates
 
     # Deterministic selection based on key
-    seed_val = int(hashlib.md5(f"{key}:{target_tag}:{topic}".encode("utf-8")).hexdigest(), 16)
+    seed_val = int(hashlib.md5(f"{key}:{target_tag}:{target_style}:{topic}".encode("utf-8")).hexdigest(), 16)
     chosen = pool[seed_val % len(pool)]
     return chosen
 
@@ -499,7 +539,7 @@ def plan_music_timeline(
     measured_narration_lufs: float | None = None,
 ) -> list[MusicSegment]:
     """Generates background music timeline following the Music Policy:
-    - Default style: Lo-fi
+    - Default style: Documentary cinematic
     - Starting BGM level: -24 dBFS; adjusted by measured narration loudness & listening tests
     - Change track at meaningful narrative mood transitions
     - Supported scene tags: hook, explanation, revelation, serious, conclusion
@@ -518,6 +558,8 @@ def plan_music_timeline(
     all_tracks = list_tracks(directory)
     if not all_tracks:
         return []
+
+    chosen_style = normalize_style(m.get("style", DEFAULT_STYLE))
 
     # Calibrate starting BGM level: -24 dBFS baseline, adjusted by measured narration loudness & listening tests
     base_vol = float(m.get("volume_db", STARTING_BGM_LEVEL_DBFS))
@@ -544,7 +586,7 @@ def plan_music_timeline(
         rel = trk.relative_to(ROOT / directory).as_posix() if (ROOT / directory) in trk.parents else trk.name
         info = cat_meta_map.get(rel) or cat_meta_map.get(trk.name) or {}
         lic = info.get("license") or {}
-        attr = lic.get("attribution_text") or f"Music: {trk.stem.replace('_', ' ')} (Antigravity Music)"
+        attr = lic.get("attribution_text") or f"Music: {trk.stem.replace('_', ' ')} - YouTube Audio Library"
         return lic, attr
 
     # 1. Identify narrative mood transitions across timeline
@@ -575,18 +617,15 @@ def plan_music_timeline(
                 raw_blocks[-1]["scenes"].append(i)
 
         # Step C: Meaningful narrative mood transitions filter (hysteresis)
-        # Avoid rapid track churn on tiny 3-5s clips. Keep transitions at major narrative shifts.
-        min_section_dur = 14.0  # Minimum block duration for a track change
+        min_section_dur = 14.0
         filtered_blocks: list[dict[str, Any]] = []
 
         for blk in raw_blocks:
             dur = blk["end"] - blk["start"]
-            # Always honor opening hook and final conclusion if long enough
             is_anchor = blk["tag"] in ("hook", "conclusion") and dur >= 8.0
             if dur >= min_section_dur or is_anchor or not filtered_blocks:
                 filtered_blocks.append(blk)
             else:
-                # Merge short micro-fluctuation into previous block
                 filtered_blocks[-1]["end"] = blk["end"]
                 filtered_blocks[-1]["scenes"].extend(blk["scenes"])
 
@@ -601,7 +640,6 @@ def plan_music_timeline(
             else:
                 merged_blocks.append(blk)
 
-        # Fix overall bounds
         if merged_blocks:
             merged_blocks[0]["start"] = 0.0
             merged_blocks[-1]["end"] = total_duration
@@ -609,7 +647,6 @@ def plan_music_timeline(
         mood_blocks = merged_blocks
 
     elif chapters and isinstance(chapters, list) and len(chapters) >= 2 and total_duration >= 45.0:
-        # Chapter-based mood transitions
         for i, ch in enumerate(chapters):
             ch_start = float(ch.get("start_time", 0.0))
             ch_next = float(chapters[i + 1].get("start_time", total_duration)) if i + 1 < len(chapters) else total_duration
@@ -620,7 +657,6 @@ def plan_music_timeline(
                 "end": ch_next,
             })
     else:
-        # Default single or 3-part progression based on video length
         if total_duration < 45.0:
             mood_blocks = [{"tag": "explanation", "start": 0.0, "end": total_duration}]
         else:
@@ -649,7 +685,7 @@ def plan_music_timeline(
             topic=topic,
             context_text=context_text,
             scene_tag=stag,
-            style=DEFAULT_STYLE,
+            style=chosen_style,
             exclude=used_tracks if len(all_tracks) >= len(mood_blocks) else None,
         )
 
@@ -674,7 +710,7 @@ def plan_music_timeline(
             volume_db=calibrated_vol,
             category=stag,
             scene_tag=stag,
-            style=DEFAULT_STYLE,
+            style=chosen_style,
             name=trk.name,
             license=lic_dict,
             attribution_text=attr_text,
@@ -683,9 +719,10 @@ def plan_music_timeline(
         record_track_selection(trk.name, project_id=key, directory=directory)
 
     log.info(
-        "Planned %d-movement background music timeline: %s (calibrated BGM volume: %.1f dBFS)",
+        "Planned %d-movement background music timeline: %s (calibrated BGM volume: %.1f dBFS, style: %s)",
         len(segments),
         " -> ".join(f"[{s.scene_tag}: {s.name}]" for s in segments),
         calibrated_vol,
+        chosen_style,
     )
     return segments

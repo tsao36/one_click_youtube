@@ -25,6 +25,7 @@ from generators.music import (
     get_recent_tracks,
     list_tracks,
     load_catalog,
+    normalize_style,
     pick_track,
     plan_music_timeline,
     record_track_selection,
@@ -45,7 +46,6 @@ def sample_narration_audio(tmp_path) -> Path:
     amplitude = 32767.0 * 0.16
     for i in range(n_samples):
         t = i / sr
-        # Syllable modulation (speech cadence)
         cadence = 0.5 + 0.5 * math.sin(2 * math.pi * 3.5 * t)
         val = int(amplitude * cadence * (math.sin(2 * math.pi * 180 * t) + 0.4 * math.sin(2 * math.pi * 360 * t)))
         val = max(-32767, min(32767, val))
@@ -65,12 +65,12 @@ def sample_narration_audio(tmp_path) -> Path:
 
 def test_bgm_intelligibility_level_calibration():
     """Verify starting BGM level is -24 dBFS baseline and adjusts based on measured narration and listening tests."""
-    # 1. Default baseline
     assert STARTING_BGM_LEVEL_DBFS == -24.0
+    assert DEFAULT_STYLE == "documentary_cinematic"
     base = calculate_calibrated_bgm_level()
     assert base == -24.0
 
-    # 2. Normal speech narration (-16 dBFS) -> keeps -24 dBFS (8 dB voice headroom)
+    # Normal speech narration (-16 dBFS) -> maintains -24 dBFS (8 dB voice headroom)
     lvl_normal = calculate_calibrated_bgm_level(
         base_level_dbfs=-24.0,
         narration_loudness_db=-16.0,
@@ -78,7 +78,7 @@ def test_bgm_intelligibility_level_calibration():
     )
     assert lvl_normal == -24.0
 
-    # 3. Soft/quiet narration (-22 dBFS) -> BGM is ducked lower to -30 dBFS to preserve intelligibility
+    # Soft/quiet narration (-22 dBFS) -> BGM is ducked lower to -30 dBFS to preserve speech intelligibility
     lvl_quiet = calculate_calibrated_bgm_level(
         base_level_dbfs=-24.0,
         narration_loudness_db=-22.0,
@@ -87,7 +87,7 @@ def test_bgm_intelligibility_level_calibration():
     assert lvl_quiet == -30.0
     assert -22.0 - lvl_quiet >= 8.0  # Guarantees voice headroom
 
-    # 4. Listening test calibration adjustment (+1.5 dB, -2.0 dB)
+    # Listening test calibration adjustment (+1.5 dB, -2.5 dB)
     lvl_adjusted = calculate_calibrated_bgm_level(
         base_level_dbfs=-24.0,
         narration_loudness_db=-16.0,
@@ -100,18 +100,17 @@ def test_bgm_instrumental_and_low_distraction(sample_narration_audio):
     """Verify that all tracks in the library are instrumental, loop-friendly, and free of distracting vocals."""
     catalog = load_catalog("data/music")
     tracks = catalog.get("tracks", [])
-    assert len(tracks) >= 5, "Music library should have replacement tracks"
+    assert len(tracks) >= 10, "Music library should have curated tracks"
 
     for t in tracks:
-        # Zero vocals during narration
         assert t.get("instrumental") is True, f"Track {t.get('name')} must be instrumental"
-        assert t.get("vocals") is False, f"Track {t.get('name')} must not contain vocals"
+        assert t.get("vocals") is False, f"Track {t.get('name')} must not contain vocals during narration"
         assert t.get("is_voiceover_ready") is True, f"Track {t.get('name')} must be voiceover ready"
         assert t.get("is_distracting") is False, f"Track {t.get('name')} must not be distracting"
         assert float(t.get("distraction_prob", 0.0)) <= 0.20, f"Track {t.get('name')} distraction probability too high"
         assert t.get("loop_friendly") is True, f"Track {t.get('name')} must be loop-friendly"
 
-    # Verify narration loudness measurement on synthetic speech
+    # Verify narration loudness measurement
     loudness = measure_audio_loudness(sample_narration_audio)
     assert "mean_volume" in loudness
     assert loudness["mean_volume"] < -10.0
@@ -129,7 +128,6 @@ def test_scene_tag_detection():
     assert detect_scene_tag("面臨崩盤危機與地緣政治衝突黑幕") == "serious"
     assert detect_scene_tag("總結全文啟示與未來願景展望") == "conclusion"
 
-    # From Scene-like object with explicit dramatic_beat
     sc_hook = SimpleNamespace(dramatic_beat="hook", section="", narration="")
     assert detect_scene_tag(sc_hook) == "hook"
 
@@ -142,23 +140,22 @@ def test_scene_tag_detection():
 
 def test_track_change_at_meaningful_narrative_mood_transitions():
     """Verify Music Policy: change track at meaningful narrative mood transitions with short crossfades."""
-    # Create a realistic 5-movement video timeline (Hook -> Explanation -> Serious -> Revelation -> Conclusion)
     scenes = [
         # Movement 1: Hook (0s -> 18s)
-        SimpleNamespace(scene_tag="hook", section="Intro", narration="Are you ready for the shocking truth?"),
-        SimpleNamespace(scene_tag="hook", section="Intro", narration="Let's find out how it all began."),
+        SimpleNamespace(scene_tag="hook", section="Intro", narration="The unsolved puzzle of the cosmic anomaly."),
+        SimpleNamespace(scene_tag="hook", section="Intro", narration="What did the instruments detect?"),
         # Movement 2: Explanation (18s -> 60s)
-        SimpleNamespace(scene_tag="explanation", section="Analysis", narration="First, let us examine the mechanical breakdown."),
-        SimpleNamespace(scene_tag="explanation", section="Analysis", narration="The architecture consists of three distinct layers."),
+        SimpleNamespace(scene_tag="explanation", section="Analysis", narration="Let us examine the spectral breakdown."),
+        SimpleNamespace(scene_tag="explanation", section="Analysis", narration="The historical documentation reveals a clear timeline."),
         # Movement 3: Serious / Crisis (60s -> 95s)
-        SimpleNamespace(scene_tag="serious", section="Crisis", narration="However, a critical vulnerability was exposed."),
-        SimpleNamespace(scene_tag="serious", section="Crisis", narration="The entire network faced imminent collapse."),
+        SimpleNamespace(scene_tag="serious", section="Crisis", narration="Suddenly, critical errors cascaded through the system."),
+        SimpleNamespace(scene_tag="serious", section="Crisis", narration="A devastating financial and technical collapse was imminent."),
         # Movement 4: Revelation (95s -> 130s)
-        SimpleNamespace(scene_tag="revelation", section="Breakthrough", narration="Suddenly, an unexpected breakthrough occurred!"),
-        SimpleNamespace(scene_tag="revelation", section="Breakthrough", narration="The core secret was finally revealed."),
+        SimpleNamespace(scene_tag="revelation", section="Breakthrough", narration="Then, the breakthrough discovery emerged!"),
+        SimpleNamespace(scene_tag="revelation", section="Breakthrough", narration="The core mechanism was revealed."),
         # Movement 5: Conclusion (130s -> 155s)
-        SimpleNamespace(scene_tag="conclusion", section="Outlook", narration="Looking forward, the future holds immense promise."),
-        SimpleNamespace(scene_tag="conclusion", section="Outlook", narration="That concludes our investigation today."),
+        SimpleNamespace(scene_tag="conclusion", section="Outlook", narration="Looking ahead, this foundation transforms future research."),
+        SimpleNamespace(scene_tag="conclusion", section="Outlook", narration="That concludes our chronicle today."),
     ]
     slots = [
         SimpleNamespace(start=0.0, duration=9.0),
@@ -176,26 +173,23 @@ def test_track_change_at_meaningful_narrative_mood_transitions():
 
     segments = plan_music_timeline(
         directory="data/music",
-        key="test_transition_proj",
+        key="test_cinematic_transition_proj",
         total_duration=total_dur,
         scenes=scenes,
         slots=slots,
-        music_settings={"enabled": True, "crossfade_duration": 2.0},
+        music_settings={"enabled": True, "style": "documentary_cinematic", "crossfade_duration": 2.0},
     )
 
-    # Must contain distinct movements matching the narrative transitions
     assert len(segments) == 5, f"Expected 5 narrative movements, got {len(segments)}"
     tags = [s.scene_tag for s in segments]
     assert tags == ["hook", "explanation", "serious", "revelation", "conclusion"]
 
-    # Verify short crossfades applied (1.5s - 2.5s)
-    for i, s in enumerate(segments):
+    # Verify short crossfades (1.5s - 2.5s)
+    for s in segments:
         assert 1.2 <= s.crossfade_in <= 2.5
         assert 1.2 <= s.crossfade_out <= 2.5
-        # Verify calibrated volume
         assert s.volume_db == -24.0
-        # Verify style is default lofi
-        assert s.style == DEFAULT_STYLE
+        assert s.style == "documentary_cinematic"
 
     # Verify timeline continuity without gaps
     for i in range(len(segments) - 1):
@@ -206,7 +200,7 @@ def test_meaningful_transitions_filter_micro_fluctuations():
     """Verify that brief 3-second micro-fluctuations do not cause jarring track jitter."""
     scenes = [
         SimpleNamespace(scene_tag="explanation", section="A", narration="Step 1"),
-        SimpleNamespace(scene_tag="serious", section="Brief Alert", narration="Quick warning"),  # Only 4 seconds!
+        SimpleNamespace(scene_tag="serious", section="Brief Alert", narration="Quick warning"),
         SimpleNamespace(scene_tag="explanation", section="A", narration="Step 2"),
     ]
     slots = [
@@ -216,13 +210,12 @@ def test_meaningful_transitions_filter_micro_fluctuations():
     ]
     segments = plan_music_timeline(
         directory="data/music",
-        key="test_hysteresis_proj",
+        key="test_hysteresis_cinematic",
         total_duration=44.0,
         scenes=scenes,
         slots=slots,
-        music_settings={"enabled": True},
+        music_settings={"enabled": True, "style": "documentary_cinematic"},
     )
-    # The 4-second micro-spike should be merged; no jittery 3-track switching
     assert len(segments) == 1
     assert segments[0].scene_tag == "explanation"
 
@@ -232,14 +225,13 @@ def test_meaningful_transitions_filter_micro_fluctuations():
 # ==============================================================================
 
 def test_audio_mix_true_peak_no_clipping(sample_narration_audio, tmp_path):
-    """Verify that mixing narration + Lo-fi BGM with ducking maintains True Peak < 0 dBFS (no digital clipping)."""
-    tracks = list_tracks("data/music")
-    assert tracks, "Music tracks must exist"
+    """Verify that mixing narration + Documentary Cinematic BGM maintains True Peak < 0 dBFS (no digital clipping)."""
+    tracks = list_tracks("data/music", style="documentary_cinematic")
+    assert tracks, "Documentary cinematic tracks must exist"
     bgm_track = tracks[0]
 
-    out_mix = tmp_path / "mixed_test_output.wav"
+    out_mix = tmp_path / "mixed_cinematic_output.wav"
 
-    # FFmpeg DSP mastering chain: speech EQ notch (-3dB at 1.8kHz) + sidechain ducking + loudnorm TP=-1.5
     duck_filter = (
         "[1:a]aresample=48000,aformat=channel_layouts=stereo,loudnorm=I=-24:TP=-2,"
         "atrim=0.0:8.0,asetpts=PTS-STARTPTS,afade=t=in:d=1.5,afade=t=out:st=6.5:d=1.5[mus_bed];"
@@ -269,11 +261,10 @@ def test_audio_mix_true_peak_no_clipping(sample_narration_audio, tmp_path):
 
     assert out_mix.exists(), "Mixed output file should be created"
 
-    # Measure output loudness and peak
     loudness = measure_audio_loudness(out_mix)
     max_vol = loudness.get("max_volume", 0.0)
 
-    # Must be strictly below 0 dBFS (safe peak margin <= -1.0 dBFS)
+    # Must be strictly below 0 dBFS (safe True Peak margin <= -1.0 dBFS)
     assert max_vol < 0.0, f"Audio clipping detected! max_volume={max_vol} dBFS >= 0.0 dBFS"
     assert max_vol <= -1.0, f"Expected True Peak margin <= -1.0 dBFS, got {max_vol}"
 
@@ -282,56 +273,60 @@ def test_audio_mix_true_peak_no_clipping(sample_narration_audio, tmp_path):
 # 4. LICENSE & ATTRIBUTION METADATA HANDLING TESTS
 # ==============================================================================
 
-def test_license_metadata_tracking_and_restrictions():
+def test_license_metadata_tracking_and_youtube_audio_library():
     """Verify that royalty-free is NOT assumed to be unrestricted or API-accessible."""
     catalog = load_catalog("data/music")
     tracks = catalog.get("tracks", [])
 
+    # Catalog source check
+    src = catalog.get("source", {})
+    assert "YouTube Audio Library" in src.get("name", "")
+    assert "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music" in src.get("url", "")
+    # YouTube Audio Library is NOT open API accessible
+    assert src.get("api_accessible") is False
+
+    yt_lic_found = False
     cc_by_found = False
-    cc0_found = False
 
     for t in tracks:
         lic = t.get("license", {})
-        assert "license_type" in lic, f"Track {t.get('name')} missing license_type"
-        assert "attribution_required" in lic
+        assert "license_type" in lic
         assert "commercial_use_allowed" in lic
         assert "api_accessible" in lic
         assert "restrictions" in lic
 
         lic_obj = LicenseInfo.from_dict(lic)
 
-        # Check CC-BY vs CC0 handling
-        if lic.get("license_type") == "CC-BY-4.0":
+        # Do not assume royalty-free means unrestricted or API-accessible!
+        assert lic_obj.api_accessible is False or lic.get("license_type") == "CC0-1.0"
+        ok_com, _ = lic_obj.validate_for_usage(commercial=True, api_request=False)
+        assert ok_com is True, "Commercial use on YouTube should be permitted"
+
+        if "YouTube Audio Library License" in lic.get("license_type"):
+            yt_lic_found = True
+            assert lic_obj.attribution_required is False
+            ok_api, _ = lic_obj.validate_for_usage(commercial=True, api_request=True)
+            assert ok_api is False, "YouTube Audio Library tracks cannot be extracted via public API"
+
+        elif "CC-BY" in lic.get("license_type"):
             cc_by_found = True
             assert lic_obj.attribution_required is True
             assert len(lic_obj.attribution_text) > 0
-            # CC-BY raw audio is restricted from unauthenticated public API harvesting
-            assert lic_obj.api_accessible is False
-            ok, msg = lic_obj.validate_for_usage(commercial=True, api_request=True)
-            assert ok is False, "CC-BY track should restrict open raw API redistribution"
 
-        elif lic.get("license_type") == "CC0-1.0":
-            cc0_found = True
-            assert lic_obj.attribution_required is False
-            assert lic_obj.api_accessible is True
-            ok, msg = lic_obj.validate_for_usage(commercial=True, api_request=True)
-            assert ok is True
-
-    assert cc_by_found, "Library should include CC-BY tracks with attribution tracking"
-    assert cc0_found, "Library should include CC0 public domain tracks"
+    assert yt_lic_found, "Should contain standard YouTube Audio Library tracks"
+    assert cc_by_found, "Should contain CC-BY tracks requiring attribution"
 
 
 def test_youtube_uploader_attribution_generation(tmp_path):
     """Verify that planned music segments correctly emit attribution in video descriptions."""
     segments = plan_music_timeline(
         directory="data/music",
-        key="yt_attr_test",
+        key="yt_cinematic_attr_test",
         total_duration=60.0,
-        music_settings={"enabled": True},
+        music_settings={"enabled": True, "style": "documentary_cinematic"},
     )
     assert segments, "Music segments planned"
 
-    # Create dummy project
     plan_dicts = [s.to_dict() for s in segments]
     proj_dir = tmp_path / "test_proj"
     proj_dir.mkdir(parents=True, exist_ok=True)
@@ -351,9 +346,7 @@ def test_youtube_uploader_attribution_generation(tmp_path):
     lines = collect_project_asset_attributions(mock_proj)
     desc = "\n".join(lines)
 
-    # Attribution section should be present
     assert "背景音樂引用" in desc
-    # Track attribution text should be rendered
     first_attr = segments[0].attribution_text
     assert first_attr in desc or segments[0].name in desc
 
@@ -362,18 +355,16 @@ def test_youtube_uploader_attribution_generation(tmp_path):
 # 5. API ENDPOINTS TEST
 # ==============================================================================
 
-def test_api_music_endpoints_with_lofi_library():
-    """Verify FastAPI music endpoints serve the new Lo-Fi tracks and category structure."""
+def test_api_music_endpoints_with_documentary_library():
+    """Verify FastAPI music endpoints serve the new Documentary Cinematic tracks."""
     data = api_server.get_music_tracks()
     assert "tracks" in data
     assert "categories" in data
-    assert data["total"] >= 5
+    assert data["total"] >= 10
 
-    # Check that categories include the supported scene tags
     for tag in ("hook", "explanation", "revelation", "serious", "conclusion"):
         assert tag in data["categories"], f"Category {tag} should be present in API"
 
-    # Verify audio streaming endpoint works
     first = data["tracks"][0]
     res = api_server.stream_music_audio(first["filename"])
     assert Path(res.path).exists()
