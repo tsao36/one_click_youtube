@@ -1,4 +1,3 @@
-from core.text_distiller import distill_to_punchline
 """Transcript-driven motion graphic callout extraction for video overlays.
 
 Inspired by fOx Hsiao's tech explainers:
@@ -14,6 +13,7 @@ from core.logging_setup import log
 from core.models import Scene
 from core.taiwan_mandarin import normalize_to_taiwan_mandarin
 from rendering.transitions import Slot
+from core.text_distiller import distill_to_punchline
 
 SECTION_ZH_MAP = {
     "hook": "開場核心懸念",
