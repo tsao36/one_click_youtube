@@ -208,6 +208,31 @@
         </div>
       </div>
 
+      <!-- HIGH-VISIBILITY: Author's Take / What's My Take (DIRECTLY VISIBLE IN CREATOR) -->
+      <div id="creator-author-take-card" style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(30, 20, 10, 0.5) 100%); border: 1.5px solid rgba(245, 158, 11, 0.45); border-radius: var(--radius-lg); padding: 14px 18px; margin-top: 14px; margin-bottom: 16px; box-shadow: 0 4px 14px rgba(245, 158, 11, 0.12);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="background: #f59e0b; color: #1c1511; font-size: 11px; font-weight: 900; padding: 2px 7px; border-radius: 4px; letter-spacing: 0.05em;">
+              WHAT'S MY TAKE
+            </span>
+            <label style="font-weight: 700; font-size: 14px; color: #fde68a; margin: 0; display: flex; align-items: center; gap: 6px;">
+              <span>💡 作者獨家觀點與結語 (What's My Take · 賦予影片靈魂與個人風格)</span>
+            </label>
+          </div>
+          <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
+            <label style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-size: 12px; color: #38bdf8; font-weight: 600;">
+              <input type="checkbox" id="creator-include-author-take" checked style="cursor: pointer; width: 14px; height: 14px;">
+              <span>啟用結尾觀點章節</span>
+            </label>
+            <label style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer; color: #facc15; font-size: 11.5px; font-weight: 600;">
+              <input type="checkbox" id="creator-pause-for-conclusion" style="cursor: pointer; width: 14px; height: 14px;">
+              <span>⏸️ 進入結尾前暫停輸入</span>
+            </label>
+          </div>
+        </div>
+        <textarea id="creator-author-conclusion" rows="2" placeholder="在此輸入您對本專題的獨家觀點、批判性思考或哲學總結（例如：這場審判並非正義的終點，而是地緣政治妥協的開端……）。AI 將在影片結尾以第一人稱深刻演繹，並配搭金句動態圖卡！若留空，AI 將自動提煉具深度的作者觀點。" style="width: 100%; box-sizing: border-box; font-size: 13px; line-height: 1.5; background: rgba(5, 8, 15, 0.85); border: 1px solid rgba(245, 158, 11, 0.4); border-radius: var(--radius); padding: 9px 12px; color: #f8fafc; resize: vertical;"></textarea>
+      </div>
+
       <!-- 3. Primary Action Row with Collapsible Advanced Settings Toggle -->
       <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 14px; border-top: 1px solid var(--border-subtle); flex-wrap: wrap; gap: 12px; margin-bottom: 4px;">
         <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
@@ -424,26 +449,7 @@
               </div>
             </div>
 
-            <!-- Author Conclusion / What's My Take Session -->
-            <div style="margin-top: 14px; padding-top: 14px; border-top: 1px dashed rgba(148, 163, 184, 0.25);">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 8px;">
-                <label style="font-weight: 700; font-size: 13px; color: #fde68a; display: flex; align-items: center; gap: 6px; margin: 0;">
-                  <span>💡 作者獨家觀點與結語 (Author's Take · 賦予影片靈魂與個人風格)</span>
-                  <span class="badge" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid #f59e0b; font-size: 11px;">獨家觀點</span>
-                </label>
-                <label style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-size: 12px; color: #38bdf8;">
-                  <input type="checkbox" id="creator-include-author-take" checked style="cursor: pointer;">
-                  <span>啟用結尾觀點章節</span>
-                </label>
-              </div>
-              <textarea id="creator-author-conclusion" rows="3" placeholder="（選填）請輸入您對本專題的獨家觀點、批判性思考或哲學總結（例如：這場審判並非正義的終點，而是地緣政治妥協的開端……）。若留空，AI 將自動提煉具深度的作者觀點。" style="width: 100%; box-sizing: border-box; font-size: 12.5px; line-height: 1.5; background: rgba(5, 8, 15, 0.85); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: var(--radius); padding: 8px 12px; color: #f8fafc; resize: vertical;"></textarea>
-              <div style="display: flex; justify-content: flex-end; align-items: center; margin-top: 4px;">
-                <label style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer; color: #facc15; font-size: 11.5px;">
-                  <input type="checkbox" id="creator-pause-for-conclusion" style="cursor: pointer;">
-                  <span>⏸️ 進入結尾章節前暫停，讓我手動輸入最終觀點</span>
-                </label>
-              </div>
-            </div>
+
           </div>
         </div>
 

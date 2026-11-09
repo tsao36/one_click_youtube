@@ -1490,6 +1490,16 @@
       if (pSel) pSel.value = pId;
 
       document.getElementById('global-hero-banner').style.display = 'block';
+      if (pId) {
+        apiJson('/api/projects/' + pId).then(proj => {
+          if (proj && proj.settings) {
+            const conclEl = document.getElementById('creator-author-conclusion');
+            if (conclEl && proj.settings.author_conclusion) {
+              conclEl.value = proj.settings.author_conclusion;
+            }
+          }
+        }).catch(() => {});
+      }
       const studioTab = document.getElementById('tab-studio');
       if (studioTab && studioTab.classList.contains('active')) {
         loadStageStudio();
@@ -10793,7 +10803,22 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
         `;
       } else if (stKey === 'script') {
         const scriptMd = data.script_md || '';
+        const authorConcl = (data.settings && data.settings.author_conclusion) || (currentProject && currentProject.data && currentProject.data.settings && currentProject.data.settings.author_conclusion) || '';
         bodyHtml += `
+          <!-- Author's Take / What's My Take in Stage Studio -->
+          <div style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(20, 25, 40, 0.7) 100%); border: 1.5px solid rgba(245, 158, 11, 0.45); border-radius: 8px; padding: 12px 14px; margin-bottom: 16px; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.1);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 8px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="background: #f59e0b; color: #1c1511; font-size: 11px; font-weight: 900; padding: 2px 7px; border-radius: 4px;">WHAT'S MY TAKE</span>
+                <span style="font-size: 13.5px; font-weight: 700; color: #fde68a;">💡 作者獨家觀點與結語 (What's My Take)</span>
+              </div>
+              <button type="button" class="btn" onclick="saveStudioAuthorConclusion()" style="background: #f59e0b; color: #1c1511; font-weight: 800; font-size: 12px; padding: 5px 12px; border: none; border-radius: 4px; cursor: pointer;">
+                💾 儲存作者觀點
+              </button>
+            </div>
+            <textarea id="studio-author-conclusion" rows="2" placeholder="在此輸入您對本專題的獨家觀點、批判性思考或哲學總結（例如：這場審判並非正義的終點，而是地緣政治妥協的開端……）。點擊右上方按鈕儲存！" style="width: 100%; box-sizing: border-box; font-size: 13px; line-height: 1.5; background: #04070e; border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 4px; padding: 8px 12px; color: #fff;">${escapeHtml(authorConcl)}</textarea>
+          </div>
+
           <div style="margin-bottom: 16px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
               <label style="font-weight: 600; color: #cbd5e1;">YouTube Narration Script (Markdown):</label>
