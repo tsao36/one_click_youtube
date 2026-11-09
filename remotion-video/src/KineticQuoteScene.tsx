@@ -34,6 +34,11 @@ export const KineticQuoteScene: React.FC<KineticQuoteSceneProps> = ({
     ? quote.split(highlightPhrase)
     : [quote];
 
+  // Dynamic quote font sizing
+  const quoteLen = (quote || "").length;
+  const quoteFontSize = quoteLen < 70 ? 44 : quoteLen < 140 ? 38 : 32;
+  const quoteLineHeight = quoteLen < 70 ? 1.45 : 1.55;
+
   return (
     <AbsoluteFill
       style={{
@@ -70,19 +75,19 @@ export const KineticQuoteScene: React.FC<KineticQuoteSceneProps> = ({
             style={{
               display: "inline-flex",
               alignItems: "center",
-              gap: 8,
-              padding: "6px 16px",
+              gap: 10,
+              padding: "7px 18px",
               borderRadius: 20,
-              background: "rgba(245, 158, 11, 0.15)",
-              border: `1px solid ${accentColor}60`,
+              background: "rgba(245, 158, 11, 0.16)",
+              border: `1.5px solid ${accentColor}65`,
               color: accentColor,
-              fontSize: 13,
+              fontSize: 16,
               fontWeight: 700,
               letterSpacing: "0.08em",
               textTransform: "uppercase",
             }}
           >
-            <span>💡</span>
+            <span style={{ fontSize: 18 }}>💡</span>
             {badge}
           </div>
         </div>
@@ -94,11 +99,11 @@ export const KineticQuoteScene: React.FC<KineticQuoteSceneProps> = ({
             transform: `scale(${cScale})`,
             width: "100%",
             maxWidth: 1300,
-            padding: "50px 64px",
+            padding: "54px 70px",
             borderRadius: 24,
-            background: "linear-gradient(180deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%)",
-            border: `1px solid ${accentColor}40`,
-            boxShadow: `0 24px 60px rgba(0,0,0,0.5), 0 0 40px ${accentColor}15`,
+            background: "linear-gradient(180deg, rgba(30, 41, 59, 0.85) 0%, rgba(15, 23, 42, 0.95) 100%)",
+            border: `1.5px solid ${accentColor}45`,
+            boxShadow: `0 28px 70px rgba(0,0,0,0.55), 0 0 45px ${accentColor}20`,
             backdropFilter: "blur(20px)",
             position: "relative",
             display: "flex",
@@ -110,9 +115,9 @@ export const KineticQuoteScene: React.FC<KineticQuoteSceneProps> = ({
           <div
             style={{
               position: "absolute",
-              top: 24,
+              top: 20,
               left: 40,
-              fontSize: 80,
+              fontSize: 100,
               lineHeight: 1,
               fontFamily: "Georgia, serif",
               color: `${accentColor}30`,
@@ -125,8 +130,8 @@ export const KineticQuoteScene: React.FC<KineticQuoteSceneProps> = ({
           {/* Quote Body */}
           <div
             style={{
-              fontSize: 34,
-              lineHeight: 1.5,
+              fontSize: quoteFontSize,
+              lineHeight: quoteLineHeight,
               fontWeight: 700,
               color: "#FFFFFF",
               letterSpacing: "-0.01em",
@@ -140,9 +145,9 @@ export const KineticQuoteScene: React.FC<KineticQuoteSceneProps> = ({
                   style={{
                     color: accentColor,
                     background: `rgba(245, 158, 11, ${hlOpacity})`,
-                    padding: "2px 8px",
-                    borderRadius: 8,
-                    borderBottom: `2px solid ${accentColor}`,
+                    padding: "2px 10px",
+                    borderRadius: 10,
+                    borderBottom: `3px solid ${accentColor}`,
                   }}
                 >
                   {highlightPhrase}
@@ -159,25 +164,25 @@ export const KineticQuoteScene: React.FC<KineticQuoteSceneProps> = ({
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 18,
-              borderTop: "1px solid rgba(255, 255, 255, 0.08)",
-              paddingTop: 24,
+              gap: 20,
+              borderTop: "1px solid rgba(255, 255, 255, 0.12)",
+              paddingTop: 26,
             }}
           >
             {/* Avatar Circle */}
             <div
               style={{
-                width: 56,
-                height: 56,
+                width: 64,
+                height: 64,
                 borderRadius: "50%",
                 background: `linear-gradient(135deg, ${accentColor} 0%, #D97706 100%)`,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                fontSize: 22,
+                fontSize: 24,
                 fontWeight: 800,
                 color: "#FFFFFF",
-                boxShadow: `0 4px 16px ${accentColor}40`,
+                boxShadow: `0 4px 18px ${accentColor}45`,
                 overflow: "hidden",
                 flexShrink: 0,
               }}
@@ -190,11 +195,11 @@ export const KineticQuoteScene: React.FC<KineticQuoteSceneProps> = ({
             </div>
 
             <div>
-              <div style={{ fontSize: 20, fontWeight: 700, color: "#F8FAFC" }}>
+              <div style={{ fontSize: 26, fontWeight: 700, color: "#F8FAFC" }}>
                 {author}
               </div>
               {authorTitle && (
-                <div style={{ fontSize: 14, color: "#94A3B8", marginTop: 4 }}>
+                <div style={{ fontSize: 18, color: "#CBD5E1", marginTop: 4, fontWeight: 500 }}>
                   {authorTitle}
                 </div>
               )}

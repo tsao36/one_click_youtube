@@ -95,27 +95,27 @@ export const FrameworkMatrixScene: React.FC<FrameworkMatrixSceneProps> = ({
             style={{
               display: "inline-flex",
               alignItems: "center",
-              gap: 8,
-              padding: "6px 14px",
+              gap: 10,
+              padding: "7px 18px",
               borderRadius: 20,
-              background: "rgba(56, 189, 248, 0.12)",
-              border: `1px solid ${accentColor}55`,
+              background: "rgba(56, 189, 248, 0.14)",
+              border: `1.5px solid ${accentColor}60`,
               color: accentColor,
-              fontSize: 13,
+              fontSize: 16,
               fontWeight: 700,
               letterSpacing: "0.08em",
               textTransform: "uppercase",
               marginBottom: 14,
             }}
           >
-            <span style={{ fontSize: 10 }}>●</span>
+            <span style={{ fontSize: 12 }}>●</span>
             {badge}
           </div>
 
           {/* Title */}
           <div
             style={{
-              fontSize: 48,
+              fontSize: 52,
               fontWeight: 800,
               letterSpacing: "-0.02em",
               lineHeight: 1.15,
@@ -129,10 +129,11 @@ export const FrameworkMatrixScene: React.FC<FrameworkMatrixSceneProps> = ({
           {subtitle && (
             <div
               style={{
-                fontSize: 20,
+                fontSize: 24,
                 color: "#94A3B8",
-                marginTop: 8,
-                fontWeight: 400,
+                marginTop: 10,
+                fontWeight: 500,
+                lineHeight: 1.4,
               }}
             >
               {subtitle}
@@ -162,6 +163,7 @@ export const FrameworkMatrixScene: React.FC<FrameworkMatrixSceneProps> = ({
             const pY = interpolate(pSpring, [0, 1], [40, 0]);
 
             const isActive = pillar.id === activePillarId || pillar.isHighlighted;
+            const ptFontSize = pillars.length <= 2 ? 22 : pillars.length === 3 ? 19 : 17;
 
             return (
               <div
@@ -171,16 +173,16 @@ export const FrameworkMatrixScene: React.FC<FrameworkMatrixSceneProps> = ({
                   transform: `translateY(${pY}px) scale(${pScale})`,
                   display: "flex",
                   flexDirection: "column",
-                  padding: 28,
-                  borderRadius: 20,
+                  padding: 30,
+                  borderRadius: 22,
                   background: isActive
-                    ? "linear-gradient(180deg, rgba(30, 41, 59, 0.75) 0%, rgba(15, 23, 42, 0.85) 100%)"
-                    : "rgba(15, 23, 42, 0.55)",
+                    ? "linear-gradient(180deg, rgba(30, 41, 59, 0.85) 0%, rgba(15, 23, 42, 0.95) 100%)"
+                    : "rgba(15, 23, 42, 0.65)",
                   border: isActive
-                    ? `1.5px solid ${accentColor}`
-                    : "1px solid rgba(255, 255, 255, 0.08)",
+                    ? `2px solid ${accentColor}`
+                    : "1px solid rgba(255, 255, 255, 0.1)",
                   boxShadow: isActive
-                    ? `0 12px 40px rgba(56, 189, 248, 0.18), inset 0 1px 0 rgba(255,255,255,0.15)`
+                    ? `0 14px 44px rgba(56, 189, 248, 0.22), inset 0 1px 0 rgba(255,255,255,0.2)`
                     : "0 8px 30px rgba(0,0,0,0.35)",
                   backdropFilter: "blur(16px)",
                   position: "relative",
@@ -195,7 +197,7 @@ export const FrameworkMatrixScene: React.FC<FrameworkMatrixSceneProps> = ({
                       top: 0,
                       left: 0,
                       right: 0,
-                      height: 3,
+                      height: 4,
                       background: `linear-gradient(90deg, transparent, ${accentColor}, transparent)`,
                     }}
                   />
@@ -203,17 +205,17 @@ export const FrameworkMatrixScene: React.FC<FrameworkMatrixSceneProps> = ({
 
                 {/* Card Header */}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                  <span style={{ fontSize: 32 }}>{pillar.icon || "⚡"}</span>
+                  <span style={{ fontSize: 42 }}>{pillar.icon || "⚡"}</span>
                   {pillar.metric && (
                     <span
                       style={{
-                        fontSize: 12,
+                        fontSize: 16,
                         fontWeight: 700,
-                        padding: "4px 10px",
-                        borderRadius: 12,
-                        background: isActive ? `${accentColor}25` : "rgba(255,255,255,0.06)",
-                        color: isActive ? accentColor : "#94A3B8",
-                        border: isActive ? `1px solid ${accentColor}40` : "1px solid rgba(255,255,255,0.08)",
+                        padding: "6px 14px",
+                        borderRadius: 14,
+                        background: isActive ? `${accentColor}28` : "rgba(255,255,255,0.08)",
+                        color: isActive ? accentColor : "#CBD5E1",
+                        border: isActive ? `1.5px solid ${accentColor}55` : "1px solid rgba(255,255,255,0.12)",
                       }}
                     >
                       {pillar.metric}
@@ -224,10 +226,11 @@ export const FrameworkMatrixScene: React.FC<FrameworkMatrixSceneProps> = ({
                 {/* Pillar Title */}
                 <div
                   style={{
-                    fontSize: 24,
+                    fontSize: 30,
                     fontWeight: 700,
-                    color: isActive ? "#FFFFFF" : "#E2E8F0",
-                    marginBottom: 6,
+                    color: isActive ? "#FFFFFF" : "#F1F5F9",
+                    marginBottom: 8,
+                    lineHeight: 1.25,
                   }}
                 >
                   {pillar.title}
@@ -236,9 +239,10 @@ export const FrameworkMatrixScene: React.FC<FrameworkMatrixSceneProps> = ({
                 {pillar.subtitle && (
                   <div
                     style={{
-                      fontSize: 14,
+                      fontSize: 18,
                       color: isActive ? "#BAE6FD" : "#94A3B8",
                       marginBottom: 18,
+                      fontWeight: 500,
                       lineHeight: 1.4,
                     }}
                   >
@@ -248,20 +252,21 @@ export const FrameworkMatrixScene: React.FC<FrameworkMatrixSceneProps> = ({
 
                 {/* Key Bullet Points */}
                 {pillar.points && pillar.points.length > 0 && (
-                  <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 10 }}>
+                  <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 12 }}>
                     {pillar.points.map((pt, pIdx) => (
                       <div
                         key={pIdx}
                         style={{
-                          fontSize: 13.5,
+                          fontSize: ptFontSize,
                           lineHeight: 1.5,
-                          color: "#CBD5E1",
+                          color: "#E2E8F0",
                           display: "flex",
                           alignItems: "flex-start",
-                          gap: 8,
+                          gap: 10,
+                          fontWeight: 500,
                         }}
                       >
-                        <span style={{ color: accentColor, fontWeight: 700 }}>›</span>
+                        <span style={{ color: accentColor, fontWeight: 800, fontSize: ptFontSize + 2, lineHeight: 1 }}>›</span>
                         <span>{pt}</span>
                       </div>
                     ))}

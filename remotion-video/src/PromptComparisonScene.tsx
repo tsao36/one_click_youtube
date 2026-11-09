@@ -41,6 +41,24 @@ export const PromptComparisonScene: React.FC<PromptComparisonSceneProps> = ({
   const bOpacity = interpolate(bSpring, [0, 1], [0, 1]);
   const bY = interpolate(bSpring, [0, 1], [20, 0]);
 
+  // Dynamic font sizing based on content length
+  const getContentStyle = (text: string) => {
+    const len = (text || "").length;
+    if (len <= 40) {
+      return { fontSize: 28, lineHeight: 1.5, isShort: true };
+    }
+    if (len <= 100) {
+      return { fontSize: 24, lineHeight: 1.55, isShort: true };
+    }
+    if (len <= 220) {
+      return { fontSize: 21, lineHeight: 1.6, isShort: false };
+    }
+    return { fontSize: 18, lineHeight: 1.6, isShort: false };
+  };
+
+  const leftStyle = getContentStyle(leftContent);
+  const rightStyle = getContentStyle(rightContent);
+
   return (
     <AbsoluteFill
       style={{
@@ -64,41 +82,41 @@ export const PromptComparisonScene: React.FC<PromptComparisonSceneProps> = ({
         }}
       >
         {/* Header */}
-        <div style={{ opacity: hOpacity, transform: `translateY(${hY}px)`, marginBottom: 32 }}>
+        <div style={{ opacity: hOpacity, transform: `translateY(${hY}px)`, marginBottom: 28 }}>
           <div
             style={{
               display: "inline-flex",
               alignItems: "center",
-              gap: 8,
-              padding: "5px 12px",
-              borderRadius: 16,
-              background: "rgba(56, 189, 248, 0.12)",
-              border: `1px solid ${accentColor}50`,
+              gap: 10,
+              padding: "7px 16px",
+              borderRadius: 20,
+              background: "rgba(56, 189, 248, 0.14)",
+              border: `1.5px solid ${accentColor}60`,
               color: accentColor,
-              fontSize: 12,
+              fontSize: 16,
               fontWeight: 700,
               letterSpacing: "0.08em",
               textTransform: "uppercase",
-              marginBottom: 10,
+              marginBottom: 12,
             }}
           >
-            <span>⚖️</span>
+            <span style={{ fontSize: 18 }}>⚖️</span>
             {badge}
           </div>
 
-          <div style={{ fontSize: 44, fontWeight: 800, color: "#FFFFFF", letterSpacing: "-0.02em" }}>
+          <div style={{ fontSize: 50, fontWeight: 800, color: "#FFFFFF", letterSpacing: "-0.02em", lineHeight: 1.2 }}>
             {title}
           </div>
 
           {subtitle && (
-            <div style={{ fontSize: 18, color: "#94A3B8", marginTop: 6, fontWeight: 400 }}>
+            <div style={{ fontSize: 24, color: "#94A3B8", marginTop: 8, fontWeight: 500, lineHeight: 1.4 }}>
               {subtitle}
             </div>
           )}
         </div>
 
         {/* 2 Comparison Cards */}
-        <div style={{ flex: 1, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 28, alignItems: "stretch" }}>
+        <div style={{ flex: 1, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32, alignItems: "stretch" }}>
           {/* Left Card: Basic */}
           <div
             style={{
@@ -106,62 +124,68 @@ export const PromptComparisonScene: React.FC<PromptComparisonSceneProps> = ({
               transform: `translateX(${lX}px)`,
               display: "flex",
               flexDirection: "column",
-              padding: 32,
-              borderRadius: 20,
-              background: "rgba(15, 23, 42, 0.65)",
-              border: "1px solid rgba(248, 113, 113, 0.25)",
-              boxShadow: "0 10px 30px rgba(0,0,0,0.35)",
+              padding: "36px 36px 30px 36px",
+              borderRadius: 22,
+              background: "rgba(15, 23, 42, 0.72)",
+              border: "1.5px solid rgba(248, 113, 113, 0.35)",
+              boxShadow: "0 12px 36px rgba(0,0,0,0.45)",
               backdropFilter: "blur(16px)",
             }}
           >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
               <span
                 style={{
-                  fontSize: 12,
+                  fontSize: 16,
                   fontWeight: 700,
-                  padding: "4px 10px",
-                  borderRadius: 10,
-                  background: "rgba(239, 68, 68, 0.15)",
+                  padding: "6px 14px",
+                  borderRadius: 12,
+                  background: "rgba(239, 68, 68, 0.18)",
                   color: "#F87171",
-                  border: "1px solid rgba(239, 68, 68, 0.35)",
+                  border: "1px solid rgba(239, 68, 68, 0.45)",
                 }}
               >
                 ✕ {leftBadge}
               </span>
             </div>
 
-            <div style={{ fontSize: 22, fontWeight: 700, color: "#F1F5F9", marginBottom: 16, lineHeight: 1.3 }}>
+            <div style={{ fontSize: 32, fontWeight: 700, color: "#FFFFFF", marginBottom: 18, lineHeight: 1.3 }}>
               {leftTitle}
             </div>
 
             <div
               style={{
-                fontSize: 15,
-                color: "#94A3B8",
-                lineHeight: 1.6,
-                background: "rgba(0, 0, 0, 0.3)",
-                padding: "16px 18px",
-                borderRadius: 12,
-                border: "1px solid rgba(255, 255, 255, 0.05)",
+                fontSize: leftStyle.fontSize,
+                color: "#E2E8F0",
+                lineHeight: leftStyle.lineHeight,
+                background: "rgba(0, 0, 0, 0.35)",
+                padding: "24px 26px",
+                borderRadius: 16,
+                border: "1px solid rgba(255, 255, 255, 0.08)",
                 whiteSpace: "pre-wrap",
-                fontFamily: "monospace",
+                fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
                 flex: 1,
+                display: leftStyle.isShort ? "flex" : "block",
+                flexDirection: "column",
+                justifyContent: leftStyle.isShort ? "center" : "flex-start",
+                fontWeight: 500,
               }}
             >
               {leftContent}
             </div>
 
             {leftTags && leftTags.length > 0 && (
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 18 }}>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 20 }}>
                 {leftTags.map((tag, i) => (
                   <span
                     key={i}
                     style={{
-                      fontSize: 12,
-                      color: "#EF4444",
-                      background: "rgba(239, 68, 68, 0.08)",
-                      padding: "4px 8px",
-                      borderRadius: 6,
+                      fontSize: 16,
+                      fontWeight: 600,
+                      color: "#FCA5A5",
+                      background: "rgba(239, 68, 68, 0.16)",
+                      border: "1px solid rgba(239, 68, 68, 0.32)",
+                      padding: "6px 14px",
+                      borderRadius: 8,
                     }}
                   >
                     • {tag}
@@ -178,11 +202,11 @@ export const PromptComparisonScene: React.FC<PromptComparisonSceneProps> = ({
               transform: `translateX(${rX}px)`,
               display: "flex",
               flexDirection: "column",
-              padding: 32,
-              borderRadius: 20,
-              background: "linear-gradient(180deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%)",
-              border: `1.5px solid ${accentColor}`,
-              boxShadow: `0 12px 40px rgba(56, 189, 248, 0.22), inset 0 1px 0 rgba(255,255,255,0.18)`,
+              padding: "36px 36px 30px 36px",
+              borderRadius: 22,
+              background: "linear-gradient(180deg, rgba(30, 41, 59, 0.85) 0%, rgba(15, 23, 42, 0.95) 100%)",
+              border: `2px solid ${accentColor}`,
+              boxShadow: `0 14px 44px rgba(56, 189, 248, 0.26), inset 0 1px 0 rgba(255,255,255,0.22)`,
               backdropFilter: "blur(16px)",
               position: "relative",
             }}
@@ -194,60 +218,65 @@ export const PromptComparisonScene: React.FC<PromptComparisonSceneProps> = ({
                 top: 0,
                 left: 0,
                 right: 0,
-                height: 3,
+                height: 4,
                 background: `linear-gradient(90deg, transparent, ${accentColor}, transparent)`,
               }}
             />
 
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
               <span
                 style={{
-                  fontSize: 12,
+                  fontSize: 16,
                   fontWeight: 700,
-                  padding: "4px 10px",
-                  borderRadius: 10,
-                  background: `${accentColor}25`,
+                  padding: "6px 14px",
+                  borderRadius: 12,
+                  background: `${accentColor}28`,
                   color: accentColor,
-                  border: `1px solid ${accentColor}60`,
+                  border: `1.5px solid ${accentColor}70`,
                 }}
               >
                 ✓ {rightBadge}
               </span>
             </div>
 
-            <div style={{ fontSize: 22, fontWeight: 700, color: "#FFFFFF", marginBottom: 16, lineHeight: 1.3 }}>
+            <div style={{ fontSize: 32, fontWeight: 700, color: "#FFFFFF", marginBottom: 18, lineHeight: 1.3 }}>
               {rightTitle}
             </div>
 
             <div
               style={{
-                fontSize: 15,
-                color: "#E2E8F0",
-                lineHeight: 1.6,
-                background: "rgba(2, 6, 23, 0.6)",
-                padding: "16px 18px",
-                borderRadius: 12,
-                border: `1px solid ${accentColor}30`,
+                fontSize: rightStyle.fontSize,
+                color: "#FFFFFF",
+                lineHeight: rightStyle.lineHeight,
+                background: "rgba(2, 6, 23, 0.65)",
+                padding: "24px 26px",
+                borderRadius: 16,
+                border: `1.5px solid ${accentColor}40`,
                 whiteSpace: "pre-wrap",
-                fontFamily: "monospace",
+                fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
                 flex: 1,
+                display: rightStyle.isShort ? "flex" : "block",
+                flexDirection: "column",
+                justifyContent: rightStyle.isShort ? "center" : "flex-start",
+                fontWeight: 500,
               }}
             >
               {rightContent}
             </div>
 
             {rightTags && rightTags.length > 0 && (
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 18 }}>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 20 }}>
                 {rightTags.map((tag, i) => (
                   <span
                     key={i}
                     style={{
-                      fontSize: 12,
-                      color: "#38BDF8",
-                      background: "rgba(56, 189, 248, 0.12)",
-                      padding: "4px 8px",
-                      borderRadius: 6,
-                      fontWeight: 600,
+                      fontSize: 16,
+                      fontWeight: 700,
+                      color: "#BAE6FD",
+                      background: "rgba(56, 189, 248, 0.18)",
+                      border: `1px solid ${accentColor}50`,
+                      padding: "6px 14px",
+                      borderRadius: 8,
                     }}
                   >
                     ✓ {tag}
@@ -265,14 +294,15 @@ export const PromptComparisonScene: React.FC<PromptComparisonSceneProps> = ({
               opacity: bOpacity,
               transform: `translateY(${bY}px)`,
               marginTop: 22,
-              padding: "12px 20px",
-              borderRadius: 12,
-              background: "rgba(30, 41, 59, 0.5)",
-              border: "1px solid rgba(255, 255, 255, 0.08)",
-              fontSize: 16,
-              color: "#F1F5F9",
+              padding: "16px 28px",
+              borderRadius: 14,
+              background: "rgba(30, 41, 59, 0.75)",
+              border: `1.5px solid ${accentColor}50`,
+              fontSize: 22,
+              color: "#F8FAFC",
               textAlign: "center",
-              fontWeight: 600,
+              fontWeight: 700,
+              boxShadow: "0 8px 24px rgba(0,0,0,0.3)",
             }}
           >
             {takeaway}

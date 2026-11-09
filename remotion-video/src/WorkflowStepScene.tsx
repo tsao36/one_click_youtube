@@ -61,34 +61,34 @@ export const WorkflowStepScene: React.FC<WorkflowStepSceneProps> = ({
         }}
       >
         {/* Header */}
-        <div style={{ opacity: hOpacity, transform: `translateY(${hY}px)`, marginBottom: 48 }}>
+        <div style={{ opacity: hOpacity, transform: `translateY(${hY}px)`, marginBottom: 40 }}>
           <div
             style={{
               display: "inline-flex",
               alignItems: "center",
-              gap: 8,
-              padding: "5px 12px",
-              borderRadius: 16,
-              background: "rgba(56, 189, 248, 0.12)",
-              border: `1px solid ${accentColor}50`,
+              gap: 10,
+              padding: "7px 18px",
+              borderRadius: 20,
+              background: "rgba(56, 189, 248, 0.14)",
+              border: `1.5px solid ${accentColor}60`,
               color: accentColor,
-              fontSize: 12,
+              fontSize: 16,
               fontWeight: 700,
               letterSpacing: "0.08em",
               textTransform: "uppercase",
-              marginBottom: 10,
+              marginBottom: 12,
             }}
           >
-            <span>🔄</span>
+            <span style={{ fontSize: 18 }}>🔄</span>
             {badge}
           </div>
 
-          <div style={{ fontSize: 44, fontWeight: 800, color: "#FFFFFF", letterSpacing: "-0.02em" }}>
+          <div style={{ fontSize: 50, fontWeight: 800, color: "#FFFFFF", letterSpacing: "-0.02em", lineHeight: 1.2 }}>
             {title}
           </div>
 
           {subtitle && (
-            <div style={{ fontSize: 18, color: "#94A3B8", marginTop: 6, fontWeight: 400 }}>
+            <div style={{ fontSize: 24, color: "#94A3B8", marginTop: 10, fontWeight: 500, lineHeight: 1.4 }}>
               {subtitle}
             </div>
           )}
@@ -100,7 +100,7 @@ export const WorkflowStepScene: React.FC<WorkflowStepSceneProps> = ({
             flex: 1,
             display: "flex",
             alignItems: "stretch",
-            gap: 20,
+            gap: 24,
             position: "relative",
           }}
         >
@@ -116,6 +116,7 @@ export const WorkflowStepScene: React.FC<WorkflowStepSceneProps> = ({
             const sY = interpolate(sSpring, [0, 1], [30, 0]);
 
             const isActive = idx === activeStepIndex;
+            const detailFontSize = step.detail.length < 50 ? 21 : 18.5;
 
             return (
               <React.Fragment key={idx}>
@@ -125,17 +126,17 @@ export const WorkflowStepScene: React.FC<WorkflowStepSceneProps> = ({
                     flex: 1,
                     opacity: sOpacity,
                     transform: `translateY(${sY}px) scale(${sScale})`,
-                    borderRadius: 20,
-                    padding: 30,
+                    borderRadius: 22,
+                    padding: 32,
                     background: isActive
-                      ? "linear-gradient(180deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%)"
-                      : "rgba(15, 23, 42, 0.6)",
+                      ? "linear-gradient(180deg, rgba(30, 41, 59, 0.85) 0%, rgba(15, 23, 42, 0.95) 100%)"
+                      : "rgba(15, 23, 42, 0.65)",
                     border: isActive
-                      ? `1.5px solid ${accentColor}`
-                      : "1px solid rgba(255, 255, 255, 0.08)",
+                      ? `2px solid ${accentColor}`
+                      : "1px solid rgba(255, 255, 255, 0.1)",
                     boxShadow: isActive
-                      ? `0 16px 40px rgba(56, 189, 248, 0.2), inset 0 1px 0 rgba(255,255,255,0.15)`
-                      : "0 8px 24px rgba(0,0,0,0.35)",
+                      ? `0 18px 48px rgba(56, 189, 248, 0.22), inset 0 1px 0 rgba(255,255,255,0.18)`
+                      : "0 8px 26px rgba(0,0,0,0.35)",
                     backdropFilter: "blur(16px)",
                     display: "flex",
                     flexDirection: "column",
@@ -150,7 +151,7 @@ export const WorkflowStepScene: React.FC<WorkflowStepSceneProps> = ({
                         top: 0,
                         left: 0,
                         right: 0,
-                        height: 3,
+                        height: 4,
                         background: `linear-gradient(90deg, transparent, ${accentColor}, transparent)`,
                       }}
                     />
@@ -161,9 +162,10 @@ export const WorkflowStepScene: React.FC<WorkflowStepSceneProps> = ({
                     <span
                       style={{
                         fontFamily: "monospace",
-                        fontSize: 32,
+                        fontSize: 42,
                         fontWeight: 800,
                         color: isActive ? accentColor : "#64748B",
+                        lineHeight: 1,
                       }}
                     >
                       {step.stepNumber}
@@ -171,13 +173,13 @@ export const WorkflowStepScene: React.FC<WorkflowStepSceneProps> = ({
                     {step.tag && (
                       <span
                         style={{
-                          fontSize: 11,
+                          fontSize: 15,
                           fontWeight: 700,
-                          padding: "3px 8px",
-                          borderRadius: 8,
-                          background: isActive ? `${accentColor}25` : "rgba(255,255,255,0.06)",
-                          color: isActive ? accentColor : "#94A3B8",
-                          border: isActive ? `1px solid ${accentColor}50` : "1px solid rgba(255,255,255,0.08)",
+                          padding: "5px 12px",
+                          borderRadius: 10,
+                          background: isActive ? `${accentColor}28` : "rgba(255,255,255,0.08)",
+                          color: isActive ? accentColor : "#CBD5E1",
+                          border: isActive ? `1.5px solid ${accentColor}55` : "1px solid rgba(255,255,255,0.12)",
                         }}
                       >
                         {step.tag}
@@ -188,11 +190,11 @@ export const WorkflowStepScene: React.FC<WorkflowStepSceneProps> = ({
                   {/* Step Label */}
                   <div
                     style={{
-                      fontSize: 22,
+                      fontSize: 28,
                       fontWeight: 700,
-                      color: isActive ? "#FFFFFF" : "#E2E8F0",
-                      lineHeight: 1.35,
-                      marginBottom: 14,
+                      color: isActive ? "#FFFFFF" : "#F1F5F9",
+                      lineHeight: 1.3,
+                      marginBottom: 16,
                     }}
                   >
                     {step.label}
@@ -201,9 +203,10 @@ export const WorkflowStepScene: React.FC<WorkflowStepSceneProps> = ({
                   {/* Step Detail */}
                   <div
                     style={{
-                      fontSize: 14.5,
+                      fontSize: detailFontSize,
                       lineHeight: 1.6,
-                      color: isActive ? "#CBD5E1" : "#94A3B8",
+                      color: isActive ? "#E2E8F0" : "#94A3B8",
+                      fontWeight: 500,
                     }}
                   >
                     {step.detail}
@@ -218,8 +221,8 @@ export const WorkflowStepScene: React.FC<WorkflowStepSceneProps> = ({
                       alignItems: "center",
                       justifyContent: "center",
                       color: accentColor,
-                      fontSize: 24,
-                      opacity: sOpacity * 0.7,
+                      fontSize: 32,
+                      opacity: sOpacity * 0.8,
                     }}
                   >
                     ➔

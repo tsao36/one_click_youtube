@@ -77,24 +77,24 @@ export const ChatSimulationScene: React.FC<ChatSimulationSceneProps> = ({
             style={{
               display: "inline-flex",
               alignItems: "center",
-              gap: 8,
-              padding: "5px 12px",
-              borderRadius: 16,
-              background: "rgba(168, 85, 247, 0.15)",
-              border: `1px solid ${accentColor}60`,
+              gap: 10,
+              padding: "7px 18px",
+              borderRadius: 20,
+              background: "rgba(168, 85, 247, 0.16)",
+              border: `1.5px solid ${accentColor}65`,
               color: accentColor,
-              fontSize: 12,
+              fontSize: 16,
               fontWeight: 700,
               letterSpacing: "0.08em",
               textTransform: "uppercase",
-              marginBottom: 10,
+              marginBottom: 12,
             }}
           >
-            <span>💬</span>
+            <span style={{ fontSize: 18 }}>💬</span>
             {badge}
           </div>
 
-          <div style={{ fontSize: 42, fontWeight: 800, color: "#FFFFFF", letterSpacing: "-0.02em" }}>
+          <div style={{ fontSize: 48, fontWeight: 800, color: "#FFFFFF", letterSpacing: "-0.02em", lineHeight: 1.2 }}>
             {title}
           </div>
         </div>
@@ -107,10 +107,10 @@ export const ChatSimulationScene: React.FC<ChatSimulationSceneProps> = ({
             flex: 1,
             display: "flex",
             flexDirection: "column",
-            borderRadius: 20,
-            background: "rgba(15, 23, 42, 0.75)",
-            border: "1px solid rgba(255, 255, 255, 0.12)",
-            boxShadow: `0 20px 50px rgba(0,0,0,0.5), 0 0 30px ${accentColor}18`,
+            borderRadius: 22,
+            background: "rgba(15, 23, 42, 0.85)",
+            border: "1.5px solid rgba(255, 255, 255, 0.15)",
+            boxShadow: `0 24px 60px rgba(0,0,0,0.55), 0 0 35px ${accentColor}22`,
             backdropFilter: "blur(20px)",
             overflow: "hidden",
           }}
@@ -121,43 +121,43 @@ export const ChatSimulationScene: React.FC<ChatSimulationSceneProps> = ({
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              padding: "14px 22px",
-              background: "rgba(30, 41, 59, 0.6)",
-              borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
+              padding: "16px 26px",
+              background: "rgba(30, 41, 59, 0.75)",
+              borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ width: 12, height: 12, borderRadius: "50%", background: "#EF4444" }} />
-              <div style={{ width: 12, height: 12, borderRadius: "50%", background: "#F59E0B" }} />
-              <div style={{ width: 12, height: 12, borderRadius: "50%", background: "#10B981" }} />
+            <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+              <div style={{ width: 14, height: 14, borderRadius: "50%", background: "#EF4444" }} />
+              <div style={{ width: 14, height: 14, borderRadius: "50%", background: "#F59E0B" }} />
+              <div style={{ width: 14, height: 14, borderRadius: "50%", background: "#10B981" }} />
             </div>
-            <div style={{ fontSize: 13, color: "#CBD5E1", fontWeight: 600, fontFamily: "monospace" }}>
+            <div style={{ fontSize: 16, color: "#E2E8F0", fontWeight: 700, fontFamily: "monospace", letterSpacing: "0.02em" }}>
               {systemTag}
             </div>
             <div style={{ width: 44 }} />
           </div>
 
           {/* Chat Content Body */}
-          <div style={{ flex: 1, padding: 28, display: "flex", flexDirection: "column", gap: 20, overflow: "hidden" }}>
+          <div style={{ flex: 1, padding: 32, display: "flex", flexDirection: "column", gap: 24, overflow: "hidden" }}>
             {/* User Message Bubble */}
             <div
               style={{
                 alignSelf: "flex-end",
-                maxWidth: "85%",
-                background: "linear-gradient(135deg, rgba(168, 85, 247, 0.25) 0%, rgba(126, 34, 206, 0.35) 100%)",
-                border: "1px solid rgba(168, 85, 247, 0.4)",
-                padding: "16px 22px",
-                borderRadius: "18px 18px 4px 18px",
-                boxShadow: "0 4px 16px rgba(0,0,0,0.25)",
+                maxWidth: "88%",
+                background: "linear-gradient(135deg, rgba(168, 85, 247, 0.28) 0%, rgba(126, 34, 206, 0.42) 100%)",
+                border: "1.5px solid rgba(168, 85, 247, 0.55)",
+                padding: "20px 28px",
+                borderRadius: "20px 20px 4px 20px",
+                boxShadow: "0 6px 20px rgba(0,0,0,0.3)",
               }}
             >
-              <div style={{ fontSize: 12, color: "#D8B4FE", fontWeight: 700, marginBottom: 4 }}>
+              <div style={{ fontSize: 15, color: "#E9D5FF", fontWeight: 800, marginBottom: 6, letterSpacing: "0.05em" }}>
                 👤 USER PROMPT
               </div>
-              <div style={{ fontSize: 16, color: "#F8FAFC", lineHeight: 1.5, fontFamily: "monospace" }}>
+              <div style={{ fontSize: promptText.length < 80 ? 24 : 21, color: "#FFFFFF", lineHeight: 1.55, fontWeight: 500 }}>
                 {displayedPrompt}
                 {isTyping && cursorBlink && (
-                  <span style={{ color: accentColor, fontWeight: 700 }}>▎</span>
+                  <span style={{ color: accentColor, fontWeight: 800 }}>▎</span>
                 )}
               </div>
             </div>
@@ -170,33 +170,34 @@ export const ChatSimulationScene: React.FC<ChatSimulationSceneProps> = ({
                   width: "100%",
                   display: "flex",
                   flexDirection: "column",
-                  gap: 12,
+                  gap: 16,
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 2 }}>
                   <div
                     style={{
-                      width: 24,
-                      height: 24,
-                      borderRadius: 6,
+                      width: 32,
+                      height: 32,
+                      borderRadius: 8,
                       background: accentColor,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      fontSize: 12,
+                      fontSize: 16,
                       fontWeight: 800,
                       color: "#fff",
+                      boxShadow: `0 0 15px ${accentColor}80`,
                     }}
                   >
                     ✦
                   </div>
-                  <span style={{ fontSize: 14, color: "#E2E8F0", fontWeight: 700 }}>
+                  <span style={{ fontSize: 22, color: "#F8FAFC", fontWeight: 700 }}>
                     {responseTitle}
                   </span>
                 </div>
 
                 {/* Staggered Response Items */}
-                <div style={{ display: "grid", gridTemplateColumns: `repeat(${responseItems.length}, 1fr)`, gap: 16 }}>
+                <div style={{ display: "grid", gridTemplateColumns: `repeat(${responseItems.length}, 1fr)`, gap: 20 }}>
                   {responseItems.map((item, idx) => {
                     const itemDelay = 42 + idx * 8;
                     const iSpring = spring({
@@ -207,40 +208,44 @@ export const ChatSimulationScene: React.FC<ChatSimulationSceneProps> = ({
                     const iOpacity = interpolate(iSpring, [0, 1], [0, 1]);
                     const iY = interpolate(iSpring, [0, 1], [25, 0]);
 
+                    const detailFontSize = responseItems.length <= 2 ? 19 : 17;
+
                     return (
                       <div
                         key={idx}
                         style={{
                           opacity: iOpacity,
                           transform: `translateY(${iY}px)`,
-                          padding: 18,
-                          borderRadius: 14,
-                          background: "rgba(30, 41, 59, 0.65)",
-                          border: "1px solid rgba(255, 255, 255, 0.08)",
+                          padding: 24,
+                          borderRadius: 16,
+                          background: "rgba(30, 41, 59, 0.75)",
+                          border: "1.5px solid rgba(255, 255, 255, 0.12)",
+                          boxShadow: "0 8px 24px rgba(0,0,0,0.25)",
                           display: "flex",
                           flexDirection: "column",
                         }}
                       >
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                          <span style={{ fontSize: 15, fontWeight: 700, color: "#FFFFFF" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                          <span style={{ fontSize: 22, fontWeight: 700, color: "#FFFFFF" }}>
                             {item.title}
                           </span>
                           {item.tag && (
                             <span
                               style={{
-                                fontSize: 10,
+                                fontSize: 13,
                                 fontWeight: 800,
-                                padding: "2px 6px",
-                                borderRadius: 6,
-                                background: "rgba(168, 85, 247, 0.2)",
-                                color: "#D8B4FE",
+                                padding: "4px 10px",
+                                borderRadius: 8,
+                                background: "rgba(168, 85, 247, 0.25)",
+                                color: "#E9D5FF",
+                                border: "1px solid rgba(168, 85, 247, 0.4)",
                               }}
                             >
                               {item.tag}
                             </span>
                           )}
                         </div>
-                        <div style={{ fontSize: 13.5, color: "#CBD5E1", lineHeight: 1.5 }}>
+                        <div style={{ fontSize: detailFontSize, color: "#E2E8F0", lineHeight: 1.55, fontWeight: 500 }}>
                           {item.detail}
                         </div>
                       </div>

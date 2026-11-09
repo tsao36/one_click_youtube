@@ -36,6 +36,10 @@ export const KineticTypographyScene: React.FC<KineticTypographySceneProps> = ({
     ? (badge?.trim().toLowerCase() === "conclusion" ? "結論" : "")
     : subtext;
 
+  // Dynamic headline font sizing
+  const headlineLen = (text || "").length;
+  const headlineFontSize = headlineLen < 20 ? 76 : headlineLen < 40 ? 68 : 56;
+
   // Glow pulsing on highlight
   const glowPulse = interpolate(
     Math.sin(frame / 20),
@@ -80,19 +84,19 @@ export const KineticTypographyScene: React.FC<KineticTypographySceneProps> = ({
             style={{
               display: "inline-flex",
               alignItems: "center",
-              gap: 8,
-              padding: "6px 16px",
+              gap: 10,
+              padding: "7px 18px",
               borderRadius: 20,
-              background: "rgba(56, 189, 248, 0.12)",
-              border: `1px solid ${accentColor}60`,
+              background: "rgba(56, 189, 248, 0.14)",
+              border: `1.5px solid ${accentColor}65`,
               color: accentColor,
-              fontSize: 13,
+              fontSize: 16,
               fontWeight: 700,
               letterSpacing: "0.1em",
               textTransform: "uppercase",
             }}
           >
-            <span>✦</span>
+            <span style={{ fontSize: 18 }}>✦</span>
             {badge}
           </div>
         </div>
@@ -103,7 +107,7 @@ export const KineticTypographyScene: React.FC<KineticTypographySceneProps> = ({
             opacity: tOpacity,
             transform: `scale(${tScale})`,
             maxWidth: 1400,
-            fontSize: 64,
+            fontSize: headlineFontSize,
             fontWeight: 800,
             lineHeight: 1.35,
             letterSpacing: "-0.02em",
@@ -171,15 +175,16 @@ export const KineticTypographyScene: React.FC<KineticTypographySceneProps> = ({
             style={{
               opacity: sOpacity,
               transform: `translateY(${sY}px)`,
-              maxWidth: 900,
-              fontSize: 22,
-              lineHeight: 1.6,
-              color: "#94A3B8",
-              fontWeight: 400,
-              padding: "16px 28px",
-              borderRadius: 16,
-              background: "rgba(15, 23, 42, 0.6)",
-              border: "1px solid rgba(255, 255, 255, 0.08)",
+              maxWidth: 960,
+              fontSize: 26,
+              lineHeight: 1.55,
+              color: "#E2E8F0",
+              fontWeight: 500,
+              padding: "18px 36px",
+              borderRadius: 18,
+              background: "rgba(15, 23, 42, 0.75)",
+              border: "1.5px solid rgba(255, 255, 255, 0.12)",
+              boxShadow: "0 10px 30px rgba(0,0,0,0.4)",
               backdropFilter: "blur(12px)",
             }}
           >
