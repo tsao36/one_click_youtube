@@ -1,4 +1,5 @@
     let currentProjectId = null;
+    let currentProject = null;
     let pollInterval = null;
     let pollGeneration = 0;
     let pollController = null;
@@ -1483,6 +1484,9 @@
         if (stagesEl) stagesEl.innerHTML = '';
       }
       currentProjectId = pId;
+      if (typeof allProjectsCache !== 'undefined' && allProjectsCache.length) {
+        currentProject = allProjectsCache.find(p => p.id === pId) || null;
+      }
       localStorage.setItem('active_project_id', pId);
       const gSel = document.getElementById('global-project-select');
       if (gSel) gSel.value = pId;
@@ -1492,6 +1496,10 @@
       document.getElementById('global-hero-banner').style.display = 'block';
       if (pId) {
         apiJson('/api/projects/' + pId).then(proj => {
+          if (proj) {
+            currentProject = proj.project || proj;
+            studioProject = proj.project || proj;
+          }
           if (proj && proj.settings) {
             const conclEl = document.getElementById('creator-author-conclusion');
             if (conclEl && proj.settings.author_conclusion) {
@@ -4684,12 +4692,13 @@
     async function loadScenesForEditor() {
       if (!currentProjectId) return;
       const d = await apiJson('/api/projects/' + currentProjectId);
+      if (d) currentProject = d.project || d;
       currentScenes = d.scenes || [];
       const tbody = document.getElementById('scenes-tbody');
       if (!tbody) return;
       tbody.innerHTML = '';
 
-      const isDrama = isDramaStudioProject(currentProject);
+      const isDrama = isDramaStudioProject(currentProject || studioProject);
       currentScenes.forEach((s, idx) => {
         const imgUrl = s.image && s.image.path ? `/media/${currentProjectId}/${s.image.path}` : '';
         tbody.innerHTML += `
@@ -7640,7 +7649,10 @@
       const bodyEl = document.getElementById('inspector-body');
       const actionsEl = document.getElementById('inspector-actions');
 
-      const isDrama = isDramaStudioProject(currentProject);
+      if (!currentProject && typeof allProjectsCache !== 'undefined' && allProjectsCache.length) {
+        currentProject = allProjectsCache.find(p => p.id === currentProjectId) || studioProject || null;
+      }
+      const isDrama = isDramaStudioProject(currentProject || studioProject);
       if (isDrama && STAGE_META_DRAMA && STAGE_META_DRAMA[stageName]) {
         titleEl.textContent = `Stage Inspector: ${STAGE_META_DRAMA[stageName].name}`;
         subEl.textContent = `短劇全流程微調：${STAGE_META_DRAMA[stageName].desc}`;
@@ -7665,7 +7677,7 @@
     async function renderInspectorContent(stageName, data) {
       const bodyEl = document.getElementById('inspector-body');
       const actionsEl = document.getElementById('inspector-actions');
-      const isDrama = isDramaStudioProject(data) || isDramaStudioProject(currentProject);
+      const isDrama = isDramaStudioProject(data) || isDramaStudioProject(currentProject || studioProject);
 
       const titleEl = document.getElementById('inspector-title');
       const subEl = document.getElementById('inspector-subtitle');
@@ -11042,7 +11054,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
     }
 
     function isDramaStudioProject(proj = null) {
-      const p = proj || studioProject;
+      const p = proj || currentProject || studioProject;
       if (p) {
         if (p.settings && p.settings.project_mode === 'short_drama') return true;
         if (p.data && p.data.settings && p.data.settings.project_mode === 'short_drama') return true;
@@ -11095,6 +11107,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
         const pData = await apiJson(`/api/projects/${currentProjectId}`);
 
         studioProject = pData.project;
+        currentProject = pData.project;
         currentScenes = pData.scenes || [];
         renderStudioProjectBar();
         if (projectModeOf(studioProject) !== studioMode) {
@@ -11511,7 +11524,8 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
         `;
       } else if (stKey === 'script') {
         const scriptMd = data.script_md || '';
-        const authorConcl = (data.settings && data.settings.author_conclusion) || (currentProject && currentProject.data && currentProject.data.settings && currentProject.data.settings.author_conclusion) || '';
+        const activeProj = currentProject || studioProject;
+        const authorConcl = (data.settings && data.settings.author_conclusion) || (activeProj && activeProj.data && activeProj.data.settings && activeProj.data.settings.author_conclusion) || '';
         bodyHtml += `
           <!-- Author's Take / What's My Take in Stage Studio -->
           <div style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(20, 25, 40, 0.7) 100%); border: 1.5px solid rgba(245, 158, 11, 0.45); border-radius: 8px; padding: 12px 14px; margin-bottom: 16px; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.1);">
