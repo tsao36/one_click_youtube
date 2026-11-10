@@ -1541,6 +1541,23 @@ def get_stage_data_endpoint(project_id: str, stage_name: str):
             "current_steps": p.data.settings.get("images", {}).get("steps") or p.settings.get("images", {}).get("steps", 25),
             "current_cfg": p.data.settings.get("images", {}).get("cfg") or p.settings.get("images", {}).get("cfg", 6.5),
         }
+        if stage_name == "animation":
+            global_rem = load_settings().get("remotion", {})
+            proj_rem = (p.data.settings.get("remotion") or p.settings.get("remotion") or {})
+            active_style = proj_rem.get("style") or p.data.settings.get("remotion_style") or global_rem.get("style", "modern_tech_explainer")
+            active_theme = proj_rem.get("theme") or global_rem.get("theme", "dark_obsidian")
+            active_density = proj_rem.get("density") or (p.data.settings.get("animation") or {}).get("motion_graphics_density") or global_rem.get("density", "full")
+            active_accent = proj_rem.get("accentColor") or global_rem.get("accentColor", "#A855F7")
+            active_default_style = proj_rem.get("default_style") or global_rem.get("default_style", "EvidenceHighlightScene")
+            anim_model = (p.data.settings.get("stage_models", {}).get("animation") or p.settings.get("stage_models", {}).get("animation") or (p.data.settings.get("animation") or {}).get("provider") or "remotion")
+            ret["remotion"] = {
+                "style": active_style,
+                "theme": active_theme,
+                "density": active_density,
+                "accentColor": active_accent,
+                "default_style": active_default_style,
+            }
+            ret["animation_model"] = anim_model
     elif stage_name == "subtitles":
         callouts_preview = []
         try:
@@ -2036,6 +2053,20 @@ def update_stage_data_endpoint(project_id: str, stage_name: str, payload: dict[s
                     p.set_stage("render", Status.PENDING)
             elif stage_name == "prompts":
                 p.invalidate("images")
+        if stage_name == "animation":
+            if "remotion" in payload and isinstance(payload["remotion"], dict):
+                p.data.settings.setdefault("remotion", {}).update(payload["remotion"])
+                if "style" in payload["remotion"]:
+                    p.data.settings["remotion_style"] = payload["remotion"]["style"]
+                p.save()
+            if "remotion_style" in payload:
+                p.data.settings.setdefault("remotion", {})["style"] = payload["remotion_style"]
+                p.data.settings["remotion_style"] = payload["remotion_style"]
+                p.save()
+            if "animation_model" in payload:
+                p.data.settings.setdefault("stage_models", {})["animation"] = payload["animation_model"]
+                p.save()
+            p.invalidate("render")
     elif stage_name == "music":
         if "music_plan" in payload:
             p.write_json("music/music_plan.json", payload["music_plan"])

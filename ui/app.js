@@ -8522,32 +8522,306 @@
             <button class="btn-primary" onclick="runSingleStage('animation')">▶ Run Hedra Lip-Sync Stage</button>
           `;
         } else {
+          // Remotion Motion Graphics & Camera Motion Settings Inspector
+          const rem = data.remotion || {
+            style: 'modern_tech_explainer',
+            theme: 'dark_obsidian',
+            density: 'full',
+            accentColor: '#A855F7',
+            default_style: 'EvidenceHighlightScene'
+          };
+          if (!inspectedStageData.remotion) inspectedStageData.remotion = Object.assign({}, rem);
+          if (!inspectedStageData.animation_model) inspectedStageData.animation_model = data.animation_model || 'remotion';
+
+          const activeStyle = inspectedStageData.remotion.style || 'modern_tech_explainer';
+          const activeTheme = inspectedStageData.remotion.theme || 'dark_obsidian';
+          const activeDensity = inspectedStageData.remotion.density || 'full';
+          const activeAccent = inspectedStageData.remotion.accentColor || '#A855F7';
+          const animModel = inspectedStageData.animation_model || 'remotion';
+
           bodyHtml = `
-            <div style="font-size:12px; color:var(--text-muted); margin-bottom:10px;">Camera Motion & Pan/Zoom settings for video generation.</div>
-            <div style="display:flex; flex-direction:column; gap:10px;">
+            <!-- Remotion Visual Style & Preset Suite Card -->
+            <div style="background: linear-gradient(135deg, rgba(15,23,42,0.95), rgba(8,9,12,0.98)); border: 1px solid #334155; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 8px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="font-size: 16px;">⚛️</span>
+                  <span style="font-size: 14px; font-weight: 800; color: #f8fafc;">Remotion 視覺風格與動態圖解體系 (Visual Style Suite)</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span id="insp-remotion-active-badge" style="font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 12px; background: ${activeAccent}22; color: ${activeAccent}; border: 1px solid ${activeAccent};">
+                    ${activeStyle} · ${activeAccent}
+                  </span>
+                  <span style="font-size: 11px; background: rgba(0, 245, 255, 0.15); border: 1px solid #00F5FF; color: #00F5FF; font-weight: 700; padding: 3px 8px; border-radius: 12px;">React 19 · Remotion 4.0 · 1080p 60fps</span>
+                </div>
+              </div>
+              <div style="font-size: 11.5px; color: #94a3b8; margin-bottom: 14px; line-height: 1.5;">
+                在 Stage 8 動畫算繪階段即時自訂與切換 Remotion 視覺風格體系、畫布主題、圖表密度與主視覺強調色。保存後將直接生效於當前專案之 Stage 8 動畫算繪。
+              </div>
+
+              <!-- Style Showcase Grid (7 Presets matching Settings) -->
+              <div style="margin-bottom: 16px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                  <span style="font-size: 12px; font-weight: 700; color: #38bdf8;">🖼️ 核心視覺風格展示庫 (點選任一風格卡片立即套用預設)</span>
+                  <span style="font-size: 11px; color: #64748b;">7 款大師級專業動態視覺體系</span>
+                </div>
+                <div id="insp-remotion-showcase-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px;">
+                  
+                  <!-- Preset 1: Modern Tech Explainer (Gary Chen) -->
+                  <div id="insp-card-modern_tech_explainer" onclick="selectInspectorRemotionPreset('modern_tech_explainer')" style="border: ${activeStyle==='modern_tech_explainer' ? '2px solid #a855f7' : '1px solid #1e293b'}; border-radius: 6px; background: #08090c; padding: 10px; cursor: pointer; transition: all 0.2s; box-shadow: ${activeStyle==='modern_tech_explainer' ? '0 0 12px rgba(168,85,247,0.35)' : 'none'};">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                      <span style="font-size: 12px; font-weight: 700; color: #f8fafc;">✨ Modern Tech Explainer</span>
+                      <span style="font-size: 10px; padding: 2px 6px; border-radius: 3px; background: rgba(168,85,247,0.25); color: #c4b5fd; font-weight: 700;">Gary Chen</span>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-bottom: 6px;">
+                      <img src="/remotion/style_frameworkmatrix.png" alt="Framework Matrix" style="width: 100%; height: 42px; object-fit: cover; border-radius: 3px; border: 1px solid #1e293b;">
+                      <img src="/remotion/style_promptcomparison.png" alt="Prompt Comparison" style="width: 100%; height: 42px; object-fit: cover; border-radius: 3px; border: 1px solid #1e293b;">
+                      <img src="/remotion/style_chatsimulation.png" alt="Chat Simulation" style="width: 100%; height: 42px; object-fit: cover; border-radius: 3px; border: 1px solid #1e293b;">
+                    </div>
+                    <div style="font-size: 10.5px; color: #94a3b8; line-height: 1.3; margin-bottom: 6px;">
+                      純黑曜石畫布 · 四象限思維矩陣 · 提示詞策略對比 · AI對話模擬
+                    </div>
+                    <div style="display: flex; gap: 4px; align-items: center;">
+                      <span style="font-size: 9.5px; padding: 1px 5px; border-radius: 3px; background: #1e1b4b; color: #c4b5fd; border: 1px solid #a855f7;">#A855F7 紫</span>
+                      <span style="font-size: 9.5px; padding: 1px 5px; border-radius: 3px; background: #0f172a; color: #94a3b8; border: 1px solid #334155;">黑曜石純黑</span>
+                    </div>
+                  </div>
+
+                  <!-- Preset 2: Coordinate Zero (座標零) -->
+                  <div id="insp-card-coordinate_zero" onclick="selectInspectorRemotionPreset('coordinate_zero')" style="border: ${activeStyle==='coordinate_zero' ? '2px solid #0d9488' : '1px solid #1e293b'}; border-radius: 6px; background: #0a1b14; padding: 10px; cursor: pointer; transition: all 0.2s; box-shadow: ${activeStyle==='coordinate_zero' ? '0 0 12px rgba(13,148,136,0.35)' : 'none'};">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                      <span style="font-size: 12px; font-weight: 700; color: #f8fafc;">🧭 Coordinate Zero</span>
+                      <span style="font-size: 10px; padding: 2px 6px; border-radius: 3px; background: rgba(13,148,136,0.25); color: #5eead4; font-weight: 700;">座標零</span>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-bottom: 6px;">
+                      <img src="/remotion/style_coordinate_scale.png" alt="Coordinate Scale" style="width: 100%; height: 42px; object-fit: cover; border-radius: 3px; border: 1px solid #163c2e;">
+                      <img src="/remotion/style_coordinate_experiment.png" alt="Coordinate Experiment" style="width: 100%; height: 42px; object-fit: cover; border-radius: 3px; border: 1px solid #163c2e;">
+                      <img src="/remotion/style_coordinate_split.png" alt="Coordinate Split" style="width: 100%; height: 42px; object-fit: cover; border-radius: 3px; border: 1px solid #163c2e;">
+                    </div>
+                    <div style="font-size: 10.5px; color: #94a3b8; line-height: 1.3; margin-bottom: 6px;">
+                      墨綠雕刻墊工坊 · 等緯尺度動態縮放 · 垂直對數倍率尺規 · 各對一半
+                    </div>
+                    <div style="display: flex; gap: 4px; align-items: center;">
+                      <span style="font-size: 9.5px; padding: 1px 5px; border-radius: 3px; background: #134e4a; color: #5eead4; border: 1px solid #0d9488;">#0D9488 湖綠</span>
+                      <span style="font-size: 9.5px; padding: 1px 5px; border-radius: 3px; background: #064e3b; color: #a7f3d0; border: 1px solid #047857;">墨綠雕刻墊</span>
+                    </div>
+                  </div>
+
+                  <!-- Preset 3: Tactile Blueprint (科技藍圖) -->
+                  <div id="insp-card-tactile_blueprint" onclick="selectInspectorRemotionPreset('tactile_blueprint')" style="border: ${activeStyle==='tactile_blueprint' ? '2px solid #00F5FF' : '1px solid #1e293b'}; border-radius: 6px; background: #070e1b; padding: 10px; cursor: pointer; transition: all 0.2s; box-shadow: ${activeStyle==='tactile_blueprint' ? '0 0 12px rgba(0,245,255,0.35)' : 'none'};">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                      <span style="font-size: 12px; font-weight: 700; color: #f8fafc;">⚛️ Tactile Blueprint</span>
+                      <span style="font-size: 10px; padding: 2px 6px; border-radius: 3px; background: rgba(0,245,255,0.2); color: #00F5FF; font-weight: 700;">科技藍圖</span>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-bottom: 6px;">
+                      <img src="/remotion/style_branchpathway.png" alt="Branch Pathway" style="width: 100%; height: 42px; object-fit: cover; border-radius: 3px; border: 1px solid #1e293b;">
+                      <img src="/remotion/style_leadercallout.png" alt="Leader Callout" style="width: 100%; height: 42px; object-fit: cover; border-radius: 3px; border: 1px solid #1e293b;">
+                      <img src="/remotion/style_scalecompare.png" alt="Scale Compare" style="width: 100%; height: 42px; object-fit: cover; border-radius: 3px; border: 1px solid #1e293b;">
+                    </div>
+                    <div style="font-size: 10.5px; color: #94a3b8; line-height: 1.3; margin-bottom: 6px;">
+                      深藍工程網格 · 多路徑排除分支 · HUD動態引線 · 20X微米放大鏡
+                    </div>
+                    <div style="display: flex; gap: 4px; align-items: center;">
+                      <span style="font-size: 9.5px; padding: 1px 5px; border-radius: 3px; background: #082f49; color: #00F5FF; border: 1px solid #0284c7;">#00F5FF 藍圖青</span>
+                      <span style="font-size: 9.5px; padding: 1px 5px; border-radius: 3px; background: #0369a1; color: #e0f2fe; border: 1px solid #0284c7;">工程網格</span>
+                    </div>
+                  </div>
+
+                  <!-- Preset 4: fOx Hsiao Documentary (調查紀錄片) -->
+                  <div id="insp-card-fox_documentary" onclick="selectInspectorRemotionPreset('fox_documentary')" style="border: ${activeStyle==='fox_documentary' ? '2px solid #38bdf8' : '1px solid #1e293b'}; border-radius: 6px; background: #0f172a; padding: 10px; cursor: pointer; transition: all 0.2s; box-shadow: ${activeStyle==='fox_documentary' ? '0 0 12px rgba(56,189,248,0.35)' : 'none'};">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                      <span style="font-size: 12px; font-weight: 700; color: #f8fafc;">📌 fOx Hsiao Documentary</span>
+                      <span style="font-size: 10px; padding: 2px 6px; border-radius: 3px; background: rgba(56,189,248,0.2); color: #38bdf8; font-weight: 700;">調查紀錄片</span>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-bottom: 6px;">
+                      <img src="/remotion/style_foxheader.png" alt="Fox Header" style="width: 100%; height: 42px; object-fit: cover; border-radius: 3px; border: 1px solid #1e293b;">
+                      <img src="/remotion/style_foxmetric.png" alt="Fox Metric" style="width: 100%; height: 42px; object-fit: cover; border-radius: 3px; border: 1px solid #1e293b;">
+                      <img src="/remotion/style_foxtimeline.png" alt="Fox Timeline" style="width: 100%; height: 42px; object-fit: cover; border-radius: 3px; border: 1px solid #1e293b;">
+                    </div>
+                    <div style="font-size: 10.5px; color: #94a3b8; line-height: 1.3; margin-bottom: 6px;">
+                      高通透毛玻璃 · 85%底圖保留 · 96px巨型指標 · 年代歷程滑軌
+                    </div>
+                    <div style="display: flex; gap: 4px; align-items: center;">
+                      <span style="font-size: 9.5px; padding: 1px 5px; border-radius: 3px; background: #075985; color: #38bdf8; border: 1px solid #0284c7;">#38BDF8 天藍</span>
+                      <span style="font-size: 9.5px; padding: 1px 5px; border-radius: 3px; background: #1e293b; color: #94a3b8; border: 1px solid #334155;">毛玻璃遮罩</span>
+                    </div>
+                  </div>
+
+                  <!-- Preset 5: Finance & Market Explainer (財經趨勢) -->
+                  <div id="insp-card-finance_market" onclick="selectInspectorRemotionPreset('finance_market')" style="border: ${activeStyle==='finance_market' ? '2px solid #10b981' : '1px solid #1e293b'}; border-radius: 6px; background: #091319; padding: 10px; cursor: pointer; transition: all 0.2s; box-shadow: ${activeStyle==='finance_market' ? '0 0 12px rgba(16,185,129,0.35)' : 'none'};">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                      <span style="font-size: 12px; font-weight: 700; color: #f8fafc;">📈 Finance & Market</span>
+                      <span style="font-size: 10px; padding: 2px 6px; border-radius: 3px; background: rgba(16,185,129,0.25); color: #34d399; font-weight: 700;">財經趨勢</span>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-bottom: 6px;">
+                      <img src="/remotion/style_finance_candlestick.png" alt="Finance Candlestick" style="width: 100%; height: 42px; object-fit: cover; border-radius: 3px; border: 1px solid #134e4a;">
+                      <img src="/remotion/style_finance_metrics.png" alt="Finance Metrics" style="width: 100%; height: 42px; object-fit: cover; border-radius: 3px; border: 1px solid #134e4a;">
+                      <img src="/remotion/style_foxmetric.png" alt="Market Metric" style="width: 100%; height: 42px; object-fit: cover; border-radius: 3px; border: 1px solid #134e4a;">
+                    </div>
+                    <div style="font-size: 10.5px; color: #94a3b8; line-height: 1.3; margin-bottom: 6px;">
+                      即時走勢K線 · 支撐壓力位動態標記 · 財務營運利差對比 · 突破放量摘要
+                    </div>
+                    <div style="display: flex; gap: 4px; align-items: center;">
+                      <span style="font-size: 9.5px; padding: 1px 5px; border-radius: 3px; background: #064e3b; color: #34d399; border: 1px solid #10b981;">#10B981 漲綠</span>
+                      <span style="font-size: 9.5px; padding: 1px 5px; border-radius: 3px; background: #0f172a; color: #38bdf8; border: 1px solid #0284c7;">深灰金融網格</span>
+                    </div>
+                  </div>
+
+                  <!-- Preset 6: Archival History & Chronicles (歷史編年) -->
+                  <div id="insp-card-archival_history" onclick="selectInspectorRemotionPreset('archival_history')" style="border: ${activeStyle==='archival_history' ? '2px solid #c2410c' : '1px solid #1e293b'}; border-radius: 6px; background: #1c1511; padding: 10px; cursor: pointer; transition: all 0.2s; box-shadow: ${activeStyle==='archival_history' ? '0 0 12px rgba(194,65,12,0.35)' : 'none'};">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                      <span style="font-size: 12px; font-weight: 700; color: #f8fafc;">📜 Archival History</span>
+                      <span style="font-size: 10px; padding: 2px 6px; border-radius: 3px; background: rgba(194,65,12,0.25); color: #fb923c; font-weight: 700;">歷史編年</span>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-bottom: 6px;">
+                      <img src="/remotion/style_archival_document.png" alt="Archival Document" style="width: 100%; height: 42px; object-fit: cover; border-radius: 3px; border: 1px solid #431407;">
+                      <img src="/remotion/style_history_chronology.png" alt="History Chronology" style="width: 100%; height: 42px; object-fit: cover; border-radius: 3px; border: 1px solid #431407;">
+                      <img src="/remotion/style_evidencehighlight.png" alt="Evidence Highlight" style="width: 100%; height: 42px; object-fit: cover; border-radius: 3px; border: 1px solid #431407;">
+                    </div>
+                    <div style="font-size: 10.5px; color: #94a3b8; line-height: 1.3; margin-bottom: 6px;">
+                      復古羊皮紙質 · 機密歷史檔案引言 · 紅色官印動態戳記 · 年代編年推進
+                    </div>
+                    <div style="display: flex; gap: 4px; align-items: center;">
+                      <span style="font-size: 9.5px; padding: 1px 5px; border-radius: 3px; background: #431407; color: #fb923c; border: 1px solid #c2410c;">#C2410C 印戳紅</span>
+                      <span style="font-size: 9.5px; padding: 1px 5px; border-radius: 3px; background: #292524; color: #d6d3d1; border: 1px solid #78716c;">羊皮紙復古紋</span>
+                    </div>
+                  </div>
+
+                  <!-- Preset 7: Vox Investigative Journalism (Vox 深度調查) -->
+                  <div id="insp-card-vox_journalism" onclick="selectInspectorRemotionPreset('vox_journalism')" style="border: ${activeStyle==='vox_journalism' ? '2px solid #facc15' : '1px solid #1e293b'}; border-radius: 6px; background: #16150a; padding: 10px; cursor: pointer; transition: all 0.2s; box-shadow: ${activeStyle==='vox_journalism' ? '0 0 12px rgba(250,204,21,0.35)' : 'none'};">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                      <span style="font-size: 12px; font-weight: 700; color: #f8fafc;">🗞️ Vox Journalism</span>
+                      <span style="font-size: 10px; padding: 2px 6px; border-radius: 3px; background: rgba(250,204,21,0.25); color: #fde047; font-weight: 700;">Vox 調查</span>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-bottom: 6px;">
+                      <img src="/remotion/style_vox_splitscreen.png" alt="Vox Split Screen" style="width: 100%; height: 42px; object-fit: cover; border-radius: 3px; border: 1px solid #36300a;">
+                      <img src="/remotion/style_vox_keystat.png" alt="Vox Key Stat" style="width: 100%; height: 42px; object-fit: cover; border-radius: 3px; border: 1px solid #36300a;">
+                      <img src="/remotion/style_foxheader.png" alt="Editorial Header" style="width: 100%; height: 42px; object-fit: cover; border-radius: 3px; border: 1px solid #36300a;">
+                    </div>
+                    <div style="font-size: 10.5px; color: #94a3b8; line-height: 1.3; margin-bottom: 6px;">
+                      Vox招牌黃黑對比 · 承諾與現實政策雙分割對照 · 140px巨型震撼數據 · 螢光畫線
+                    </div>
+                    <div style="display: flex; gap: 4px; align-items: center;">
+                      <span style="font-size: 9.5px; padding: 1px 5px; border-radius: 3px; background: #36300a; color: #fde047; border: 1px solid #facc15;">#FACC15 亮黃</span>
+                      <span style="font-size: 9.5px; padding: 1px 5px; border-radius: 3px; background: #0a0a0c; color: #cbd5e1; border: 1px solid #334155;">高對比炭黑</span>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+              <!-- Core Controls Form Grid -->
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; background: rgba(0,0,0,0.3); padding: 12px; border-radius: 6px; border: 1px solid #1e293b;">
+                <!-- 1. Style Dropdown -->
+                <div>
+                  <label style="display: block; font-size: 11px; font-weight: 700; color: #cbd5e1; margin-bottom: 4px;">風格體系 (remotion.style)</label>
+                  <select id="insp-remotion-style" onchange="onInspectorRemotionChange()" style="width: 100%; font-size: 11.5px; padding: 6px; background: #060b16; border: 1px solid #334155; color: #f8fafc; border-radius: 4px;">
+                    <option value="modern_tech_explainer" ${activeStyle==='modern_tech_explainer'?'selected':''}>Modern Tech Explainer (Gary Chen)</option>
+                    <option value="coordinate_zero" ${activeStyle==='coordinate_zero'?'selected':''}>Coordinate Zero (座標零 桌面實驗)</option>
+                    <option value="tactile_blueprint" ${activeStyle==='tactile_blueprint'?'selected':''}>Tactile Blueprint (硬核科技藍圖)</option>
+                    <option value="fox_documentary" ${activeStyle==='fox_documentary'?'selected':''}>fOx Hsiao Documentary (調查紀錄片)</option>
+                    <option value="finance_market" ${activeStyle==='finance_market'?'selected':''}>Finance & Market (財經趨勢與K線)</option>
+                    <option value="archival_history" ${activeStyle==='archival_history'?'selected':''}>Archival History (歷史編年檔案)</option>
+                    <option value="vox_journalism" ${activeStyle==='vox_journalism'?'selected':''}>Vox Journalism (Vox 深度調查)</option>
+                  </select>
+                </div>
+
+                <!-- 2. Canvas Theme Dropdown -->
+                <div>
+                  <label style="display: block; font-size: 11px; font-weight: 700; color: #cbd5e1; margin-bottom: 4px;">畫布主題 (remotion.theme)</label>
+                  <select id="insp-remotion-theme" onchange="onInspectorRemotionChange()" style="width: 100%; font-size: 11.5px; padding: 6px; background: #060b16; border: 1px solid #334155; color: #f8fafc; border-radius: 4px;">
+                    <option value="dark_obsidian" ${activeTheme==='dark_obsidian'?'selected':''}>Dark Obsidian (純黑曜石畫布)</option>
+                    <option value="green_cutting_mat" ${activeTheme==='green_cutting_mat'?'selected':''}>Green Cutting Mat (墨綠雕刻墊)</option>
+                    <option value="blueprint_grid" ${activeTheme==='blueprint_grid'?'selected':''}>Blueprint Grid (深藍工程網格)</option>
+                    <option value="translucent_overlay" ${activeTheme==='translucent_overlay'?'selected':''}>Translucent Overlay (毛玻璃遮罩)</option>
+                    <option value="finance_grid" ${activeTheme==='finance_grid'?'selected':''}>Finance Grid (深灰金融盤勢)</option>
+                    <option value="parchment_paper" ${activeTheme==='parchment_paper'?'selected':''}>Parchment Paper (古典羊皮紙)</option>
+                    <option value="vox_charcoal" ${activeTheme==='vox_charcoal'?'selected':''}>Vox Charcoal (高對比炭黑)</option>
+                  </select>
+                </div>
+
+                <!-- 3. Density Dropdown -->
+                <div>
+                  <label style="display: block; font-size: 11px; font-weight: 700; color: #cbd5e1; margin-bottom: 4px;">覆蓋密度 (remotion.density)</label>
+                  <select id="insp-remotion-density" onchange="onInspectorRemotionChange()" style="width: 100%; font-size: 11.5px; padding: 6px; background: #060b16; border: 1px solid #334155; color: #f8fafc; border-radius: 4px;">
+                    <option value="full" ${activeDensity==='full'?'selected':''}>full (100% 全程 Remotion 動態圖表)</option>
+                    <option value="half" ${activeDensity==='half'?'selected':''}>half (50% 實景圖片 + 50% 動態圖表)</option>
+                    <option value="rich" ${activeDensity==='rich'?'selected':''}>rich (豐富模式 · ~40% 關鍵圖卡)</option>
+                    <option value="balanced" ${activeDensity==='balanced'?'selected':''}>balanced (平衡模式 · ~25% 核心轉折)</option>
+                    <option value="minimal" ${activeDensity==='minimal'?'selected':''}>minimal (精簡模式 · ~10% 章節標題)</option>
+                  </select>
+                </div>
+
+                <!-- 4. Accent Color -->
+                <div>
+                  <label style="display: block; font-size: 11px; font-weight: 700; color: #cbd5e1; margin-bottom: 4px;">主視覺強調色 (accentColor)</label>
+                  <div style="display: flex; align-items: center; gap: 6px;">
+                    <input type="color" id="insp-remotion-accent-picker" value="${activeAccent}" onchange="onInspectorRemotionAccentChange(this.value)" style="width: 32px; height: 32px; padding: 1px; border: 1px solid #334155; border-radius: 4px; background: #060b16; cursor: pointer;">
+                    <input type="text" id="insp-remotion-accent-hex" value="${activeAccent}" maxlength="7" oninput="onInspectorRemotionAccentHexInput(this.value)" style="flex: 1; padding: 6px 8px; background: #060b16; border: 1px solid #334155; color: #f8fafc; border-radius: 4px; font-size: 11.5px; font-family: monospace; font-weight: 700; text-transform: uppercase;">
+                  </div>
+                </div>
+
+                <!-- 5. Stage 8 Animation Model / Provider -->
+                <div>
+                  <label style="display: block; font-size: 11px; font-weight: 700; color: #cbd5e1; margin-bottom: 4px;">Stage 8 算繪模式 (Stage Provider)</label>
+                  <select id="insp-remotion-model" onchange="inspectedStageData.animation_model=this.value" style="width: 100%; font-size: 11.5px; padding: 6px; background: #060b16; border: 1px solid #334155; color: #f8fafc; border-radius: 4px;">
+                    <option value="remotion" ${animModel==='remotion'||animModel==='motion_graphics'?'selected':''}>⚛️ AI Motion Graphics Director (自動智能配鏡)</option>
+                    <option value="remotion_coordinate_scale" ${animModel==='remotion_coordinate_scale'?'selected':''}>🧭 座標零 · 等緯尺度 (Scale)</option>
+                    <option value="remotion_coordinate_experiment" ${animModel==='remotion_coordinate_experiment'?'selected':''}>🔬 座標零 · 桌面實驗 (Experiment)</option>
+                    <option value="remotion_coordinate_split" ${animModel==='remotion_coordinate_split'?'selected':''}>⚖️ 座標零 · 各對一半 (Split)</option>
+                    <option value="remotion_finance_candlestick" ${animModel==='remotion_finance_candlestick'?'selected':''}>📈 財經趨勢 · 走勢K線 (Candlestick)</option>
+                    <option value="remotion_finance_metrics" ${animModel==='remotion_finance_metrics'?'selected':''}>📊 財經趨勢 · 財務指標 (Metrics)</option>
+                    <option value="remotion_archival_doc" ${animModel==='remotion_archival_doc'?'selected':''}>📜 歷史檔案 · 解密文檔 (Archival)</option>
+                    <option value="remotion_history_chrono" ${animModel==='remotion_history_chrono'?'selected':''}>⏳ 歷史檔案 · 年代編年 (Timeline)</option>
+                    <option value="remotion_vox_split" ${animModel==='remotion_vox_split'?'selected':''}>🗞️ Vox調查 · 政策雙分割 (Vox Split)</option>
+                    <option value="remotion_vox_keystat" ${animModel==='remotion_vox_keystat'?'selected':''}>⚡ Vox調查 · 核心數據 (Vox Stat)</option>
+                    <option value="remotion_evidence" ${animModel==='remotion_evidence'?'selected':''}>📑 科技藍圖 · 文獻劃記 (Highlight)</option>
+                    <option value="remotion_pathway" ${animModel==='remotion_pathway'?'selected':''}>🔀 科技藍圖 · 分支決策 (Pathway)</option>
+                    <option value="remotion_callout" ${animModel==='remotion_callout'?'selected':''}>🎯 科技藍圖 · HUD引線 (Callout)</option>
+                    <option value="remotion_scale" ${animModel==='remotion_scale'?'selected':''}>🔬 科技藍圖 · 尺度對比 (Loupe)</option>
+                    <option value="ken_burns" ${animModel==='ken_burns'?'selected':''}>📷 Ken Burns 靜態鏡頭縮放 (純圖片)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Scene Camera Motion & Animation Status Grid -->
+            <div style="font-size:13px; font-weight:800; color:#93c5fd; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+              <span>🎬 分鏡鏡頭運鏡與動畫狀態 (${scenes.length} 個分鏡)</span>
+              <span style="font-size:11px; font-weight:normal; color:var(--text-muted);">設定各分鏡之攝影機運動 (慢速推鏡/拉鏡/平移)</span>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:8px;">
           `;
           scenes.forEach((s, idx) => {
+            const hasAnimClip = s.animation && s.animation.status === 'COMPLETED' && s.animation.path;
+            const animMeta = (s.animation && s.animation.meta) || {};
+            const compLabel = animMeta.composition || animMeta.sceneType || '';
             bodyHtml += `
-              <div style="background:#080d16; border:1px solid var(--card-border); border-radius:6px; padding:12px; display:flex; justify-content:space-between; align-items:center;">
-                <div>
-                  <span style="font-weight:700; color:#93c5fd;">Scene #${s.scene_id}</span>: <span style="font-size:12px; color:#cbd5e1;">${s.narration.substring(0, 50)}...</span>
+              <div style="background:#080d16; border:1px solid var(--card-border); border-radius:6px; padding:10px 12px; display:flex; justify-content:space-between; align-items:center; gap:12px;">
+                <div style="flex: 1; min-width: 0;">
+                  <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
+                    <span style="font-weight:700; color:#93c5fd; font-size:12px;">Scene #${s.scene_id}</span>
+                    ${compLabel ? `<span style="font-size:10px; padding:1px 5px; border-radius:3px; background:rgba(0,245,255,0.15); color:#00F5FF; border:1px solid rgba(0,245,255,0.4);">${compLabel}</span>` : ''}
+                    ${hasAnimClip ? `<span style="font-size:10px; padding:1px 5px; border-radius:3px; background:rgba(16,185,129,0.15); color:#34d399; border:1px solid #059669;">✓ Clip Ready</span>` : ''}
+                  </div>
+                  <div style="font-size:11.5px; color:#cbd5e1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${s.narration}</div>
                 </div>
-                <div style="display:flex; gap:12px; align-items:center;">
-                  <select style="font-size:12px; padding:4px;" onchange="inspectedStageData.scenes[${idx}].camera_motion=this.value">
-                    <option value="slow_zoom_in" ${s.camera_motion==='slow_zoom_in'?'selected':''}>Zoom In</option>
-                    <option value="slow_zoom_out" ${s.camera_motion==='slow_zoom_out'?'selected':''}>Zoom Out</option>
-                    <option value="pan_left" ${s.camera_motion==='pan_left'?'selected':''}>Pan Left</option>
-                    <option value="pan_right" ${s.camera_motion==='pan_right'?'selected':''}>Pan Right</option>
-                    <option value="static" ${s.camera_motion==='static'?'selected':''}>Static</option>
+                <div style="display:flex; gap:8px; align-items:center; flex-shrink: 0;">
+                  <select style="font-size:11.5px; padding:4px 8px; background:#060b16; border:1px solid #334155; color:#cbd5e1; border-radius:4px;" onchange="inspectedStageData.scenes[${idx}].camera_motion=this.value">
+                    <option value="slow_zoom_in" ${s.camera_motion==='slow_zoom_in'?'selected':''}>Zoom In (慢推)</option>
+                    <option value="slow_zoom_out" ${s.camera_motion==='slow_zoom_out'?'selected':''}>Zoom Out (慢拉)</option>
+                    <option value="pan_left" ${s.camera_motion==='pan_left'?'selected':''}>Pan Left (左移)</option>
+                    <option value="pan_right" ${s.camera_motion==='pan_right'?'selected':''}>Pan Right (右移)</option>
+                    <option value="static" ${s.camera_motion==='static'?'selected':''}>Static (靜止)</option>
                   </select>
+                  ${hasAnimClip ? `<a href="/api/projects/${currentProjectId}/files/${s.animation.path}" target="_blank" class="btn-sec" style="font-size:10.5px; padding:3px 7px; text-decoration:none; display:inline-flex; align-items:center; gap:3px;">▶ 預覽</a>` : ''}
                 </div>
               </div>
             `;
           });
           bodyHtml += `</div>`;
           actionButtons = `
-            <button class="btn-sec" onclick="saveInspectedStage('animation')">Save Motion Settings</button>
-            <button class="btn-primary" onclick="runSingleStage('animation')">▶ Run Animation Stage</button>
+            <button class="btn-sec" onclick="saveInspectedStage('animation')">💾 保存風格與分鏡設定</button>
+            <button class="btn-primary" onclick="saveInspectedStage('animation', false).then(() => runSingleStage('animation'))">▶ 保存並執行動畫算繪</button>
           `;
         }
       } else if (stageName === 'subtitles') {
@@ -8634,8 +8908,19 @@
         try { payload.research = JSON.parse(text); } catch(e) { payload.research = { notes: text }; }
       } else if (stageName === 'script') {
         payload.script_md = document.getElementById('insp-script-md').value;
-      } else if (stageName === 'scenes' || stageName === 'prompts' || stageName === 'animation') {
+      } else if (stageName === 'scenes' || stageName === 'prompts') {
         payload.scenes = inspectedStageData.scenes;
+      } else if (stageName === 'animation') {
+        payload.scenes = inspectedStageData.scenes;
+        if (inspectedStageData.remotion) {
+          payload.remotion = inspectedStageData.remotion;
+          payload.remotion_style = inspectedStageData.remotion.style;
+        }
+        if (inspectedStageData.animation_model) {
+          payload.animation_model = inspectedStageData.animation_model;
+          const mainAnimEl = document.getElementById('model-stage-animation');
+          if (mainAnimEl) mainAnimEl.value = inspectedStageData.animation_model;
+        }
       } else if (stageName === 'music') {
         payload.music_plan = inspectedStageData.music_plan;
         payload.music_settings = inspectedStageData.music_settings;
@@ -8662,7 +8947,161 @@
       }
     }
 
-        // UNIVERSAL FIND & REPLACE SYSTEM ACROSS ALL STAGES (STAGE 1, 2, 3, PROMPTS, SUBTITLES)
+    
+    const INSPECTOR_REMOTION_PRESETS = {
+      modern_tech_explainer: {
+        style: 'modern_tech_explainer',
+        theme: 'dark_obsidian',
+        density: 'full',
+        accentColor: '#A855F7',
+        borderActive: '#a855f7',
+        model: 'remotion'
+      },
+      coordinate_zero: {
+        style: 'coordinate_zero',
+        theme: 'green_cutting_mat',
+        density: 'full',
+        accentColor: '#0D9488',
+        borderActive: '#0d9488',
+        model: 'remotion_coordinate_scale'
+      },
+      tactile_blueprint: {
+        style: 'tactile_blueprint',
+        theme: 'blueprint_grid',
+        density: 'full',
+        accentColor: '#00F5FF',
+        borderActive: '#00F5FF',
+        model: 'remotion'
+      },
+      fox_documentary: {
+        style: 'fox_documentary',
+        theme: 'translucent_overlay',
+        density: 'rich',
+        accentColor: '#38BDF8',
+        borderActive: '#38bdf8',
+        model: 'remotion'
+      },
+      finance_market: {
+        style: 'finance_market',
+        theme: 'finance_grid',
+        density: 'full',
+        accentColor: '#10B981',
+        borderActive: '#10b981',
+        model: 'remotion_finance_candlestick'
+      },
+      archival_history: {
+        style: 'archival_history',
+        theme: 'parchment_paper',
+        density: 'full',
+        accentColor: '#C2410C',
+        borderActive: '#c2410c',
+        model: 'remotion_archival_doc'
+      },
+      vox_journalism: {
+        style: 'vox_journalism',
+        theme: 'vox_charcoal',
+        density: 'full',
+        accentColor: '#FACC15',
+        borderActive: '#facc15',
+        model: 'remotion_vox_split'
+      }
+    };
+
+    function selectInspectorRemotionPreset(presetKey) {
+      const p = INSPECTOR_REMOTION_PRESETS[presetKey];
+      if (!p) return;
+      if (!inspectedStageData.remotion) inspectedStageData.remotion = {};
+      inspectedStageData.remotion.style = p.style;
+      inspectedStageData.remotion.theme = p.theme;
+      inspectedStageData.remotion.density = p.density;
+      inspectedStageData.remotion.accentColor = p.accentColor;
+      if (p.model) inspectedStageData.animation_model = p.model;
+
+      const styleEl = document.getElementById('insp-remotion-style');
+      const themeEl = document.getElementById('insp-remotion-theme');
+      const densityEl = document.getElementById('insp-remotion-density');
+      const pickerEl = document.getElementById('insp-remotion-accent-picker');
+      const hexEl = document.getElementById('insp-remotion-accent-hex');
+      const modelEl = document.getElementById('insp-remotion-model');
+
+      if (styleEl) styleEl.value = p.style;
+      if (themeEl) themeEl.value = p.theme;
+      if (densityEl) densityEl.value = p.density;
+      if (pickerEl) pickerEl.value = p.accentColor;
+      if (hexEl) hexEl.value = p.accentColor;
+      if (modelEl && p.model) modelEl.value = p.model;
+
+      updateInspectorRemotionUI();
+    }
+
+    function onInspectorRemotionChange() {
+      if (!inspectedStageData.remotion) inspectedStageData.remotion = {};
+      const styleEl = document.getElementById('insp-remotion-style');
+      const themeEl = document.getElementById('insp-remotion-theme');
+      const densityEl = document.getElementById('insp-remotion-density');
+      const hexEl = document.getElementById('insp-remotion-accent-hex');
+      const modelEl = document.getElementById('insp-remotion-model');
+
+      if (styleEl) inspectedStageData.remotion.style = styleEl.value;
+      if (themeEl) inspectedStageData.remotion.theme = themeEl.value;
+      if (densityEl) inspectedStageData.remotion.density = densityEl.value;
+      if (hexEl) inspectedStageData.remotion.accentColor = hexEl.value;
+      if (modelEl) inspectedStageData.animation_model = modelEl.value;
+
+      updateInspectorRemotionUI();
+    }
+
+    function onInspectorRemotionAccentChange(val) {
+      if (!inspectedStageData.remotion) inspectedStageData.remotion = {};
+      inspectedStageData.remotion.accentColor = val;
+      const hexEl = document.getElementById('insp-remotion-accent-hex');
+      if (hexEl) hexEl.value = val;
+      updateInspectorRemotionUI();
+    }
+
+    function onInspectorRemotionAccentHexInput(val) {
+      let hex = val.trim();
+      if (!hex.startsWith('#')) hex = '#' + hex;
+      if (/^#[0-9A-Fa-f]{6}$/.test(hex)) {
+        if (!inspectedStageData.remotion) inspectedStageData.remotion = {};
+        inspectedStageData.remotion.accentColor = hex;
+        const pickerEl = document.getElementById('insp-remotion-accent-picker');
+        if (pickerEl) pickerEl.value = hex;
+        updateInspectorRemotionUI();
+      }
+    }
+
+    function updateInspectorRemotionUI() {
+      const rem = inspectedStageData.remotion || {};
+      const curStyle = rem.style || 'modern_tech_explainer';
+      const accent = rem.accentColor || '#A855F7';
+
+      const badge = document.getElementById('insp-remotion-active-badge');
+      if (badge) {
+        badge.textContent = `${curStyle} · ${accent}`;
+        badge.style.color = accent;
+        badge.style.borderColor = accent;
+        badge.style.background = accent + '22';
+      }
+
+      Object.keys(INSPECTOR_REMOTION_PRESETS).forEach(k => {
+        const card = document.getElementById('insp-card-' + k);
+        if (card) {
+          const isSelected = (curStyle === k);
+          const p = INSPECTOR_REMOTION_PRESETS[k];
+          card.style.border = isSelected ? `2px solid ${p.borderActive}` : '1px solid #1e293b';
+          card.style.boxShadow = isSelected ? `0 0 12px ${p.borderActive}55` : 'none';
+        }
+      });
+    }
+
+    window.selectInspectorRemotionPreset = selectInspectorRemotionPreset;
+    window.onInspectorRemotionChange = onInspectorRemotionChange;
+    window.onInspectorRemotionAccentChange = onInspectorRemotionAccentChange;
+    window.onInspectorRemotionAccentHexInput = onInspectorRemotionAccentHexInput;
+    window.updateInspectorRemotionUI = updateInspectorRemotionUI;
+
+    // UNIVERSAL FIND & REPLACE SYSTEM ACROSS ALL STAGES (STAGE 1, 2, 3, PROMPTS, SUBTITLES)
     async function executeUniversalReplace(sourceStage, findInputId, replaceInputId, matchCaseCheckboxId, allStagesCheckboxId, statusElId) {
       const findInput = document.getElementById(findInputId);
       const replaceInput = document.getElementById(replaceInputId);
