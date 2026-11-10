@@ -5118,4 +5118,16 @@ if UI_DIR.exists():
             }
         )
 
+    @app.get("/app.js")
+    def serve_app_js():
+        return FileResponse(
+            str(UI_DIR / "app.js"),
+            media_type="application/javascript",
+            headers={
+                "Cache-Control": "no-cache, no-store, must-revalidate",
+                "Pragma": "no-cache",
+                "Expires": "0",
+            }
+        )
+
     app.mount("/", StaticFiles(directory=str(UI_DIR), html=True), name="ui")
