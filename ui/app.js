@@ -8787,33 +8787,53 @@
             <!-- Scene Camera Motion & Animation Status Grid -->
             <div style="font-size:13px; font-weight:800; color:#93c5fd; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
               <span>🎬 分鏡鏡頭運鏡與動畫狀態 (${scenes.length} 個分鏡)</span>
-              <span style="font-size:11px; font-weight:normal; color:var(--text-muted);">設定各分鏡之攝影機運動 (慢速推鏡/拉鏡/平移)</span>
+              <span style="font-size:11px; font-weight:normal; color:var(--text-muted);">包含 Remotion 動態卡片與 Ken Burns 鏡頭預覽</span>
             </div>
-            <div style="display:flex; flex-direction:column; gap:8px;">
+            <div style="display:flex; flex-direction:column; gap:10px;">
           `;
           scenes.forEach((s, idx) => {
-            const hasAnimClip = s.animation && s.animation.status === 'COMPLETED' && s.animation.path;
+            const hasAnimClip = Boolean(s.has_animation || (s.animation && s.animation.status === 'COMPLETED' && s.animation.path));
+            const videoPath = (s.animation && s.animation.path) || `animation/${s.tag || ('scene_' + String(s.scene_id).padStart(3, '0'))}.mp4`;
+            const vSrc = hasAnimClip ? `/media/${currentProjectId}/${videoPath}` : '';
+            const imgPath = (s.image && s.image.path) || `images/${s.tag || ('scene_' + String(s.scene_id).padStart(3, '0'))}.png`;
+            const imgSrc = `/media/${currentProjectId}/${imgPath}`;
             const animMeta = (s.animation && s.animation.meta) || {};
-            const compLabel = animMeta.composition || animMeta.sceneType || '';
+            const compLabel = s.remotion_composition || animMeta.composition || animMeta.sceneType || '';
+            const isRem = Boolean(s.is_remotion || compLabel || animMeta.provider === 'remotion');
+
             bodyHtml += `
-              <div style="background:#080d16; border:1px solid var(--card-border); border-radius:6px; padding:10px 12px; display:flex; justify-content:space-between; align-items:center; gap:12px;">
-                <div style="flex: 1; min-width: 0;">
-                  <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
+              <div style="background:#080d16; border:1px solid ${isRem ? '#1e3a8a' : 'var(--card-border)'}; border-radius:6px; padding:10px 12px; display:flex; flex-direction:column; gap:8px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+                  <div style="display:flex; align-items:center; gap:6px;">
                     <span style="font-weight:700; color:#93c5fd; font-size:12px;">Scene #${s.scene_id}</span>
-                    ${compLabel ? `<span style="font-size:10px; padding:1px 5px; border-radius:3px; background:rgba(0,245,255,0.15); color:#00F5FF; border:1px solid rgba(0,245,255,0.4);">${compLabel}</span>` : ''}
-                    ${hasAnimClip ? `<span style="font-size:10px; padding:1px 5px; border-radius:3px; background:rgba(16,185,129,0.15); color:#34d399; border:1px solid #059669;">✓ Clip Ready</span>` : ''}
+                    ${compLabel ? `<span style="font-size:10px; padding:1px 6px; border-radius:3px; background:rgba(0,245,255,0.15); color:#00F5FF; border:1px solid rgba(0,245,255,0.4);">⚛️ ${escapeHtml(compLabel)}</span>` : `<span style="font-size:10px; padding:1px 6px; border-radius:3px; background:#1e293b; color:#94a3b8;">📷 Ken Burns</span>`}
+                    ${hasAnimClip ? `<span style="font-size:10px; padding:1px 6px; border-radius:3px; background:rgba(16,185,129,0.15); color:#34d399; border:1px solid #059669;">✓ Clip Ready</span>` : `<span style="font-size:10px; padding:1px 6px; border-radius:3px; background:rgba(245,158,11,0.15); color:#fbbf24; border:1px solid #d97706;">⏳ 待算繪</span>`}
                   </div>
-                  <div style="font-size:11.5px; color:#cbd5e1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${s.narration}</div>
+                  <div style="display:flex; gap:6px; align-items:center;">
+                    <select style="font-size:11.5px; padding:3px 6px; background:#060b16; border:1px solid #334155; color:#cbd5e1; border-radius:4px;" onchange="inspectedStageData.scenes[${idx}].camera_motion=this.value">
+                      <option value="slow_zoom_in" ${s.camera_motion==='slow_zoom_in'?'selected':''}>Zoom In (慢推)</option>
+                      <option value="slow_zoom_out" ${s.camera_motion==='slow_zoom_out'?'selected':''}>Zoom Out (慢拉)</option>
+                      <option value="pan_left" ${s.camera_motion==='pan_left'?'selected':''}>Pan Left (左移)</option>
+                      <option value="pan_right" ${s.camera_motion==='pan_right'?'selected':''}>Pan Right (右移)</option>
+                      <option value="static" ${s.camera_motion==='static'?'selected':''}>Static (靜止)</option>
+                    </select>
+                    ${hasAnimClip ? `<a href="${vSrc}" target="_blank" class="btn-sec" style="font-size:10.5px; padding:3px 7px; text-decoration:none; display:inline-flex; align-items:center; gap:3px; color:#38bdf8;">▶ 全螢幕</a>` : ''}
+                  </div>
                 </div>
-                <div style="display:flex; gap:8px; align-items:center; flex-shrink: 0;">
-                  <select style="font-size:11.5px; padding:4px 8px; background:#060b16; border:1px solid #334155; color:#cbd5e1; border-radius:4px;" onchange="inspectedStageData.scenes[${idx}].camera_motion=this.value">
-                    <option value="slow_zoom_in" ${s.camera_motion==='slow_zoom_in'?'selected':''}>Zoom In (慢推)</option>
-                    <option value="slow_zoom_out" ${s.camera_motion==='slow_zoom_out'?'selected':''}>Zoom Out (慢拉)</option>
-                    <option value="pan_left" ${s.camera_motion==='pan_left'?'selected':''}>Pan Left (左移)</option>
-                    <option value="pan_right" ${s.camera_motion==='pan_right'?'selected':''}>Pan Right (右移)</option>
-                    <option value="static" ${s.camera_motion==='static'?'selected':''}>Static (靜止)</option>
-                  </select>
-                  ${hasAnimClip ? `<a href="/api/projects/${currentProjectId}/files/${s.animation.path}" target="_blank" class="btn-sec" style="font-size:10.5px; padding:3px 7px; text-decoration:none; display:inline-flex; align-items:center; gap:3px;">▶ 預覽</a>` : ''}
+
+                <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                  ${hasAnimClip ? `
+                    <div style="flex-shrink:0; width:160px; aspect-ratio:16/9; border-radius:4px; overflow:hidden; background:#000; border:1px solid #1e293b;">
+                      <video controls preload="metadata" playsinline src="${vSrc}" poster="${imgSrc}" style="width:100%; height:100%; object-fit:contain; display:block;"></video>
+                    </div>
+                  ` : `
+                    <div style="flex-shrink:0; width:160px; aspect-ratio:16/9; border-radius:4px; overflow:hidden; background:#000; border:1px dashed #334155; position:relative;">
+                      <img src="${imgSrc}" onerror="this.style.display='none'" style="width:100%; height:100%; object-fit:cover; opacity:0.7;">
+                    </div>
+                  `}
+                  <div style="flex:1; min-width:180px; font-size:11.5px; color:#cbd5e1; line-height:1.4; background:#04070e; border:1px solid #1e293b; padding:6px 8px; border-radius:4px;">
+                    ${escapeHtml(s.narration || '（無旁白）')}
+                  </div>
                 </div>
               </div>
             `;
@@ -9854,6 +9874,11 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
           previewVideo.load();
           previewVideo.play().catch(() => {});
         }
+        const scVid = document.getElementById(`studio-scene-video-${sceneIdVal}`);
+        if (scVid && data.clip?.mp4_url) {
+          scVid.src = data.clip.mp4_url + `?t=${Date.now()}`;
+          scVid.load();
+        }
       } catch (e) {
         if (statusText) {
           statusText.style.color = '#f87171';
@@ -9865,6 +9890,59 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
           btn.textContent = "⚡ 只為此分鏡渲染卡片";
         }
       }
+    }
+
+    function focusRemotionScene(sceneId) {
+      const sel = document.getElementById('remotion-target-scene');
+      if (sel) {
+        sel.value = String(sceneId);
+        prefillRemotionFromScene(sceneId);
+      }
+      const targetCard = document.querySelector(`.studio-anim-scene-card[data-scene-id="${sceneId}"]`);
+      if (targetCard) {
+        targetCard.style.borderColor = '#00F5FF';
+        targetCard.style.boxShadow = '0 0 15px rgba(0, 245, 255, 0.35)';
+        setTimeout(() => {
+          targetCard.style.boxShadow = 'none';
+        }, 3000);
+      }
+      const anchor = document.getElementById('remotion-target-scene');
+      if (anchor) anchor.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    function filterStudioAnimScenes(type) {
+      const cards = document.querySelectorAll('.studio-anim-scene-card');
+      const buttons = document.querySelectorAll('.studio-anim-filter-btn');
+      buttons.forEach(btn => {
+        const isActive = (btn.dataset.filter === type);
+        btn.style.background = isActive ? '#1e3a8a' : '#080d16';
+        btn.style.borderColor = isActive ? '#38bdf8' : '#1e293b';
+        btn.style.color = isActive ? '#ffffff' : (btn.dataset.filter === 'remotion' ? '#a855f7' : (btn.dataset.filter === 'ready' ? '#34d399' : '#94a3b8'));
+      });
+      const searchTxt = (document.getElementById('studio-anim-search')?.value || '').toLowerCase().trim();
+      cards.forEach(card => {
+        const isRem = card.dataset.isRemotion === 'true';
+        const hasVid = card.dataset.hasVideo === 'true';
+        const narration = (card.dataset.narration || '').toLowerCase();
+        const scId = card.dataset.sceneId || '';
+
+        let matchType = true;
+        if (type === 'remotion') matchType = isRem;
+        else if (type === 'ken_burns') matchType = !isRem;
+        else if (type === 'ready') matchType = hasVid;
+
+        let matchSearch = true;
+        if (searchTxt) {
+          matchSearch = narration.includes(searchTxt) || scId === searchTxt || (`scene #${scId}`).includes(searchTxt) || (`scene ${scId}`).includes(searchTxt);
+        }
+        card.style.display = (matchType && matchSearch) ? 'flex' : 'none';
+      });
+    }
+
+    function onStudioAnimSearchInput() {
+      const activeBtn = Array.from(document.querySelectorAll('.studio-anim-filter-btn')).find(b => b.style.background.includes('30, 58, 138') || b.style.borderColor.includes('56, 189, 248'));
+      const filter = activeBtn ? activeBtn.dataset.filter : 'all';
+      filterStudioAnimScenes(filter);
     }
 
     async function clearProjectVideoCache(targetId) {
@@ -12420,33 +12498,190 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
             </div>
 
             <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 14px;">Camera Motion & Pan/Zoom dynamics for all scenes. Static images are brought to life using Ken Burns dynamic effects or Remotion React clips.</div>
-            <div style="display: flex; flex-direction: column; gap: 12px;">
+            
+            <!-- Filter & Search Toolbar -->
+            <div style="background: #080d1a; border: 1px solid #1e293b; border-radius: 8px; padding: 12px 16px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <span style="font-size: 13px; font-weight: 800; color: #93c5fd; display: flex; align-items: center; gap: 6px;">
+                  <span>🎬 全片分鏡 Remotion 動態預覽</span>
+                  <span style="font-size: 11px; background: rgba(56,189,248,0.15); border: 1px solid #0284c7; color: #38bdf8; padding: 2px 8px; border-radius: 10px;">共 ${scenes.length} 幕</span>
+                </span>
+                <div style="display: flex; gap: 6px; margin-left: 6px; flex-wrap: wrap;">
+                  <button type="button" class="btn-sec studio-anim-filter-btn" data-filter="all" onclick="filterStudioAnimScenes('all')" style="font-size: 11px; padding: 3px 10px; background: #1e3a8a; border-color: #38bdf8; color: #fff;">
+                    全部 (${scenes.length})
+                  </button>
+                  <button type="button" class="btn-sec studio-anim-filter-btn" data-filter="remotion" onclick="filterStudioAnimScenes('remotion')" style="font-size: 11px; padding: 3px 10px; background: #080d16; border-color: #1e293b; color: #a855f7;">
+                    ⚛️ Remotion 卡片 (${scenes.filter(s => s.is_remotion || (s.animation && s.animation.meta && (s.animation.meta.composition || s.animation.meta.sceneType)) || s.remotion_composition).length})
+                  </button>
+                  <button type="button" class="btn-sec studio-anim-filter-btn" data-filter="ken_burns" onclick="filterStudioAnimScenes('ken_burns')" style="font-size: 11px; padding: 3px 10px; background: #080d16; border-color: #1e293b; color: #94a3b8;">
+                    📷 Ken Burns 運鏡 (${scenes.filter(s => !(s.is_remotion || (s.animation && s.animation.meta && (s.animation.meta.composition || s.animation.meta.sceneType)) || s.remotion_composition)).length})
+                  </button>
+                  <button type="button" class="btn-sec studio-anim-filter-btn" data-filter="ready" onclick="filterStudioAnimScenes('ready')" style="font-size: 11px; padding: 3px 10px; background: #080d16; border-color: #1e293b; color: #34d399;">
+                    ✓ 影片已就緒 (${scenes.filter(s => s.has_animation || (s.animation && s.animation.path)).length})
+                  </button>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <input type="text" id="studio-anim-search" placeholder="🔍 搜尋分鏡或旁白..." oninput="onStudioAnimSearchInput()" style="font-size: 12px; padding: 5px 10px; background: #040812; border: 1px solid #1e3a8a; border-radius: 6px; color: #fff; width: 200px;">
+              </div>
+            </div>
+
+            <div id="studio-anim-scene-list" style="display: flex; flex-direction: column; gap: 14px;">
           `;
           scenes.forEach((s, idx) => {
+            const hasVideo = Boolean(s.has_animation || (s.animation && s.animation.path));
+            const videoPath = (s.animation && s.animation.path) || `animation/${s.tag || ('scene_' + String(s.scene_id).padStart(3, '0'))}.mp4`;
+            const vSrc = hasVideo ? `/media/${currentProjectId}/${videoPath}` : '';
+            const imgPath = (s.image && s.image.path) || `images/${s.tag || ('scene_' + String(s.scene_id).padStart(3, '0'))}.png`;
+            const imgSrc = `/media/${currentProjectId}/${imgPath}`;
+
+            const animMeta = (s.animation && s.animation.meta) || {};
+            const comp = s.remotion_composition || animMeta.composition || animMeta.sceneType || '';
+            const isRem = Boolean(s.is_remotion || comp || animMeta.provider === 'remotion');
+            const props = s.remotion_props || animMeta.props || {};
+
+            const headline = props.headline || props.title || '';
+            const metric = props.metric || (props.value ? `${props.value}${props.unit || ''}` : '') || '';
+            const category = props.category || props.badge || '';
+            const subtext = props.subtext || props.subtitle || props.takeaway || props.description || '';
+            const dur = (s.audio_duration || s.estimated_duration || 5).toFixed(1);
+
+            let compBadgeColor = '#00F5FF';
+            let compBadgeBg = 'rgba(0, 245, 255, 0.12)';
+            let compBadgeBorder = 'rgba(0, 245, 255, 0.35)';
+            let compIcon = '⚛️';
+            if (comp.includes('Archival')) {
+              compBadgeColor = '#f59e0b';
+              compBadgeBg = 'rgba(245, 158, 11, 0.12)';
+              compBadgeBorder = 'rgba(245, 158, 11, 0.35)';
+              compIcon = '📜';
+            } else if (comp.includes('Prompt') || comp.includes('Comparison')) {
+              compBadgeColor = '#a855f7';
+              compBadgeBg = 'rgba(168, 85, 247, 0.12)';
+              compBadgeBorder = 'rgba(168, 85, 247, 0.35)';
+              compIcon = '⚖️';
+            } else if (comp.includes('Matrix') || comp.includes('Framework')) {
+              compBadgeColor = '#0d9488';
+              compBadgeBg = 'rgba(13, 148, 136, 0.12)';
+              compBadgeBorder = 'rgba(13, 148, 136, 0.35)';
+              compIcon = '🧭';
+            } else if (comp.includes('Quote')) {
+              compBadgeColor = '#ec4899';
+              compBadgeBg = 'rgba(236, 72, 153, 0.12)';
+              compBadgeBorder = 'rgba(236, 72, 153, 0.35)';
+              compIcon = '💬';
+            } else if (comp.includes('Metric')) {
+              compBadgeColor = '#eab308';
+              compBadgeBg = 'rgba(234, 179, 8, 0.12)';
+              compBadgeBorder = 'rgba(234, 179, 8, 0.35)';
+              compIcon = '📊';
+            }
+
             bodyHtml += `
-              <div style="background: #080d16; border: 1px solid var(--card-border); border-radius: 8px; padding: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
-                <div>
-                  <span style="font-weight: 700; color: #93c5fd;">Scene #${s.scene_id}</span>
-                  ${s.is_presenter ? `<span style="background: rgba(139, 92, 246, 0.25); border: 1px solid #8b5cf6; color: #c4b5fd; font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-left: 6px;">🎭 主播場景</span>` : ''}
-                  <div style="font-size: 12px; color: #cbd5e1; margin-top: 2px;">Motion: <b>${s.camera_motion || 'slow_zoom_in'}</b> | Duration: <b>${s.estimated_duration || 5}s</b></div>
+              <div class="studio-anim-scene-card" data-scene-id="${s.scene_id}" data-is-remotion="${isRem}" data-has-video="${hasVideo}" data-narration="${escapeHtml(s.narration || '')}" style="background: linear-gradient(180deg, #090e17 0%, #060a12 100%); border: 1px solid ${isRem ? '#1e3a8a' : 'var(--card-border)'}; border-radius: 8px; padding: 14px; display: flex; flex-direction: column; gap: 12px; transition: border-color 0.2s;">
+                <!-- Card Header -->
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; padding-bottom: 8px; border-bottom: 1px solid #1e293b;">
+                  <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    <span style="font-weight: 800; font-size: 13px; color: #93c5fd; background: #0f172a; border: 1px solid #334155; padding: 2px 8px; border-radius: 4px;">
+                      Scene #${s.scene_id}
+                    </span>
+                    ${isRem ? `
+                      <span style="background: ${compBadgeBg}; border: 1px solid ${compBadgeBorder}; color: ${compBadgeColor}; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px;">
+                        <span>${compIcon}</span> <span>${escapeHtml(comp || 'Remotion Card')}</span>
+                      </span>
+                    ` : `
+                      <span style="background: rgba(100, 116, 139, 0.15); border: 1px solid #334155; color: #94a3b8; font-size: 11px; padding: 2px 8px; border-radius: 4px;">
+                        📷 Ken Burns 運鏡
+                      </span>
+                    `}
+                    ${s.is_presenter ? `<span style="background: rgba(139, 92, 246, 0.25); border: 1px solid #8b5cf6; color: #c4b5fd; font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 4px;">🎭 主播場景</span>` : ''}
+                    <span style="font-size: 11px; color: #64748b; font-family: monospace;">⏱️ ${dur}s</span>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    ${hasVideo ? `
+                      <span style="font-size: 11px; font-weight: 700; color: #34d399; background: rgba(16, 185, 129, 0.15); border: 1px solid #059669; padding: 2px 7px; border-radius: 4px; display: inline-flex; align-items: center; gap: 3px;">
+                        ✓ 1080p MP4 Ready
+                      </span>
+                    ` : `
+                      <span style="font-size: 11px; color: #fbbf24; background: rgba(245, 158, 11, 0.15); border: 1px solid #d97706; padding: 2px 7px; border-radius: 4px;">
+                        ⏳ 待算繪
+                      </span>
+                    `}
+                    <button type="button" class="btn-sec" style="font-size: 11px; padding: 3px 8px; border-color: #00F5FF; color: #00F5FF; font-weight: 700;" onclick="focusRemotionScene(${s.scene_id})" title="將此分鏡帶入上方微調表單">
+                      ⚡ 載入至微調卡片
+                    </button>
+                  </div>
                 </div>
-                <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-                  ${s.is_presenter ? `
-                    <button type="button" class="btn-sec" style="padding: 5px 10px; font-size: 11px; font-weight: 700; background: rgba(139, 92, 246, 0.25); border-color: #8b5cf6; color: #c4b5fd; display: inline-flex; align-items: center; gap: 4px;" onclick="triggerSceneAvatarUpload(${s.scene_id})" title="方案2：直接上傳此分鏡的自錄真人/戴口罩出鏡影片">
-                      📤 上傳自錄影片 (Upload Custom Video)
-                    </button>
-                    <input type="file" id="scene-avatar-file-${s.scene_id}" accept="video/mp4,video/quicktime,video/webm" style="display:none;" onchange="uploadCustomSceneAvatarClip(${s.scene_id}, this.files[0])">
-                    <button type="button" class="btn-sec" style="padding: 5px 10px; font-size: 11px; font-weight: 700; background: rgba(139, 92, 246, 0.18); border-color: #7c3aed; color: #c4b5fd;" onclick="rerenderSingleSceneAvatarClip(${s.scene_id})" title="單獨重新生成此分鏡口型">
-                      🎭 重製口型
-                    </button>
-                  ` : ''}
-                  <select style="font-size: 12px; padding: 6px; background: #04070e; border: 1px solid #1e293b; color: #cbd5e1; border-radius: 4px;" onchange="studioStageData.scenes[${idx}].camera_motion=this.value">
-                    <option value="slow_zoom_in" ${s.camera_motion==='slow_zoom_in'?'selected':''}>Slow Zoom In</option>
-                    <option value="slow_zoom_out" ${s.camera_motion==='slow_zoom_out'?'selected':''}>Slow Zoom Out</option>
-                    <option value="pan_left" ${s.camera_motion==='pan_left'?'selected':''}>Pan Left</option>
-                    <option value="pan_right" ${s.camera_motion==='pan_right'?'selected':''}>Pan Right</option>
-                    <option value="static" ${s.camera_motion==='static'?'selected':''}>Static</option>
-                  </select>
+
+                <!-- Card Body: Video Player & Remotion Info -->
+                <div style="display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-start;">
+                  <!-- Video Preview Player Column -->
+                  <div style="flex: 0 0 320px; max-width: 100%; min-width: 260px;">
+                    ${hasVideo ? `
+                      <div style="position: relative; border-radius: 6px; overflow: hidden; background: #000; border: 1px solid #1e293b; aspect-ratio: 16/9; box-shadow: 0 2px 10px rgba(0,0,0,0.5);">
+                        <video id="studio-scene-video-${s.scene_id}" controls preload="metadata" playsinline src="${vSrc}" poster="${imgSrc}" style="width: 100%; height: 100%; object-fit: contain; display: block;"></video>
+                      </div>
+                      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px; font-size: 11px;">
+                        <a href="${vSrc}" target="_blank" style="color: #38bdf8; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; font-weight: 600;">
+                          ▶ 全螢幕另開播放
+                        </a>
+                        <a href="${vSrc}" download="scene_${String(s.scene_id).padStart(3, '0')}.mp4" style="color: #94a3b8; text-decoration: none;">
+                          📥 下載此幕 MP4
+                        </a>
+                      </div>
+                    ` : `
+                      <div style="position: relative; border-radius: 6px; overflow: hidden; background: #000; border: 1px dashed #334155; aspect-ratio: 16/9;">
+                        <img src="${imgSrc}" onerror="this.style.display='none'" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.75; display: block;">
+                        <div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(4, 7, 14, 0.75); padding: 8px; text-align: center;">
+                          <span style="font-size: 22px; margin-bottom: 4px;">🎬</span>
+                          <span style="font-size: 11px; color: #fbbf24; font-weight: 700;">尚未算繪動態影片</span>
+                          <span style="font-size: 10px; color: #94a3b8; margin-top: 2px;">可點擊上方執行算繪或單幕微調</span>
+                        </div>
+                      </div>
+                    `}
+                  </div>
+
+                  <!-- Scene Details & Controls Column -->
+                  <div style="flex: 1; min-width: 260px; display: flex; flex-direction: column; gap: 8px;">
+                    <!-- Narration Text -->
+                    <div style="background: #04070e; border: 1px solid #1e293b; border-radius: 6px; padding: 8px 10px;">
+                      <div style="font-size: 10px; color: #64748b; font-weight: 700; margin-bottom: 3px;">🎙️ 旁白文本 (Narration):</div>
+                      <div style="font-size: 12.5px; color: #f1f5f9; line-height: 1.45;">"${escapeHtml(s.narration || '（無旁白）')}"</div>
+                    </div>
+
+                    <!-- Remotion Extracted Details -->
+                    ${(headline || metric || category || subtext) ? `
+                      <div style="background: rgba(15, 23, 42, 0.65); border: 1px solid #1e293b; border-radius: 6px; padding: 8px 10px; display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 6px;">
+                        ${headline ? `<div><span style="font-size: 10px; color: #94a3b8; display: block;">📌 主標題:</span> <span style="font-size: 11.5px; color: #38bdf8; font-weight: 700;">${escapeHtml(headline)}</span></div>` : ''}
+                        ${metric ? `<div><span style="font-size: 10px; color: #94a3b8; display: block;">📊 核心數據:</span> <span style="font-size: 11.5px; color: #fbbf24; font-weight: 700;">${escapeHtml(metric)}</span></div>` : ''}
+                        ${category ? `<div><span style="font-size: 10px; color: #94a3b8; display: block;">🏷️ 類別標籤:</span> <span style="font-size: 11px; color: #cbd5e1;">${escapeHtml(category)}</span></div>` : ''}
+                        ${subtext ? `<div style="grid-column: 1 / -1;"><span style="font-size: 10px; color: #94a3b8; display: block;">📝 副說明:</span> <span style="font-size: 11px; color: #94a3b8;">${escapeHtml(subtext)}</span></div>` : ''}
+                      </div>
+                    ` : ''}
+
+                    <!-- Camera Motion & Fine-tuning Row -->
+                    <div style="display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; margin-top: auto;">
+                      <div style="flex: 1; min-width: 170px;">
+                        <label style="font-size: 10.5px; color: #94a3b8; display: block; margin-bottom: 3px;">📷 鏡頭運動動態 (Camera Motion):</label>
+                        <select style="width: 100%; font-size: 11.5px; padding: 5px 8px; background: #04070e; border: 1px solid #1e293b; color: #cbd5e1; border-radius: 4px;" onchange="studioStageData.scenes[${idx}].camera_motion=this.value">
+                          <option value="slow_zoom_in" ${s.camera_motion==='slow_zoom_in'?'selected':''}>Slow Zoom In (慢推焦點)</option>
+                          <option value="slow_zoom_out" ${s.camera_motion==='slow_zoom_out'?'selected':''}>Slow Zoom Out (慢拉全景)</option>
+                          <option value="pan_left" ${s.camera_motion==='pan_left'?'selected':''}>Pan Left (左移運鏡)</option>
+                          <option value="pan_right" ${s.camera_motion==='pan_right'?'selected':''}>Pan Right (右移運鏡)</option>
+                          <option value="static" ${s.camera_motion==='static'?'selected':''}>Static (靜止鏡頭)</option>
+                        </select>
+                      </div>
+                      ${s.is_presenter ? `
+                        <button type="button" class="btn-sec" style="padding: 5px 10px; font-size: 11px; font-weight: 700; background: rgba(139, 92, 246, 0.25); border-color: #8b5cf6; color: #c4b5fd; display: inline-flex; align-items: center; gap: 4px;" onclick="triggerSceneAvatarUpload(${s.scene_id})" title="方案2：直接上傳此分鏡的自錄真人/戴口罩出鏡影片">
+                          📤 上傳自錄影片
+                        </button>
+                        <input type="file" id="scene-avatar-file-${s.scene_id}" accept="video/mp4,video/quicktime,video/webm" style="display:none;" onchange="uploadCustomSceneAvatarClip(${s.scene_id}, this.files[0])">
+                        <button type="button" class="btn-sec" style="padding: 5px 10px; font-size: 11px; font-weight: 700; background: rgba(139, 92, 246, 0.18); border-color: #7c3aed; color: #c4b5fd;" onclick="rerenderSingleSceneAvatarClip(${s.scene_id})" title="單獨重新生成此分鏡口型">
+                          🎭 重製口型
+                        </button>
+                      ` : ''}
+                    </div>
+                  </div>
                 </div>
               </div>
             `;

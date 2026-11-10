@@ -1519,6 +1519,27 @@ def get_stage_data_endpoint(project_id: str, stage_name: str):
             sd["is_stock_active"] = is_stock
             sd["active_stock_source"] = sc.image.meta.get("source") if is_stock else None
             sd["active_stock_title"] = sc.image.meta.get("title") if is_stock else None
+
+            if stage_name == "animation":
+                anim_rel = f"animation/{sc.tag}.mp4"
+                has_anim = p.path(anim_rel).exists()
+                if not has_anim and sc.animation and sc.animation.path and p.path(sc.animation.path).exists():
+                    has_anim = True
+                    anim_rel = sc.animation.path
+                sd["has_animation"] = has_anim
+                sd["animation_url"] = f"/media/{p.id}/{anim_rel}" if has_anim else None
+
+                img_path = sc.image.path if sc.image and sc.image.path else f"images/{sc.tag}.png"
+                sd["image_url"] = f"/media/{p.id}/{img_path}" if p.path(img_path).exists() else None
+
+                anim_meta = (sc.animation.meta if sc.animation else {}) or {}
+                comp = anim_meta.get("composition") or anim_meta.get("sceneType")
+                sd["remotion_composition"] = comp
+                sd["is_remotion"] = bool(comp or anim_meta.get("provider") == "remotion")
+                sd["remotion_props"] = anim_meta.get("props", {})
+                sd["remotion_provider"] = anim_meta.get("provider", "remotion" if comp else None)
+                sd["remotion_reason"] = anim_meta.get("reason", "")
+
             scenes_data.append(sd)
 
         total_sc = len(scenes_data)
@@ -1558,6 +1579,8 @@ def get_stage_data_endpoint(project_id: str, stage_name: str):
                 "default_style": active_default_style,
             }
             ret["animation_model"] = anim_model
+            ret["total_rendered_animations"] = sum(1 for s in scenes_data if s.get("has_animation"))
+            ret["total_remotion_scenes"] = sum(1 for s in scenes_data if s.get("is_remotion"))
     elif stage_name == "subtitles":
         callouts_preview = []
         try:
