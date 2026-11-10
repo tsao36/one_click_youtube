@@ -368,3 +368,62 @@ def test_api_music_endpoints_with_documentary_library():
     first = data["tracks"][0]
     res = api_server.stream_music_audio(first["filename"])
     assert Path(res.path).exists()
+
+
+def test_missing_track_auto_repair_in_render_audio_mix(sample_narration_audio, tmp_path):
+    """Verify that if music_plan.json references a missing/deleted file like Digital_Bark.mp3,
+    build_audio_mix automatically repairs it with a valid track from the current library
+    and produces a clean mix without ffmpeg input errors."""
+    from rendering.ffmpeg_renderer import build_audio_mix
+
+    proj_dir = tmp_path / "test_legacy_proj"
+    proj_dir.mkdir(parents=True, exist_ok=True)
+    music_dir = proj_dir / "music"
+    music_dir.mkdir(parents=True, exist_ok=True)
+
+    # Intentionally point to non-existent Digital_Bark.mp3
+    fake_plan = [
+        {
+            "track": "C:/AI Project/Youtube_video/data/music/tech_futuristic/Digital_Bark.mp3",
+            "start_time": 0.0,
+            "end_time": 8.0,
+            "crossfade_in": 1.5,
+            "crossfade_out": 2.0,
+            "volume_db": -18.0,
+            "category": "explanation",
+            "name": "Digital_Bark.mp3",
+            "start_offset": 0.0,
+        }
+    ]
+    (music_dir / "music_plan.json").write_text(json.dumps(fake_plan), encoding="utf-8")
+
+    class MockProject:
+        def __init__(self, p):
+            self.id = "test_legacy_proj"
+            self._p = p
+            self.settings = {"music": {"enabled": True, "style": "documentary_cinematic"}}
+            self.data = SimpleNamespace(topic="Test Topic", settings={"music": {"enabled": True, "style": "documentary_cinematic"}})
+        def path(self, *parts):
+            return self._p.joinpath(*parts)
+        def abs(self, p):
+            return str(self._p / p)
+
+    p = MockProject(proj_dir)
+    out_wav = tmp_path / "out_repaired_mix.wav"
+
+    info = build_audio_mix(
+        project=p,
+        narration=sample_narration_audio,
+        out=out_wav,
+        total=8.0,
+        scenes=[],
+        slots=[],
+    )
+
+    assert out_wav.exists()
+    assert out_wav.stat().st_size > 1000
+    assert "Digital_Bark.mp3" not in info.get("music", "")
+    assert (music_dir / "music_plan.json").exists()
+    repaired_data = json.loads((music_dir / "music_plan.json").read_text(encoding="utf-8"))
+    assert Path(repaired_data[0]["track"]).exists()
+

@@ -333,10 +333,40 @@ def build_audio_mix(project: Project, narration: Path, total: float, out: Path,
         if music_plan_file.exists():
             try:
                 plan_data = json.loads(music_plan_file.read_text(encoding="utf-8"))
-                from generators.music import MusicSegment
+                from generators.music import MusicSegment, pick_track, DEFAULT_STYLE
+                loaded_plan = []
+                plan_repaired = False
                 for seg_item in plan_data:
-                    music_plan.append(MusicSegment.from_dict(seg_item))
-                log.info("Loaded pre-planned music timeline with %d segments from %s", len(music_plan), music_plan_file)
+                    seg = MusicSegment.from_dict(seg_item)
+                    trk_p = Path(seg.track)
+                    if not trk_p.is_absolute():
+                        trk_p = ROOT / trk_p
+                    if not trk_p.exists():
+                        log.warning("Music track file missing on disk: %s. Resolving replacement from current library...", seg.track)
+                        rep = pick_track(
+                            directory=m.get("directory", "data/music"),
+                            scene_tag=getattr(seg, "scene_tag", None) or getattr(seg, "category", None) or "explanation",
+                            topic=topic,
+                            style=m.get("style") or DEFAULT_STYLE,
+                        )
+                        if rep and rep.exists():
+                            seg.track = str(rep).replace("\\", "/")
+                            seg.name = rep.name
+                            plan_repaired = True
+                            log.info("Auto-repaired missing music track with %s (%s)", seg.name, seg.track)
+                    if Path(seg.track).exists():
+                        loaded_plan.append(seg)
+                if len(loaded_plan) == len(plan_data) and len(loaded_plan) > 0:
+                    music_plan = loaded_plan
+                    log.info("Loaded pre-planned music timeline with %d segments from %s", len(music_plan), music_plan_file)
+                    if plan_repaired:
+                        try:
+                            music_plan_file.write_text(json.dumps([s.to_dict() for s in music_plan], indent=2, ensure_ascii=False), encoding="utf-8")
+                        except Exception as e:
+                            log.warning("Could not persist repaired music_plan: %s", e)
+                else:
+                    log.warning("Pre-planned music timeline has missing tracks that could not be resolved. Re-planning timeline dynamically...")
+                    music_plan = []
             except Exception as e:
                 log.warning("Could not load pre-planned music timeline: %s, falling back to dynamic plan", e)
                 music_plan = []
@@ -423,10 +453,19 @@ def build_audio_mix(project: Project, narration: Path, total: float, out: Path,
         fc = "".join(fc_parts)
         run_ffmpeg([*args, "-filter_complex", fc,
                     "-map", "[out]", "-t", f"{total:.3f}", "-ar", "48000", "-ac", "2", "-c:a", "pcm_s16le", str(out)], cancel=cancel)
-        info["music"] = track.name
+        info["music"] = seg.name or Path(track).name
         return info
 
     # Multi-track narrative-adaptive background music (e.g. M1 Context -> M2 Investigation/Tension -> M3 Resolution)
+    # Final pre-flight sanity check: ensure every audio input file actually exists before calling ffmpeg
+    verified_plan = []
+    for seg in music_plan:
+        if Path(seg.track).exists():
+            verified_plan.append(seg)
+        else:
+            log.warning("Dropping non-existent music track from ffmpeg inputs: %s", seg.track)
+    music_plan = verified_plan
+
     args = ["-i", str(narration)]
     for seg in music_plan:
         args += ["-stream_loop", "-1", "-i", str(seg.track)]

@@ -2246,7 +2246,13 @@ class DocumentaryPipeline(BasePipeline):
         st = self.p.stage("music")
         if st.status == Status.COMPLETED:
             if self.p.path("music/music_plan.json").exists():
-                return
+                try:
+                    plan_data = json.loads(self.p.path("music/music_plan.json").read_text(encoding="utf-8"))
+                    if plan_data and all(Path(s.get("track", "")).exists() for s in plan_data):
+                        return
+                    log.warning("Existing music_plan.json contains missing track files. Re-planning Stage 7 music...")
+                except Exception:
+                    pass
 
         self.p.set_stage("music", Status.RUNNING, done=0, total=1)
         self.p.activity("Stage 7/10: Planning multi-movement ambient soundtrack & matching tracks...")
