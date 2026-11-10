@@ -365,28 +365,27 @@ export const KeyLevelSchema = z.object({
 export type KeyLevel = z.infer<typeof KeyLevelSchema>;
 
 export const FinanceCandlestickSceneSchema = z.object({
-  headline: z.string().max(80).optional().default('NVDA Q3 BREAKOUT STRUCTURE'),
-  ticker: z.string().max(30).optional().default('NVDA · NASDAQ'),
-  price: z.string().max(30).optional().default('.25'),
-  changePercent: z.string().max(30).optional().default('+4.82%'),
+  headline: z.string().max(120).optional().default('NVDA Q3 BREAKOUT STRUCTURE'),
+  badge: z.string().max(80).optional().default('MARKET BREAKOUT ANALYSIS'),
+  ticker: z.string().max(60).optional().default('NVDA · NASDAQ'),
+  title: z.string().max(120).optional().default('AI 算力霸權下的關鍵突破點'),
+  subtitle: z.string().max(200).optional().default('突破歷史阻力位，形成強勁多頭上升通道'),
+  price: z.string().max(40).optional().default('.50'),
+  change: z.string().max(40).optional().default('+24.8%'),
+  changePercent: z.string().max(40).optional().default('+24.8%'),
   isBullish: z.boolean().optional().default(true),
-  candlesticks: z.array(CandlestickDatumSchema).optional().default([
-    { date: 'D1', open: 120, high: 126, low: 118, close: 124 },
-    { date: 'D2', open: 124, high: 128, low: 122, close: 121 },
-    { date: 'D3', open: 121, high: 130, low: 120, close: 129 },
-    { date: 'D4', open: 129, high: 135, low: 127, close: 134 },
-    { date: 'D5', open: 134, high: 138, low: 131, close: 132 },
-    { date: 'D6', open: 132, high: 144, low: 132, close: 141.25 },
-  ]),
-  keyLevels: z.array(KeyLevelSchema).optional().default([
-    { label: 'Resistance ', price: 140, color: '#EF4444' },
-    { label: 'Support ', price: 125, color: '#10B981' },
-  ]),
+  metric1Label: z.string().max(60).optional().default('本益比 (Forward P/E)'),
+  metric1Value: z.string().max(40).optional().default('34.2x'),
+  metric2Label: z.string().max(60).optional().default('目標估值市值'),
+  metric2Value: z.string().max(40).optional().default('.65T'),
+  thesis: z.string().max(400).optional().default('資料中心營收年增率突破 150%，Blackwell 架構全面量產帶動毛利率維持 75% 高檔水準。'),
+  candlesticks: z.array(z.any()).optional().default([]),
+  keyLevels: z.array(z.any()).optional().default([]),
   insightBadge: z.string().max(60).optional().default('KEY TRIGGER'),
-  insightText: z.string().max(160).optional().default('High-volume breakout confirmed above 50-day moving average'),
+  insightText: z.string().max(200).optional().default('High-volume breakout confirmed above 50-day moving average'),
   accentColor: z.string().optional().default('#10B981'),
   bgSrc: z.string().optional().default(''),
-  dim: z.number().min(0).max(1).optional().default(0.2),
+  dim: z.number().min(0).max(1).optional().default(0.35),
 });
 export type FinanceCandlestickSceneProps = z.input<typeof FinanceCandlestickSceneSchema>;
 
@@ -400,8 +399,12 @@ export const MetricCompareRowSchema = z.object({
 export type MetricCompareRow = z.infer<typeof MetricCompareRowSchema>;
 
 export const FinanceMetricCompareSceneSchema = z.object({
-  headline: z.string().max(80).optional().default('COMPETITIVE FUNDAMENTALS'),
-  subtitle: z.string().max(160).optional().default('FY2024 Valuation & Operating Efficiency Comparison'),
+  badge: z.string().max(80).optional().default('COMPETITIVE FUNDAMENTALS'),
+  headline: z.string().max(120).optional().default('COMPETITIVE FUNDAMENTALS'),
+  title: z.string().max(120).optional().default('FY2024 估值與營運效率同業對比'),
+  subtitle: z.string().max(200).optional().default('FY2024 Valuation & Operating Efficiency Comparison'),
+  summary: z.string().max(300).optional().default('營收爆發力與毛利率顯著領先同業，支撐高溢價倍數'),
+  bars: z.array(z.any()).optional().default([]),
   metrics: z.array(MetricCompareRowSchema).optional().default([
     { label: 'Revenue Growth (YoY)', valueA: '+122%', valueB: '+18%', diff: '+104% Spread', isAdvantageA: true },
     { label: 'Gross Margin', valueA: '75.2%', valueB: '46.1%', diff: '+29.1% Spread', isAdvantageA: true },
@@ -420,16 +423,22 @@ export type FinanceMetricCompareSceneProps = z.input<typeof FinanceMetricCompare
 // 9. Archival History & Chronicles Schemas
 // ============================================================================
 export const ArchivalDocumentSceneSchema = z.object({
-  documentTitle: z.string().max(100).optional().default('DECLARATION OF EMPIRE RESTRUCTURING'),
+  archiveId: z.string().max(100).optional().default('CABINET ARCHIVE 1945-TS-089'),
+  docDate: z.string().max(60).optional().default('1945 年 8 月 15 日'),
+  stampText: z.string().max(60).optional().default('DECLASSIFIED 絕密解密'),
+  title: z.string().max(120).optional().default('二次大戰終戰內閣極密備忘錄'),
+  documentTitle: z.string().max(120).optional().default('DECLARATION OF EMPIRE RESTRUCTURING'),
   date: z.string().max(60).optional().default('14 OCTOBER 1806'),
-  archiveReference: z.string().max(80).optional().default('NATIONAL ARCHIVES · DOSSIER A-791'),
-  classification: z.string().max(40).optional().default('DECLASSIFIED DISPATCH'),
-  excerpt: z.string().max(300).optional().default('His Majesty commands that all diplomatic envoys cease negotiations forthwith, asserting full sovereign jurisdiction over maritime corridors.'),
-  highlightPhrase: z.string().max(120).optional().default('full sovereign jurisdiction over maritime corridors'),
-  stampText: z.string().max(50).optional().default('OFFICIALLY ARCHIVED'),
-  accentColor: z.string().optional().default('#C2410C'),
+  archiveReference: z.string().max(100).optional().default('NATIONAL ARCHIVES · DOSSIER A-791'),
+  classification: z.string().max(60).optional().default('DECLASSIFIED DISPATCH'),
+  documentExcerpt: z.string().max(600).optional().default('「此項抉擇並非出於單一戰術考量，而是考量帝國全體存續之終局底線。所有軍事指令即刻停止。」'),
+  excerpt: z.string().max(600).optional().default('His Majesty commands that all diplomatic envoys cease negotiations forthwith, asserting full sovereign jurisdiction over maritime corridors.'),
+  highlightPhrase: z.string().max(200).optional().default('帝國全體存續之終局底線'),
+  significance: z.string().max(300).optional().default('這份解密電報證實了戰後格局的核心決策並非戰場偶發，而是內閣內部經歷數月激烈辯論的最終共識。'),
+  source: z.string().max(120).optional().default('來源：國立公文書館 · 昭和天皇終戰詔書起草案卷'),
+  accentColor: z.string().optional().default('#DC2626'),
   bgSrc: z.string().optional().default(''),
-  dim: z.number().min(0).max(1).optional().default(0.12),
+  dim: z.number().min(0).max(1).optional().default(0.2),
 });
 export type ArchivalDocumentSceneProps = z.input<typeof ArchivalDocumentSceneSchema>;
 
@@ -442,9 +451,11 @@ export const ChronologyEventSchema = z.object({
 export type ChronologyEvent = z.infer<typeof ChronologyEventSchema>;
 
 export const HistoryChronologySceneSchema = z.object({
-  headline: z.string().max(80).optional().default('CHRONICLE OF INDUSTRIAL EXPANSION'),
-  subtitle: z.string().max(160).optional().default('Key geopolitical inflection points from 1880 to 1914'),
-  events: z.array(ChronologyEventSchema).optional().default([
+  archiveId: z.string().max(100).optional().default('HISTORICAL CHRONOLOGY'),
+  headline: z.string().max(120).optional().default('CHRONICLE OF INDUSTRIAL EXPANSION'),
+  title: z.string().max(120).optional(),
+  subtitle: z.string().max(200).optional().default('Key geopolitical inflection points from 1880 to 1914'),
+  events: z.array(z.any()).optional().default([
     { year: '1882', title: 'Triple Alliance Signed', description: 'Secret agreement between Germany, Austria-Hungary, and Italy.', tag: 'TREATY' },
     { year: '1898', title: 'Naval Expansion Act', description: 'Imperial fleet expansion triggers global naval arms race.', tag: 'MILITARY' },
     { year: '1907', title: 'Triple Entente Formed', description: 'Britain, France, and Russia align against central European powers.', tag: 'DIPLOMACY' },

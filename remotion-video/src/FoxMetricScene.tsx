@@ -2,6 +2,13 @@ import React from "react";
 import { interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import { FoxBackground } from "./FoxBackground";
 import { FoxMetricSceneProps } from "./types";
+import {
+  DynamicAccentBar,
+  GlintSheen,
+  RadarBeacon,
+  useContinuousDrift,
+  useCountUp,
+} from "./animations";
 
 export const FoxMetricScene: React.FC<FoxMetricSceneProps> = ({
   badge = "核心數據",
@@ -17,49 +24,57 @@ export const FoxMetricScene: React.FC<FoxMetricSceneProps> = ({
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
+  const { floatY, glowPulse } = useContinuousDrift(0.0002);
 
   // Entrance animations
   const badgeSpring = spring({
     frame,
     fps,
-    config: { damping: 16, mass: 0.8, stiffness: 120 },
+    config: { damping: 14, mass: 0.8, stiffness: 130 },
   });
 
   const valueSpring = spring({
     frame: frame - 6,
     fps,
-    config: { damping: 14, mass: 0.9, stiffness: 110 },
+    config: { damping: 13, mass: 0.85, stiffness: 120 },
   });
 
   const descSpring = spring({
     frame: frame - 16,
     fps,
-    config: { damping: 16, mass: 0.8, stiffness: 100 },
+    config: { damping: 15, mass: 0.8, stiffness: 100 },
   });
 
-  const lineProgress = interpolate(frame, [14, 38], [0, 160], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
+  const subtextSpring = spring({
+    frame: frame - 22,
+    fps,
+    config: { damping: 16, mass: 0.8, stiffness: 90 },
   });
+
+  // Animated dynamic count-up with completion bounce punch!
+  const { display: animatedValue, progress: countProgress, punchScale } =
+    useCountUp(value, { startFrame: 8, duration: 32, fps });
 
   return (
     <FoxBackground bgSrc={bgSrc} dim={dim}>
       <div
         style={{
           position: "absolute",
-          top: 240,
+          top: 220,
           left: 160,
           maxWidth: 1100,
           zIndex: 20,
+          transform: `translateY(${floatY}px)`,
         }}
       >
-        {/* Category / Metric Badge */}
+        {/* Category / Metric Badge with Live Radar Beacon */}
         {badge && (
           <div
             style={{
               display: "inline-flex",
               alignItems: "center",
-              padding: "6px 16px",
+              gap: 10,
+              padding: "6px 18px",
               borderRadius: 20,
               backgroundColor: "rgba(255, 255, 255, 0.08)",
               border: `1px solid ${accentColor}66`,
@@ -69,51 +84,67 @@ export const FoxMetricScene: React.FC<FoxMetricSceneProps> = ({
               color: accentColor,
               letterSpacing: 2,
               opacity: badgeSpring,
-              transform: `translateY(${interpolate(badgeSpring, [0, 1], [-10, 0])}px)`,
+              transform: `translateY(${interpolate(
+                badgeSpring,
+                [0, 1],
+                [-12, 0]
+              )}px)`,
               marginBottom: 20,
+              boxShadow: `0 0 ${12 * glowPulse}px ${accentColor}44`,
             }}
           >
+            <RadarBeacon color={accentColor} size={8} />
             <span>{badge}</span>
           </div>
         )}
 
-        {/* Massive Metric Value */}
+        {/* Massive Metric Value with Rolling Count-up & Completion Punch */}
         <div
           style={{
-            display: "flex",
+            position: "relative",
+            display: "inline-flex",
             alignItems: "baseline",
             flexWrap: "wrap",
             gap: 16,
             opacity: valueSpring,
-            transform: `translateY(${interpolate(valueSpring, [0, 1], [30, 0])}px) scale(${interpolate(
+            transform: `translateY(${interpolate(
               valueSpring,
               [0, 1],
-              [0.96, 1]
-            )})`,
+              [32, 0]
+            )}px) scale(${
+              interpolate(valueSpring, [0, 1], [0.94, 1]) * punchScale
+            })`,
           }}
         >
           <span
             style={{
-              fontSize: 96,
+              fontSize: 104,
               fontWeight: 900,
               color: "#FFFFFF",
-              letterSpacing: "-1px",
+              letterSpacing: "-1.5px",
               lineHeight: 1.05,
-              textShadow: "0 4px 24px rgba(0, 0, 0, 0.8)",
+              textShadow: `0 4px 28px rgba(0, 0, 0, 0.9), 0 0 ${
+                25 * glowPulse
+              }px ${accentColor}44`,
               fontFamily: "system-ui, -apple-system, sans-serif",
             }}
           >
-            {value}
+            {animatedValue}
           </span>
 
           {unit && (
             <span
               style={{
-                fontSize: 44,
-                fontWeight: 700,
+                fontSize: 48,
+                fontWeight: 800,
                 color: accentColor,
                 letterSpacing: 1,
-                textShadow: "0 2px 16px rgba(0, 0, 0, 0.7)",
+                textShadow: `0 2px 18px rgba(0, 0, 0, 0.8), 0 0 16px ${accentColor}66`,
+                transform: `scale(${interpolate(
+                  countProgress,
+                  [0, 1],
+                  [0.85, 1]
+                )})`,
               }}
             >
               {unit}
@@ -125,81 +156,123 @@ export const FoxMetricScene: React.FC<FoxMetricSceneProps> = ({
               style={{
                 fontSize: 36,
                 fontWeight: 600,
-                color: "rgba(255, 255, 255, 0.7)",
+                color: "rgba(255, 255, 255, 0.75)",
                 letterSpacing: 1,
                 marginLeft: 8,
-                textShadow: "0 2px 12px rgba(0, 0, 0, 0.7)",
+                textShadow: "0 2px 12px rgba(0, 0, 0, 0.8)",
               }}
             >
               {conversion}
             </span>
           )}
+
+          {/* Shimmer sweep over number */}
+          <GlintSheen color={`${accentColor}AA`} periodFrames={90} />
         </div>
 
-        {/* Accent Bar */}
+        {/* Dynamic Energy Gauge Line Under the Metric */}
         <div
           style={{
-            height: 4,
-            width: `${lineProgress}px`,
-            backgroundColor: accentColor,
-            borderRadius: 2,
-            marginTop: 22,
-            marginBottom: 22,
-            boxShadow: `0 0 14px ${accentColor}99`,
+            position: "relative",
+            width: 320,
+            height: 6,
+            backgroundColor: "rgba(255, 255, 255, 0.12)",
+            borderRadius: 3,
+            marginTop: 20,
+            overflow: "hidden",
           }}
-        />
-
-        {/* Primary Description */}
-        {description && (
+        >
           <div
             style={{
-              fontSize: 32,
-              fontWeight: 700,
+              width: `${countProgress * 100}%`,
+              height: "100%",
+              backgroundColor: accentColor,
+              borderRadius: 3,
+              boxShadow: `0 0 16px ${accentColor}`,
+            }}
+          />
+        </div>
+
+        {/* Description / Headline */}
+        {description && (
+          <h2
+            style={{
+              fontSize: 40,
+              fontWeight: 800,
               color: "#FFFFFF",
-              lineHeight: 1.35,
+              letterSpacing: "-0.5px",
+              lineHeight: 1.3,
+              margin: "24px 0 0 0",
               opacity: descSpring,
-              transform: `translateY(${interpolate(descSpring, [0, 1], [16, 0])}px)`,
-              textShadow: "0 2px 12px rgba(0, 0, 0, 0.8)",
-              marginBottom: 12,
+              transform: `translateY(${interpolate(
+                descSpring,
+                [0, 1],
+                [18, 0]
+              )}px)`,
+              textShadow: "0 3px 14px rgba(0, 0, 0, 0.8)",
             }}
           >
             {description}
-          </div>
+          </h2>
         )}
 
-        {/* Secondary Subtext / Explanatory Note */}
+        {/* Subtext / Context clause */}
         {subtext && (
-          <div
+          <p
             style={{
               fontSize: 24,
-              color: "rgba(255, 255, 255, 0.82)",
+              color: "rgba(255, 255, 255, 0.85)",
               lineHeight: 1.5,
-              opacity: descSpring,
-              transform: `translateY(${interpolate(descSpring, [0, 1], [16, 0])}px)`,
+              marginTop: 16,
+              marginBottom: 0,
+              opacity: subtextSpring,
+              transform: `translateY(${interpolate(
+                subtextSpring,
+                [0, 1],
+                [14, 0]
+              )}px)`,
               textShadow: "0 2px 10px rgba(0, 0, 0, 0.8)",
             }}
           >
             {subtext}
+          </p>
+        )}
+
+        {/* Dynamic Accent Bar */}
+        <DynamicAccentBar
+          color={accentColor}
+          maxWidth={180}
+          startFrame={18}
+          duration={24}
+          height={4}
+          style={{ marginTop: 20 }}
+        />
+
+        {/* Source citation */}
+        {source && (
+          <div
+            style={{
+              fontSize: 16,
+              color: "rgba(255, 255, 255, 0.6)",
+              marginTop: 22,
+              opacity: descSpring,
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            <span
+              style={{
+                width: 4,
+                height: 4,
+                borderRadius: "50%",
+                backgroundColor: accentColor,
+              }}
+            />
+            <span>{source}</span>
           </div>
         )}
       </div>
-
-      {/* Source Footnote */}
-      {source && (
-        <div
-          style={{
-            position: "absolute",
-            bottom: 48,
-            right: 80,
-            fontSize: 16,
-            color: "rgba(255, 255, 255, 0.45)",
-            letterSpacing: 0.5,
-            zIndex: 20,
-          }}
-        >
-          {source}
-        </div>
-      )}
     </FoxBackground>
   );
 };

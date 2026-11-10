@@ -2,6 +2,11 @@ import React from "react";
 import { interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import { FinanceBackground } from "./FinanceBackground";
 import { FinanceMetricCompareSceneProps } from "./types";
+import {
+  GlintSheen,
+  RadarBeacon,
+  useContinuousDrift,
+} from "./animations";
 
 export const FinanceMetricCompareScene: React.FC<FinanceMetricCompareSceneProps> = ({
   badge = "FINANCIAL BENCHMARK",
@@ -21,11 +26,12 @@ export const FinanceMetricCompareScene: React.FC<FinanceMetricCompareSceneProps>
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
+  const { floatY, glowPulse } = useContinuousDrift(0.0002);
 
   const entrance = spring({
     frame,
     fps,
-    config: { damping: 14, mass: 0.8, stiffness: 90 },
+    config: { damping: 14, mass: 0.8, stiffness: 95 },
   });
 
   return (
@@ -37,7 +43,7 @@ export const FinanceMetricCompareScene: React.FC<FinanceMetricCompareSceneProps>
           height: "100%",
           padding: "36px 70px",
           boxSizing: "border-box",
-          transform: `scale(${entrance})`,
+          transform: `scale(${entrance}) translateY(${floatY}px)`,
           opacity: entrance,
           justifyContent: "space-between",
         }}
@@ -46,21 +52,25 @@ export const FinanceMetricCompareScene: React.FC<FinanceMetricCompareSceneProps>
         <div>
           <div
             style={{
-              display: "inline-block",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
               backgroundColor: "rgba(16, 185, 129, 0.15)",
               color: accentColor,
               border: `1.5px solid ${accentColor}`,
               borderRadius: 6,
-              padding: "3px 12px",
+              padding: "4px 14px",
               fontSize: 12,
               fontWeight: 800,
               letterSpacing: 1,
-              marginBottom: 8,
+              marginBottom: 10,
+              boxShadow: `0 0 ${10 * glowPulse}px ${accentColor}44`,
             }}
           >
-            {badge}
+            <RadarBeacon color={accentColor} size={6} />
+            <span>{badge}</span>
           </div>
-          <div style={{ fontSize: 32, fontWeight: 900, color: "#FFFFFF" }}>{title}</div>
+          <div style={{ fontSize: 34, fontWeight: 900, color: "#FFFFFF" }}>{title}</div>
           {subtitle && (
             <div style={{ fontSize: 16, fontWeight: 600, color: "#94A3B8", marginTop: 4 }}>
               {subtitle}
@@ -80,11 +90,11 @@ export const FinanceMetricCompareScene: React.FC<FinanceMetricCompareSceneProps>
             maxHeight: 380,
           }}
         >
-          {bars.map((b, idx) => {
+          {bars.map((b: any, idx: number) => {
             const barSpring = spring({
-              frame: frame - idx * 4,
+              frame: frame - (8 + idx * 4),
               fps,
-              config: { damping: 14, stiffness: 90 },
+              config: { damping: 14, stiffness: 100 },
             });
 
             const currentHeight = (b.heightPct || 0.5) * 260 * barSpring;
@@ -99,93 +109,109 @@ export const FinanceMetricCompareScene: React.FC<FinanceMetricCompareSceneProps>
                   alignItems: "center",
                   height: "100%",
                   justifyContent: "flex-end",
+                  opacity: barSpring,
                 }}
               >
-                {/* Growth Pill */}
+                {/* Metric Growth Tag */}
                 <div
                   style={{
-                    backgroundColor: b.isHighlight ? "rgba(16, 185, 129, 0.2)" : "rgba(30, 41, 59, 0.8)",
-                    border: `1px solid ${b.isHighlight ? accentColor : "#334155"}`,
+                    backgroundColor: b.isHighlight ? `${accentColor}25` : "rgba(2, 132, 199, 0.2)",
+                    border: `1px solid ${b.isHighlight ? accentColor : "rgba(2, 132, 199, 0.5)"}`,
                     color: b.isHighlight ? accentColor : "#38BDF8",
-                    fontSize: 13,
-                    fontWeight: 800,
                     padding: "3px 8px",
                     borderRadius: 4,
+                    fontSize: 12,
+                    fontWeight: 800,
                     marginBottom: 8,
-                    fontFamily: "monospace",
+                    transform: `scale(${interpolate(barSpring, [0, 1], [0.7, 1])})`,
                   }}
                 >
                   {b.growth}
                 </div>
 
-                {/* Main Bar Column */}
+                {/* Animated Growing Bar */}
                 <div
                   style={{
-                    width: "80%",
+                    width: "100%",
                     maxWidth: 110,
-                    height: currentHeight,
-                    background: b.isHighlight
-                      ? `linear-gradient(180deg, ${accentColor} 0%, rgba(16, 185, 129, 0.3) 100%)`
-                      : `linear-gradient(180deg, #38BDF8 0%, rgba(56, 189, 248, 0.25) 100%)`,
-                    borderRadius: "8px 8px 0 0",
-                    border: `1.5px solid ${b.isHighlight ? accentColor : "#38BDF8"}`,
-                    boxShadow: b.isHighlight ? `0 0 24px ${accentColor}50` : "none",
+                    height: Math.max(12, currentHeight),
+                    backgroundColor: barColor,
+                    borderRadius: "6px 6px 0 0",
+                    boxShadow: b.isHighlight
+                      ? `0 0 24px ${accentColor}88`
+                      : "0 0 14px rgba(2, 132, 199, 0.4)",
                     position: "relative",
                   }}
                 >
-                  {/* Top value */}
+                  {/* Top Glowing Edge Line */}
                   <div
                     style={{
                       position: "absolute",
-                      top: 10,
+                      top: 0,
                       left: 0,
                       right: 0,
-                      textAlign: "center",
-                      fontSize: 16,
+                      height: 3,
+                      backgroundColor: "#FFFFFF",
+                      borderRadius: "6px 6px 0 0",
+                      opacity: 0.8,
+                    }}
+                  />
+                </div>
+
+                {/* Value & Label */}
+                <div
+                  style={{
+                    marginTop: 12,
+                    textAlign: "center",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: 18,
                       fontWeight: 900,
-                      color: "#FFFFFF",
+                      color: b.isHighlight ? "#FFFFFF" : "#CBD5E1",
                       fontFamily: "monospace",
                     }}
                   >
                     {b.value}
                   </div>
-                </div>
-
-                {/* X-Axis Label */}
-                <div
-                  style={{
-                    fontSize: 14,
-                    fontWeight: 700,
-                    color: b.isHighlight ? "#FFFFFF" : "#94A3B8",
-                    marginTop: 10,
-                    textAlign: "center",
-                  }}
-                >
-                  {b.label}
+                  <div
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: "#64748B",
+                      marginTop: 2,
+                    }}
+                  >
+                    {b.label}
+                  </div>
                 </div>
               </div>
             );
           })}
         </div>
 
-        {/* Bottom Insight Takeaway Banner */}
-        {summary && (
-          <div
-            style={{
-              backgroundColor: "rgba(15, 23, 42, 0.85)",
-              border: "1px solid rgba(56, 189, 248, 0.2)",
-              borderRadius: 8,
-              padding: "12px 20px",
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-              marginTop: 16,
-            }}
-          >
-            <span style={{ fontSize: 18 }}>📊</span>
-            <span style={{ fontSize: 14, fontWeight: 700, color: "#E2E8F0" }}>{summary}</span>
+        {/* Summary Card with Glint Sheen */}
+        <div
+          style={{
+            position: "relative",
+            backgroundColor: "rgba(15, 23, 42, 0.85)",
+            border: `1.5px solid ${accentColor}44`,
+            borderRadius: 10,
+            padding: "16px 24px",
+            display: "flex",
+            alignItems: "center",
+            gap: 16,
+            overflow: "hidden",
+            marginTop: 16,
+          }}
+        >
+          <GlintSheen color={`${accentColor}55`} periodFrames={90} />
+          <div style={{ fontSize: 24, color: accentColor }}>💡</div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: "#E2E8F0", lineHeight: 1.45 }}>
+            {summary}
           </div>
-        )}
+        </div>
       </div>
     </FinanceBackground>
   );

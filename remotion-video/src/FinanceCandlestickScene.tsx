@@ -2,6 +2,12 @@ import React from "react";
 import { interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import { FinanceBackground } from "./FinanceBackground";
 import { FinanceCandlestickSceneProps } from "./types";
+import {
+  GlintSheen,
+  RadarBeacon,
+  useContinuousDrift,
+  useCountUp,
+} from "./animations";
 
 export const FinanceCandlestickScene: React.FC<FinanceCandlestickSceneProps> = ({
   ticker = "NVDA / 輝達",
@@ -15,19 +21,20 @@ export const FinanceCandlestickScene: React.FC<FinanceCandlestickSceneProps> = (
   metric1Value = "34.2x",
   metric2Label = "目標估值市值",
   metric2Value = "$3.65T",
-  thesis = "資料中心營收年增率突破 150%， Blackwell 架構全面量產帶動毛利率維持 75% 高檔水準。",
+  thesis = "資料中心營收年增率突破 150%，Blackwell 架構全面量產帶動毛利率維持 75% 高檔水準。",
   accentColor = "#10B981",
   bgSrc = "",
   dim = 0.35,
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
+  const { floatY, glowPulse } = useContinuousDrift(0.0002);
 
   // Entrance spring
   const entrance = spring({
     frame,
     fps,
-    config: { damping: 14, mass: 0.8, stiffness: 90 },
+    config: { damping: 14, mass: 0.8, stiffness: 100 },
   });
 
   // Animated line drawing progress (0 to 1)
@@ -36,7 +43,14 @@ export const FinanceCandlestickScene: React.FC<FinanceCandlestickSceneProps> = (
     extrapolateRight: "clamp",
   });
 
-  // Sample K-line data: [open, close, high, low] (normalized 0-100)
+  // Rolling count-up for hero price
+  const { display: animatedPrice, punchScale: pricePunch } = useCountUp(price, {
+    startFrame: 8,
+    duration: 32,
+    fps,
+  });
+
+  // Sample K-line data
   const candles = [
     { o: 28, c: 35, h: 38, l: 24, g: true },
     { o: 35, c: 32, h: 40, l: 30, g: false },
@@ -62,56 +76,126 @@ export const FinanceCandlestickScene: React.FC<FinanceCandlestickSceneProps> = (
           height: "100%",
           padding: "36px 60px",
           boxSizing: "border-box",
-          transform: `scale(${entrance})`,
+          transform: `scale(${entrance}) translateY(${floatY}px)`,
           opacity: entrance,
         }}
       >
         {/* Top Header Bar */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            marginBottom: 20,
+          }}
+        >
           <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                marginBottom: 8,
+              }}
+            >
               <span
                 style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
                   backgroundColor: "rgba(16, 185, 129, 0.15)",
                   color: primaryColor,
                   border: `1.5px solid ${primaryColor}`,
                   borderRadius: 6,
-                  padding: "3px 12px",
+                  padding: "4px 12px",
                   fontSize: 12,
                   fontWeight: 800,
                   letterSpacing: 1,
+                  boxShadow: `0 0 ${10 * glowPulse}px ${primaryColor}44`,
                 }}
               >
-                {badge}
+                <RadarBeacon color={primaryColor} size={6} />
+                <span>{badge}</span>
               </span>
-              <span style={{ fontSize: 18, fontWeight: 900, color: "#38BDF8", fontFamily: "monospace" }}>
+              <span
+                style={{
+                  fontSize: 18,
+                  fontWeight: 900,
+                  color: "#38BDF8",
+                  fontFamily: "monospace",
+                  letterSpacing: 1,
+                }}
+              >
                 {ticker}
               </span>
             </div>
-            <div style={{ fontSize: 32, fontWeight: 900, color: "#FFFFFF", letterSpacing: 0.5 }}>
+            <div
+              style={{
+                fontSize: 34,
+                fontWeight: 900,
+                color: "#FFFFFF",
+                letterSpacing: 0.5,
+              }}
+            >
               {title}
             </div>
             {subtitle && (
-              <div style={{ fontSize: 16, fontWeight: 600, color: "#94A3B8", marginTop: 4 }}>
+              <div
+                style={{
+                  fontSize: 16,
+                  fontWeight: 600,
+                  color: "#94A3B8",
+                  marginTop: 4,
+                }}
+              >
                 {subtitle}
               </div>
             )}
           </div>
 
-          {/* Current Price Hero Badge */}
+          {/* Current Price Hero Badge with Count-up */}
           <div
             style={{
+              position: "relative",
               backgroundColor: "rgba(15, 23, 42, 0.9)",
               border: `2px solid ${primaryColor}`,
               borderRadius: 12,
               padding: "12px 24px",
-              boxShadow: `0 0 25px ${primaryColor}30`,
+              boxShadow: `0 0 25px ${primaryColor}44`,
               textAlign: "right",
+              overflow: "hidden",
             }}
           >
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#94A3B8", letterSpacing: 1 }}>CURRENT PRICE</div>
-            <div style={{ fontSize: 36, fontWeight: 900, color: "#FFFFFF", fontFamily: "monospace" }}>{price}</div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: primaryColor, fontFamily: "monospace" }}>
+            <GlintSheen color={`${primaryColor}88`} periodFrames={80} />
+            <div
+              style={{
+                fontSize: 12,
+                fontWeight: 700,
+                color: "#94A3B8",
+                letterSpacing: 1,
+              }}
+            >
+              CURRENT PRICE
+            </div>
+            <div
+              style={{
+                fontSize: 38,
+                fontWeight: 900,
+                color: "#FFFFFF",
+                fontFamily: "monospace",
+                transform: `scale(${pricePunch})`,
+              }}
+            >
+              {animatedPrice}
+            </div>
+            <div
+              style={{
+                fontSize: 16,
+                fontWeight: 800,
+                color: primaryColor,
+                fontFamily: "monospace",
+              }}
+            >
               {isBullish ? "▲ " : "▼ "}
               {change}
             </div>
@@ -119,8 +203,15 @@ export const FinanceCandlestickScene: React.FC<FinanceCandlestickSceneProps> = (
         </div>
 
         {/* Main Grid: Left Chart + Right Metric Analysis */}
-        <div style={{ flex: 1, display: "grid", gridTemplateColumns: "1.3fr 0.9fr", gap: 32, alignItems: "center" }}>
-          
+        <div
+          style={{
+            flex: 1,
+            display: "grid",
+            gridTemplateColumns: "1.3fr 0.9fr",
+            gap: 32,
+            alignItems: "center",
+          }}
+        >
           {/* Left: Candlestick Chart Window */}
           <div
             style={{
@@ -138,25 +229,77 @@ export const FinanceCandlestickScene: React.FC<FinanceCandlestickSceneProps> = (
               boxShadow: "0 10px 30px rgba(0,0,0,0.4)",
             }}
           >
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#64748B", fontWeight: 700 }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                fontSize: 12,
+                color: "#64748B",
+                fontWeight: 700,
+              }}
+            >
               <span>INTERVAL: DAILY (K-LINE + EMA 20)</span>
-              <span style={{ color: primaryColor }}>● BULLISH MOMENTUM</span>
+              <span
+                style={{
+                  color: primaryColor,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                <RadarBeacon color={primaryColor} size={6} />
+                <span>BULLISH MOMENTUM</span>
+              </span>
             </div>
 
             {/* SVG Candlestick Canvas */}
-            <div style={{ position: "relative", width: "100%", height: 320, marginTop: 10 }}>
-              <svg viewBox="0 0 550 280" style={{ width: "100%", height: "100%", overflow: "visible" }}>
+            <div
+              style={{
+                position: "relative",
+                width: "100%",
+                height: 320,
+                marginTop: 10,
+              }}
+            >
+              <svg
+                viewBox="0 0 550 280"
+                style={{ width: "100%", height: "100%", overflow: "visible" }}
+              >
                 {/* Horizontal price guide lines */}
-                <line x1="0" y1="60" x2="550" y2="60" stroke="#1E293B" strokeWidth="1" strokeDasharray="4 4" />
-                <line x1="0" y1="140" x2="550" y2="140" stroke="#1E293B" strokeWidth="1" strokeDasharray="4 4" />
-                <line x1="0" y1="220" x2="550" y2="220" stroke="#1E293B" strokeWidth="1" strokeDasharray="4 4" />
+                <line
+                  x1="0"
+                  y1="60"
+                  x2="550"
+                  y2="60"
+                  stroke="#1E293B"
+                  strokeWidth="1"
+                  strokeDasharray="4 4"
+                />
+                <line
+                  x1="0"
+                  y1="140"
+                  x2="550"
+                  y2="140"
+                  stroke="#1E293B"
+                  strokeWidth="1"
+                  strokeDasharray="4 4"
+                />
+                <line
+                  x1="0"
+                  y1="220"
+                  x2="550"
+                  y2="220"
+                  stroke="#1E293B"
+                  strokeWidth="1"
+                  strokeDasharray="4 4"
+                />
 
-                {/* Candles */}
+                {/* Candles with progressive drawing entrance */}
                 {candles.map((c, idx) => {
                   const candleEntrance = spring({
-                    frame: frame - idx * 2.5,
+                    frame: frame - (10 + idx * 3),
                     fps,
-                    config: { damping: 12, stiffness: 100 },
+                    config: { damping: 12, stiffness: 110 },
                   });
 
                   const cx = 35 + idx * 46;
@@ -170,7 +313,14 @@ export const FinanceCandlestickScene: React.FC<FinanceCandlestickSceneProps> = (
                   return (
                     <g key={idx} opacity={candleEntrance}>
                       {/* Upper & Lower Wick */}
-                      <line x1={cx} y1={h} x2={cx} y2={l} stroke={cColor} strokeWidth="2" />
+                      <line
+                        x1={cx}
+                        y1={h}
+                        x2={cx}
+                        y2={l}
+                        stroke={cColor}
+                        strokeWidth="2"
+                      />
                       {/* Real Body */}
                       <rect
                         x={cx - 12}
@@ -192,12 +342,33 @@ export const FinanceCandlestickScene: React.FC<FinanceCandlestickSceneProps> = (
                   strokeWidth="3.5"
                   strokeDasharray="500"
                   strokeDashoffset={500 * (1 - lineProgress)}
-                  style={{ filter: "drop-shadow(0 0 8px rgba(56, 189, 248, 0.6))" }}
+                  style={{
+                    filter: "drop-shadow(0 0 8px rgba(56, 189, 248, 0.6))",
+                  }}
                 />
+
+                {/* Pulsing Beacon at Breakout Tip */}
+                {lineProgress > 0.85 && (
+                  <circle
+                    cx="510"
+                    cy="50"
+                    r={6 + Math.sin(frame / 6) * 2}
+                    fill="#38BDF8"
+                    filter="drop-shadow(0 0 8px #38BDF8)"
+                  />
+                )}
               </svg>
             </div>
 
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#475569", fontFamily: "monospace" }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                fontSize: 11,
+                color: "#475569",
+                fontFamily: "monospace",
+              }}
+            >
               <span>T-60D</span>
               <span>T-40D</span>
               <span>T-20D</span>
@@ -220,8 +391,24 @@ export const FinanceCandlestickScene: React.FC<FinanceCandlestickSceneProps> = (
               }}
             >
               <div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "#94A3B8" }}>{metric1Label}</div>
-                <div style={{ fontSize: 26, fontWeight: 900, color: "#FFFFFF", fontFamily: "monospace", marginTop: 2 }}>
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 700,
+                    color: "#94A3B8",
+                  }}
+                >
+                  {metric1Label}
+                </div>
+                <div
+                  style={{
+                    fontSize: 26,
+                    fontWeight: 900,
+                    color: "#FFFFFF",
+                    fontFamily: "monospace",
+                    marginTop: 2,
+                  }}
+                >
                   {metric1Value}
                 </div>
               </div>
@@ -241,33 +428,62 @@ export const FinanceCandlestickScene: React.FC<FinanceCandlestickSceneProps> = (
               }}
             >
               <div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "#94A3B8" }}>{metric2Label}</div>
-                <div style={{ fontSize: 26, fontWeight: 900, color: "#FFFFFF", fontFamily: "monospace", marginTop: 2 }}>
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 700,
+                    color: "#94A3B8",
+                  }}
+                >
+                  {metric2Label}
+                </div>
+                <div
+                  style={{
+                    fontSize: 26,
+                    fontWeight: 900,
+                    color: "#FFFFFF",
+                    fontFamily: "monospace",
+                    marginTop: 2,
+                  }}
+                >
                   {metric2Value}
                 </div>
               </div>
-              <div style={{ fontSize: 22, color: "#10B981" }}>💎</div>
+              <div style={{ fontSize: 22, color: primaryColor }}>🎯</div>
             </div>
 
-            {/* Thesis Card */}
+            {/* Core Catalyst Box */}
             <div
               style={{
-                backgroundColor: "rgba(15, 23, 42, 0.95)",
-                border: "1.5px solid rgba(56, 189, 248, 0.3)",
+                backgroundColor: "rgba(15, 23, 42, 0.8)",
+                border: "1.5px solid #1E293B",
                 borderRadius: 10,
                 padding: "18px 22px",
-                boxShadow: "0 8px 20px rgba(0,0,0,0.3)",
               }}
             >
-              <div style={{ fontSize: 12, fontWeight: 800, color: "#38BDF8", letterSpacing: 1, marginBottom: 6 }}>
-                💡 核心投資論述 (INVESTMENT THESIS)
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 800,
+                  color: "#94A3B8",
+                  letterSpacing: 1,
+                  marginBottom: 6,
+                }}
+              >
+                CORE CATALYST
               </div>
-              <div style={{ fontSize: 15, fontWeight: 600, color: "#E2E8F0", lineHeight: 1.6 }}>
+              <div
+                style={{
+                  fontSize: 15,
+                  fontWeight: 600,
+                  color: "#CBD5E1",
+                  lineHeight: 1.55,
+                }}
+              >
                 {thesis}
               </div>
             </div>
           </div>
-
         </div>
       </div>
     </FinanceBackground>

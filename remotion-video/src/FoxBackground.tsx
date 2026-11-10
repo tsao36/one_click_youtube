@@ -1,5 +1,6 @@
 import React from "react";
 import { AbsoluteFill, Img, staticFile, useCurrentFrame } from "remotion";
+import { AmbientParticles } from "./animations";
 
 export interface FoxBackgroundProps {
   bgSrc?: string;
@@ -48,6 +49,9 @@ export const FoxBackground: React.FC<FoxBackgroundProps> = ({
           )}
         </AbsoluteFill>
       )}
+
+      {/* Ambient cinematic micro-particles for continuous alive atmosphere */}
+      <AmbientParticles count={14} color="rgba(255, 255, 255, 0.18)" />
 
       {/* Content Container */}
       <AbsoluteFill style={{ zIndex: 10 }}>{children}</AbsoluteFill>
