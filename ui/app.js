@@ -8970,6 +8970,7 @@
     
     const INSPECTOR_REMOTION_PRESETS = {
       modern_tech_explainer: {
+        name: 'Modern Tech Explainer (Gary Chen)',
         style: 'modern_tech_explainer',
         theme: 'dark_obsidian',
         density: 'full',
@@ -8978,6 +8979,7 @@
         model: 'remotion'
       },
       coordinate_zero: {
+        name: 'Coordinate Zero (座標零)',
         style: 'coordinate_zero',
         theme: 'green_cutting_mat',
         density: 'full',
@@ -8986,6 +8988,7 @@
         model: 'remotion_coordinate_scale'
       },
       tactile_blueprint: {
+        name: 'Tactile Blueprint (科技藍圖)',
         style: 'tactile_blueprint',
         theme: 'blueprint_grid',
         density: 'full',
@@ -8994,6 +8997,7 @@
         model: 'remotion'
       },
       fox_documentary: {
+        name: 'fOx Documentary (半透明覆蓋)',
         style: 'fox_documentary',
         theme: 'translucent_overlay',
         density: 'rich',
@@ -9002,6 +9006,7 @@
         model: 'remotion'
       },
       finance_market: {
+        name: 'Finance & Market (金融市場)',
         style: 'finance_market',
         theme: 'finance_grid',
         density: 'full',
@@ -9010,6 +9015,7 @@
         model: 'remotion_finance_candlestick'
       },
       archival_history: {
+        name: 'Archival History (歷史檔案)',
         style: 'archival_history',
         theme: 'parchment_paper',
         density: 'full',
@@ -9018,6 +9024,7 @@
         model: 'remotion_archival_doc'
       },
       vox_journalism: {
+        name: 'Vox Journalism (深度調查)',
         style: 'vox_journalism',
         theme: 'vox_charcoal',
         density: 'full',
@@ -9027,7 +9034,7 @@
       }
     };
 
-    function selectInspectorRemotionPreset(presetKey) {
+    async function selectInspectorRemotionPreset(presetKey) {
       const p = INSPECTOR_REMOTION_PRESETS[presetKey];
       if (!p) return;
       if (!inspectedStageData.remotion) inspectedStageData.remotion = {};
@@ -9052,6 +9059,29 @@
       if (modelEl && p.model) modelEl.value = p.model;
 
       updateInspectorRemotionUI();
+
+      if (currentProjectId) {
+        try {
+          await apiRequest(`/api/projects/${currentProjectId}/stage_data/animation`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              remotion: {
+                style: p.style,
+                theme: p.theme,
+                density: p.density,
+                accentColor: p.accentColor,
+                default_style: p.default_style || 'CoordinateZeroScaleScene'
+              },
+              remotion_style: p.style,
+              animation_model: p.model || 'remotion'
+            })
+          });
+          showToast(`🧭 已切換 Remotion 風格為「${p.name || p.style}」並已儲存！`);
+        } catch (e) {
+          console.error('Failed to auto-save inspector remotion preset:', e);
+        }
+      }
     }
 
     function onInspectorRemotionChange() {
@@ -9117,7 +9147,7 @@
 
     window.selectInspectorRemotionPreset = selectInspectorRemotionPreset;
 
-    function selectStudioRemotionPreset(presetKey) {
+    async function selectStudioRemotionPreset(presetKey) {
       const p = INSPECTOR_REMOTION_PRESETS[presetKey];
       if (!p) return;
       if (!studioStageData.remotion) studioStageData.remotion = {};
@@ -9141,11 +9171,46 @@
       if (hexEl) hexEl.value = p.accentColor;
       if (modelEl && p.model) modelEl.value = p.model;
 
-      if (p.model) {
-        updateStudioStageModel('animation', p.model);
-      }
+      const topModelEl = document.getElementById('stage-card-model-animation');
+      if (topModelEl && p.model) topModelEl.value = p.model;
+      const mainModelEl = document.getElementById('model-stage-animation');
+      if (mainModelEl && p.model) mainModelEl.value = p.model;
 
       updateStudioRemotionUI();
+
+      if (currentProjectId) {
+        try {
+          await apiRequest(`/api/projects/${currentProjectId}/stage_data/animation`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              remotion: {
+                style: p.style,
+                theme: p.theme,
+                density: p.density,
+                accentColor: p.accentColor,
+                default_style: p.default_style || 'CoordinateZeroScaleScene'
+              },
+              remotion_style: p.style,
+              animation_model: p.model || 'remotion'
+            })
+          });
+          if (studioProject && studioProject.settings) {
+            if (!studioProject.settings.remotion) studioProject.settings.remotion = {};
+            Object.assign(studioProject.settings.remotion, {
+              style: p.style,
+              theme: p.theme,
+              density: p.density,
+              accentColor: p.accentColor
+            });
+            studioProject.settings.remotion_style = p.style;
+          }
+          showToast(`🧭 已成功切換 Remotion 風格為「${p.name || p.style}」並已儲存！`);
+        } catch (e) {
+          console.error('Failed to auto-save remotion preset:', e);
+          showToast(`⚠️ 風格切換儲存失敗：${e.message}`);
+        }
+      }
     }
 
     function onStudioRemotionChange() {
@@ -9162,7 +9227,10 @@
       if (hexEl) studioStageData.remotion.accentColor = hexEl.value;
       if (modelEl) {
         studioStageData.animation_model = modelEl.value;
-        updateStudioStageModel('animation', modelEl.value);
+        const topModelEl = document.getElementById('stage-card-model-animation');
+        if (topModelEl) topModelEl.value = modelEl.value;
+        const mainModelEl = document.getElementById('model-stage-animation');
+        if (mainModelEl) mainModelEl.value = modelEl.value;
       }
 
       updateStudioRemotionUI();
@@ -9171,7 +9239,10 @@
     function onStudioRemotionModelChange(val) {
       if (!studioStageData) return;
       studioStageData.animation_model = val;
-      updateStudioStageModel('animation', val);
+      const topModelEl = document.getElementById('stage-card-model-animation');
+      if (topModelEl) topModelEl.value = val;
+      const mainModelEl = document.getElementById('model-stage-animation');
+      if (mainModelEl) mainModelEl.value = val;
     }
 
     function onStudioRemotionAccentChange(val) {

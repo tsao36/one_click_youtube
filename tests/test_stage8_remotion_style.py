@@ -80,6 +80,16 @@ def test_stage8_animation_remotion_style_get_and_put(client):
         assert data3["remotion"]["accentColor"] == "#00F5FF"
         assert data3["animation_model"] == "remotion"
 
+        # 6. Test that updating stage-models animation syncs remotion.style
+        sm_resp = client.post(f"/api/projects/{pid}/stage-models", json={"stage_models": {"animation": "remotion_coordinate_scale"}})
+        assert sm_resp.status_code == 200
+        resp4 = client.get(f"/api/projects/{pid}/stage_data/animation")
+        assert resp4.status_code == 200
+        data4 = resp4.json()
+        assert data4["remotion"]["style"] == "coordinate_zero"
+        assert data4["remotion"]["theme"] == "green_cutting_mat"
+        assert data4["remotion"]["accentColor"] == "#0D9488"
+
     finally:
         # Clean up test project directory
         if p.dir.exists():

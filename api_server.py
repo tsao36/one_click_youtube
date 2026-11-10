@@ -823,6 +823,24 @@ def update_project_stage_models(project_id: str, req: UpdateStageModelsRequest):
                             break
         if "render" in req.stage_models:
             p.data.settings.setdefault("rendering", {})["encoder"] = req.stage_models["render"]
+        if "animation" in req.stage_models:
+            anim_m = req.stage_models["animation"]
+            model_to_style = {
+                "remotion_coordinate_scale": ("coordinate_zero", "green_cutting_mat", "#0D9488"),
+                "remotion_archival_doc": ("archival_history", "parchment_paper", "#C2410C"),
+                "remotion_vox_split": ("vox_journalism", "vox_charcoal", "#FACC15"),
+                "remotion_finance_candlestick": ("finance_market", "finance_grid", "#10B981"),
+                "remotion_blueprint": ("tactile_blueprint", "blueprint_grid", "#00F5FF"),
+                "remotion_fox": ("fox_documentary", "translucent_overlay", "#38BDF8"),
+                "remotion": ("modern_tech_explainer", "dark_obsidian", "#A855F7"),
+            }
+            if anim_m in model_to_style:
+                st, th, ac = model_to_style[anim_m]
+                rem = p.data.settings.setdefault("remotion", {})
+                rem["style"] = st
+                rem["theme"] = th
+                rem["accentColor"] = ac
+                p.data.settings["remotion_style"] = st
         p.save()
     return {"status": "updated", "stage_models": p.settings.get("stage_models", {}), "voice_profile": p.settings.get("voice_profile")}
 
