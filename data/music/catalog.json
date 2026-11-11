@@ -1231,7 +1231,8 @@
       "scene_tag": "serious",
       "scene_tags": [
         "serious",
-        "explanation"
+        "explanation",
+        "hook"
       ],
       "category": "serious",
       "category_label": "Serious & Critical",
@@ -1401,7 +1402,7 @@
       "id": "ambient/LoFi_Warmth_Chills.mp3",
       "name": "Lo-Fi Warmth Chills",
       "title": "Lo-Fi Warmth Chills",
-      "style": "ambient",
+      "style": "lofi",
       "scene_tag": "hook",
       "scene_tags": [
         "hook",
