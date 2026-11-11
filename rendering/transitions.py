@@ -8,12 +8,17 @@ starts + T and total video length == total audio length exactly.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import os
 from pathlib import Path
 
 from rendering.ffmpeg_utils import run_ffmpeg
 
 XFADE = {"crossfade": "fade", "fadeblack": "fadeblack", "dissolve": "dissolve",
          "wipeleft": "wipeleft", "slideleft": "slideleft", "cut": "fade"}
+
+_CPU_COUNT = os.cpu_count() or 8
+_XFADE_THREADS = str(min(_CPU_COUNT, 16))
+_FILTER_THREADS = str(min(_CPU_COUNT, 8))
 
 
 @dataclass
@@ -76,7 +81,7 @@ def total_length(slots: list[Slot]) -> float:
 
 LOW_MEM_X264 = [
     "-c:v", "libx264", "-preset", "ultrafast", "-crf", "18",
-    "-threads", "8", "-x264-params", "rc-lookahead=10:threads=8:sync-lookahead=4",
+    "-threads", _XFADE_THREADS, "-x264-params", f"rc-lookahead=10:threads={_XFADE_THREADS}:sync-lookahead=4",
     "-pix_fmt", "yuv420p",
 ]
 
@@ -121,7 +126,7 @@ def _xfade_once(clips: list[Path], slots: list[Slot], output: Path, encoder_args
                 keep_last_tail: bool = False) -> None:
     n = len(clips)
     final_len = sum(s.length for s in slots) + (slots[-1].trans_dur if keep_last_tail else 0.0)
-    args: list[str] = ["-filter_threads", "4", "-filter_complex_threads", "4"]
+    args: list[str] = ["-filter_threads", _FILTER_THREADS, "-filter_complex_threads", _FILTER_THREADS]
     for c in clips:
         args += ["-threads", "1", "-thread_queue_size", "32", "-i", str(c)]
     if n == 1:

@@ -1,5 +1,5 @@
 {
-  "default_style": "documentary_cinematic",
+  "default_style": "ambient",
   "starting_bgm_level_dbfs": -24.0,
   "supported_scene_tags": [
     "hook",

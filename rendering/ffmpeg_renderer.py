@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 import hashlib
+import os
 import random
+import threading
 from pathlib import Path
 from typing import Callable
 
@@ -24,7 +26,7 @@ from generators.sfx import ensure_drum_hit_sfx
 
 INTERMEDIATE = [
     "-c:v", "libx264", "-preset", "veryfast", "-crf", "18",
-    "-threads", "2", "-x264-params", "rc-lookahead=6:threads=2:sync-lookahead=2",
+    "-threads", "4", "-x264-params", "rc-lookahead=6:threads=4:sync-lookahead=2",
     "-pix_fmt", "yuv420p",
 ]
 
@@ -544,12 +546,47 @@ def render_project(project: Project, draft: bool = False, progress: Callable[[in
     steps = len(scenes) + 4
     say = progress or (lambda d, t, m: None)
 
-    clips = []
-    for i, (sc, sl) in enumerate(zip(scenes, slots)):
+    # Parallel scene clip rendering using thread pool
+    max_workers = int(r.get("clip_concurrency", 0))
+    if max_workers <= 0:
+        cpu_cnt = os.cpu_count() or 4
+        # 4-6 parallel workers cleanly saturates multi-core CPUs without I/O thrashing
+        max_workers = min(6, max(2, cpu_cnt // 4))
+
+    clips: list[Path | None] = [None] * len(scenes)
+    done_count = 0
+    prog_lock = threading.Lock()
+
+    def _render_worker(idx: int, sc: Scene, sl: Slot) -> tuple[int, Path]:
         if cancel and cancel():
             raise RenderError("Render cancelled by user")
-        say(i, steps, f"Rendering clip {i + 1}/{len(scenes)}")
-        clips.append(render_scene_clip(project, sc, sl, w, h, fps, draft, settings=s))
+        clip_p = render_scene_clip(project, sc, sl, w, h, fps, draft, settings=s)
+        nonlocal done_count
+        with prog_lock:
+            done_count += 1
+            say(done_count, steps, f"Rendering clips ({done_count}/{len(scenes)})")
+        return idx, clip_p
+
+    if max_workers > 1 and len(scenes) > 1:
+        import concurrent.futures
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as pool:
+            futures = [pool.submit(_render_worker, i, sc, sl) for i, (sc, sl) in enumerate(zip(scenes, slots))]
+            try:
+                for fut in concurrent.futures.as_completed(futures):
+                    if cancel and cancel():
+                        pool.shutdown(wait=False, cancel_futures=True)
+                        raise RenderError("Render cancelled by user")
+                    idx, clip_p = fut.result()
+                    clips[idx] = clip_p
+            except Exception:
+                pool.shutdown(wait=False, cancel_futures=True)
+                raise
+    else:
+        for i, (sc, sl) in enumerate(zip(scenes, slots)):
+            if cancel and cancel():
+                raise RenderError("Render cancelled by user")
+            say(i, steps, f"Rendering clip {i + 1}/{len(scenes)}")
+            clips[i] = render_scene_clip(project, sc, sl, w, h, fps, draft, settings=s)
 
     if cancel and cancel():
         raise RenderError("Render cancelled by user")
@@ -610,11 +647,12 @@ def render_project(project: Project, draft: bool = False, progress: Callable[[in
     except FFmpegError:
         if cancel and cancel():
             raise RenderError("Render cancelled by user")
-        if "h264_amf" in args:
-            log.warning("Hardware encode failed; retrying with libx264")
+        is_hw = any(enc_cand in args for enc_cand in ("h264_amf", "h264_nvenc", "h264_qsv"))
+        if is_hw:
+            log.warning("Hardware encode failed; retrying with libx264 (all CPU threads)")
             args[encoder_start:encoder_start + len(encoder_args)] = [
-                "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-threads", "2",
-                "-x264-params", "rc-lookahead=6:threads=2:sync-lookahead=2", "-pix_fmt", "yuv420p",
+                "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-threads", "0",
+                "-pix_fmt", "yuv420p",
             ]
             run_ffmpeg(args, cwd=project.dir, cancel=cancel)
         else:

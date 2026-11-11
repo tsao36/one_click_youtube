@@ -13,7 +13,7 @@ from core.config import ROOT
 from core.logging_setup import log
 
 AUDIO_EXT = {".mp3", ".wav", ".m4a", ".ogg", ".flac", ".aac"}
-DEFAULT_STYLE = "documentary_cinematic"
+DEFAULT_STYLE = "ambient"
 STARTING_BGM_LEVEL_DBFS = -24.0
 
 SCENE_TAGS = ("hook", "explanation", "revelation", "serious", "conclusion")

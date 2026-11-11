@@ -4,6 +4,7 @@ from __future__ import annotations
 
 
 
+import json
 import math
 
 import os
@@ -876,15 +877,11 @@ class DocumentaryPipeline(BasePipeline):
 
 
 
-                # Skip if already generated
-
-
-
+                # Skip if already generated (unless it was only a fallback placeholder)
                 if s.image.status == Status.COMPLETED and img_path.exists() and img_path.stat().st_size > 1000:
-
-
-
-                    continue
+                    is_placeholder = bool(s.image.meta and s.image.meta.get("provider") == "placeholder")
+                    if not (is_placeholder and current_model_name != "placeholder"):
+                        continue
 
 
 
@@ -2239,7 +2236,9 @@ class DocumentaryPipeline(BasePipeline):
 
             scenes, slots = project_timeline(self.p)
             total = total_length(slots)
-            m = self.p.settings.get("music", {})
+            m = dict(self.p.settings.get("music", {}))
+            if not m.get("style") or m.get("style") == "auto":
+                m["style"] = "ambient"
             pref = self.p.settings.get("music_preference") or m.get("track")
             topic = getattr(self.p, "topic", None) or (self.p.data.topic if hasattr(self.p, "data") and self.p.data else None)
 

@@ -218,6 +218,7 @@ class BasePipeline:
             if scene.image.status == Status.COMPLETED
             and self.p.abs(scene.image.path)
             and self.p.abs(scene.image.path).exists()
+            and not (scene.image.meta and scene.image.meta.get("provider") == "placeholder")
         )
 
     def _resolve_image_provider(self, requested: str, fallback: str) -> tuple[Any, str]:

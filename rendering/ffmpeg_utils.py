@@ -157,15 +157,39 @@ def encoder_works(name: str) -> bool:
 
 
 def video_encoder_args(settings: dict, draft: bool = False) -> list[str]:
-    r = settings["rendering"]
-    enc = r.get("encoder", "libx264")
-    if enc in ("auto", "h264_amf") and not draft and encoder_works("h264_amf"):
-        return ["-c:v", "h264_amf", "-quality", "quality", "-rc", "cqp", "-qp_i", "20", "-qp_p", "22", "-pix_fmt", "yuv420p"]
-    if enc == "h264_amf":
-        log.warning("h264_amf unavailable; falling back to libx264 CPU encoding")
+    r = settings.get("rendering", {})
+    enc = r.get("encoder", "auto")
+
+    hw_candidates: list[str] = []
+    if enc in ("auto", "h264_amf"):
+        hw_candidates.append("h264_amf")
+    if enc in ("auto", "h264_nvenc"):
+        hw_candidates.append("h264_nvenc")
+    if enc in ("auto", "h264_qsv"):
+        hw_candidates.append("h264_qsv")
+
+    for hw in hw_candidates:
+        if encoder_works(hw):
+            if hw == "h264_amf":
+                if draft:
+                    return ["-c:v", "h264_amf", "-quality", "speed", "-rc", "cqp", "-qp_i", "28", "-qp_p", "28", "-pix_fmt", "yuv420p"]
+                return ["-c:v", "h264_amf", "-quality", "quality", "-rc", "cqp", "-qp_i", "20", "-qp_p", "22", "-pix_fmt", "yuv420p"]
+            if hw == "h264_nvenc":
+                preset = "p2" if draft else "p4"
+                cq = "28" if draft else "20"
+                return ["-c:v", "h264_nvenc", "-preset", preset, "-cq", cq, "-pix_fmt", "yuv420p"]
+            if hw == "h264_qsv":
+                gq = "28" if draft else "20"
+                return ["-c:v", "h264_qsv", "-global_quality", gq, "-pix_fmt", "nv12"]
+
+    if enc not in ("auto", "libx264"):
+        log.warning("%s unavailable; falling back to libx264 CPU encoding", enc)
+
+    # Software encoding: thread count 0 allows libx264 to auto-saturate all logical cores
+    threads = str(r.get("threads", 0))
     if draft:
-        return ["-c:v", "libx264", "-preset", "veryfast", "-crf", "28", "-threads", "4", "-x264-params", "rc-lookahead=10:threads=4", "-pix_fmt", "yuv420p"]
-    return ["-c:v", "libx264", "-preset", r.get("preset", "medium"), "-crf", str(r.get("crf", 20)), "-threads", "4", "-x264-params", "rc-lookahead=10:threads=4", "-pix_fmt", "yuv420p"]
+        return ["-c:v", "libx264", "-preset", "veryfast", "-crf", "28", "-threads", threads, "-pix_fmt", "yuv420p"]
+    return ["-c:v", "libx264", "-preset", r.get("preset", "medium"), "-crf", str(r.get("crf", 20)), "-threads", threads, "-pix_fmt", "yuv420p"]
 
 
 def escape_filter_path(p: str) -> str:

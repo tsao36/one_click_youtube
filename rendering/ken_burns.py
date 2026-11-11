@@ -66,9 +66,9 @@ def render_ken_burns(image: Path, output: Path, seconds: float, motion: str, wid
     vf = (f"scale={ow}:{oh}:force_original_aspect_ratio=increase:flags=lanczos,crop={ow}:{oh},"
           f"zoompan=z='{z}':x='{x}':y='{y}':d={frames}:s={width}x{height}:fps={fps},"
           f"setsar=1,format=yuv420p")
-    enc = encoder_args or ["-c:v", "libx264", "-preset", "veryfast", "-crf", "17", "-threads", "2", "-x264-params", "rc-lookahead=6:threads=2:sync-lookahead=2", "-pix_fmt", "yuv420p"]
+    enc = encoder_args or ["-c:v", "libx264", "-preset", "veryfast", "-crf", "17", "-threads", "4", "-pix_fmt", "yuv420p"]
     output.parent.mkdir(parents=True, exist_ok=True)
-    run_ffmpeg(["-threads", "2", "-filter_threads", "2", "-i", str(image), "-vf", vf, "-frames:v", str(frames), "-r", str(fps), *enc, "-an", str(output)])
+    run_ffmpeg(["-threads", "4", "-filter_threads", "4", "-i", str(image), "-vf", vf, "-frames:v", str(frames), "-r", str(fps), *enc, "-an", str(output)])
 
 
 def render_video_clip(src: Path, output: Path, seconds: float, width: int, height: int, fps: int,
@@ -81,8 +81,8 @@ def render_video_clip(src: Path, output: Path, seconds: float, width: int, heigh
     hold = max(0.0, seconds - src_duration * slow) + 0.5
     vf = (f"setpts={slow:.4f}*PTS,fps={fps},scale={width}:{height}:force_original_aspect_ratio=increase,"
           f"crop={width}:{height},tpad=stop_mode=clone:stop_duration={hold:.3f},setsar=1,format=yuv420p")
-    enc = encoder_args or ["-c:v", "libx264", "-preset", "veryfast", "-crf", "17", "-pix_fmt", "yuv420p"]
-    run_ffmpeg(["-i", str(src), "-vf", vf, "-frames:v", str(frames), "-r", str(fps), *enc, "-an", str(output)])
+    enc = encoder_args or ["-c:v", "libx264", "-preset", "veryfast", "-crf", "17", "-threads", "4", "-pix_fmt", "yuv420p"]
+    run_ffmpeg(["-threads", "4", "-i", str(src), "-vf", vf, "-frames:v", str(frames), "-r", str(fps), *enc, "-an", str(output)])
 
 
 def render_talking_avatar_clip(
@@ -125,9 +125,9 @@ def render_talking_avatar_clip(
         f"crop={width}:{height}"
         f"{pad_str},setsar=1,format=yuv420p"
     )
-    enc = encoder_args or ["-c:v", "libx264", "-preset", "veryfast", "-crf", "17", "-pix_fmt", "yuv420p"]
+    enc = encoder_args or ["-c:v", "libx264", "-preset", "veryfast", "-crf", "17", "-threads", "4", "-pix_fmt", "yuv420p"]
     in_args = ["-t", f"{play_dur:.4f}", "-i", str(src)] if play_dur < src_dur - 0.05 else ["-i", str(src)]
-    run_ffmpeg(["-threads", "2", *in_args, "-vf", vf, "-frames:v", str(frames), "-r", str(fps), *enc, "-an", str(output)])
+    run_ffmpeg(["-threads", "4", *in_args, "-vf", vf, "-frames:v", str(frames), "-r", str(fps), *enc, "-an", str(output)])
 
 
 def _best_chinese_font_file() -> str:
@@ -186,10 +186,11 @@ def render_phase_turn_card(text: str, output: Path, seconds: float, width: int, 
     draw = (f"drawtext=fontfile='{font}':textfile='{tf_str}':fontcolor=white:fontsize={fs}:"
             f"line_spacing=24:x=(w-text_w)/2:y=(h-text_h)/2:alpha='{alpha_expr}'")
             
-    enc = encoder_args or ["-c:v", "libx264", "-preset", "veryfast", "-crf", "17", "-pix_fmt", "yuv420p"]
+    enc = encoder_args or ["-c:v", "libx264", "-preset", "veryfast", "-crf", "17", "-threads", "4", "-pix_fmt", "yuv420p"]
     output.parent.mkdir(parents=True, exist_ok=True)
     
     run_ffmpeg([
+        "-threads", "4",
         "-f", "lavfi", "-i", f"color=c=black:s={width}x{height}:r={fps}",
         "-vf", f"{draw},format=yuv420p",
         "-frames:v", str(frames),

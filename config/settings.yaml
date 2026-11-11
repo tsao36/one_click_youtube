@@ -71,7 +71,9 @@ music:
   fade_in: 1.5
   fade_out: 2.5
 rendering:
-  encoder: libx264
+  encoder: auto
+  threads: 0
+  clip_concurrency: 0
   crf: 20
   preset: medium
   audio_bitrate: 192k
