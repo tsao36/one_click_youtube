@@ -98,6 +98,16 @@ def test_format_stage3_script_content_all_formats():
     assert parsed["scenes"][0]["speaker"] == "主持人"
     assert parsed["scenes"][1]["scene_id"] == 2
 
+    # 6. HTML / Print Review Packet Format
+    html_text, html_media_type, html_fn = format_stage3_script_content(p, scenes, "html")
+    assert html_media_type == "text/html; charset=utf-8"
+    assert html_fn == "test_proj_stage3_review_packet.html"
+    assert "<!DOCTYPE html>" in html_text
+    assert "Scene #1" in html_text
+    assert "主持人" in html_text
+    assert "window.print()" in html_text
+    assert "【審核意見 (Reviewer Feedback)】" in html_text
+
 
 def test_api_export_stage3_script_endpoints():
     client = TestClient(app)
@@ -141,3 +151,11 @@ def test_api_export_stage3_script_endpoints():
     assert data["status"] == "ok"
     assert data["total_scenes"] == 40
     assert "Scene #1" in data["content"]
+
+    # 7. HTML Print Review Packet Export (inline)
+    res_html = client.get(f"/api/projects/{proj_id}/export_stage3_script?format=html")
+    assert res_html.status_code == 200
+    assert "text/html" in res_html.headers["content-type"]
+    assert "inline" in res_html.headers["content-disposition"]
+    assert "window.print()" in res_html.text
+    assert "Scene #1" in res_html.text

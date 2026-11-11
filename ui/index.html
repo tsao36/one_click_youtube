@@ -62,6 +62,7 @@
     <!-- Collapsible Hero Tools Sub-bar -->
     <div id="hero-tools-dropdown" style="display: none; margin-top: 10px; padding: 8px 12px; background: rgba(7, 11, 20, 0.7); border: 1px solid rgba(124, 145, 182, 0.25); border-radius: 6px; gap: 8px; flex-wrap: wrap; align-items: center;">
       <span style="font-size: 11px; font-weight: 700; color: #7C91B6; margin-right: 4px;">快捷微調工具：</span>
+      <button class="btn-sec" id="hero-btn-export-stage3" data-ui-click="hero_export_stage3" onclick="openStage3ExportModal()" style="padding: 5px 11px; font-size: 11.5px; font-weight: 700; color: #38bdf8; border-color: rgba(56, 189, 248, 0.5); background: rgba(56, 189, 248, 0.12); display: inline-flex; align-items: center; gap: 5px;" title="匯出 Stage 3 分鏡與台詞腳本（支援 .txt/.csv/.md/純台詞/PDF 列印）供團隊審閱">📤 匯出 Stage 3 分鏡審閱稿 (Export Script)</button>
       <button class="btn-sec" id="hero-btn-global-find-replace" data-ui-click="static_012" style="padding: 5px 11px; font-size: 11.5px; font-weight: 600;" title="跨階段尋找並取代關鍵字">🔍 全階段同步取代 (Find & Replace)</button>
       <button class="btn-sec" id="hero-btn-rerender-voice" data-ui-click="static_013" style="padding: 5px 11px; font-size: 11.5px; font-weight: 600; color: #fde68a; border-color: rgba(193, 157, 73, 0.4);" title="Re-synthesize narration voice and update video">🎙️🔄 Re-render Voice & Video</button>
       <button class="btn-sec" id="hero-btn-rerender-avatar" data-ui-click="static_014" style="padding: 5px 11px; font-size: 11.5px; font-weight: 600;" title="Replace avatar clips and update video">🎭 Replace Avatar Clips & Video</button>
@@ -3564,6 +3565,32 @@
           <div>狀態: <span id="stage3-stat-status" class="badge badge-blue">Ready</span></div>
         </div>
 
+        <!-- Quick Action / Send for Review Strip -->
+        <div style="background: linear-gradient(135deg, rgba(30, 58, 138, 0.25) 0%, rgba(15, 23, 42, 0.7) 100%); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 8px; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+          <div>
+            <div style="font-weight: 700; color: #bae6fd; font-size: 13px; display: flex; align-items: center; gap: 6px;">
+              <span>🚀 快速發送給團隊審閱 (Send for Review)</span>
+            </div>
+            <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">
+              支援系統分享、電子郵件快速草稿、即時列印/PDF 以及一鍵複製全文
+            </div>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <button class="btn-sec" style="font-size: 11.5px; padding: 6px 12px; background: rgba(56, 189, 248, 0.15); border-color: #38bdf8; color: #38bdf8; font-weight: 700; display: inline-flex; align-items: center; gap: 5px;" onclick="shareStage3Script()">
+              📲 系統分享 (Share)
+            </button>
+            <button class="btn-sec" style="font-size: 11.5px; padding: 6px 12px; background: rgba(59, 130, 246, 0.15); border-color: #3b82f6; color: #93c5fd; font-weight: 700; display: inline-flex; align-items: center; gap: 5px;" onclick="emailStage3Script()">
+              ✉️ Email 發送
+            </button>
+            <button class="btn-sec" style="font-size: 11.5px; padding: 6px 12px; background: rgba(16, 185, 129, 0.15); border-color: #10b981; color: #6ee7b7; font-weight: 700; display: inline-flex; align-items: center; gap: 5px;" onclick="printStage3Script()">
+              🖨️ 列印 / 存為 PDF
+            </button>
+            <button class="btn-sec" style="font-size: 11.5px; padding: 6px 12px; font-weight: 700; display: inline-flex; align-items: center; gap: 5px;" onclick="copyStage3FormattedText('txt')">
+              📋 複製全文
+            </button>
+          </div>
+        </div>
+
         <!-- Export Formats Grid -->
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:12px;">
           <!-- TXT Review Manuscript -->
@@ -3583,6 +3610,27 @@
               </button>
               <button class="btn-sec" style="font-size:11px; padding:6px 10px;" onclick="copyStage3FormattedText('txt')" title="複製校對稿全文至剪貼簿">
                 📋
+              </button>
+            </div>
+          </div>
+
+          <!-- Printable HTML / PDF Review Packet -->
+          <div style="background:#070d18; border:1px solid #0284c7; border-radius:8px; padding:14px; display:flex; flex-direction:column; justify-content:space-between; gap:10px;">
+            <div>
+              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
+                <span style="font-weight:700; color:#38bdf8; font-size:13px;">🖨️ 列印 / PDF 審閱包 (.html)</span>
+                <span style="font-size:10px; background:rgba(56,189,248,0.2); color:#38bdf8; padding:1px 6px; border-radius:8px;">免安裝</span>
+              </div>
+              <div style="font-size:11px; color:#94a3b8; line-height:1.4;">
+                精美分鏡審閱頁，支援一鍵列印、另存為 PDF 或直接傳送 HTML 檔案給客戶，排版清晰美觀。
+              </div>
+            </div>
+            <div style="display:flex; gap:6px;">
+              <button class="btn-sec" style="flex:1; font-size:11px; padding:6px; background:#0284c7; color:#fff; border-color:#38bdf8; font-weight:700;" onclick="printStage3Script()">
+                🖨️ 開啟審閱頁 / PDF
+              </button>
+              <button class="btn-sec" style="font-size:11px; padding:6px 10px;" onclick="downloadStage3Script('html')" title="下載 HTML 審閱檔">
+                📥
               </button>
             </div>
           </div>
@@ -3653,8 +3701,10 @@
               <label style="font-size:12px; font-weight:700; color:#cbd5e1;">即時文稿預覽 (Live Preview):</label>
               <select id="stage3-preview-format-select" style="font-size:11px; padding:3px 8px; background:#080d16; border:1px solid #334155; color:#93c5fd; border-radius:4px;" onchange="loadStage3ScriptPreview(this.value)">
                 <option value="txt" selected>📄 分鏡校對文稿 (.txt)</option>
+                <option value="csv">📊 Excel 評審表 (.csv)</option>
                 <option value="md">📝 Markdown 腳本 (.md)</option>
                 <option value="narration">🎙️ 純台詞朗讀稿 (.txt)</option>
+                <option value="json">⚙️ 結構化分鏡 (.json)</option>
               </select>
             </div>
             <button class="btn-sec" style="font-size:11px; padding:4px 10px; display:inline-flex; align-items:center; gap:4px;" onclick="copyStage3PreviewContent()">
@@ -3963,8 +4013,8 @@
   </div>
 
   <script src="/api.js"></script>
-  <script src="/events.js"></script>
-  <script src="/app.js?v=20261110_remotion_v8"></script>
+  <script src="/events.js?v=20261111_v1"></script>
+  <script src="/app.js?v=20261111_confirm_v1"></script>
 
   <!-- Formula Manager Modal -->
   <div id="formula-manager-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 99999; align-items: center; justify-content: center; backdrop-filter: blur(4px);">
@@ -4051,7 +4101,7 @@
             </div>
           </div>
         </div>
-        <button type="button" class="btn-sec" id="btn-close-create-confirm" data-ui-click="static_296" style="padding:4px 10px; font-size:13px; cursor:pointer;" title="關閉 (Cancel)">✕</button>
+        <button type="button" class="btn-sec" id="btn-close-create-confirm" data-ui-click="static_296" onclick="closeCreateVideoConfirmModal()" style="padding:4px 10px; font-size:13px; cursor:pointer;" title="關閉 (Cancel)">✕</button>
       </div>
 
       <div style="padding:20px; overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:14px;">
@@ -4128,10 +4178,10 @@
 
       <!-- Modal Footer -->
       <div style="padding:14px 20px; border-top:1px solid rgba(124, 145, 182, 0.25); display:flex; justify-content:flex-end; gap:12px; align-items:center; background:#080d16;">
-        <button type="button" class="btn-sec" id="btn-cancel-create-confirm" data-ui-click="static_297" style="padding:9px 18px; font-size:13px; font-weight:600; cursor:pointer;">
+        <button type="button" class="btn-sec" id="btn-cancel-create-confirm" data-ui-click="static_297" onclick="closeCreateVideoConfirmModal()" style="padding:9px 18px; font-size:13px; font-weight:600; cursor:pointer;">
           Cancel / 取消
         </button>
-        <button type="button" class="btn-primary" id="btn-ok-create-confirm" data-ui-click="static_298" style="padding:10px 24px; font-size:14px; font-weight:800; background:linear-gradient(135deg, #0284c7 0%, #0369a1 100%); box-shadow:0 0 16px rgba(2, 132, 199, 0.5); border:none; cursor:pointer; letter-spacing:0.02em;">
+        <button type="button" class="btn-primary" id="btn-ok-create-confirm" data-ui-click="static_298" onclick="confirmAndProceedWithVideo()" style="padding:10px 24px; font-size:14px; font-weight:800; background:linear-gradient(135deg, #0284c7 0%, #0369a1 100%); box-shadow:0 0 16px rgba(2, 132, 199, 0.5); border:none; cursor:pointer; letter-spacing:0.02em;">
           🚀 OK, Proceed / 確認製作
         </button>
       </div>

@@ -15,6 +15,7 @@
     "static_012": function(event) { openGlobalFindReplaceModal() },
     "static_013": function(event) { openRerenderVoiceModal() },
     "static_014": function(event) { openRerenderAvatarModal() },
+    "hero_export_stage3": function(event) { openStage3ExportModal() },
     "static_015": function(event) { copyCurrentProjectError(this) },
     "static_016": function(event) { copyCurrentProjectError(this) },
     "static_017": function(event) { switchTab('creator') },

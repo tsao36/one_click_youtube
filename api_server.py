@@ -2348,6 +2348,181 @@ def format_stage3_script_content(p: Project, scenes: list[Scene], fmt: str = "tx
         content = json.dumps(data, indent=2, ensure_ascii=False)
         return content, "application/json; charset=utf-8", f"{project_id}_stage3_scenes.json"
 
+    elif fmt in ("html", "print", "pdf"):
+        import html as py_html
+        esc = py_html.escape
+        scene_cards = []
+        current_section = None
+        for sc in scenes:
+            sec = sc.section or ""
+            sec_header = ""
+            if sec and sec != current_section:
+                current_section = sec
+                sec_header = f"""
+                <div style="margin: 28px 0 14px 0; padding-bottom: 6px; border-bottom: 2px solid #0284c7;">
+                    <h2 style="margin: 0; font-size: 17px; color: #38bdf8; font-weight: 800;">📑 章節：{esc(sec)}</h2>
+                </div>
+                """
+            dur = getattr(sc, "audio_duration", None) or getattr(sc, "estimated_duration", 5.0) or 5.0
+            speaker = getattr(sc, "speaker", None) or getattr(sc, "character", None) or ("真人主播" if getattr(sc, "is_presenter", False) else "")
+            spk_badge = f'<span class="pill" style="border-color:#f59e0b; color:#fbbf24; background:rgba(245,158,11,0.15);">👤 {esc(speaker)}</span>' if speaker else ""
+            callout_badge = f'<div style="margin-top:6px; font-size:12px; color:#38bdf8;"><b>✨ 重點字卡 (Callout):</b> {esc(sc.callout_text)}</div>' if sc.callout_text else ""
+            phase_turn_badge = f'<div style="margin-top:4px; font-size:12px; color:#c084fc;"><b>🥁 黑幕轉場 (Phase Turn):</b> {esc(sc.phase_turn_text)}</div>' if sc.phase_turn_text else ""
+            vdesc = f'<div style="margin-top:6px; font-size:12.5px; color:#94a3b8;"><b>🎨 畫面規劃:</b> {esc(sc.visual_description)}</div>' if sc.visual_description else ""
+
+            card = f"""
+            {sec_header}
+            <div class="scene-card">
+                <div class="scene-header">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span class="scene-badge">Scene #{sc.scene_id}</span>
+                        {spk_badge}
+                    </div>
+                    <div class="meta-pills">
+                        <span class="pill">⏱️ {float(dur):.1f}s</span>
+                        <span class="pill">🎥 {esc(sc.camera_motion or 'slow_zoom_in')}</span>
+                        <span class="pill">🎬 {esc(sc.visual_type or 'image')}</span>
+                    </div>
+                </div>
+                <div class="narration-box">
+                    {esc(sc.narration or '')}
+                </div>
+                {vdesc}
+                {callout_badge}
+                {phase_turn_badge}
+                <div class="review-box">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:6px;">
+                        <span style="font-weight:700; color:#cbd5e1;">【審核意見 (Reviewer Feedback)】</span>
+                        <span style="font-size:11px;">[ ] 照案通過 (Approved) &nbsp;&nbsp;&nbsp;&nbsp; [ ] 需修改 (Needs Revision)</span>
+                    </div>
+                    <div style="border-bottom:1px solid #334155; height:24px; margin-bottom:4px;"></div>
+                </div>
+            </div>
+            """
+            scene_cards.append(card)
+
+        cards_html = "\n".join(scene_cards)
+        full_html = f"""<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>【Stage 3 分鏡腳本審閱稿】{esc(title)}</title>
+<style>
+  :root {{
+    --bg-page: #070d18;
+    --bg-card: #0d1726;
+    --border-color: #1e293b;
+    --text-primary: #f1f5f9;
+    --text-muted: #94a3b8;
+    --accent: #38bdf8;
+    --accent-bg: rgba(56, 189, 248, 0.12);
+  }}
+  @media print {{
+    :root {{
+      --bg-page: #ffffff;
+      --bg-card: #ffffff;
+      --border-color: #cbd5e1;
+      --text-primary: #0f172a;
+      --text-muted: #475569;
+      --accent: #0284c7;
+      --accent-bg: #f0f9ff;
+    }}
+    body {{ background: #fff !important; color: #000 !important; font-size: 11pt !important; }}
+    .no-print {{ display: none !important; }}
+    .scene-card {{ page-break-inside: avoid; border: 1px solid #94a3b8 !important; margin-bottom: 14px !important; box-shadow: none !important; background: #fff !important; }}
+    .narration-box {{ background: #f8fafc !important; color: #000 !important; border-left: 3px solid #0284c7 !important; }}
+    .container {{ max-width: 100% !important; padding: 0 !important; }}
+  }}
+  body {{
+    margin: 0; padding: 0; background: var(--bg-page); color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang TC", "Microsoft JhengHei", sans-serif;
+    line-height: 1.6;
+  }}
+  .control-bar {{
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(13, 23, 38, 0.95); backdrop-filter: blur(8px);
+    border-bottom: 1px solid #1e3a5f;
+    padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;
+  }}
+  .container {{ max-width: 920px; margin: 0 auto; padding: 24px 20px; }}
+  .doc-header {{
+    background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 10px;
+    padding: 22px 24px; margin-bottom: 24px; box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  }}
+  .scene-card {{
+    background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px;
+    padding: 16px 20px; margin-bottom: 16px;
+  }}
+  .scene-header {{
+    display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;
+    border-bottom: 1px solid var(--border-color); padding-bottom: 8px; flex-wrap: wrap; gap: 8px;
+  }}
+  .scene-badge {{ font-size: 14.5px; font-weight: 800; color: var(--accent); }}
+  .meta-pills {{ display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }}
+  .pill {{ font-size: 11px; padding: 2px 8px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--accent-bg); color: var(--accent); font-weight: 600; }}
+  .narration-box {{
+    background: rgba(4, 7, 14, 0.6); border-left: 4px solid var(--accent);
+    padding: 12px 16px; margin: 10px 0; border-radius: 0 6px 6px 0; font-size: 14.5px; font-weight: 500; line-height: 1.6;
+  }}
+  .review-box {{
+    margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--border-color);
+    font-size: 12px; color: var(--text-muted);
+  }}
+  .btn {{
+    cursor: pointer; padding: 7px 14px; font-size: 12px; font-weight: 700; border-radius: 6px;
+    border: 1px solid #38bdf8; background: #0284c7; color: #fff; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;
+  }}
+  .btn-sec {{
+    background: rgba(30, 41, 59, 0.7); border: 1px solid #334155; color: var(--text-primary);
+  }}
+  .btn-sec:hover {{ background: #1e293b; }}
+</style>
+</head>
+<body>
+<div class="control-bar no-print">
+  <div style="display:flex; align-items:center; gap:10px;">
+    <span style="font-weight:800; color:#38bdf8; font-size:14px;">🎬 Stage 3 分鏡腳本審閱包</span>
+    <span style="font-size:11px; color:#94a3b8;">共 {total_scenes} 幕 · 預估時長: {esc(total_dur_str)}</span>
+  </div>
+  <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+    <button class="btn" onclick="window.print()">🖨️ 列印 / 另存為 PDF</button>
+    <a class="btn btn-sec" href="/api/projects/{esc(project_id)}/export_stage3_script?format=txt">📥 下載 .txt</a>
+    <a class="btn btn-sec" href="/api/projects/{esc(project_id)}/export_stage3_script?format=csv">📊 下載 .csv</a>
+    <a class="btn btn-sec" href="/api/projects/{esc(project_id)}/export_stage3_script?format=md">📝 下載 .md</a>
+    <button class="btn btn-sec" onclick="window.close()">✕ 關閉</button>
+  </div>
+</div>
+
+<div class="container">
+  <div class="doc-header">
+    <div style="font-size:11px; font-weight:700; color:#38bdf8; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:4px;">
+      STAGE 3 STORYBOARD & SCENES SCRIPT FOR REVIEW
+    </div>
+    <h1 style="margin:0 0 10px 0; font-size:22px; color:#fff; font-weight:800;">{esc(title)}</h1>
+    <div style="display:flex; gap:16px; flex-wrap:wrap; font-size:12.5px; color:#94a3b8; border-top:1px solid #1e293b; padding-top:12px; margin-top:12px;">
+      <div><b>專案 ID:</b> <code style="color:#7dd3fc;">{esc(project_id)}</code></div>
+      <div><b>主題 (Topic):</b> {esc(topic)}</div>
+      <div><b>分鏡總數:</b> <b style="color:#38bdf8;">{total_scenes}</b> 幕</div>
+      <div><b>預估總時長:</b> <b style="color:#34d399;">~{esc(total_dur_str)}</b></div>
+      <div><b>總字數:</b> ~{total_words} 字/詞</div>
+      <div><b>導出時間:</b> {esc(now_str)}</div>
+    </div>
+    <div style="margin-top:12px; font-size:12px; color:#64748b; background:rgba(2,132,199,0.08); border-left:3px solid #0284c7; padding:8px 12px; border-radius:0 4px 4px 0;">
+      💡 <b>說明</b>：本審閱稿匯出自 Stage 3（分鏡與台詞切分），已完成逐幕時長預估與畫面規劃。審閱者可直接在各幕下方填寫修改意見或勾選審批狀態。
+    </div>
+  </div>
+
+  {cards_html}
+
+  <div style="text-align:center; padding:30px 0; color:#64748b; font-size:12px; border-top:1px solid #1e293b; margin-top:30px;">
+    【審閱完畢】共 {total_scenes} 幕 · 預估時長: ~{esc(total_dur_str)} · 專案 ID: {esc(project_id)}
+  </div>
+</div>
+</body>
+</html>"""
+        return full_html, "text/html; charset=utf-8", f"{project_id}_stage3_review_packet.html"
+
     elif fmt == "csv":
         output = io.StringIO()
         # UTF-8 BOM so Excel opens with proper Chinese characters
@@ -2509,8 +2684,8 @@ def format_stage3_script_content(p: Project, scenes: list[Scene], fmt: str = "tx
 
 @app.get("/api/projects/{project_id}/export_stage3_script")
 @app.get("/api/projects/{project_id}/export_scenes_script")
-def export_stage3_script_endpoint(project_id: str, format: str = "txt"):
-    """Export Stage 3 segmented scenes script in txt, md, csv, narration, or json."""
+def export_stage3_script_endpoint(project_id: str, format: str = "txt", inline: bool = False):
+    """Export Stage 3 segmented scenes script in txt, md, csv, narration, html, print, or json."""
     p = get_project(project_id)
     scenes = p.scenes
     if not scenes:
@@ -2525,8 +2700,10 @@ def export_stage3_script_endpoint(project_id: str, format: str = "txt"):
     content, media_type, filename = format_stage3_script_content(p, scenes, fmt=format)
     from urllib.parse import quote
     encoded_fn = quote(filename)
+    is_inline = inline or (format.lower() in ("html", "print") and not format.lower().endswith("download"))
+    disposition = "inline" if is_inline else "attachment"
     headers = {
-        "Content-Disposition": f"attachment; filename*=UTF-8''{encoded_fn}",
+        "Content-Disposition": f"{disposition}; filename*=UTF-8''{encoded_fn}",
         "Access-Control-Expose-Headers": "Content-Disposition",
     }
     return Response(content=content.encode("utf-8"), media_type=media_type, headers=headers)

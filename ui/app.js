@@ -11533,6 +11533,11 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
             <button class="btn-sec" style="padding: 8px 14px; font-size: 12px;" onclick="saveStudioStage('${stKey}')">
               💾 Save Changes
             </button>
+            ${stKey === 'scenes' ? `
+              <button class="btn-sec" style="padding: 8px 14px; font-size: 12px; background: rgba(56, 189, 248, 0.15); border-color: #0284c7; color: #38bdf8; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;" onclick="openStage3ExportModal()" title="匯出 Stage 3 分鏡審閱腳本（支援 .txt/.csv/.md/純台詞/PDF 列印）">
+                📤 匯出審閱腳本 (Export Script)
+              </button>
+            ` : ''}
             ${stKey === 'research' ? `
               <button class="btn-primary" style="padding: 8px 16px; font-size: 12px; font-weight: 700; background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); border: 1px solid #8b5cf6;" onclick="runCascadeFrom('script')" title="Auto-runs Script -> Storyboard -> Prompts -> Images -> Voice -> Video">
                 ⚡ Re-generate Full Video (重製全片)
@@ -14341,10 +14346,59 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
         const data = await apiJson(`/api/projects/${currentProjectId}/stage3_script_preview?format=${encodeURIComponent(fmt)}`);
         if (!data || !data.content) throw new Error("文稿為空");
         await navigator.clipboard.writeText(data.content);
-        const nameMap = { txt: '分鏡校對文稿 (.txt)', md: 'Markdown 腳本 (.md)', narration: '純台詞朗讀稿 (.txt)', csv: 'CSV 表格' };
+        const nameMap = { txt: '分鏡校對文稿 (.txt)', md: 'Markdown 腳本 (.md)', narration: '純台詞朗讀稿 (.txt)', csv: 'CSV 表格', html: 'HTML 審閱稿', json: 'JSON 結構資料' };
         showToast(`📋 已成功複製 ${nameMap[fmt] || fmt} 至剪貼簿！`);
       } catch (err) {
         alert("複製失敗: " + err.message);
+      }
+    }
+
+    function printStage3Script() {
+      if (!currentProjectId) return alert("Please select a project first.");
+      window.open(`/api/projects/${currentProjectId}/export_stage3_script?format=html&inline=1`, '_blank');
+    }
+
+    async function shareStage3Script() {
+      if (!currentProjectId) return alert("Please select a project first.");
+      try {
+        const data = await apiJson(`/api/projects/${currentProjectId}/stage3_script_preview?format=txt`);
+        if (!data || !data.content) throw new Error("分鏡審閱稿內容為空");
+        const title = data.title || currentProjectId;
+        if (navigator.share) {
+          try {
+            await navigator.share({
+              title: `[分鏡審閱] ${title}`,
+              text: data.content
+            });
+            showToast("✓ 已開啟系統分享面板！");
+            return;
+          } catch (err) {
+            if (err.name === 'AbortError') return;
+          }
+        }
+        await navigator.clipboard.writeText(data.content);
+        showToast("📋 已將審閱稿全文複製至剪貼簿！可直接貼至 Teams, Slack, Line 或 Email 發送給審閱者。");
+      } catch (e) {
+        alert("分享失敗: " + e.message);
+      }
+    }
+
+    async function emailStage3Script() {
+      if (!currentProjectId) return alert("Please select a project first.");
+      try {
+        const data = await apiJson(`/api/projects/${currentProjectId}/stage3_script_preview?format=txt`);
+        if (!data || !data.content) throw new Error("分鏡審閱稿內容為空");
+        const title = data.title || currentProjectId;
+        const subject = encodeURIComponent(`【腳本審閱請求】專案分鏡稿：${title} (Stage 3 Storyboard Review)`);
+        const totalScenes = data.total_scenes || 0;
+        const totalDur = data.total_duration_display || '';
+        let bodyIntro = `各位好：\n\n附件/下方為專案《${title}》之 Stage 3 分鏡與台詞審閱稿。\n共 ${totalScenes} 幕，預估時長：${totalDur}。\n\n請協助審閱逐幕台詞與畫面規劃，並提供反饋。\n\n-------------------------\n`;
+        const bodyContent = bodyIntro + data.content;
+        const mailtoUrl = `mailto:?subject=${subject}&body=${encodeURIComponent(bodyContent.substring(0, 1800))}`;
+        window.open(mailtoUrl, '_blank');
+        showToast("✉️ 已啟動郵件客戶端！亦可使用「📋 複製」帶走完整全文。");
+      } catch (e) {
+        alert("建立郵件失敗: " + e.message);
       }
     }
 
@@ -14369,6 +14423,17 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       }
       return copyStage3FormattedText('narration');
     }
+
+    window.openStage3ExportModal = openStage3ExportModal;
+    window.closeStage3ExportModal = closeStage3ExportModal;
+    window.downloadStage3Script = downloadStage3Script;
+    window.loadStage3ScriptPreview = loadStage3ScriptPreview;
+    window.copyStage3PreviewContent = copyStage3PreviewContent;
+    window.copyStage3FormattedText = copyStage3FormattedText;
+    window.copyStage3ScriptToClipboard = copyStage3ScriptToClipboard;
+    window.printStage3Script = printStage3Script;
+    window.shareStage3Script = shareStage3Script;
+    window.emailStage3Script = emailStage3Script;
 
     function triggerScriptFileUpload() {
       const inp = document.getElementById('studio-script-file-input');
@@ -16777,6 +16842,19 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
             closeCreateVideoConfirmModal();
           }
         });
+      }
+
+      const btnOkConfirm = document.getElementById('btn-ok-create-confirm');
+      if (btnOkConfirm) {
+        btnOkConfirm.addEventListener('click', () => confirmAndProceedWithVideo());
+      }
+      const btnCancelConfirm = document.getElementById('btn-cancel-create-confirm');
+      if (btnCancelConfirm) {
+        btnCancelConfirm.addEventListener('click', () => closeCreateVideoConfirmModal());
+      }
+      const btnCloseConfirm = document.getElementById('btn-close-create-confirm');
+      if (btnCloseConfirm) {
+        btnCloseConfirm.addEventListener('click', () => closeCreateVideoConfirmModal());
       }
 
       window.addEventListener('keydown', (e) => {
