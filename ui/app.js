@@ -4495,8 +4495,33 @@
       const fileBanner = document.getElementById('preview-file-banner');
       const realPathCode = document.getElementById('preview-real-filepath');
       const fileMetaBadge = document.getElementById('preview-file-meta-badge');
+      const extNoteEl = document.getElementById('preview-external-note');
+      const extLocText = document.getElementById('preview-external-location-text');
+
       const finalRel = (p && p.outputs && p.outputs.final) || finalRelPath;
-      const fullRelPath = finalRel ? `projects/${currentProjectId}/${finalRel}` : `projects/${currentProjectId}/final/${currentProjectId}.mp4`;
+      const isExternal = Boolean(
+        (p && p.outputs && (p.outputs.archived_to_external || p.outputs.external_archive_path)) ||
+        (d && d.final_file && d.final_file.is_external) ||
+        (finalRel && (finalRel.includes(':') || finalRel.startsWith('\\\\')))
+      );
+      const externalPath = (p && p.outputs && p.outputs.external_archive_path) ||
+        (d && d.final_file && (d.final_file.external_path || (d.final_file.is_external ? d.final_file.abs_path : null))) ||
+        ((finalRel && (finalRel.includes(':') || finalRel.startsWith('\\\\'))) ? finalRel : null);
+
+      const hasVideoFile = Boolean(finalRel || isExternal || (d && d.final_file && d.final_file.exists));
+      const fullRelPath = (isExternal && externalPath)
+        ? externalPath
+        : (finalRel ? (finalRel.startsWith('projects/') ? finalRel : `projects/${currentProjectId}/${finalRel}`) : `projects/${currentProjectId}/final/${currentProjectId}.mp4`);
+
+      // Update external drive note banner on player page
+      if (extNoteEl) {
+        if (isExternal && externalPath) {
+          extNoteEl.style.display = 'block';
+          if (extLocText) extLocText.textContent = externalPath;
+        } else {
+          extNoteEl.style.display = 'none';
+        }
+      }
 
       if (titleEl && p) {
         titleEl.innerHTML = `
@@ -4508,12 +4533,13 @@
       }
 
       if (subTitleEl && p) {
-        if (finalRel) {
+        if (hasVideoFile) {
           const fileStatText = (d && d.final_file && d.final_file.size_mb) ? ` • ${d.final_file.size_mb} MB` : '';
           const mtimeText = (d && d.final_file && d.final_file.mtime) ? ` • Rendered: ${d.final_file.mtime}` : ((p && p.updated_at) ? ` • Rendered: ${p.updated_at.replace('T', ' ')}` : '');
+          const locBadge = isExternal ? ' <span style="color:#38bdf8; font-weight:700;">(💾 外接硬碟 External Drive)</span>' : '';
           subTitleEl.innerHTML = `
             <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:4px;">
-              <span>📁 Real File: <code style="color:#7dd3fc; background:#020617; padding:2px 8px; border-radius:4px; font-family:'Consolas',monospace; font-size:12px; border:1px solid #1e293b; font-weight:700;">${escapeHtml(fullRelPath)}</code></span>
+              <span>📁 Real File: <code style="color:#7dd3fc; background:#020617; padding:2px 8px; border-radius:4px; font-family:'Consolas',monospace; font-size:12px; border:1px solid #1e293b; font-weight:700;">${escapeHtml(fullRelPath)}</code>${locBadge}</span>
               <span style="color:#94a3b8; font-size:12px;">${fileStatText}${mtimeText}</span>
             </div>
           `;
@@ -4525,9 +4551,11 @@
       if (realPathCode) realPathCode.textContent = fullRelPath;
       if (fileMetaBadge) {
         if (d && d.final_file && d.final_file.exists) {
-          fileMetaBadge.textContent = `${d.final_file.size_mb} MB • ${d.final_file.mtime}`;
+          fileMetaBadge.textContent = isExternal
+            ? `${d.final_file.size_mb} MB • 外接硬碟 (${d.final_file.mtime})`
+            : `${d.final_file.size_mb} MB • ${d.final_file.mtime}`;
         } else if (p && p.updated_at) {
-          fileMetaBadge.textContent = `Rendered: ${p.updated_at.replace('T', ' ')}`;
+          fileMetaBadge.textContent = isExternal ? '外接硬碟存檔 (External Drive)' : `Rendered: ${p.updated_at.replace('T', ' ')}`;
         } else {
           fileMetaBadge.textContent = '1080p Master Video';
         }
@@ -4548,8 +4576,8 @@
         btnActionStop.style.display = isRenderRunning ? 'inline-flex' : 'none';
       }
 
-      if (finalRel) {
-        const vsrc = '/media/' + currentProjectId + '/' + finalRel;
+      if (hasVideoFile) {
+        const vsrc = `/api/projects/${currentProjectId}/video`;
         const renderUpdated = (p && p.stages && p.stages.render && p.stages.render.updated_at) || '';
         const buster = p && (p.updated_at || renderUpdated) ? ('?t=' + encodeURIComponent((p.updated_at || '') + '_' + renderUpdated)) : '';
 
@@ -4567,6 +4595,8 @@
         if (badgeEl) {
           if (isRenderRunning) {
             badgeEl.innerHTML = '<span style="background:#1e3a8a; border:1px solid #3b82f6; color:#93c5fd; font-weight:700; font-size:12px; padding:3px 10px; border-radius:4px;">🔄 Re-rendering Video...</span>';
+          } else if (isExternal) {
+            badgeEl.innerHTML = '<span style="background:#064e3b; border:1px solid #059669; color:#34d399; font-weight:700; font-size:12px; padding:3px 10px; border-radius:4px;">✓ 1080p MP4 Ready (💾 外接硬碟)</span>';
           } else {
             badgeEl.innerHTML = '<span style="background:#064e3b; border:1px solid #059669; color:#34d399; font-weight:700; font-size:12px; padding:3px 10px; border-radius:4px;">✓ 1080p MP4 Ready</span>';
           }
@@ -4581,7 +4611,7 @@
           tabBtn.href = vsrc;
         }
         if (pathEl) {
-          pathEl.textContent = `File: projects/${currentProjectId}/${finalRel}`;
+          pathEl.textContent = isExternal ? `External: ${fullRelPath}` : `File: ${fullRelPath}`;
         }
 
         const ytBtn = document.getElementById('btn-yt-upload');
@@ -4635,6 +4665,7 @@
             if (badgeEl) badgeEl.innerHTML = '<span style="background:#334155; color:#cbd5e1; font-weight:600; font-size:12px; padding:3px 10px; border-radius:4px;">Render Pending</span>';
           }
         }
+        if (extNoteEl) extNoteEl.style.display = 'none';
         if (fileBanner) fileBanner.style.display = 'none';
         if (dlBtn) dlBtn.style.display = 'none';
         if (tabBtn) tabBtn.style.display = 'none';
@@ -4835,7 +4866,7 @@
     function forceReloadVideoPlayer() {
       const vplayer = document.getElementById('final-video-player');
       if (!vplayer || !currentProjectId) return;
-      const targetSrc = '/media/' + currentProjectId + '/final/' + currentProjectId + '.mp4?t=' + Date.now();
+      const targetSrc = '/api/projects/' + currentProjectId + '/video?t=' + Date.now();
       vplayer.setAttribute('data-loaded-src', targetSrc);
       vplayer.src = targetSrc;
       vplayer.load();
@@ -9094,8 +9125,8 @@
           <button class="btn-primary" onclick="runSingleStage('subtitles')">${isDrama ? '▶ Re-run Subtitles Stage' : '▶ Re-run Subtitles & Callouts'}</button>
         `;
       } else if (stageName === 'render') {
-        const finalRel = data.outputs && data.outputs.final ? data.outputs.final : null;
-        const vSrc = finalRel ? `/media/${currentProjectId}/${finalRel}?t=${Date.now()}` : '';
+        const hasFinal = Boolean(data.outputs && (data.outputs.final || data.outputs.external_archive_path));
+        const vSrc = hasFinal ? `/api/projects/${currentProjectId}/video?t=${Date.now()}` : '';
         bodyHtml = `
           <div style="margin-bottom:12px;">
             <div style="font-size:12px; color:var(--text-muted); margin-bottom:10px;">Final video assembly status and preview:</div>
@@ -13028,8 +13059,8 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
           </div>
         `;
       } else if (stKey === 'render') {
-        const finalRel = data.outputs && data.outputs.final ? data.outputs.final : null;
-        const vSrc = finalRel ? `/media/${currentProjectId}/${finalRel}?t=${Date.now()}` : '';
+        const hasFinal = Boolean(data.outputs && (data.outputs.final || data.outputs.external_archive_path));
+        const vSrc = hasFinal ? `/api/projects/${currentProjectId}/video?t=${Date.now()}` : '';
         bodyHtml += `
           <div style="margin-bottom: 16px;">
             <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;">Final 1080p Video Player and Render Output:</div>

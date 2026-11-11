@@ -877,18 +877,33 @@ def get_project_details(project_id: str):
     final_file = None
     final_rel = (p.data.outputs.get("final") if p.data.outputs else None) or f"final/{project_id}.mp4"
     final_abs = p.path(final_rel)
-    if final_abs.exists():
+    if (not final_abs.exists() or not final_abs.is_file()) and p.data.outputs and p.data.outputs.get("external_archive_path"):
+        ext_candidate = Path(p.data.outputs["external_archive_path"])
+        if ext_candidate.exists() and ext_candidate.is_file():
+            final_abs = ext_candidate
+            if p.data.outputs.get("final") != str(ext_candidate.resolve()):
+                p.data.outputs["final"] = str(ext_candidate.resolve())
+                p.save()
+    if final_abs.exists() and final_abs.is_file():
         try:
             st = final_abs.stat()
             from datetime import datetime
+            is_ext = bool(
+                p.data.outputs.get("archived_to_external")
+                or (p.data.outputs.get("external_archive_path") and Path(p.data.outputs["external_archive_path"]).resolve() == final_abs.resolve())
+                or (final_abs.is_absolute() and final_abs.drive and final_abs.drive.upper() != PROJECTS_DIR.drive.upper())
+            )
+            rel_display = str(final_abs.resolve()) if (is_ext or final_abs.is_absolute()) else f"projects/{project_id}/{final_rel}".replace("\\", "/")
             final_file = {
                 "exists": True,
                 "filename": final_abs.name,
-                "rel_path": f"projects/{project_id}/{final_rel}".replace("\\", "/"),
+                "rel_path": rel_display,
                 "abs_path": str(final_abs.resolve()),
                 "size_bytes": st.st_size,
                 "size_mb": round(st.st_size / (1024 * 1024), 2),
                 "mtime": datetime.fromtimestamp(st.st_mtime).strftime("%Y-%m-%d %H:%M:%S"),
+                "is_external": is_ext,
+                "external_path": str(final_abs.resolve()) if is_ext else None,
             }
         except Exception:
             pass
@@ -902,6 +917,40 @@ def get_project_details(project_id: str):
     }
 
 
+@app.get("/api/projects/{project_id}/video")
+def get_project_video(project_id: str):
+    """Stream final project video supporting both local and external archive locations."""
+    if not (PROJECTS_DIR / project_id).exists():
+        raise HTTPException(status_code=404, detail="Project not found")
+    p = get_project(project_id)
+    final_abs = None
+    final_rel = (p.data.outputs.get("final") if p.data.outputs else None) or f"final/{project_id}.mp4"
+    candidate = p.path(final_rel)
+    if candidate.exists() and candidate.is_file():
+        final_abs = candidate
+    elif p.data.outputs and p.data.outputs.get("external_archive_path"):
+        ext_candidate = Path(p.data.outputs["external_archive_path"])
+        if ext_candidate.exists() and ext_candidate.is_file():
+            final_abs = ext_candidate
+            if p.data.outputs.get("final") != str(ext_candidate.resolve()):
+                p.data.outputs["final"] = str(ext_candidate.resolve())
+                p.save()
+    if not final_abs:
+        default_local = p.path(f"final/{project_id}.mp4")
+        if default_local.exists() and default_local.is_file():
+            final_abs = default_local
+
+    if not final_abs or not final_abs.exists() or not final_abs.is_file():
+        raise HTTPException(status_code=404, detail="Project video not found")
+
+    no_cache = {
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "Pragma": "no-cache",
+        "Expires": "0",
+    }
+    return FileResponse(final_abs, media_type="video/mp4", headers=no_cache)
+
+
 @app.post("/api/projects/{project_id}/open_folder")
 def open_project_video_folder(project_id: str):
     if not (PROJECTS_DIR / project_id).exists():
@@ -909,6 +958,13 @@ def open_project_video_folder(project_id: str):
     p = get_project(project_id)
     final_rel = (p.data.outputs.get("final") if p.data.outputs else None) or f"final/{project_id}.mp4"
     final_abs = p.path(final_rel).resolve()
+    if (not final_abs.exists() or not final_abs.is_file()) and p.data.outputs and p.data.outputs.get("external_archive_path"):
+        ext_candidate = Path(p.data.outputs["external_archive_path"])
+        if ext_candidate.exists() and ext_candidate.is_file():
+            final_abs = ext_candidate.resolve()
+            if p.data.outputs.get("final") != str(ext_candidate.resolve()):
+                p.data.outputs["final"] = str(ext_candidate.resolve())
+                p.save()
     final_dir = final_abs.parent if final_abs.exists() else p.path("final").resolve()
     if not final_dir.exists():
         final_dir = p.dir.resolve()
@@ -4945,6 +5001,10 @@ def get_project_thumbnail(project_id: str):
     thumb_file = p.path("output", "thumbnail.png")
     final_rel = p.data.outputs.get("final") or f"final/{project_id}.mp4"
     final_file = p.abs(final_rel)
+    if (not final_file or not final_file.exists()) and p.data.outputs and p.data.outputs.get("external_archive_path"):
+        ext_candidate = Path(p.data.outputs["external_archive_path"])
+        if ext_candidate.exists():
+            final_file = ext_candidate
     # Re-render if missing or if final video was rendered after thumbnail
     if not thumb_file.exists() or (final_file and final_file.exists() and final_file.stat().st_mtime > thumb_file.stat().st_mtime):
         render_project_thumbnail(p)

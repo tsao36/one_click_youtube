@@ -119,13 +119,25 @@ class Project:
         return self.dir
 
     def path(self, *parts: str) -> Path:
+        if parts:
+            p0 = Path(parts[0])
+            if p0.is_absolute():
+                return p0.joinpath(*parts[1:])
         return self.dir.joinpath(*parts)
 
     def rel(self, p: Path) -> str:
-        return p.resolve().relative_to(self.dir.resolve()).as_posix()
+        try:
+            return p.resolve().relative_to(self.dir.resolve()).as_posix()
+        except ValueError:
+            return str(p.resolve())
 
     def abs(self, rel: str | None) -> Path | None:
-        return self.dir / rel if rel else None
+        if not rel:
+            return None
+        p = Path(rel)
+        if p.is_absolute():
+            return p
+        return self.dir / rel
 
     # ---------- persistence ----------
     def save(self) -> None:

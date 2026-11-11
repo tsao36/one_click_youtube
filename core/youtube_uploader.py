@@ -793,6 +793,10 @@ def generate_youtube_metadata(project: Project) -> dict[str, Any]:
     # 6. Locate Final MP4 Video
     final_rel = pdata.outputs.get("final") or f"final/{project.id}.mp4"
     final_abs = project.abs(final_rel)
+    if (not final_abs or not final_abs.exists()) and pdata.outputs.get("external_archive_path"):
+        ext_candidate = Path(pdata.outputs["external_archive_path"])
+        if ext_candidate.exists():
+            final_abs = ext_candidate
     has_video = final_abs is not None and final_abs.exists()
     file_size_mb = 0.0
     if has_video:
@@ -887,6 +891,10 @@ def _upload_video_worker(
 
     final_rel = project.data.outputs.get("final") or f"final/{project_id}.mp4"
     video_abs = project.abs(final_rel)
+    if (not video_abs or not video_abs.exists()) and project.data.outputs.get("external_archive_path"):
+        ext_candidate = Path(project.data.outputs["external_archive_path"])
+        if ext_candidate.exists():
+            video_abs = ext_candidate
 
     if not video_abs or not video_abs.exists():
         with _upload_lock:
@@ -1000,23 +1008,31 @@ def _upload_video_worker(
 
         # Move final video to external drive (D:\youtube channel video) to save C: drive space
         try:
-            ext_dir = Path(r"D:\youtube channel video")
+            ext_dir = Path(settings.get("youtube", {}).get("external_drive_dir") or r"D:\youtube channel video")
             ext_dir.mkdir(parents=True, exist_ok=True)
             if video_abs and video_abs.exists():
                 dest_video = ext_dir / video_abs.name
-                if dest_video.exists():
+                if dest_video.exists() and dest_video.resolve() != video_abs.resolve():
                     dest_video = ext_dir / f"{video_abs.stem}_{int(time.time())}{video_abs.suffix}"
-                # Copy first so backup is guaranteed even if a media player holds a shared lock
-                shutil.copy2(str(video_abs), str(dest_video))
-                project.data.outputs["external_archive_path"] = str(dest_video)
-                project.data.outputs["archived_to_external"] = True
 
-                # Attempt to delete local source file on C: drive
-                try:
-                    os.unlink(str(video_abs))
-                    log.info("Moved uploaded final video %s to external drive: %s", video_abs, dest_video)
-                except Exception as del_err:
-                    log.info("Final video backed up to %s; local file retained (currently in use by player/browser): %s", dest_video, del_err)
+                # Copy first so backup is guaranteed even if a media player holds a shared lock
+                if dest_video.resolve() != video_abs.resolve():
+                    shutil.copy2(str(video_abs), str(dest_video))
+
+                dest_video_str = str(dest_video.resolve())
+                project.data.outputs["external_archive_path"] = dest_video_str
+                project.data.outputs["archived_to_external"] = True
+                # Change source location to external drive file so user can play back from external drive
+                project.data.outputs["final"] = dest_video_str
+                project.data.outputs["final_source_location"] = dest_video_str
+
+                # Attempt to delete local source file on C: drive if it was stored on C:
+                if video_abs.resolve() != dest_video.resolve():
+                    try:
+                        os.unlink(str(video_abs))
+                        log.info("Moved uploaded final video %s to external drive: %s", video_abs, dest_video)
+                    except Exception as del_err:
+                        log.info("Final video backed up to %s; local file retained (currently in use by player/browser): %s", dest_video, del_err)
                 project.save()
         except Exception as me:
             log.warning("Could not move final video to external drive: %s", me)

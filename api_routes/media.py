@@ -46,8 +46,43 @@ def serve_voice_file_from(voice_name: str, file_name: str, data_dir: Path):
 
 
 def serve_project_file_from(project_id: str, file_path: str, projects_dir: Path):
-    target_path = resolve_under(projects_dir / project_id, file_path)
-    if not target_path.exists() or not target_path.is_file():
+    target_path = None
+    p_dir = projects_dir / project_id
+
+    # 1. Try resolving strictly under project directory first
+    try:
+        cand = resolve_under(p_dir, file_path)
+        if cand.exists() and cand.is_file():
+            target_path = cand
+    except HTTPException:
+        pass
+
+    # 2. If not found locally, check if project has an external archive path or absolute final video
+    if not target_path and (p_dir / "project.json").exists():
+        try:
+            import json
+            with open(p_dir / "project.json", "r", encoding="utf-8") as f:
+                p_data = json.load(f)
+            outputs = p_data.get("outputs") or {}
+            ext_candidates = [outputs.get("final"), outputs.get("external_archive_path")]
+            for ext_candidate in ext_candidates:
+                if not ext_candidate:
+                    continue
+                ext_file = Path(ext_candidate)
+                if ext_file.is_absolute() and ext_file.exists() and ext_file.is_file():
+                    req_name = Path(file_path).name.lower()
+                    if (
+                        "final" in file_path.lower()
+                        or "video" in file_path.lower()
+                        or req_name == ext_file.name.lower()
+                        or str(ext_file).replace("\\", "/").endswith(file_path.replace("\\", "/"))
+                    ):
+                        target_path = ext_file
+                        break
+        except Exception as e:
+            log.warning("External media lookup failed for %s: %s", project_id, e)
+
+    if not target_path or not target_path.exists() or not target_path.is_file():
         raise HTTPException(status_code=404, detail="File not found")
 
     ext = target_path.suffix.lower()
