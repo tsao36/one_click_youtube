@@ -427,3 +427,22 @@ def test_missing_track_auto_repair_in_render_audio_mix(sample_narration_audio, t
     repaired_data = json.loads((music_dir / "music_plan.json").read_text(encoding="utf-8"))
     assert Path(repaired_data[0]["track"]).exists()
 
+
+def test_ambient_music_default_selection():
+    """Verify that default background music planning defaults to the ambient library."""
+    cat = load_catalog()
+    assert cat.get("default_style") == "ambient"
+    assert DEFAULT_STYLE == "ambient"
+
+    plan = plan_music_timeline(
+        directory="data/music",
+        key="test_ambient_default",
+        total_duration=30.0,
+        music_settings={"enabled": True},
+    )
+    assert len(plan) >= 1
+    for seg in plan:
+        assert seg.style == "ambient"
+        assert "ambient" in Path(seg.track).parts or "ambient" in seg.track.replace("\\", "/").lower()
+
+

@@ -41,5 +41,103 @@ def test_nano_banana_integration():
 
     print("ALL NANO BANANA 2.1 TESTS PASSED!")
 
+def test_nano_banana_multi_person_prompt_sanitization_mocked(monkeypatch, tmp_path):
+    """Verify that multi-character prompts (with keywords like officers, people, crowd)
+    correctly trigger regex multi-directive guards without raising NameError or syntax issues,
+    tested deterministically with mocked requests.post (zero API cost)."""
+    import base64
+    import io
+    from unittest.mock import MagicMock
+    from PIL import Image
+
+    prov = get_image_provider("nano-banana-2.1", {})
+    monkeypatch.setattr("core.config.get_secret", lambda k: "mock_gemini_api_key")
+
+    # Generate a tiny 1x1 test PNG in memory to return from mock
+    buf = io.BytesIO()
+    Image.new("RGB", (100, 100), color="blue").save(buf, format="PNG")
+    b64_img = base64.b64encode(buf.getvalue()).decode("utf-8")
+
+    captured_payloads = []
+
+    def mock_post(url, headers=None, json=None, timeout=None):
+        captured_payloads.append(json)
+        resp = MagicMock()
+        resp.status_code = 200
+        resp.json.return_value = {
+            "candidates": [
+                {
+                    "content": {
+                        "parts": [
+                            {
+                                "inlineData": {
+                                    "data": b64_img,
+                                    "mimeType": "image/png"
+                                }
+                            }
+                        ]
+                    }
+                }
+            ]
+        }
+        return resp
+
+    import requests
+    monkeypatch.setattr(requests, "post", mock_post)
+
+    out_file = tmp_path / "test_officer.png"
+    # Prompt modeled after project_11 Scene 2 which triggered the NameError: name 're' is not defined
+    req = ImageRequest(
+        prompt="1950s American military officer standing beside his wife in floral dress, looking out over valley",
+        negative="blurry, distorted",
+        seed=42,
+        width=1920,
+        height=1080,
+        output=out_file,
+    )
+
+    meta = prov.generate(req)
+    assert out_file.exists()
+    assert meta["provider"] == "nano-banana-2.1"
+    assert len(captured_payloads) == 1
+    # Check that multi-directive was successfully inserted by the regex logic
+    req_text = str(captured_payloads[0])
+    assert "CRITICAL MULTI-PERSON ENSEMBLE REQUIREMENT" in req_text
+
+
+def test_completed_image_count_ignores_placeholder():
+    """Verify that _completed_image_count ignores scenes completed via fallback placeholder."""
+    from core.base_pipeline import BasePipeline
+    from core.models import Scene, Status
+    from types import SimpleNamespace
+
+    mock_proj = SimpleNamespace(
+        abs=lambda p: Path(p) if p else None,
+        data=SimpleNamespace(settings={}),
+        settings={},
+    )
+    pipe = BasePipeline(mock_proj)
+
+    sc1 = Scene(scene_id=1, narration="Test 1")
+    sc1.image.status = Status.COMPLETED
+    sc1.image.path = "some/real_path.png"
+    sc1.image.meta = {"provider": "youtube"}
+
+    sc2 = Scene(scene_id=2, narration="Test 2")
+    sc2.image.status = Status.COMPLETED
+    sc2.image.path = "some/placeholder.png"
+    sc2.image.meta = {"provider": "placeholder"}
+
+    # Mock filesystem existence
+    real_exists = Path.exists
+    try:
+        Path.exists = lambda self: True
+        count = pipe._completed_image_count([sc1, sc2])
+        # Only sc1 should be counted as completed; placeholder must be re-attempted
+        assert count == 1
+    finally:
+        Path.exists = real_exists
+
+
 if __name__ == "__main__":
     test_nano_banana_integration()
