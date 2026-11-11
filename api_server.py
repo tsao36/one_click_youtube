@@ -3068,6 +3068,16 @@ def regenerate_scene_image(project_id: str, scene_id: int, req_body: Optional[Re
         s.image.path = p.rel(img_path)
         s.image.meta = merged_meta
         s.seed = chosen_seed
+        if s.media_source in ("youtube_snippet", "youtube_screenshot"):
+            s.media_source = "ai"
+        if s.animation and s.animation.status == Status.COMPLETED:
+            old_anim = p.path(s.animation.path)
+            if old_anim.exists():
+                try:
+                    old_anim.unlink()
+                except Exception:
+                    pass
+            s.animation.status = Status.PENDING
         p.save_scenes()
         try:
             record_scene_image_take(p, scene_id, p.rel(img_path), chosen_model, s.prompt or "", chosen_style)

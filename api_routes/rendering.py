@@ -42,6 +42,20 @@ def fast_rerender_video_endpoint(project_id: str, background_tasks: BackgroundTa
         target.data.activity = "Fast re-render: Updating modified scenes & re-stitching 1080p video..."
 
     def do_render(pipeline):
+        from core.models import Status
+        for sc in pipeline.p.scenes:
+            img_p = pipeline.p.abs(sc.image.path) if (sc.image and sc.image.status == Status.COMPLETED) else None
+            anim_p = pipeline.p.abs(sc.animation.path) if (sc.animation and sc.animation.status == Status.COMPLETED) else None
+            if img_p and img_p.exists() and anim_p and anim_p.exists():
+                if img_p.stat().st_mtime > anim_p.stat().st_mtime:
+                    try:
+                        anim_p.unlink(missing_ok=True)
+                    except Exception:
+                        pass
+                    sc.animation.status = Status.PENDING
+                    if getattr(sc, "media_source", "ai") in ("youtube_snippet", "youtube_screenshot"):
+                        sc.media_source = "ai"
+        pipeline.p.save_scenes()
         pipeline.ensure_consistent_project_voice()
         pipeline._run_subtitles()
         pipeline._run_render()

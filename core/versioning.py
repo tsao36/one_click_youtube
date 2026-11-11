@@ -366,6 +366,16 @@ def switch_scene_image_take(project: Project, scene_id: int, target_take: int) -
         if take_entry.get("prompt"):
             s.prompt = take_entry.get("prompt")
         s.image.meta = meta
+        if getattr(s, "media_source", "ai") in ("youtube_snippet", "youtube_screenshot"):
+            s.media_source = "ai"
+        if getattr(s, "animation", None) and s.animation.status == Status.COMPLETED:
+            old_anim = project.path(s.animation.path)
+            if old_anim.exists():
+                try:
+                    old_anim.unlink()
+                except Exception:
+                    pass
+            s.animation.status = Status.PENDING
         project.save_scenes()
         log.info("Switched scene %d to image take %d", scene_id, target_take)
         return {"status": "switched", "active_take": target_take, "path": s.image.path, "style": s.visual_style or "", "prompt": s.prompt or ""}

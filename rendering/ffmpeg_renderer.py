@@ -113,6 +113,11 @@ def _clip_key(sc: Scene, slot: Slot, w: int, h: int, fps: int, project: Project,
     for asset in (sc.image, sc.animation):
         p = project.abs(asset.path) if asset.status == Status.COMPLETED else None
         parts.append(f"{asset.path}:{p.stat().st_mtime_ns if p and p.exists() else 0}")
+    # Invalidate cache if image was updated after the animation clip
+    img_chk = project.abs(sc.image.path) if sc.image.status == Status.COMPLETED else None
+    anim_chk = project.abs(sc.animation.path) if sc.animation.status == Status.COMPLETED else None
+    if img_chk and img_chk.exists() and anim_chk and anim_chk.exists() and img_chk.stat().st_mtime > anim_chk.stat().st_mtime:
+        parts.append(f"image_override_newer:{img_chk.stat().st_mtime_ns}")
     if sc.visual_type == "title":
         parts.append(sc.visual_description or project.data.title or project.data.topic)
     return hashlib.md5("|".join(parts).encode()).hexdigest()[:10]
@@ -165,6 +170,16 @@ def render_scene_clip(project: Project, sc: Scene, slot: Slot, w: int, h: int, f
 
             if not avatar_allowed and is_avatar_clip and not is_drama:
                 log.info("Avatar is disabled: skipping avatar clip for scene %d, using full-bleed visual image with Ken Burns", sc.scene_id)
+                vid = None
+
+        # If user generated or updated a new image AFTER the animation clip was produced,
+        # prioritize the newly updated image with Ken Burns rather than playing the obsolete video clip.
+        if vid and vid.exists() and img and img.exists():
+            if img.stat().st_mtime > vid.stat().st_mtime:
+                log.info(
+                    "Scene %d: newly updated image (mtime %s) is newer than animation clip (%s); using updated image with Ken Burns",
+                    sc.scene_id, img.stat().st_mtime, vid.stat().st_mtime
+                )
                 vid = None
 
         if vid and vid.exists():
