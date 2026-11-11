@@ -8,7 +8,7 @@ import shutil
 import threading
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 from core.config import PROJECTS_DIR, ROOT, deep_merge, load_settings
 from core.logging_setup import log

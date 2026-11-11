@@ -1008,7 +1008,8 @@ def _upload_video_worker(
 
         # Move final video to external drive (D:\youtube channel video) to save C: drive space
         try:
-            ext_dir = Path(settings.get("youtube", {}).get("external_drive_dir") or r"D:\youtube channel video")
+            settings_obj = getattr(project, "settings", {}) or {}
+            ext_dir = Path(settings_obj.get("youtube", {}).get("external_drive_dir") or r"D:\youtube channel video")
             ext_dir.mkdir(parents=True, exist_ok=True)
             if video_abs and video_abs.exists():
                 dest_video = ext_dir / video_abs.name

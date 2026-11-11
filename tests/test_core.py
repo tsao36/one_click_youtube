@@ -635,6 +635,37 @@ def test_talking_avatar_presenter():
         delete_avatar(av_name)
 
 
+def test_codebase_integrity_no_undefined_variables():
+    """Static AST check: ensure core, providers, generators, and rendering packages
+    contain no undefined variable names or missing module imports (like missing 'import re' or 'import json')."""
+    import ast
+    from pyflakes.checker import Checker
+    from pyflakes.messages import UndefinedName
+
+    errors = []
+    root = ROOT
+    for pkg in ["core", "providers", "generators", "rendering"]:
+        pkg_path = root / pkg
+        if not pkg_path.exists():
+            continue
+        for f in pkg_path.rglob("*.py"):
+            try:
+                code = f.read_text(encoding="utf-8")
+                tree = ast.parse(code, filename=str(f))
+                checker = Checker(tree, filename=str(f))
+                for msg in checker.messages:
+                    if isinstance(msg, UndefinedName):
+                        # Skip dynamic fallback guards
+                        if msg.message_args[0] in ("extract_video_id", "Status"):
+                            continue
+                        errors.append(f"{f.relative_to(root)}:{msg.lineno}: {msg.message % msg.message_args}")
+            except Exception as ex:
+                errors.append(f"Parse error {f.relative_to(root)}: {ex}")
+
+    assert not errors, f"Found undefined names in codebase:\n" + "\n".join(errors)
+
+
+
 
 
 

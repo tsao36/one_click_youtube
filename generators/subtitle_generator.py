@@ -5,6 +5,7 @@ import re
 import textwrap
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 from core.taiwan_mandarin import normalize_to_taiwan_mandarin
 from rendering.transitions import Slot
