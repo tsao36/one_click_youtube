@@ -461,7 +461,11 @@ COMMON_CHARACTER_STOPWORDS = {
     "demo", "video", "photo", "image", "portrait", "interview", "documentary", "audio",
     "sound", "music", "bgm", "scene", "scenes", "prompt", "text", "footage", "shot",
     "之父", "之母", "歷史", "標準", "委員會", "創始人", "發明人", "專家", "介紹", "故事",
-    "訪談", "影片", "照片", "演講", "片段", "紀錄片"
+    "訪談", "影片", "照片", "演講", "片段", "紀錄片",
+    # Geographic & civic stopwords that must never match as person tokens
+    "臺北", "台北", "新北", "台中", "臺中", "高雄", "台南", "臺南", "台灣", "臺灣",
+    "市府", "政府", "中央", "議會", "立院", "立法院", "行政院", "國會",
+    "市長", "局長", "議員", "立委", "部長", "主席", "總統", "院長",
 }
 
 
@@ -489,7 +493,10 @@ def match_scenes_for_character(char: dict[str, Any], scenes: list[Any], topic: s
     candidate_names = [char.get("name"), char.get("original_name")] + (char.get("aliases") or [])
     for sk in char.get("search_keywords", []):
         if sk and isinstance(sk, str) and not is_descriptive_character_keyword(sk):
-            candidate_names.append(sk)
+            sk_clean = sk.strip()
+            # Only include short single-term proper aliases (e.g. "虎錠之介", "柯P"), never multi-word queries or phrases containing spaces/topics
+            if 2 <= len(sk_clean) <= 5 and " " not in sk_clean and not any(w in sk_clean for w in ["案", "合", "市府", "中央", "連任", "選舉", "黨", "戰"]):
+                candidate_names.append(sk_clean)
 
     match_patterns: list[tuple[str, bool]] = []
     seen_patterns = set()
@@ -516,6 +523,8 @@ def match_scenes_for_character(char: dict[str, Any], scenes: list[Any], topic: s
                 clean_cjk = re.sub(r"[·・\s]+", "", sname)
                 if len(clean_cjk) >= 2:
                     _add_pat(clean_cjk, False)
+                # For long titular franchise hero names like 快傑獅子丸 or 初代虎丸, allow matching root name suffix (e.g. 獅子丸, 虎丸)
+                # NEVER slice the first 2 characters clean_cjk[:2] (e.g. '臺北' from '臺北市長'), which causes massive false positives across unrelated scenes
                 if len(clean_cjk) >= 4:
                     _add_pat(clean_cjk[:2], False)
                     _add_pat(clean_cjk[2:], False)
@@ -1276,3 +1285,86 @@ def reject_scene_media(project: Project, scene_id: int, reason: str = "") -> dic
         "fallback": "authentic_portrait" if applied_alt else "ai_generation",
         "media_source": s.media_source
     }
+
+
+def resolve_character_reference_image(project: Project, scene: Any) -> tuple[Optional[Path], Optional[str]]:
+    """Resolve an authentic stock reference portrait for a scene depicting a real character.
+    
+    If the scene mentions or is assigned to an identified character in research/characters.json,
+    downloads and caches their authentic Wikipedia/Wikimedia stock portrait to serve as a visual reference
+    for cloud image-to-image / character-conditioned AI generation.
+    
+    Returns (local_image_path, character_name).
+    """
+    chars = project.read_json("research/characters.json", [])
+    if not isinstance(chars, list) or not chars:
+        return None, None
+
+    sid = getattr(scene, "scene_id", None) or (scene.get("scene_id") if isinstance(scene, dict) else None)
+    char_id = getattr(scene, "character_id", None) or (scene.get("character_id") if isinstance(scene, dict) else None)
+    narration = getattr(scene, "narration", "") or (scene.get("narration", "") if isinstance(scene, dict) else "")
+    entities = getattr(scene, "entities", []) or (scene.get("entities", []) if isinstance(scene, dict) else [])
+    prompt = getattr(scene, "prompt", "") or (scene.get("prompt", "") if isinstance(scene, dict) else "")
+
+    target_char = None
+    for c in chars:
+        if not isinstance(c, dict):
+            continue
+        c_id = c.get("id")
+        c_name = (c.get("name") or "").strip()
+        c_orig = (c.get("original_name") or "").strip()
+
+        # 1. Direct character_id match
+        if char_id and char_id == c_id:
+            target_char = c
+            break
+
+        # 2. Listed in target_scenes
+        if sid and sid in c.get("target_scenes", []):
+            target_char = c
+            break
+
+        # 3. Explicit name in narration or entities
+        if c_name and (c_name in narration or c_name in entities):
+            target_char = c
+            break
+
+        # 4. Canonical name in prompt
+        if c_orig and len(c_orig) >= 3 and c_orig.lower() in prompt.lower():
+            target_char = c
+            break
+
+    if not target_char:
+        return None, None
+
+    img_url = target_char.get("selected_image")
+    if not img_url and target_char.get("images"):
+        img_url = target_char["images"][0].get("url")
+
+    if not img_url:
+        return None, None
+
+    # Check if already a valid local path
+    try:
+        p_img = Path(img_url)
+        if p_img.exists() and p_img.stat().st_size > 500:
+            return p_img, target_char.get("name") or target_char.get("original_name")
+    except Exception:
+        pass
+
+    # Download and cache locally in project
+    try:
+        cid = target_char.get("id") or "char"
+        ref_dir = project.path("temp", "character_refs")
+        ref_dir.mkdir(parents=True, exist_ok=True)
+        cached_file = ref_dir / f"{cid}_ref.jpg"
+
+        if not cached_file.exists() or cached_file.stat().st_size < 1000:
+            download_media_file(img_url, cached_file)
+
+        if cached_file.exists() and cached_file.stat().st_size > 1000:
+            return cached_file, target_char.get("name") or target_char.get("original_name")
+    except Exception as ex:
+        log.warning("Failed to resolve character reference image for scene %s: %s", sid, ex)
+
+    return None, None

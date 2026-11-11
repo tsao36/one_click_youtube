@@ -3538,6 +3538,141 @@
   </div>
 
   <!-- RE-RENDER VOICE & UPDATE VIDEO MODAL -->
+  <!-- MODAL: STAGE 3 SCRIPT EXPORT FOR REVIEW -->
+  <div id="stage3-export-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:10065; justify-content:center; align-items:center; padding:20px; backdrop-filter:blur(4px);">
+    <div style="background:#09111e; border:1px solid #0284c7; border-radius:12px; width:100%; max-width:820px; max-height:92vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 24px 64px rgba(0,0,0,0.9);">
+      <!-- Header -->
+      <div style="padding:16px 20px; border-bottom:1px solid #1e293b; display:flex; justify-content:space-between; align-items:center; background:linear-gradient(135deg, rgba(14, 116, 144, 0.4) 0%, #060a12 100%);">
+        <div>
+          <div style="font-size:16px; font-weight:800; color:#fff; display:flex; align-items:center; gap:8px;">
+            <span>📤 匯出 Stage 3 分鏡審閱腳本 (Export Script for Review)</span>
+          </div>
+          <div id="stage3-export-subtitle" style="font-size:12px; color:#7dd3fc; margin-top:2px;">
+            將實際分鏡台詞、時長預估、運鏡與畫面規劃匯出成易於發送給團隊、審閱者或配音校對的文稿與表格
+          </div>
+        </div>
+        <button class="btn-sec" onclick="closeStage3ExportModal()" style="padding:4px 10px; font-size:13px;">✕</button>
+      </div>
+
+      <!-- Body -->
+      <div style="padding:20px; overflow-y:auto; display:flex; flex-direction:column; gap:16px;">
+        <!-- Project Stats Banner -->
+        <div id="stage3-export-stats-bar" style="background:#04070e; border:1px solid #1e293b; border-radius:8px; padding:12px 16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; font-size:12px; color:#94a3b8;">
+          <div>專案: <b id="stage3-stat-project" style="color:#fff;">-</b></div>
+          <div>總分鏡數: <b id="stage3-stat-scenes" style="color:#38bdf8;">0</b> 幕</div>
+          <div>預估時長: <b id="stage3-stat-duration" style="color:#34d399;">0s</b></div>
+          <div>狀態: <span id="stage3-stat-status" class="badge badge-blue">Ready</span></div>
+        </div>
+
+        <!-- Export Formats Grid -->
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:12px;">
+          <!-- TXT Review Manuscript -->
+          <div style="background:#070d18; border:1px solid #1e3a5f; border-radius:8px; padding:14px; display:flex; flex-direction:column; justify-content:space-between; gap:10px;">
+            <div>
+              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
+                <span style="font-weight:700; color:#93c5fd; font-size:13px;">📄 分鏡校對稿 (.txt)</span>
+                <span style="font-size:10px; background:rgba(59,130,246,0.2); color:#60a5fa; padding:1px 6px; border-radius:8px;">最推薦</span>
+              </div>
+              <div style="font-size:11px; color:#94a3b8; line-height:1.4;">
+                含分鏡號、時長、運鏡、角色、旁白與【審核意見】填寫框。適合貼入 Word、Docs 或 Email 發給主管與客戶。
+              </div>
+            </div>
+            <div style="display:flex; gap:6px;">
+              <button class="btn-sec" style="flex:1; font-size:11px; padding:6px; background:#1e3a8a; color:#fff; border-color:#3b82f6; font-weight:700;" onclick="downloadStage3Script('txt')">
+                📥 下載 .txt
+              </button>
+              <button class="btn-sec" style="font-size:11px; padding:6px 10px;" onclick="copyStage3FormattedText('txt')" title="複製校對稿全文至剪貼簿">
+                📋
+              </button>
+            </div>
+          </div>
+
+          <!-- CSV Table (Excel / Sheets) -->
+          <div style="background:#070d18; border:1px solid #065f46; border-radius:8px; padding:14px; display:flex; flex-direction:column; justify-content:space-between; gap:10px;">
+            <div>
+              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
+                <span style="font-weight:700; color:#6ee7b7; font-size:13px;">📊 Excel 評審表 (.csv)</span>
+                <span style="font-size:10px; background:rgba(16,185,129,0.2); color:#34d399; padding:1px 6px; border-radius:8px;">UTF-8 BOM</span>
+              </div>
+              <div style="font-size:11px; color:#94a3b8; line-height:1.4;">
+                試算表格化分鏡，包含專屬「審核反饋 / 修改建議」欄位，適合多人分工與團隊打勾審批。
+              </div>
+            </div>
+            <button class="btn-sec" style="font-size:11px; padding:6px; background:rgba(16,185,129,0.2); border-color:#10b981; color:#a7f3d0; font-weight:700;" onclick="downloadStage3Script('csv')">
+              📥 下載 Excel .csv
+            </button>
+          </div>
+
+          <!-- Markdown (.md) -->
+          <div style="background:#070d18; border:1px solid #334155; border-radius:8px; padding:14px; display:flex; flex-direction:column; justify-content:space-between; gap:10px;">
+            <div>
+              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
+                <span style="font-weight:700; color:#e2e8f0; font-size:13px;">📝 Markdown 腳本 (.md)</span>
+                <span style="font-size:10px; background:#1e293b; color:#cbd5e1; padding:1px 6px; border-radius:8px;">結構化</span>
+              </div>
+              <div style="font-size:11px; color:#94a3b8; line-height:1.4;">
+                Markdown 階層排版與區塊引文，完美相容 Notion、GitHub、Obsidian 與 Slack。
+              </div>
+            </div>
+            <div style="display:flex; gap:6px;">
+              <button class="btn-sec" style="flex:1; font-size:11px; padding:6px; font-weight:700;" onclick="downloadStage3Script('md')">
+                📥 下載 .md
+              </button>
+              <button class="btn-sec" style="font-size:11px; padding:6px 10px;" onclick="copyStage3FormattedText('md')" title="複製 Markdown 全文">
+                📋
+              </button>
+            </div>
+          </div>
+
+          <!-- Pure Narration Text -->
+          <div style="background:#070d18; border:1px solid #4c1d95; border-radius:8px; padding:14px; display:flex; flex-direction:column; justify-content:space-between; gap:10px;">
+            <div>
+              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
+                <span style="font-weight:700; color:#c4b5fd; font-size:13px;">🎙️ 純台詞朗讀稿 (.txt)</span>
+                <span style="font-size:10px; background:rgba(139,92,246,0.2); color:#c4b5fd; padding:1px 6px; border-radius:8px;">配音試讀</span>
+              </div>
+              <div style="font-size:11px; color:#94a3b8; line-height:1.4;">
+                去除所有畫面及技術參數，僅保留幕次與純粹旁白對白，配音員試音與語速校對專用。
+              </div>
+            </div>
+            <div style="display:flex; gap:6px;">
+              <button class="btn-sec" style="flex:1; font-size:11px; padding:6px; background:rgba(139,92,246,0.2); border-color:#8b5cf6; color:#ddd6fe; font-weight:700;" onclick="downloadStage3Script('narration')">
+                📥 下載純台詞
+              </button>
+              <button class="btn-sec" style="font-size:11px; padding:6px 10px;" onclick="copyStage3FormattedText('narration')" title="複製純台詞全文">
+                📋
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- In-Modal Interactive Live Preview -->
+        <div style="background:#04070e; border:1px solid #1e293b; border-radius:8px; padding:14px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:8px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <label style="font-size:12px; font-weight:700; color:#cbd5e1;">即時文稿預覽 (Live Preview):</label>
+              <select id="stage3-preview-format-select" style="font-size:11px; padding:3px 8px; background:#080d16; border:1px solid #334155; color:#93c5fd; border-radius:4px;" onchange="loadStage3ScriptPreview(this.value)">
+                <option value="txt" selected>📄 分鏡校對文稿 (.txt)</option>
+                <option value="md">📝 Markdown 腳本 (.md)</option>
+                <option value="narration">🎙️ 純台詞朗讀稿 (.txt)</option>
+              </select>
+            </div>
+            <button class="btn-sec" style="font-size:11px; padding:4px 10px; display:inline-flex; align-items:center; gap:4px;" onclick="copyStage3PreviewContent()">
+              📋 複製目前預覽文字
+            </button>
+          </div>
+          <textarea id="stage3-export-preview-area" readonly style="width:100%; height:220px; font-family:monospace; font-size:12px; line-height:1.5; background:#020408; color:#cbd5e1; border:1px solid #1e293b; border-radius:6px; padding:10px; resize:vertical;"></textarea>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div style="padding:12px 20px; border-top:1px solid #1e293b; display:flex; justify-content:space-between; align-items:center; background:#050912;">
+        <span style="font-size:11px; color:#64748b;">提示：亦可於 Stage 3 分鏡頂部點選「📋 複製台詞」直接帶走純文字。</span>
+        <button class="btn-sec" onclick="closeStage3ExportModal()" style="font-size:12px; padding:6px 16px;">關閉 (Close)</button>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL: UNIVERSAL FIND & REPLACE ACROSS ALL STAGES -->
   <div id="universal-find-replace-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:10060; justify-content:center; align-items:center; padding:20px;">
     <div style="background:#09111e; border:1px solid #3b82f6; border-radius:12px; width:100%; max-width:680px; max-height:92vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 24px 64px rgba(0,0,0,0.9);">
@@ -3897,6 +4032,108 @@
             💾 儲存自訂公式並套用
           </button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FINAL CONFIRMATION MODAL BEFORE CREATING VIDEO -->
+  <div id="create-video-confirm-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); backdrop-filter:blur(6px); z-index:10000; justify-content:center; align-items:center;">
+    <div style="background:var(--card, #0f172a); border:1.5px solid #38bdf8; border-radius:14px; max-width:540px; width:92%; max-height:90vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 12px 36px rgba(0,0,0,0.8), 0 0 24px rgba(56,189,248,0.25);">
+      <div style="padding:16px 20px; border-bottom:1px solid rgba(124, 145, 182, 0.25); display:flex; justify-content:space-between; align-items:center; background:#080d16;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:22px;">🎬</span>
+          <div>
+            <h2 style="font-size:16px; font-weight:800; color:#f8fafc; margin:0;">
+              Confirm Video Creation / 確認生成配置
+            </h2>
+            <div style="font-size:12px; color:var(--text-muted, #94a3b8); margin-top:2px;">
+              Please review your settings before proceeding
+            </div>
+          </div>
+        </div>
+        <button type="button" class="btn-sec" id="btn-close-create-confirm" data-ui-click="static_296" style="padding:4px 10px; font-size:13px; cursor:pointer;" title="關閉 (Cancel)">✕</button>
+      </div>
+
+      <div style="padding:20px; overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:14px;">
+        <!-- Video Topic preview -->
+        <div style="background:rgba(15, 23, 42, 0.85); border:1px solid rgba(124, 145, 182, 0.25); border-radius:8px; padding:12px 14px;">
+          <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:#94a3b8; font-weight:700; margin-bottom:4px;">
+            Video Topic / 影片主題靈感
+          </div>
+          <div id="confirm-modal-topic" style="font-size:14px; font-weight:700; color:#38bdf8; word-break:break-word; line-height:1.4;">
+            --
+          </div>
+        </div>
+
+        <!-- Configuration Items -->
+        <div style="background:#090d16; border:1px solid rgba(124, 145, 182, 0.25); border-radius:10px; padding:14px 16px; display:flex; flex-direction:column; gap:12px;">
+          
+          <!-- 1. Video Length -->
+          <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.06); padding-bottom:10px; gap:10px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="font-size:16px;">⏱️</span>
+              <span style="font-size:13px; color:#cbd5e1; font-weight:600;">Video Length / 影片時長</span>
+            </div>
+            <span id="confirm-modal-duration" style="font-size:13px; font-weight:700; color:#fde047; text-align:right;">
+              --
+            </span>
+          </div>
+
+          <!-- 2. Voice Profile -->
+          <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.06); padding-bottom:10px; gap:10px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="font-size:16px;">🎙️</span>
+              <span style="font-size:13px; color:#cbd5e1; font-weight:600;">Voice Profile / 聲音形象</span>
+            </div>
+            <span id="confirm-modal-voice" style="font-size:13px; font-weight:700; color:#38bdf8; text-align:right; max-width:60%; word-break:break-word;">
+              --
+            </span>
+          </div>
+
+          <!-- 3. Avatar Character Selection -->
+          <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.06); padding-bottom:10px; gap:10px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="font-size:16px;">🎭</span>
+              <span style="font-size:13px; color:#cbd5e1; font-weight:600;">Avatar Character / 人物形象</span>
+            </div>
+            <span id="confirm-modal-avatar" style="font-size:13px; font-weight:700; color:#c084fc; text-align:right; max-width:60%; word-break:break-word;">
+              --
+            </span>
+          </div>
+
+          <!-- 4. Language -->
+          <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.06); padding-bottom:10px; gap:10px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="font-size:16px;">🌐</span>
+              <span style="font-size:13px; color:#cbd5e1; font-weight:600;">Language / 旁白語言</span>
+            </div>
+            <span id="confirm-modal-language" style="font-size:13px; font-weight:700; color:#4ade80; text-align:right;">
+              --
+            </span>
+          </div>
+
+          <!-- 5. Remotion Style (only displayed when Remotion is selected) -->
+          <div id="confirm-modal-remotion-row" style="display:none; justify-content:space-between; align-items:center; padding-top:2px; gap:10px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="font-size:16px;">⚛️</span>
+              <span style="font-size:13px; color:#cbd5e1; font-weight:600;">Remotion Style / 動態藍圖風格</span>
+            </div>
+            <span id="confirm-modal-remotion-style" style="font-size:13px; font-weight:700; color:#00F5FF; text-align:right; max-width:60%; word-break:break-word;">
+              --
+            </span>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div style="padding:14px 20px; border-top:1px solid rgba(124, 145, 182, 0.25); display:flex; justify-content:flex-end; gap:12px; align-items:center; background:#080d16;">
+        <button type="button" class="btn-sec" id="btn-cancel-create-confirm" data-ui-click="static_297" style="padding:9px 18px; font-size:13px; font-weight:600; cursor:pointer;">
+          Cancel / 取消
+        </button>
+        <button type="button" class="btn-primary" id="btn-ok-create-confirm" data-ui-click="static_298" style="padding:10px 24px; font-size:14px; font-weight:800; background:linear-gradient(135deg, #0284c7 0%, #0369a1 100%); box-shadow:0 0 16px rgba(2, 132, 199, 0.5); border:none; cursor:pointer; letter-spacing:0.02em;">
+          🚀 OK, Proceed / 確認製作
+        </button>
       </div>
     </div>
   </div>

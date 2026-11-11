@@ -207,6 +207,9 @@ def plan_chapter_chunks(
             or extract_phase_turn_text(sec, first_sc.narration, topic)
         )
 
+        if pt and re.search(r"\b(intro|introduction|hook|conclusion|section)\b", pt, re.IGNORECASE):
+            pt = extract_phase_turn_text("", first_sc.narration, topic)
+
         if sec_lower in ("hook", "hook (開場)", "開場"):
             ch_title = "開場引言"
         elif sec_lower in ("introduction", "intro", "背景介紹", "前言"):
@@ -223,6 +226,8 @@ def plan_chapter_chunks(
             ch_title = detail or f"重點章節 {idx + 1}"
 
         card_text = pt or ch_title
+        if re.search(r"\b(intro|introduction|hook|conclusion|section)\b", card_text, re.IGNORECASE):
+            card_text = extract_phase_turn_text("", first_sc.narration, topic)
         card_text = normalize_to_taiwan_mandarin(card_text)
         ch_title = normalize_to_taiwan_mandarin(ch_title)
 

@@ -50,8 +50,16 @@ UNIVERSAL_ANTI_CLONE_NEGATIVE = (
     "cloned children, identical boy faces, same face syndrome"
 )
 
+UNIVERSAL_TEXT_NEGATIVE = (
+    "text, watermark, logo, chinese text, chinese characters, hanzi, kanji, subtitles, "
+    "typography, words, letters, signage text, billboard text, newspaper text, labels, "
+    "distorted letters, faux chinese, gibberish characters, text on screens, text on signs, "
+    "distorted typography, artificial glyphs, unreadable writing"
+)
+
 UNIVERSAL_QUALITY_NEGATIVE = (
-    f"{UNIVERSAL_ANATOMY_NEGATIVE}, {UNIVERSAL_FACE_QUALITY_NEGATIVE}, {UNIVERSAL_ANTI_CLONE_NEGATIVE}"
+    f"{UNIVERSAL_ANATOMY_NEGATIVE}, {UNIVERSAL_FACE_QUALITY_NEGATIVE}, "
+    f"{UNIVERSAL_ANTI_CLONE_NEGATIVE}, {UNIVERSAL_TEXT_NEGATIVE}"
 )
 
 
@@ -59,7 +67,7 @@ def build_image_system_prompt(negative_prompt: str | list[str] | None = None) ->
     """Builds a strict system prompt instruction for image generation backends (Gemini, Imagen, etc.).
     
     Explicitly enforces anti-cloning negative constraints, distinct individual facial diversity,
-    and biologically accurate anatomy.
+    biologically accurate anatomy, and total avoidance of malformed Chinese or English text.
     """
     full_neg = merge_negative_prompts(UNIVERSAL_QUALITY_NEGATIVE, negative_prompt)
     return (
@@ -74,7 +82,13 @@ def build_image_system_prompt(negative_prompt: str | list[str] | None = None) ->
         "2. BIOLOGICALLY ACCURATE ANATOMY:\n"
         "   - Every human figure must have strictly and exactly two natural arms, two natural hands, "
         "five fingers per hand, and natural ergonomic posture.\n"
-        f"3. NEGATIVE PROMPT (STRICTLY AVOID AND EXCLUDE):\n"
+        "3. STRICTLY NO TEXT / NO CHINESE CHARACTERS:\n"
+        "   - Absolutely NO written text, no Chinese characters (漢字), no English letters, no words, no subtitles, "
+        "no watermarks, and no fake gibberish typography anywhere in the image.\n"
+        "   - All signboards, digital screens, monitors, blueprints, newspapers, documents, street banners, and "
+        "commercial billboards must be completely blank, unwritten, or contain purely abstract visual graphics/icons "
+        "with zero readable text or characters.\n"
+        f"4. NEGATIVE PROMPT (STRICTLY AVOID AND EXCLUDE):\n"
         f"   {full_neg}\n"
     )
 

@@ -2276,6 +2276,293 @@ def export_project_script_endpoint(project_id: str, format: str = "md"):
     return Response(content=content.encode("utf-8"), media_type=media_type, headers=headers)
 
 
+def format_stage3_script_content(p: Project, scenes: list[Scene], fmt: str = "txt") -> tuple[str, str, str]:
+    """Format Stage 3 segmented scenes into readable review manuscript (.txt),
+    rich Markdown (.md), tabular review sheet (.csv with UTF-8 BOM),
+    clean spoken narration only (.txt), or structured JSON (.json).
+    Returns (content, media_type, filename).
+    """
+    from datetime import datetime
+    import csv
+    import io
+
+    project_id = p.id
+    title = p.data.title or p.data.topic or project_id
+    topic = p.data.topic or title
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    # Accurate word/character counting
+    def count_units_local(text: str) -> int:
+        if not text:
+            return 0
+        cjk = len(re.findall(r"[\u4e00-\u9fff\u3040-\u30ff\uac00-\ud7af]", text))
+        latin_words = len(re.findall(r"[a-zA-Z0-9'-]+", re.sub(r"[\u4e00-\u9fff\u3040-\u30ff\uac00-\ud7af]", " ", text)))
+        return cjk + latin_words
+
+    total_scenes = len(scenes)
+    total_duration = 0.0
+    total_words = 0
+    for sc in scenes:
+        dur = getattr(sc, "audio_duration", None) or getattr(sc, "estimated_duration", 5.0) or 5.0
+        try:
+            total_duration += float(dur)
+        except (ValueError, TypeError):
+            total_duration += 5.0
+        total_words += count_units_local(sc.narration or "")
+
+    dur_min = int(total_duration // 60)
+    dur_sec = int(round(total_duration % 60))
+    total_dur_str = f"{dur_min} 分 {dur_sec} 秒 ({total_duration:.1f}s)" if dur_min > 0 else f"{total_duration:.1f} 秒"
+
+    fmt = fmt.lower().strip()
+
+    if fmt == "json":
+        data = {
+            "project_id": project_id,
+            "title": title,
+            "topic": topic,
+            "exported_at": now_str,
+            "stage": "stage_3_scenes",
+            "total_scenes": total_scenes,
+            "total_duration_seconds": round(total_duration, 2),
+            "total_duration_display": total_dur_str,
+            "total_word_count": total_words,
+            "scenes": [
+                {
+                    "scene_id": sc.scene_id,
+                    "section": sc.section or "",
+                    "speaker": getattr(sc, "speaker", None) or getattr(sc, "character", None),
+                    "narration": sc.narration or "",
+                    "estimated_duration": getattr(sc, "audio_duration", None) or sc.estimated_duration,
+                    "camera_motion": sc.camera_motion or "slow_zoom_in",
+                    "visual_type": sc.visual_type or "image",
+                    "visual_description": sc.visual_description or "",
+                    "callout_text": sc.callout_text or None,
+                    "phase_turn_text": sc.phase_turn_text or None,
+                    "is_presenter": getattr(sc, "is_presenter", False),
+                    "avatar_profile": getattr(sc, "avatar_profile", None)
+                }
+                for sc in scenes
+            ]
+        }
+        content = json.dumps(data, indent=2, ensure_ascii=False)
+        return content, "application/json; charset=utf-8", f"{project_id}_stage3_scenes.json"
+
+    elif fmt == "csv":
+        output = io.StringIO()
+        # UTF-8 BOM so Excel opens with proper Chinese characters
+        output.write("\ufeff")
+        writer = csv.writer(output)
+        writer.writerow([
+            "分鏡編號 (Scene #)",
+            "章節 (Section)",
+            "講者/角色 (Speaker)",
+            "旁白台詞 (Narration Text)",
+            "預估時長(秒) (Duration)",
+            "運鏡動態 (Camera Motion)",
+            "畫面類型 (Visual Type)",
+            "畫面設定 (Visual Description)",
+            "動態字卡 (Callout Text)",
+            "黑幕轉場 (Phase Turn)",
+            "審核反饋 / 修改建議 (Review Feedback)"
+        ])
+        for sc in scenes:
+            dur = getattr(sc, "audio_duration", None) or getattr(sc, "estimated_duration", 5.0) or 5.0
+            speaker = getattr(sc, "speaker", None) or getattr(sc, "character", None) or ("真人主播" if getattr(sc, "is_presenter", False) else "")
+            writer.writerow([
+                f"Scene #{sc.scene_id}",
+                sc.section or "",
+                speaker,
+                sc.narration or "",
+                f"{float(dur):.1f}",
+                sc.camera_motion or "",
+                sc.visual_type or "",
+                sc.visual_description or "",
+                sc.callout_text or "",
+                sc.phase_turn_text or "",
+                ""  # Blank for reviewer feedback
+            ])
+        return output.getvalue(), "text/csv; charset=utf-8", f"{project_id}_stage3_script_review.csv"
+
+    elif fmt in ("narration", "clean", "spoken"):
+        lines = [
+            f"【Stage 3 旁白純台詞朗讀稿】{title}",
+            "=" * 70,
+            f"主題 (Topic): {topic}",
+            f"分鏡總數: {total_scenes} 幕 | 預估總時長: ~{total_dur_str} | 總字數: ~{total_words} 字/詞",
+            f"導出時間: {now_str}",
+            "=" * 70,
+            ""
+        ]
+        current_section = None
+        for sc in scenes:
+            sec = sc.section or ""
+            if sec and sec != current_section:
+                current_section = sec
+                lines.append(f"【{sec}】")
+            dur = getattr(sc, "audio_duration", None) or getattr(sc, "estimated_duration", 5.0) or 5.0
+            speaker = getattr(sc, "speaker", None) or getattr(sc, "character", None)
+            spk_str = f"[{speaker}] " if speaker else ""
+            lines.append(f"[Scene #{sc.scene_id}] ({float(dur):.1f}s) {spk_str}{sc.narration or ''}")
+            lines.append("")
+        content = "\n".join(lines).strip()
+        return content, "text/plain; charset=utf-8", f"{project_id}_stage3_narration_only.txt"
+
+    elif fmt == "md":
+        lines = [
+            f"# 🎬【Stage 3 分鏡腳本審閱稿】{title}",
+            "",
+            f"> **專案 ID**: `{project_id}`  ",
+            f"> **主題 (Topic)**: {topic}  ",
+            f"> **分鏡總數**: {total_scenes} 幕  ",
+            f"> **預估總時長**: ~{total_dur_str}  ",
+            f"> **總字數**: ~{total_words} 字/詞  ",
+            f"> **導出時間**: {now_str}  ",
+            "",
+            "> 💡 **說明**：本審閱稿匯出自 Stage 3（分鏡與台詞切分），為配音 (Stage 6) 與字幕 (Stage 9) 製作依據。歡迎直接於各幕填寫修改意見。",
+            "",
+            "---",
+            ""
+        ]
+        current_section = None
+        for sc in scenes:
+            sec = sc.section or ""
+            if sec and sec != current_section:
+                current_section = sec
+                lines.append(f"## 📑 章節：{sec}")
+                lines.append("")
+            dur = getattr(sc, "audio_duration", None) or getattr(sc, "estimated_duration", 5.0) or 5.0
+            speaker = getattr(sc, "speaker", None) or getattr(sc, "character", None)
+            lines.append(f"### 📍 Scene #{sc.scene_id} ({float(dur):.1f}s)")
+            if sec:
+                lines.append(f"- **章節 (Section)**: {sec}")
+            if speaker:
+                lines.append(f"- **講者/角色 (Speaker)**: **{speaker}**")
+            lines.append(f"- **畫面類型**: `{sc.visual_type or 'image'}` | **運鏡動態**: `{sc.camera_motion or 'slow_zoom_in'}`")
+            lines.append(f"- **旁白台詞 (Narration)**:")
+            lines.append(f"  > {sc.narration or ''}")
+            if sc.visual_description:
+                lines.append(f"- **畫面設定 (Visual Description)**: {sc.visual_description}")
+            if sc.callout_text:
+                lines.append(f"- **動態字卡 (Callout)**: `{sc.callout_text}`")
+            if sc.phase_turn_text:
+                lines.append(f"- **黑幕轉場 (Phase Turn)**: `{sc.phase_turn_text}`")
+            lines.append(f"- **審核回饋 / 修改建議 (Review Feedback)**: ")
+            lines.append("")
+            lines.append("---")
+            lines.append("")
+        content = "\n".join(lines).strip()
+        return content, "text/markdown; charset=utf-8", f"{project_id}_stage3_script.md"
+
+    else:  # txt (default) - Review Manuscript
+        lines = [
+            f"【Stage 3 分鏡腳本審閱稿】{title}",
+            "=" * 80,
+            f"專案 ID: {project_id}",
+            f"主題 (Topic): {topic}",
+            f"分鏡總數: {total_scenes} 幕 | 預估總時長: ~{total_dur_str} | 總字數: ~{total_words} 字/詞",
+            f"導出時間: {now_str}",
+            "=" * 80,
+            "說明：本審閱稿匯出自 Stage 3（分鏡與台詞切分），已完成逐幕時長預估與畫面規劃。",
+            "請審閱者直接於各幕下方【審核意見】填註勘誤、語句修飾或畫面調整建議。",
+            "=" * 80,
+            ""
+        ]
+        current_section = None
+        for sc in scenes:
+            sec = sc.section or ""
+            if sec and sec != current_section:
+                current_section = sec
+                lines.append(f"【章節：{sec}】")
+                lines.append("-" * 80)
+            dur = getattr(sc, "audio_duration", None) or getattr(sc, "estimated_duration", 5.0) or 5.0
+            speaker = getattr(sc, "speaker", None) or getattr(sc, "character", None)
+            spk_str = f" | 講者: {speaker}" if speaker else ""
+            lines.append(f"[Scene #{sc.scene_id}] ⏱️ {float(dur):.1f}s | 🎥 運鏡: {sc.camera_motion or 'slow_zoom_in'}{spk_str}")
+            if sec and sec == current_section:
+                lines.append(f"所屬章節: {sec}")
+            lines.append("-" * 40)
+            lines.append("【旁白台詞 (Narration)】:")
+            lines.append(sc.narration or "")
+            lines.append("")
+            if sc.visual_description:
+                lines.append("【畫面規劃 (Visual Description)】:")
+                lines.append(sc.visual_description)
+                lines.append("")
+            if sc.callout_text:
+                lines.append(f"【動態重點字卡 (Callout)】: {sc.callout_text}")
+                lines.append("")
+            if sc.phase_turn_text:
+                lines.append(f"【黑幕轉場字卡 (Phase Turn)】: {sc.phase_turn_text}")
+                lines.append("")
+            lines.append("【審核意見 / 修改建議 (Review Feedback)】:")
+            lines.append("________________________________________________________________________________")
+            lines.append("")
+            lines.append("-" * 80)
+            lines.append("")
+        lines.append("=" * 80)
+        lines.append(f"【審閱完畢 (End of Script)】共 {total_scenes} 幕 · 預估總時長: ~{total_dur_str}")
+        lines.append("=" * 80)
+        content = "\n".join(lines).strip()
+        return content, "text/plain; charset=utf-8", f"{project_id}_stage3_script_review.txt"
+
+
+@app.get("/api/projects/{project_id}/export_stage3_script")
+@app.get("/api/projects/{project_id}/export_scenes_script")
+def export_stage3_script_endpoint(project_id: str, format: str = "txt"):
+    """Export Stage 3 segmented scenes script in txt, md, csv, narration, or json."""
+    p = get_project(project_id)
+    scenes = p.scenes
+    if not scenes:
+        raw_scenes = p.read_json("scenes/scenes.json", [])
+        if raw_scenes:
+            scenes = [Scene(**s) for s in raw_scenes]
+    if not scenes:
+        raise HTTPException(
+            status_code=400,
+            detail="此專案尚未生成 Stage 3 分鏡與台詞切分 (No Stage 3 scenes found). 請先執行 Stage 3。"
+        )
+    content, media_type, filename = format_stage3_script_content(p, scenes, fmt=format)
+    from urllib.parse import quote
+    encoded_fn = quote(filename)
+    headers = {
+        "Content-Disposition": f"attachment; filename*=UTF-8''{encoded_fn}",
+        "Access-Control-Expose-Headers": "Content-Disposition",
+    }
+    return Response(content=content.encode("utf-8"), media_type=media_type, headers=headers)
+
+
+@app.get("/api/projects/{project_id}/stage3_script_preview")
+def get_stage3_script_preview_endpoint(project_id: str, format: str = "txt"):
+    """Return Stage 3 script text directly as JSON for UI preview and clipboard copying."""
+    p = get_project(project_id)
+    scenes = p.scenes
+    if not scenes:
+        raw_scenes = p.read_json("scenes/scenes.json", [])
+        if raw_scenes:
+            scenes = [Scene(**s) for s in raw_scenes]
+    if not scenes:
+        raise HTTPException(
+            status_code=400,
+            detail="此專案尚未生成 Stage 3 分鏡與台詞切分 (No Stage 3 scenes found)."
+        )
+    content, _, filename = format_stage3_script_content(p, scenes, fmt=format)
+    total_duration = sum([float(getattr(s, "audio_duration", None) or getattr(s, "estimated_duration", 5.0) or 5.0) for s in scenes])
+    dur_min = int(total_duration // 60)
+    dur_sec = int(round(total_duration % 60))
+    total_dur_str = f"{dur_min} 分 {dur_sec} 秒 ({total_duration:.1f}s)" if dur_min > 0 else f"{total_duration:.1f} 秒"
+    return {
+        "status": "ok",
+        "project_id": project_id,
+        "title": p.data.title or p.data.topic or project_id,
+        "format": format,
+        "filename": filename,
+        "content": content,
+        "total_scenes": len(scenes),
+        "total_duration_display": total_dur_str
+    }
+
+
 @app.post("/api/projects/{project_id}/import_script")
 async def import_project_script_endpoint(
     project_id: str,
@@ -3030,6 +3317,30 @@ def regenerate_scene_image(project_id: str, scene_id: int, req_body: Optional[Re
                 if m.get("video_id"): used_stock_keys.add(m["video_id"])
 
     img_path = p.path("images", f"{s.tag}.png")
+
+    ref_img_path, ref_char_name = None, None
+    try:
+        from core.character_detector import resolve_character_reference_image
+        ref_img_path, ref_char_name = resolve_character_reference_image(p, s)
+        if ref_img_path:
+            log.info("Regen Scene %d: Grounded authentic stock portrait of '%s' as reference photo for AI image conditioning (%s)",
+                     s.scene_id, ref_char_name, ref_img_path)
+    except Exception as ref_err:
+        log.debug("resolve_character_reference_image note: %s", ref_err)
+
+    extra_dict = {
+        "description": s.visual_description,
+        "checkpoint": chosen_model,
+        "progress_callback": on_image_prog,
+        "search_keyword": target_kw,
+        "media_source": target_src,
+        "used_stock_keys": list(used_stock_keys),
+        "fallback_ai_model": stage_models.get("images") or img_cfg.get("provider") or "nano-banana-2.1",
+    }
+    if ref_img_path:
+        extra_dict["reference_image"] = str(ref_img_path)
+        extra_dict["character_name"] = ref_char_name
+
     req = ImageRequest(
         prompt=raw_prompt,
         negative=curr_neg,
@@ -3039,15 +3350,7 @@ def regenerate_scene_image(project_id: str, scene_id: int, req_body: Optional[Re
         steps=chosen_steps,
         cfg=chosen_cfg,
         output=img_path,
-        extra={
-            "description": s.visual_description,
-            "checkpoint": chosen_model,
-            "progress_callback": on_image_prog,
-            "search_keyword": target_kw,
-            "media_source": target_src,
-            "used_stock_keys": list(used_stock_keys),
-            "fallback_ai_model": stage_models.get("images") or img_cfg.get("provider") or "nano-banana-2.1",
-        }
+        extra=extra_dict
     )
 
     try:

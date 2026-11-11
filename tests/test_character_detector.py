@@ -181,3 +181,39 @@ def test_rejects_simplified_chinese_youtube_media():
     }
     rel_clean, _ = is_youtube_clip_relevant_to_scene(clip_clean, {"narration": "宋孝宗趙昚力圖北伐收復山河"}, char_xiaozong)
     assert rel_clean
+
+
+def test_resolve_character_reference_image(tmp_path):
+    from PIL import Image
+    from core.character_detector import resolve_character_reference_image
+    from providers.images import load_reference_image_base64
+
+    # Create dummy reference image
+    ref_file = tmp_path / "test_portrait.jpg"
+    img = Image.new("RGB", (120, 120), color="blue")
+    img.save(ref_file, format="JPEG")
+
+    proj = MagicMock()
+    proj.read_json.return_value = [
+        {
+            "id": "char_1",
+            "name": "蔣萬安",
+            "original_name": "Chiang Wan-an",
+            "selected_image": str(ref_file),
+            "target_scenes": [4, 5, 9]
+        }
+    ]
+    scene = MagicMock()
+    scene.scene_id = 4
+    scene.character_id = None
+    scene.narration = "蔣萬安是蔣家第四代少主"
+    scene.entities = ["蔣萬安"]
+    scene.prompt = "Chiang Wan-an speaking at press conference"
+
+    ref_path, char_name = resolve_character_reference_image(proj, scene)
+    assert ref_path is not None
+    assert char_name == "蔣萬安"
+
+    b64, mime = load_reference_image_base64(ref_path)
+    assert b64 is not None
+    assert mime in ("image/jpeg", "image/png")

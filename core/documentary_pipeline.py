@@ -1084,66 +1084,41 @@ class DocumentaryPipeline(BasePipeline):
 
 
 
+                ref_img_path, ref_char_name = None, None
+                try:
+                    from core.character_detector import resolve_character_reference_image
+                    ref_img_path, ref_char_name = resolve_character_reference_image(self.p, s)
+                    if ref_img_path:
+                        log.info("Stage 5 Scene %d: Grounded authentic stock portrait of '%s' as reference photo for AI image conditioning (%s)",
+                                 s.scene_id, ref_char_name, ref_img_path)
+                except Exception as ref_err:
+                    log.debug("resolve_character_reference_image note: %s", ref_err)
+
+                extra_dict = {
+                    "description": s.visual_description,
+                    "entities": getattr(s, "entities", []),
+                    "checkpoint": checkpoint_override,
+                    "progress_callback": _on_img_step,
+                    "search_keyword": getattr(s, "search_keyword", None),
+                    "media_source": getattr(s, "media_source", None),
+                    "used_stock_keys": list(media_registry.keys()),
+                    "recent_asset_keys": [cid for cid, sids in media_registry.items() if any(abs(prev_sid - s.scene_id) < DEFAULT_MIN_SCENE_DISTANCE for prev_sid in sids)],
+                    "target_scene_id": s.scene_id,
+                }
+                if ref_img_path:
+                    extra_dict["reference_image"] = str(ref_img_path)
+                    extra_dict["character_name"] = ref_char_name
+
                 req = ImageRequest(
-
-
-
                     prompt=raw_prompt,
-
-
-
                     negative=curr_neg,
-
-
-
                     seed=s.seed or (s.scene_id * 101),
-
-
-
                     width=width,
-
-
-
                     height=height,
-
-
-
                     steps=steps,
-
-
-
                     cfg=cfg_val,
-
-
-
                     output=img_path,
-
-
-
-                    extra={
-
-                        "description": s.visual_description,
-
-                        "entities": getattr(s, "entities", []),
-
-                        "checkpoint": checkpoint_override,
-
-                        "progress_callback": _on_img_step,
-
-                        "search_keyword": getattr(s, "search_keyword", None),
-
-                        "media_source": getattr(s, "media_source", None),
-
-                        "used_stock_keys": list(media_registry.keys()),
-
-                        "recent_asset_keys": [cid for cid, sids in media_registry.items() if any(abs(prev_sid - s.scene_id) < DEFAULT_MIN_SCENE_DISTANCE for prev_sid in sids)],
-
-                        "target_scene_id": s.scene_id,
-
-                    }
-
-
-
+                    extra=extra_dict
                 )
 
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import random
 
 import textwrap
@@ -13,6 +14,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from typing import Any, Callable
+
+log = logging.getLogger(__name__)
 
 from core.config import ROOT, get_secret, load_providers
 from agents.prompts_common import (
@@ -239,6 +242,71 @@ def _write_generated_image(req: ImageRequest, image_bytes: bytes) -> None:
     _check_not_blank(req.output)
 
 
+def load_reference_image_base64(ref: str | Path | None) -> tuple[str | None, str | None]:
+    """Load image from local Path, base64 data URI, or URL, returning (base64_str, mime_type).
+
+    Automatically downsamples high-res stock photos to max 1024x1024 to keep API payload optimal
+    while retaining crisp facial details for visual conditioning.
+    """
+    if not ref:
+        return None, None
+    try:
+        import base64
+        import io
+        from pathlib import Path
+        import requests
+        from PIL import Image
+
+        raw_bytes = None
+        mime = "image/jpeg"
+
+        if isinstance(ref, (str, Path)) and Path(ref).exists() and Path(ref).is_file() and Path(ref).stat().st_size > 500:
+            p = Path(ref)
+            with open(p, "rb") as f:
+                raw_bytes = f.read()
+            if p.suffix.lower() == ".png":
+                mime = "image/png"
+            elif p.suffix.lower() in (".webp",):
+                mime = "image/webp"
+        elif isinstance(ref, str) and ref.startswith("data:"):
+            header, b64_data = ref.split(",", 1)
+            raw_bytes = base64.b64decode(b64_data)
+            if "png" in header:
+                mime = "image/png"
+            elif "webp" in header:
+                mime = "image/webp"
+        elif isinstance(ref, str) and ref.startswith(("http://", "https://")):
+            r = requests.get(ref, timeout=20)
+            if r.status_code == 200 and len(r.content) > 500:
+                raw_bytes = r.content
+                ct = r.headers.get("Content-Type", "")
+                if "png" in ct:
+                    mime = "image/png"
+                elif "webp" in ct:
+                    mime = "image/webp"
+
+        if not raw_bytes:
+            return None, None
+
+        # Downsample large stock photos (> 800KB or > 1024px) for fast and reliable API transport
+        try:
+            with Image.open(io.BytesIO(raw_bytes)) as im:
+                if max(im.size) > 1024 or len(raw_bytes) > 800 * 1024:
+                    im_copy = im.copy()
+                    im_copy.thumbnail((1024, 1024), Image.Resampling.LANCZOS)
+                    buf = io.BytesIO()
+                    im_copy.convert("RGB").save(buf, format="JPEG", quality=88)
+                    raw_bytes = buf.getvalue()
+                    mime = "image/jpeg"
+        except Exception as resize_err:
+            log.debug("Reference image resize note: %s", resize_err)
+
+        return base64.b64encode(raw_bytes).decode("utf-8"), mime
+    except Exception as e:
+        log.warning("Failed to load reference image '%s': %s", ref, e)
+    return None, None
+
+
 class GptImage1Provider(ImageProvider):
 
     name = "gpt-image-1"
@@ -449,6 +517,16 @@ class Imagen302ImageProvider(ImageProvider):
                 last_error = f"{m} failed ({r.status_code}): {r.text[:200]}"
 
         # 2. Fallback to Gemini native image generation if :predict endpoint is unavailable on key tier
+        ref_img = req.extra.get("reference_image") or req.extra.get("character_reference_image")
+        char_name = req.extra.get("character_name") or ""
+        ref_b64, ref_mime = load_reference_image_base64(ref_img)
+
+        fb_parts = []
+        if ref_b64 and ref_mime:
+            fb_parts.append({"inlineData": {"mimeType": ref_mime, "data": ref_b64}})
+            fb_parts.append({"text": f"AUTHENTIC REFERENCE PHOTO PROVIDED for {char_name or 'the character'}: Accurately replicate their facial features, eye shape, and likeness. Generate a {aspect} image: {req.prompt}. Avoid: {full_neg}"})
+        else:
+            fb_parts.append({"text": f"Generate a {aspect} image: {req.prompt}. Avoid: {full_neg}"})
 
         for m in ["gemini-2.5-flash-image", "gemini-3-pro-image"]:
 
@@ -458,7 +536,7 @@ class Imagen302ImageProvider(ImageProvider):
 
             body = {
                 "systemInstruction": {"parts": [{"text": system_prompt}]},
-                "contents": [{"parts": [{"text": f"Generate a {aspect} image: {req.prompt}. Avoid: {full_neg}"}]}],
+                "contents": [{"parts": fb_parts}],
             }
 
             try:
@@ -561,6 +639,30 @@ class NanoBanana21ImageProvider(ImageProvider):
             f"Avoid: {full_neg}."
         )
 
+        # Character Conditioning: Use authentic real person stock photo as reference if provided
+        ref_img = req.extra.get("reference_image") or req.extra.get("character_reference_image")
+        char_name = req.extra.get("character_name") or ""
+        ref_b64, ref_mime = load_reference_image_base64(ref_img)
+
+        contents_parts = []
+        if ref_b64 and ref_mime:
+            contents_parts.append({
+                "inlineData": {
+                    "mimeType": ref_mime,
+                    "data": ref_b64
+                }
+            })
+            ref_prompt = (
+                f"AUTHENTIC REFERENCE PHOTO PROVIDED: The attached photo is the authentic, real-life reference photo of {char_name or 'the character'}. "
+                f"You MUST use this reference photo as the primary facial likeness anchor. "
+                f"Strictly replicate the real person's facial features, facial structure, eye shape, nose shape, hairline, and recognizable facial likeness "
+                f"into the generated artwork, seamlessly adapting them into the requested visual style, lighting, and scene action: "
+                f"{enhanced_prompt}"
+            )
+            contents_parts.append({"text": ref_prompt})
+        else:
+            contents_parts.append({"text": enhanced_prompt})
+
         last_error = None
 
         for m in models_to_try:
@@ -575,7 +677,7 @@ class NanoBanana21ImageProvider(ImageProvider):
                     "parts": [{"text": system_prompt}]
                 },
 
-                "contents": [{"parts": [{"text": enhanced_prompt}]}],
+                "contents": [{"parts": contents_parts}],
 
                 "generationConfig": {
 
@@ -659,6 +761,10 @@ class NanoBanana21ImageProvider(ImageProvider):
 
                             "rate_per_image": 0.0168,
 
+                            "has_reference_image": bool(ref_b64),
+
+                            "reference_character": char_name if ref_b64 else None,
+
                         }
 
                     else:
@@ -728,6 +834,24 @@ class Imagen3ImageProvider(ImageProvider):
             f"Avoid: {full_neg}."
         )
 
+        ref_img = req.extra.get("reference_image") or req.extra.get("character_reference_image")
+        char_name = req.extra.get("character_name") or ""
+        ref_b64, ref_mime = load_reference_image_base64(ref_img)
+
+        contents_parts = []
+        if ref_b64 and ref_mime:
+            contents_parts.append({"inlineData": {"mimeType": ref_mime, "data": ref_b64}})
+            ref_prompt = (
+                f"AUTHENTIC REFERENCE PHOTO PROVIDED: The attached photo is the authentic, real-life reference photo of {char_name or 'the character'}. "
+                f"You MUST use this reference photo as the primary facial likeness anchor. "
+                f"Strictly replicate the real person's facial features, facial structure, eye shape, nose shape, hairline, and recognizable facial likeness "
+                f"into the generated artwork, seamlessly adapting them into the requested visual style, lighting, and scene action: "
+                f"{img_prompt}"
+            )
+            contents_parts.append({"text": ref_prompt})
+        else:
+            contents_parts.append({"text": img_prompt})
+
         for m in models_to_try:
 
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent?key={self.key}"
@@ -740,7 +864,7 @@ class Imagen3ImageProvider(ImageProvider):
                     "parts": [{"text": system_prompt}]
                 },
 
-                "contents": [{"parts": [{"text": img_prompt}]}]
+                "contents": [{"parts": contents_parts}],
 
             }
 

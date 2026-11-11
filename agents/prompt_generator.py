@@ -216,13 +216,16 @@ def compose(parts: dict, style: dict, entity_desc: list[str], visual_type: str, 
             r"leader|leaders|politician|politicians|president|minister|mayor|governor|emperor|king|queen|"
             r"audience|crowd|group|team|military|personnel|citizens|bystanders|spectators|passersby|"
             r"child|children|boy|boys|girl|girls|student|students|teacher|teachers|doctor|doctors|scientist|scientists|"
+            r"technocrat|technocrats|bureaucrat|bureaucrats|expert|experts|specialist|specialists|staff|crew|"
+            r"activist|activists|journalist|journalists|reporter|reporters|"
             r"hand|hands|arm|arms|face|faces|portrait|portraits|headshot|speaker|host|avatar|turnaround)\b",
             combined_text
         ))
         has_multiple_people = bool(re.search(
             r"\b(people|crowd|audience|workers|engineers|team|soldiers|officers|officials|judges|lawyers|"
             r"men|women|group|citizens|bystanders|spectators|passersby|military|personnel|colleagues|"
-            r"students|children|kids|boys|girls|youths|siblings|teens|toddlers|friends|trio|pair|assembly|delegates|representatives|jurors)\b",
+            r"students|children|kids|boys|girls|youths|siblings|teens|toddlers|friends|trio|pair|assembly|delegates|representatives|jurors|"
+            r"technocrats|bureaucrats|experts|specialists|staff|crew|panel|committee|cabinet|activists|journalists|reporters)\b",
             combined_text
         ))
         if has_human:
@@ -230,6 +233,8 @@ def compose(parts: dict, style: dict, entity_desc: list[str], visual_type: str, 
             pieces.append("detailed clear facial features, sharp distinct facial structures, clear expressive eyes and mouth")
             if has_multiple_people:
                 pieces.append("distinct individual faces with diverse varied features and unique facial appearances, completely different facial structure, varied haircuts and hairstyles, distinct personal expressions, absolutely no identical faces, no cloned triplets or duplicate lookalikes")
+        # Global anti-text requirement for all scenes: prevent malformed Chinese characters and gibberish typography
+        pieces.append("strictly no text, no chinese characters, no letters, no words, blank signage and clean displays")
     if era_constraints:
         pieces.append(era_constraints)
     pieces.append("16:9 widescreen composition, high detail")
@@ -242,6 +247,10 @@ def compose(parts: dict, style: dict, entity_desc: list[str], visual_type: str, 
     res = ", ".join(out)
     if re.search(r"[\u4e00-\u9fff]", res):
         res = translate_to_english_for_sdxl(res, client=client)
+        # If any CJK characters still remain (e.g. translation fallback/timeout), strip them to prevent image models from rendering malformed Chinese text
+        if re.search(r"[\u4e00-\u9fff]", res):
+            res = re.sub(r"[\u4e00-\u9fff]+", "", res)
+            res = re.sub(r",\s*,+", ", ", res).strip(" ,")
     return res
 
 

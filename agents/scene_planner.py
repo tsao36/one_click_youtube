@@ -287,20 +287,35 @@ def extract_auto_callout(narration: str) -> tuple[str | None, str | None]:
 def extract_phase_turn_text(section_name: str, narration: str, topic: str = "") -> str:
     """Extract an impactful 8-22 character critical text in Traditional Chinese to foretell the next phase's story."""
     clean_sec = re.sub(r"\s*\([^\)]*\)", "", section_name).strip() if section_name else ""
-    
+    is_template_sec = bool(
+        not clean_sec
+        or re.match(r"^(intro|introduction|hook|conclusion|summary|background|section\s*\d*)$", clean_sec.strip().lower())
+        or not re.search(r"[\u4e00-\u9fff]", clean_sec)
+    )
+
     if narration:
         sentences = [p.strip() for p in re.split(r"[。！？!?]+", narration) if p.strip()]
-        for sent in sentences[:2]:
-            if any(k in sent for k in ["真相", "憑什麼", "事實", "到底", "關鍵", "革命", "轉折", "代價", "秘密", "為什麼", "如何", "不只是"]):
-                clean_s = re.sub(r"^(但是|然而|不過|其實|所以)，?", "", sent).strip()
+        # 1. Search for sentences with dramatic turning / investigative keywords
+        for sent in sentences[:3]:
+            clean_s = re.sub(r"^(但是|然而|不過|其實|所以|事實上|也就是說)，?", "", sent).strip()
+            if any(k in clean_s for k in ["真相", "憑什麼", "事實", "到底", "關鍵", "革命", "轉折", "代價", "秘密", "為什麼", "如何", "不只是", "考驗", "試煉"]):
                 if 6 <= len(clean_s) <= 22:
                     return clean_s
                 elif len(clean_s) > 22:
-                    sub_parts = re.split(r"[，,：:]", clean_s)
+                    sub_parts = [c.strip() for c in re.split(r"[，,：:；;]", clean_s) if c.strip()]
                     if sub_parts and 6 <= len(sub_parts[0]) <= 22:
                         return sub_parts[0]
 
-    if clean_sec:
+        # 2. If section_name is a template word (e.g. Introduction/Hook), extract first punchy clause from opening narration
+        if is_template_sec:
+            for sent in sentences[:2]:
+                clean_s = re.sub(r"^(但是|然而|不過|其實|所以|事實上|也就是說)，?", "", sent).strip()
+                sub_parts = [c.strip() for c in re.split(r"[，,：:；;]", clean_s) if c.strip()]
+                for p in sub_parts:
+                    if 6 <= len(p) <= 20:
+                        return f"關鍵轉折：{p}" if not p.startswith("關鍵") else p
+
+    if clean_sec and not is_template_sec:
         if "核心" in clean_sec or "解析" in clean_sec or "主題" in clean_sec:
             return "關鍵真相：深度核心解析"
         if "總結" in clean_sec or "啟發" in clean_sec:
@@ -308,6 +323,10 @@ def extract_phase_turn_text(section_name: str, narration: str, topic: str = "") 
         if "轉折" in clean_sec or "危機" in clean_sec:
             return f"關鍵轉折：{clean_sec}"
         return f"關鍵真相：{clean_sec}"
+
+    if topic:
+        clean_topic = re.sub(r"^(關於|探討|解析|深度解析)", "", topic).strip()[:14]
+        return f"關鍵真相：{clean_topic}"
 
     return "關鍵轉折：核心真相解析"
 

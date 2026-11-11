@@ -307,6 +307,9 @@
     "static_293": function(event) { triggerFormulaAutocomplete() },
     "static_294": function(event) { closeFormulaManagerModal() },
     "static_295": function(event) { saveNewCustomFormula() },
+    "static_296": function(event) { closeCreateVideoConfirmModal() },
+    "static_297": function(event) { closeCreateVideoConfirmModal() },
+    "static_298": function(event) { confirmAndProceedWithVideo() },
   };
   const eventNames = ["click","change","input","keydown","submit"];
   for (const eventName of eventNames) {

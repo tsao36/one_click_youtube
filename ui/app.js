@@ -3584,6 +3584,70 @@
       }
     }
 
+    let pendingCreationAction = null;
+
+    function closeCreateVideoConfirmModal() {
+      const m = document.getElementById('create-video-confirm-modal');
+      if (m) m.style.display = 'none';
+      pendingCreationAction = null;
+    }
+    window.closeCreateVideoConfirmModal = closeCreateVideoConfirmModal;
+
+    function confirmAndProceedWithVideo() {
+      const action = pendingCreationAction;
+      closeCreateVideoConfirmModal();
+      if (typeof action === 'function') {
+        action();
+      }
+    }
+    window.confirmAndProceedWithVideo = confirmAndProceedWithVideo;
+
+    function getActiveRemotionStyleInfo(stageModels, ai_pct) {
+      const animModel = stageModels?.animation || document.getElementById('model-stage-animation')?.value || 'kenburns';
+      const preset = window.activeRemotionPreset;
+
+      const isAnimModelRemotion = typeof animModel === 'string' && (animModel.startsWith('remotion') || animModel === 'remotion');
+      if (!isAnimModelRemotion) {
+        return { isSelected: false, styleName: null };
+      }
+
+      let styleName = '';
+      if (preset === 'gary_chen' || (animModel === 'remotion' && ai_pct === 0 && preset !== 'blueprint')) {
+        styleName = '✨ Gary Chen 極簡現代科技解說 (modern_tech_explainer)';
+      } else if (preset === 'coordinate_zero' || animModel === 'remotion_coordinate_scale') {
+        styleName = '🧭 座標零: 等緯尺度 (Coordinate Scale)';
+      } else if (animModel === 'remotion_coordinate_experiment') {
+        styleName = '🔬 座標零: 桌面實驗 (Coordinate Experiment)';
+      } else if (animModel === 'remotion_coordinate_split') {
+        styleName = '⚖️ 座標零: 各對一半 (Coordinate Split)';
+      } else if (preset === 'finance_market' || animModel === 'remotion_finance_candlestick') {
+        styleName = '📈 金融市場: 盤勢結構 (Finance Candlestick)';
+      } else if (animModel === 'remotion_finance_metrics') {
+        styleName = '📊 金融市場: 財務指標 (Finance Metrics)';
+      } else if (preset === 'archival_history' || animModel === 'remotion_archival_doc') {
+        styleName = '📜 歷史檔案: 解密公文 (Archival Document)';
+      } else if (animModel === 'remotion_history_chrono') {
+        styleName = '⏳ 歷史檔案: 年代編年 (History Chronology)';
+      } else if (preset === 'vox_journalism' || animModel === 'remotion_vox_split') {
+        styleName = '🗞️ Vox 調查: 政策雙分割 (Vox Split-Screen)';
+      } else if (animModel === 'remotion_vox_keystat') {
+        styleName = '⚡ Vox 調查: 核心發現 (Vox Key Stat)';
+      } else if (animModel === 'remotion_pathway') {
+        styleName = '🔀 分支決策 (Branch Pathway)';
+      } else if (animModel === 'remotion_callout') {
+        styleName = '🎯 引線標註 (Leader Callout)';
+      } else if (animModel === 'remotion_scale') {
+        styleName = '🔬 尺度對比 (Scale Loupe)';
+      } else if (animModel === 'remotion_evidence' || preset === 'blueprint') {
+        styleName = '📑 藍圖: 文獻劃記 (Evidence Highlight / Blueprint)';
+      } else {
+        const opt = document.querySelector(`#model-stage-animation option[value="${animModel}"]`);
+        styleName = opt ? opt.textContent.replace(/\(\+ Ken Burns\)/, '').trim() : animModel;
+      }
+
+      return { isSelected: true, styleName: styleName };
+    }
+
     async function startDramaCreation() {
       const topicEl = document.getElementById('drama-topic');
       const topic = (topicEl ? topicEl.value.trim() : '') || '開除我？那套AI是我寫的';
@@ -3603,6 +3667,54 @@
       const animEngineEl = document.getElementById('drama-anim-engine');
       const animEngine = animEngineEl ? animEngineEl.value : 'hedra';
 
+      const sanitizedCharacters = (currentProjectDramaCharacters || []).map((c, idx) => ({
+        id: (c.id && c.id !== 'None') ? c.id : ('actor_' + (idx + 1) + '_' + Date.now()),
+        name: c.name || `角色${idx + 1}`,
+        role: c.role || '關鍵角色',
+        gender: c.gender || 'female',
+        age: c.age || 28,
+        appearance: c.appearance || '',
+        voice_persona: c.voice_persona || '',
+        voice_profile: c.voice_profile || (cachedVoiceList && cachedVoiceList[0] ? cachedVoiceList[0].name : 'ichiehchieh'),
+        image_data_uri: c.image_data_uri || null,
+        image_url: c.image_url || null
+      }));
+
+      const charNames = sanitizedCharacters.length > 0 
+        ? sanitizedCharacters.map(c => `${c.name} (${c.role || '角色'})`).join(', ')
+        : '預設微短劇角色名冊 (Auto Default Cast)';
+
+      // Populate modal fields
+      const modalTopicEl = document.getElementById('confirm-modal-topic');
+      if (modalTopicEl) modalTopicEl.textContent = topic;
+      const modalDurEl = document.getElementById('confirm-modal-duration');
+      if (modalDurEl) modalDurEl.textContent = `${durationSec} 秒 (${durationSec}s)`;
+      const modalVoiceEl = document.getElementById('confirm-modal-voice');
+      if (modalVoiceEl) modalVoiceEl.textContent = '角色專屬音色 (Character Voice TTS)';
+      const modalAvatarEl = document.getElementById('confirm-modal-avatar');
+      if (modalAvatarEl) modalAvatarEl.textContent = charNames;
+      const modalLangEl = document.getElementById('confirm-modal-language');
+      if (modalLangEl) modalLangEl.textContent = 'Traditional Chinese (繁體中文)';
+
+      const remotionRow = document.getElementById('confirm-modal-remotion-row');
+      if (remotionRow) remotionRow.style.display = 'none';
+
+      pendingCreationAction = () => executeDramaCreation({
+        topic,
+        durationSec,
+        formula,
+        aspectRatio,
+        scriptText,
+        animEngine,
+        sanitizedCharacters
+      });
+
+      const modal = document.getElementById('create-video-confirm-modal');
+      if (modal) modal.style.display = 'flex';
+    }
+
+    async function executeDramaCreation(params) {
+      const { topic, durationSec, formula, aspectRatio, scriptText, animEngine, sanitizedCharacters } = params;
       const btn = document.getElementById('btn-create-drama-video');
       const origText = btn ? btn.innerHTML : '🎬 CREATE AI SHORT DRAMA';
       if (btn) {
@@ -3611,19 +3723,6 @@
       }
 
       try {
-        const sanitizedCharacters = (currentProjectDramaCharacters || []).map((c, idx) => ({
-          id: (c.id && c.id !== 'None') ? c.id : ('actor_' + (idx + 1) + '_' + Date.now()),
-          name: c.name || `角色${idx + 1}`,
-          role: c.role || '關鍵角色',
-          gender: c.gender || 'female',
-          age: c.age || 28,
-          appearance: c.appearance || '',
-          voice_persona: c.voice_persona || '',
-          voice_profile: c.voice_profile || (cachedVoiceList && cachedVoiceList[0] ? cachedVoiceList[0].name : 'ichiehchieh'),
-          image_data_uri: c.image_data_uri || null,
-          image_url: c.image_url || null
-        }));
-
         const data = await apiJson('/api/projects', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -3652,9 +3751,6 @@
           })
         });
 
-
-
-
         projectStartTime = Date.now();
         showToast(`🎬 微短劇專案已成功建立: ${data.project_id}！已啟動全自動生成。`);
         await loadProjectsList();
@@ -3666,14 +3762,91 @@
           btn.disabled = false;
           btn.innerHTML = origText;
         }
-        if (btn2) {
-          btn2.disabled = false;
-          btn2.innerHTML = origText;
-        }
       }
     }
 
     async function startCreation() {
+      if (currentCreatorProjectMode === 'short_drama') {
+        return startDramaCreation();
+      }
+
+      const topicEl = document.getElementById('topic');
+      const topic = topicEl ? topicEl.value.trim() : '';
+      if (!topic) {
+        if (topicEl) topicEl.focus();
+        return alert("Please enter a topic");
+      }
+
+      const durationEl = document.getElementById('duration');
+      const duration = durationEl ? parseFloat(durationEl.value) : 10;
+      const durationText = durationEl?.options[durationEl.selectedIndex]?.text || `${duration} Minutes`;
+
+      const languageEl = document.getElementById('language');
+      const language = languageEl ? languageEl.value : 'Traditional Chinese';
+      const languageText = languageEl?.options[languageEl.selectedIndex]?.text || language;
+
+      const voiceEl = document.getElementById('voice-select');
+      let voice = voiceEl ? voiceEl.value : '';
+      const stageVoiceModel = document.getElementById('model-stage-voice') ? document.getElementById('model-stage-voice').value : null;
+      let chosenVoiceObj = (cachedVoiceList || []).find(v => v.name === voice);
+      if (!chosenVoiceObj && stageVoiceModel) {
+        chosenVoiceObj = (cachedVoiceList || []).find(v => v.provider === stageVoiceModel || ((stageVoiceModel === 'cosyvoice' || stageVoiceModel === 'cozyvoice') && (v.provider === 'cosyvoice' || v.provider === 'cozyvoice')));
+        if (chosenVoiceObj) voice = chosenVoiceObj.name;
+      }
+      if (chosenVoiceObj && chosenVoiceObj.provider) {
+        voice = chosenVoiceObj.name;
+      }
+      const voiceText = voiceEl?.options[voiceEl.selectedIndex]?.text || voice || 'Default Voice';
+
+      const placementEl = document.getElementById('creator-presenter-placement');
+      const presenterPlacement = placementEl ? placementEl.value : (document.getElementById('creator-auto-presenter') && document.getElementById('creator-auto-presenter').checked ? 'intro' : 'none');
+      const avatarEl = document.getElementById('creator-presenter-avatar');
+      const defaultAvatar = avatarEl ? avatarEl.value : null;
+      const autoPresenter = presenterPlacement !== 'none';
+
+      const stageModels = getSelectedStageModels();
+      const ai_pct = parseFloat(document.getElementById('ai-video-pct')?.value || '0');
+
+      // Avatar character selection display text
+      const isPureRemotionNoPresenter = (window.activeRemotionPreset === 'gary_chen' || (stageModels.animation === 'remotion' && ai_pct === 0 && window.activeRemotionPreset !== 'blueprint'));
+      let avatarText = '🚫 不出鏡 (None / No presenter avatar)';
+      if (!isPureRemotionNoPresenter && autoPresenter && presenterPlacement !== 'none') {
+        const avName = avatarEl?.options[avatarEl.selectedIndex]?.text || defaultAvatar || 'Presenter Avatar';
+        const plName = placementEl?.options[placementEl.selectedIndex]?.text || presenterPlacement;
+        avatarText = `${avName} · [${plName}]`;
+      }
+
+      // Remotion style (if Remotion is selected)
+      const remotionInfo = getActiveRemotionStyleInfo(stageModels, ai_pct);
+
+      // Populate confirmation modal fields
+      const modalTopicEl = document.getElementById('confirm-modal-topic');
+      if (modalTopicEl) modalTopicEl.textContent = topic;
+      const modalDurEl = document.getElementById('confirm-modal-duration');
+      if (modalDurEl) modalDurEl.textContent = durationText;
+      const modalVoiceEl = document.getElementById('confirm-modal-voice');
+      if (modalVoiceEl) modalVoiceEl.textContent = voiceText;
+      const modalAvatarEl = document.getElementById('confirm-modal-avatar');
+      if (modalAvatarEl) modalAvatarEl.textContent = avatarText;
+      const modalLangEl = document.getElementById('confirm-modal-language');
+      if (modalLangEl) modalLangEl.textContent = languageText;
+
+      const remotionRow = document.getElementById('confirm-modal-remotion-row');
+      const remotionStyleEl = document.getElementById('confirm-modal-remotion-style');
+      if (remotionInfo.isSelected) {
+        if (remotionRow) remotionRow.style.display = 'flex';
+        if (remotionStyleEl) remotionStyleEl.textContent = remotionInfo.styleName;
+      } else {
+        if (remotionRow) remotionRow.style.display = 'none';
+      }
+
+      pendingCreationAction = () => executeCreation();
+
+      const modal = document.getElementById('create-video-confirm-modal');
+      if (modal) modal.style.display = 'flex';
+    }
+
+    async function executeCreation() {
       const topic = document.getElementById('topic').value.trim();
       if (!topic) return alert("Please enter a topic");
       const duration = parseFloat(document.getElementById('duration').value);
@@ -3723,6 +3896,7 @@
       const btn = document.getElementById('btn-create-video');
       const btn2 = document.getElementById('btn-create-video-bottom');
       const origText = btn ? btn.innerHTML : 'CREATE VIDEO';
+      const origText2 = btn2 ? btn2.innerHTML : 'CREATE VIDEO';
       if (btn) {
         btn.disabled = true;
         btn.innerHTML = '⏳ CREATING PROJECT...';
@@ -3802,6 +3976,10 @@
         if (btn) {
           btn.disabled = false;
           btn.innerHTML = origText;
+        }
+        if (btn2) {
+          btn2.disabled = false;
+          btn2.innerHTML = origText2;
         }
       }
     }
@@ -4094,9 +4272,10 @@
                     ${optsHtml}
                   </select>
                 </div>
-                <div style="margin-top:8px; display:flex; gap:6px; justify-content:flex-end;">
+                <div style="margin-top:8px; display:flex; gap:6px; justify-content:flex-end; flex-wrap:wrap;">
                   <button class="btn-sec" style="padding:3px 8px; font-size: 12px;" onclick="openStudioStage('${stName}')" title="Open in Stage Studio">🛠️ Studio</button>
                   <button class="btn-sec" style="padding:3px 8px; font-size: 12px;" onclick="openStageInspector('${stName}')" title="Inspect & Tune stage data">⚙️ Tune</button>
+                  ${stName === 'scenes' ? `<button class="btn-sec" style="padding:3px 8px; font-size: 12px; background: rgba(56, 189, 248, 0.15); border-color: #0284c7; color: #38bdf8; font-weight: 600;" onclick="openStage3ExportModal()" title="匯出 Stage 3 分鏡腳本供團隊審閱">📤 匯出</button>` : ''}
                   <button id="stage-run-btn-${stName}" class="btn-sec" style="padding:3px 8px; font-size: 12px; background:var(--gradient-cta); border-color:rgba(255,255,255,0.2); color:#fff; font-weight:700;" onclick="runSingleStage('${stName}')" ${isStRunning ? 'disabled' : ''} title="Run only this stage">▶ Run</button>
                 </div>
               `;
@@ -7835,6 +8014,8 @@
         bodyHtml += `</div>`;
         actionButtons = `
           <button class="btn-sec" onclick="saveInspectedStage('scenes')">Save Scenes</button>
+          <button class="btn-sec" style="background: rgba(56, 189, 248, 0.15); border-color: #0284c7; color: #38bdf8; font-weight: 700; display: inline-flex; align-items: center; gap: 5px;" onclick="openStage3ExportModal()" title="匯出 Stage 3 分鏡腳本供團隊審閱">📤 匯出分鏡腳本 (Export)</button>
+          <button class="btn-sec" onclick="copyStage3ScriptToClipboard()" title="複製全部分鏡台詞至剪貼簿">📋 複製台詞</button>
           <button class="btn-primary" onclick="runSingleStage('scenes')">▶ Re-run Scenes</button>
         `;
       } else if (stageName === 'prompts') {
@@ -11557,11 +11738,20 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       } else if (stKey === 'scenes') {
         const scenes = data.scenes || [];
         bodyHtml += `
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-            <div style="font-size: 13px; color: var(--text-muted);">
-              Total Storyboard Scenes: <b style="color: #93c5fd;">${scenes.length}</b>. Edit narration chunks and camera motion per scene below.
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+            <div style="font-size: 13px; color: var(--text-muted); display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <span>Total Storyboard Scenes: <b style="color: #93c5fd;">${scenes.length}</b></span>
+              <span style="font-size: 11px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.35); padding: 2px 8px; border-radius: 10px; font-weight: 600;">🎬 Stage 3 Actual Script</span>
             </div>
-            <button class="btn-sec" style="font-size: 12px; padding: 5px 12px;" onclick="saveStudioStage('scenes')">💾 Save Scenes</button>
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+              <button class="btn-sec" style="font-size: 12px; padding: 6px 14px; background: linear-gradient(135deg, rgba(56, 189, 248, 0.2) 0%, rgba(37, 99, 235, 0.25) 100%); border-color: #38bdf8; color: #bae6fd; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;" onclick="openStage3ExportModal()" title="匯出 Stage 3 分鏡審閱腳本（支援 .txt 校對文稿、.csv 試算表、.md 結構文檔與純對白朗讀稿）">
+                📤 匯出分鏡腳本 (Export Script) ▼
+              </button>
+              <button class="btn-sec" style="font-size: 12px; padding: 6px 12px; display: inline-flex; align-items: center; gap: 5px;" onclick="copyStage3ScriptToClipboard()" title="一鍵複製全部分鏡之旁白台詞至剪貼簿">
+                📋 複製台詞
+              </button>
+              <button class="btn-sec" style="font-size: 12px; padding: 6px 12px;" onclick="saveStudioStage('scenes')">💾 Save Scenes</button>
+            </div>
           </div>
           <div style="display: flex; flex-direction: column; gap: 14px;">
         `;
@@ -14057,6 +14247,129 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       }
     }
 
+    // ---------------- Stage 3 Actual Script Export & Review ----------------
+    function openStage3ExportModal() {
+      if (!currentProjectId) return alert("Please select a project first.");
+      const modal = document.getElementById('stage3-export-modal');
+      if (!modal) return;
+
+      const pTitle = currentProject?.title || currentProject?.data?.title || currentProject?.data?.topic || currentProjectId;
+      const scenes = (studioStageData && studioStageData.scenes) || (inspectedStageData && inspectedStageData.scenes) || currentScenes || [];
+      const totalScenes = scenes.length;
+
+      let totalDuration = 0;
+      scenes.forEach(s => {
+        totalDuration += Number(s.audio_duration || s.estimated_duration || 5.0);
+      });
+      const durMin = Math.floor(totalDuration / 60);
+      const durSec = Math.round(totalDuration % 60);
+      const durStr = durMin > 0 ? `${durMin}分 ${durSec}秒 (~${totalDuration.toFixed(1)}s)` : `~${totalDuration.toFixed(1)}秒`;
+
+      const projEl = document.getElementById('stage3-stat-project');
+      const scEl = document.getElementById('stage3-stat-scenes');
+      const durEl = document.getElementById('stage3-stat-duration');
+      const statEl = document.getElementById('stage3-stat-status');
+
+      if (projEl) projEl.textContent = pTitle;
+      if (scEl) scEl.textContent = totalScenes > 0 ? String(totalScenes) : (currentProject?.stages?.scenes?.total || '0');
+      if (durEl) durEl.textContent = durStr;
+      if (statEl) {
+        const isDone = currentProject?.stages?.scenes?.status === 'COMPLETED';
+        statEl.textContent = isDone ? '✓ Completed' : (totalScenes > 0 ? 'Ready' : 'Pending');
+        statEl.className = isDone ? 'badge badge-green' : 'badge badge-blue';
+      }
+
+      modal.style.display = 'flex';
+      const sel = document.getElementById('stage3-preview-format-select');
+      const currentFmt = sel ? sel.value : 'txt';
+      loadStage3ScriptPreview(currentFmt);
+    }
+
+    function closeStage3ExportModal() {
+      const modal = document.getElementById('stage3-export-modal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    function downloadStage3Script(fmt) {
+      if (!currentProjectId) return alert("Please select a project first.");
+      window.open(`/api/projects/${currentProjectId}/export_stage3_script?format=${encodeURIComponent(fmt)}`, '_blank');
+    }
+
+    async function loadStage3ScriptPreview(fmt = 'txt') {
+      const previewArea = document.getElementById('stage3-export-preview-area');
+      if (!previewArea) return;
+      if (!currentProjectId) {
+        previewArea.value = "請先選擇專案。";
+        return;
+      }
+      previewArea.value = "載入分鏡審閱稿中 (Loading Stage 3 script preview)...";
+      try {
+        const data = await apiJson(`/api/projects/${currentProjectId}/stage3_script_preview?format=${encodeURIComponent(fmt)}`);
+        if (data && data.content) {
+          previewArea.value = data.content;
+          if (data.total_scenes && document.getElementById('stage3-stat-scenes')) {
+            document.getElementById('stage3-stat-scenes').textContent = data.total_scenes;
+          }
+          if (data.total_duration_display && document.getElementById('stage3-stat-duration')) {
+            document.getElementById('stage3-stat-duration').textContent = data.total_duration_display;
+          }
+        } else {
+          previewArea.value = "尚未生成分鏡腳本或內容為空。";
+        }
+      } catch (e) {
+        previewArea.value = `無法載入預覽: ${e.message}\n提示：請先確認此專案已完成 Stage 3 分鏡規劃。`;
+      }
+    }
+
+    async function copyStage3PreviewContent() {
+      const previewArea = document.getElementById('stage3-export-preview-area');
+      if (!previewArea || !previewArea.value.trim()) return alert("目前無可複製之預覽內容。");
+      try {
+        await navigator.clipboard.writeText(previewArea.value);
+        showToast("📋 分鏡審閱稿已成功複製至剪貼簿！(Copied to clipboard)");
+      } catch (err) {
+        previewArea.select();
+        document.execCommand('copy');
+        showToast("📋 分鏡審閱稿已複製至剪貼簿！");
+      }
+    }
+
+    async function copyStage3FormattedText(fmt = 'txt') {
+      if (!currentProjectId) return alert("Please select a project first.");
+      try {
+        showToast("⏳ 正在取得文稿內容...");
+        const data = await apiJson(`/api/projects/${currentProjectId}/stage3_script_preview?format=${encodeURIComponent(fmt)}`);
+        if (!data || !data.content) throw new Error("文稿為空");
+        await navigator.clipboard.writeText(data.content);
+        const nameMap = { txt: '分鏡校對文稿 (.txt)', md: 'Markdown 腳本 (.md)', narration: '純台詞朗讀稿 (.txt)', csv: 'CSV 表格' };
+        showToast(`📋 已成功複製 ${nameMap[fmt] || fmt} 至剪貼簿！`);
+      } catch (err) {
+        alert("複製失敗: " + err.message);
+      }
+    }
+
+    async function copyStage3ScriptToClipboard() {
+      if (!currentProjectId) return alert("Please select a project first.");
+      const scenes = (studioStageData && studioStageData.scenes) || (inspectedStageData && inspectedStageData.scenes) || currentScenes || [];
+      if (scenes && scenes.length > 0) {
+        const lines = [];
+        scenes.forEach(s => {
+          const spk = s.speaker || s.character;
+          const spkStr = spk ? `[${spk}] ` : '';
+          lines.push(`[Scene #${s.scene_id}] ${spkStr}${s.narration || ''}`);
+        });
+        const text = lines.join('\n\n');
+        try {
+          await navigator.clipboard.writeText(text);
+          showToast(`📋 已成功複製共 ${scenes.length} 幕分鏡台詞至剪貼簿！`);
+          return;
+        } catch (err) {
+          // fallback
+        }
+      }
+      return copyStage3FormattedText('narration');
+    }
+
     function triggerScriptFileUpload() {
       const inp = document.getElementById('studio-script-file-input');
       if (inp) {
@@ -16455,6 +16768,25 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       setTimeout(() => {
         onStageModelChange();
       }, 500);
+
+      // Final confirmation modal handlers
+      const confirmModalEl = document.getElementById('create-video-confirm-modal');
+      if (confirmModalEl) {
+        confirmModalEl.addEventListener('click', (e) => {
+          if (e.target === confirmModalEl) {
+            closeCreateVideoConfirmModal();
+          }
+        });
+      }
+
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          const m = document.getElementById('create-video-confirm-modal');
+          if (m && m.style.display === 'flex') {
+            closeCreateVideoConfirmModal();
+          }
+        }
+      });
     });
 
     // ==================== OPENOPUS CLASSICAL MUSIC INTEGRATION ====================
