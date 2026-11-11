@@ -162,3 +162,52 @@ def test_translate_world_setting_to_english():
     assert translated["temporal_era"] == "2020s urban lifestyle"
     assert translated["negative_anachronisms"] == ["ancient costumes"]
 
+
+def test_real_world_scene_schematic_and_hardware_bleed_guard():
+    # Exactly reproducing the Scene 2 bug:
+    style = {
+        "style": "3D technical schematic, isometric mechanical cross-section diagram, clean CGI render, Octane render, scientific industrial visualization, precision engineering cutaway, high contrast dark studio background, 8k resolution, Unreal Engine 5 technical visualization",
+        "lighting": "precision studio rim lighting",
+        "lens": "50mm orthographic perspective, razor sharp engineering focus, clean depth separation",
+        "mood": "precise, high-tech, informative"
+    }
+    parts = {
+        "subject": "Monochrome halt patterns and static visual signals displayed on flight display panels",
+        "environment": "Empty airport terminal interior at twilight, polished terrazzo floors",
+        "composition": "Cinematic eye-level shot through reflective architectural glass partition",
+        "mood": "Desolate, quiet catastrophe, paralyzed"
+    }
+    world_setting = {
+        "temporal_era": "Contemporary computing era, circa 1990s microkernel debates to 2026 hyperscale datacenter and high-frequency trading infrastructure.",
+        "environment_reality": "Hyper-realistic microscopic semiconductor cyberspace blended with ultra-dense server racks in modern enterprise datacenters. Gleaming silicon wafers, glowing bus interconnects, copper heat pipes, liquid cooling manifolds, fiber optic server trays, and abstract data packet streams visualized as glowing geometric pulse packets.",
+        "key_settings": "The CPU Privilege Fortress",
+        "ensemble_specs": "No human figures",
+        "negative_anachronisms": []
+    }
+    entity_desc = [
+        "An ultra-clean enterprise datacenter aisle lined with matte-black server racks, glowing vertical cyan and amber status LED strips, and overhead copper-accented liquid cooling conduits."
+    ]
+
+    prompt = compose(parts, style, entity_desc, "image", world_setting=world_setting)
+
+    # 1. Isometric & cutaway conflicting schematic keywords must be stripped for cinematic airport shot
+    assert "isometric mechanical cross-section diagram" not in prompt
+    assert "precision engineering cutaway" not in prompt
+    assert "50mm orthographic perspective" not in prompt
+
+    # 2. Hardware / semiconductor cyberspace environment must NOT bleed into airport terminal
+    assert "microscopic semiconductor cyberspace" not in prompt
+    assert "liquid cooling manifolds" not in prompt
+
+    # 3. Datacenter entity description must NOT be injected into incompatible airport scene
+    assert "enterprise datacenter aisle" not in prompt
+
+    # 4. Debates jargon must be cleaned up from era anchor
+    assert "microkernel debates" not in prompt
+
+    # 5. Core cinematic airport elements and render qualities must remain intact
+    assert "Empty airport terminal interior" in prompt
+    assert "Cinematic eye-level shot" in prompt
+    assert "Unreal Engine 5" in prompt
+
+

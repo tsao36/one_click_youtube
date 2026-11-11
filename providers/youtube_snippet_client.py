@@ -62,8 +62,11 @@ def extract_video_id(query_or_url: str) -> Optional[str]:
     return None
 
 
-def search_youtube_videos(query: str, limit: int = 5) -> list[dict[str, Any]]:
-    """Search YouTube for footage matching the query and return metadata entries."""
+def search_youtube_videos(query: str, limit: int = 5, filter_simplified_chinese: bool = True) -> list[dict[str, Any]]:
+    """Search YouTube for footage matching the query and return metadata entries.
+    
+    If filter_simplified_chinese is True, entries with Simplified Chinese characters or PRC media channels are skipped.
+    """
     _require_yt_dlp()
     _ensure_ffmpeg_path()
     clean_q = query.strip()
@@ -77,10 +80,13 @@ def search_youtube_videos(query: str, limit: int = 5) -> list[dict[str, Any]]:
         "skip_download": True,
     }
 
+    # Fetch extra entries to allow discarding Simplified Chinese candidates while fulfilling requested limit
+    fetch_limit = max(limit * 3, 12) if filter_simplified_chinese else limit
+
     results: list[dict[str, Any]] = []
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            data = ydl.extract_info(f"ytsearch{limit}:{clean_q}", download=False)
+            data = ydl.extract_info(f"ytsearch{fetch_limit}:{clean_q}", download=False)
             entries = data.get("entries", []) if data else []
             for item in entries:
                 if not item:
@@ -88,16 +94,36 @@ def search_youtube_videos(query: str, limit: int = 5) -> list[dict[str, Any]]:
                 v_id = item.get("id")
                 if not v_id:
                     continue
+                v_title = item.get("title") or "YouTube Video"
+                v_channel = item.get("uploader") or item.get("channel") or ""
+                v_desc = item.get("description") or ""
+
+                if filter_simplified_chinese:
+                    try:
+                        from core.taiwan_mandarin import contains_simplified_chinese, is_prohibited_china_source
+                        is_prohib, reason = is_prohibited_china_source(f"{v_title} {v_channel} {v_desc}")
+                        if is_prohib:
+                            log.info("Filtering out YouTube candidate '%s' (channel: %s): %s", v_title, v_channel, reason)
+                            continue
+                        has_simp, simp_chars = contains_simplified_chinese(f"{v_title} {v_channel}")
+                        if has_simp:
+                            log.info("Filtering out YouTube candidate '%s' due to Simplified Chinese characters: %s", v_title, simp_chars)
+                            continue
+                    except Exception as filter_err:
+                        log.debug("Simplified Chinese filter check error: %s", filter_err)
+
                 v_url = item.get("url") or f"https://www.youtube.com/watch?v={v_id}"
                 dur = float(item.get("duration") or 0.0)
                 results.append({
                     "id": v_id,
-                    "title": item.get("title") or "YouTube Video",
+                    "title": v_title,
                     "url": v_url,
                     "duration": dur,
                     "thumbnail_url": f"https://img.youtube.com/vi/{v_id}/hqdefault.jpg",
-                    "channel": item.get("uploader") or item.get("channel") or "",
+                    "channel": v_channel,
                 })
+                if len(results) >= limit:
+                    break
     except Exception as e:
         log.warning("YouTube search failed for query '%s': %s", clean_q, e)
 
@@ -158,6 +184,7 @@ def extract_youtube_snippet(
     target_scene_id: Optional[int] = None,
     media_registry: Optional[dict[str, list[int]]] = None,
     min_scene_distance: int = 6,
+    filter_simplified_chinese: bool = True,
 ) -> dict[str, Any]:
     """Search YouTube or use a direct URL to extract a 2-3s short clip and/or a 1080p center-cropped screenshot.
 
@@ -170,6 +197,7 @@ def extract_youtube_snippet(
         as_clip: If True, extract video clip and frame; if False, extract screenshot only.
         target_w: Output width (default 1920).
         target_h: Output height (default 1080).
+        filter_simplified_chinese: If True, rejects clips with Simplified Chinese or PRC sources.
 
     Returns:
         Dictionary containing metadata, file paths, title, and source URL.
@@ -199,9 +227,36 @@ def extract_youtube_snippet(
             # Downgrade to query search to discover non-conflicting footage
             video_id = None
 
-    # If it's a search term (or invalidated direct URL due to cooldown), search with deduplication
+    # Check if direct YouTube URL contains Simplified Chinese or PRC media sources
+    if video_id and filter_simplified_chinese:
+        try:
+            ydl_peek = {
+                "quiet": True,
+                "no_warnings": True,
+                "skip_download": True,
+            }
+            with yt_dlp.YoutubeDL(ydl_peek) as ydl:
+                info = ydl.extract_info(video_url, download=False)
+                if info:
+                    from core.taiwan_mandarin import contains_simplified_chinese, is_prohibited_china_source
+                    v_title = info.get("title") or ""
+                    v_channel = info.get("uploader") or info.get("channel") or ""
+                    is_proh, p_reason = is_prohibited_china_source(f"{v_title} {v_channel}")
+                    has_simp, simp_chars = contains_simplified_chinese(f"{v_title} {v_channel}")
+                    if is_proh or has_simp:
+                        reason = p_reason if is_proh else f"Contains Simplified Chinese characters: {simp_chars}"
+                        log.warning(
+                            "Direct YouTube URL '%s' rejected (%s). Searching for clean alternative candidates...",
+                            clean_target,
+                            reason
+                        )
+                        video_id = None
+        except Exception as e:
+            log.debug("Direct YouTube validation failed: %s", e)
+
+    # If it's a search term (or invalidated direct URL due to cooldown/simplified Chinese), search with deduplication
     if not video_id:
-        cands = search_youtube_videos(clean_target, limit=10)
+        cands = search_youtube_videos(clean_target, limit=10, filter_simplified_chinese=filter_simplified_chinese)
         if not cands:
             raise RuntimeError(f"No YouTube footage found for query: '{clean_target}'")
 

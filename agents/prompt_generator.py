@@ -10,10 +10,17 @@ from agents.prompts_common import UNIVERSAL_QUALITY_NEGATIVE, merge_negative_pro
 
 SYSTEM = (
     "You are an expert visual director and prompt engineer for high-end text-to-image models (SDXL, DALL-E 3, FLUX). "
-    "Your mission is to generate visual prompts where EACH scene's imagery is directly and clearly tied to the spoken caption transcript. "
+    "Your mission is to generate visual prompts where EACH scene's imagery is directly, tangibly, and clearly tied to the spoken caption transcript. "
     "CRITICAL GUIDELINES:\n"
-    "1. TRANSCRIPT INTEGRATION: For EVERY scene, you MUST incorporate the specific core keywords, technical terminology, objects, visual metaphors, or actions from the 'Caption Transcript' directly into the 'subject' and 'environment'.\n"
-    "2. CONTEXTUAL GROUNDING: Always preserve the subject context of the overall video topic. Do not produce generic unrelated imagery. The visual elements must make total sense in the context of the subject (e.g. telecommunications, semiconductor, consumer tech, historical documentary).\n"
+    "1. TRANSCRIPT INTEGRATION & DRAMATIC RELEVANCE: For EVERY scene, you MUST incorporate the specific core keywords, technical terminology, objects, visual metaphors, or actions from the 'Caption Transcript' directly into the 'subject' and 'environment'.\n"
+    "   - CRISIS / OUTAGE / PARALYSIS STORYTELLING: When narration describes a crash, breakdown, outage, or paralyzation (e.g. 停擺, 當機, 癱瘓, 崩潰, 藍屏, crash, outage, paralyzed, emergency), depict concrete, high-tension visual proof of the event:\n"
+    "     * Flight/transit departure boards filled with bright red 'CANCELLED' status or flashing system failure codes.\n"
+    "     * Computer screens, terminals, and hospital diagnostic monitors glowing with the Blue Screen of Death (BSOD) or critical system halt prompts.\n"
+    "     * Compelling atmospheric tension: deserted airport gate corridors with abandoned luggage carts, dark hospital corridors under amber emergency backup lights.\n"
+    "     * NEVER reduce real-world infrastructure crises into vague monochrome static, abstract floating cubes, or unrelated server racks.\n"
+    "2. CONTEXTUAL & SPATIAL INTEGRITY (NO CROSS-CONTAMINATION):\n"
+    "   - When a scene depicts real-world environments (airports, hospitals, cities, streets, offices, public buildings), describe authentic physical spaces. NEVER force internal micro-hardware metaphors (server racks, silicon wafers, cooling pipes) into real-world public scenes.\n"
+    "   - Never mix contradictory spatial perspectives (do NOT combine isometric mechanical cutaways with eye-level or wide cinematic photographic framing).\n"
     "3. ERGONOMIC & ANATOMICAL PLAUSIBILITY (CRITICAL FOR HUMANS):\n"
     "   - When human subjects, hands, or poses appear, enforce natural ergonomics and biologically plausible biomechanics.\n"
     "   - STRICTLY TWO ARMS & TWO HANDS: Every human figure MUST have strictly and exactly two natural arms, two natural hands, and five fingers per hand. Never describe overlapping gestures or multi-tasking poses that cause diffusion models to hallucinate extra arms or 4 hands.\n"
@@ -69,6 +76,43 @@ def compose(parts: dict, style: dict, entity_desc: list[str], visual_type: str, 
     style_str = style.get("style", "")
     mood_str = parts.get("mood") or style.get("mood", "")
 
+    scene_text = f"{parts.get('subject', '')} {parts.get('environment', '')} {parts.get('composition', '')}".lower()
+    is_real_world = bool(re.search(
+        r"\b(airport|terminal|hospital|clinic|ward|patient|doctor|nurse|plane|airplane|flight|"
+        r"subway|train|railway|station|street|city|urban|highway|building|exterior|interior|"
+        r"room|office|desk|classroom|school|court|courtroom|living room|kitchen|bedroom|"
+        r"store|shop|mall|restaurant|hall|corridor|crowd|passengers|travelers|pedestrians)\b",
+        scene_text
+    ))
+    has_cinematic_camera = bool(re.search(
+        r"\b(cinematic|eye-level|eye level|wide shot|establishing shot|over-the-shoulder|"
+        r"close-up|medium shot|aerial shot|dutch angle|depth of field|panoramic)\b",
+        scene_text
+    ))
+
+    # Strip conflicting schematic / isometric tokens when scene is photographic or real-world
+    lens_str = style.get("lens", "") if visual_type != "diagram" else ""
+    if visual_type != "diagram" and (is_real_world or has_cinematic_camera):
+        conflicting_schematic_patterns = [
+            r"\b3D technical schematic,?\s*",
+            r"\bisometric mechanical cross-section diagram,?\s*",
+            r"\bmechanical cross-section diagram,?\s*",
+            r"\bisometric mechanical,?\s*",
+            r"\bisometric cross-section,?\s*",
+            r"\bprecision engineering cutaway,?\s*",
+            r"\bengineering cutaway,?\s*",
+            r"\bscientific industrial visualization,?\s*",
+            r"\bhigh contrast dark studio background,?\s*",
+            r"\bdark studio background,?\s*",
+        ]
+        for pat in conflicting_schematic_patterns:
+            style_str = re.sub(pat, "", style_str, flags=re.IGNORECASE)
+        style_str = style_str.strip().strip(",")
+
+        lens_str = re.sub(r"\b50mm orthographic perspective,?\s*", "", lens_str, flags=re.IGNORECASE)
+        lens_str = re.sub(r"\borthographic perspective,?\s*", "", lens_str, flags=re.IGNORECASE)
+        lens_str = lens_str.strip().strip(",")
+
     era_anchor = ""
     env_anchor = ""
     era_constraints = ""
@@ -101,13 +145,36 @@ def compose(parts: dict, style: dict, entity_desc: list[str], visual_type: str, 
                 mood_str = re.sub(pat, "", mood_str, flags=re.IGNORECASE)
 
         if era and era.lower() != "contemporary":
-            era_anchor = f"authentic historical setting: {era}"
+            cleaned_era = era
+            if is_real_world:
+                cleaned_era = re.sub(r"\bcirca\s+\d+s\s+.*?debates\s+to\b", "", cleaned_era, flags=re.IGNORECASE)
+                cleaned_era = re.sub(r"\bdebates\s+to\b", "", cleaned_era, flags=re.IGNORECASE)
+                cleaned_era = cleaned_era.strip().strip(",").strip()
+            if cleaned_era:
+                era_anchor = f"authentic historical setting: {cleaned_era}"
+
         if env and env.lower() != "realistic authentic environment":
-            env_anchor = f"historical environment reality: {env}"
+            # Guard: do NOT inject hardware/semiconductor/cyberspace micro-environments into real-world civilian/infrastructure scenes
+            is_hardware_env = bool(re.search(
+                r"\b(semiconductor|cyberspace|server racks?|silicon wafers?|cooling manifolds?|bus interconnects?|data packet streams?)\b",
+                env, re.IGNORECASE
+            ))
+            if not (is_real_world and is_hardware_env):
+                env_anchor = f"historical environment reality: {env}"
 
         if negatives:
             neg_list_str = ", ".join(negatives) if isinstance(negatives, list) else str(negatives)
             era_constraints = f"CRITICAL ERA CONSTRAINTS: Must strictly depict {era or 'the designated historical era'}; absolutely NO {neg_list_str}"
+
+    # Filter out environment-level entities if scene already has an incompatible real-world setting
+    filtered_entity_desc = []
+    for ed in entity_desc:
+        ed_lower = ed.lower()
+        is_env_entity = bool(re.search(r"\b(datacenter|server racks?|cooling conduits?|server facility)\b", ed_lower))
+        if is_real_world and is_env_entity:
+            if not any(k in scene_text for k in ["server", "datacenter", "facility", "rack"]):
+                continue
+        filtered_entity_desc.append(ed)
 
     pieces = [
         parts.get("subject"),
@@ -115,10 +182,10 @@ def compose(parts: dict, style: dict, entity_desc: list[str], visual_type: str, 
         parts.get("composition"),
         era_anchor,
         env_anchor,
-        *entity_desc,
+        *filtered_entity_desc,
         parts.get("lighting") or style.get("lighting"),
         style_str,
-        style.get("lens", "") if visual_type != "diagram" else "",
+        lens_str,
         mood_str,
     ]
     

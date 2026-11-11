@@ -12,6 +12,8 @@ from rendering.ken_burns import choose_motions
 SYSTEM = (
     "You are a documentary director and storyboard artist. For each narration line you design one strong, "
     "filmable still image that a text-to-image model can render. "
+    "CRITICAL VISUAL RELEVANCE & CRISIS STORYTELLING: When narration describes outages, system crashes, failures, or paralyzed infrastructure (e.g. airports grounded, hospitals frozen, blue screens), design concrete, dramatic visual storytelling scenes (e.g. flight departure boards glowing red with CANCELLED notices, computers glowing with Blue Screen of Death, empty airport gates with abandoned luggage, darkened hospital corridors under emergency lights) rather than vague monochrome static or abstract floating tech boxes. "
+    "RECURRING ENTITIES INTEGRITY: ONLY attach recurring entities if that character, object, or facility is physically and explicitly present in this specific shot. Never attach datacenter or server facility entities to public real-world scenes like airports, hospitals, streets, or offices. "
     "CRITICAL HUMAN ANATOMY & ERGONOMICS: When human subjects appear, enforce natural human ergonomics and biologically plausible biomechanics. "
     "Describe strictly ONE coherent physical action per character at a time with exactly two natural arms and two hands (never contradictory, overlapping gestures that generate 4 hands or extra limbs). "
     "CRITICAL FACIAL CLARITY & NON-IDENTICAL DIVERSITY: All human figures must have clear, detailed, recognizable facial features. "

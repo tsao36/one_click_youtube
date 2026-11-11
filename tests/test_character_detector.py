@@ -125,3 +125,59 @@ def test_match_scenes_rejects_generic_topic_and_stopwords():
     ]
     matched = match_scenes_for_character(char, scenes, topic='機場 Wi-Fi 為什麼這麼慢？')
     assert matched == [3], f'Expected [3], got {matched}'
+
+
+def test_rejects_simplified_chinese_youtube_media():
+    from core.character_detector import is_youtube_clip_relevant_to_scene
+    char_song = {
+        "name": "宋五嫂",
+        "search_keywords": ["宋五嫂", "宋嫂魚羹"]
+    }
+    # Simplified Chinese title from mainland aggregator
+    assert not is_media_relevant_for_character(
+        char_song,
+        "杭州名菜竟不是杭州人发明的?一道传承千年的宋五嫂鱼羹,鲜嫩润滑,难怪流传千年!#宋嫂鱼羹",
+        "美食纪录片"
+    )
+    # CCTV / PRC state media title
+    assert not is_media_relevant_for_character(
+        char_song,
+        "宋高宗与宋五嫂 | CCTV百家讲坛",
+        "CCTV百家讲坛官方频道"
+    )
+    # Traditional Chinese title
+    assert is_media_relevant_for_character(
+        char_song,
+        "宋五嫂魚羹的由來與傳奇故事",
+        "台灣歷史文化頻道"
+    )
+
+    # is_youtube_clip_relevant_to_scene rejection
+    clip_simp = {
+        "url": "https://www.youtube.com/watch?v=BQrXYtOrWb8",
+        "title": "杭州名菜竟不是杭州人发明的?一道传承千年的宋五嫂鱼羹",
+        "channel": "老味道"
+    }
+    rel, reason = is_youtube_clip_relevant_to_scene(clip_simp, {"narration": "宋五嫂在西湖畔販售魚羹"}, char_song)
+    assert not rel
+    assert "Simplified Chinese" in reason
+
+    # Channel with simplified character '梦' in name is also caught
+    clip_mixed = {
+        "url": "https://www.youtube.com/watch?v=bJ2lMtdUlco",
+        "title": "替岳飛平反、決心北伐，宋孝宗為何仍難收復失地？看懂趙昚未竟的中興之夢！",
+        "channel": "浮梦說書"
+    }
+    char_xiaozong = {"name": "宋孝宗", "search_keywords": ["宋孝宗", "趙昚"]}
+    rel_mixed, reason_mixed = is_youtube_clip_relevant_to_scene(clip_mixed, {"narration": "宋孝宗趙昚力圖北伐收復山河"}, char_xiaozong)
+    assert not rel_mixed
+    assert "梦" in reason_mixed
+
+    # Completely authentic Traditional Chinese title and channel
+    clip_clean = {
+        "url": "https://www.youtube.com/watch?v=bJ2lMtdUlco",
+        "title": "替岳飛平反、決心北伐，宋孝宗為何仍難收復失地？看懂趙昚未竟的中興之夢！",
+        "channel": "歷史說書人"
+    }
+    rel_clean, _ = is_youtube_clip_relevant_to_scene(clip_clean, {"narration": "宋孝宗趙昚力圖北伐收復山河"}, char_xiaozong)
+    assert rel_clean

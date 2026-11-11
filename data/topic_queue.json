@@ -1,5 +1,40 @@
 [
   {
+    "topic": "宋朝連皇帝都偷叫外賣？州橋夜市通宵營業、外送小哥穿梭臨安的奢華日常",
+    "logline": "從滴酥水晶鱠到開封二十四小時不夜城，剖析宋代如何取消宵禁、誕生逐臭之夫、外賣制度與世界最早的紙幣交子。",
+    "category": "宋代生活奇觀與經濟",
+    "recommended_duration": 10.0,
+    "recommended_style": "cinematic_documentary",
+    "proof": {
+      "platform": "宋代筆記小說與市井文獻（《東京夢華錄》/《夢粱錄》）",
+      "metrics": "兩宋市井史料第一手詳盡筆錄 / 故宮《清明上河圖》細節考證",
+      "headline": "宋孝宗深夜遣內侍市買市井乳炊羊、南宋臨安街頭外送盤飧考",
+      "url": "https://ctext.org/wiki.pl?if=gb&chapter=278077",
+      "source_name": "孟元老《東京夢華錄》卷二 / 吳自牧《夢粱錄》",
+      "why_popular": "宋代經濟生活高度發達、甚至出現類似 Uber Eats 的外賣跑腿，與現代生活無縫共鳴，深具爆款特質。"
+    },
+    "type": "dynasty_trivia",
+    "id": "tq_1794326066415",
+    "created_at": "2026-11-10T23:54:26.415924"
+  },
+  {
+    "id": "tq_1794326023492",
+    "topic": "伊隆·馬斯克 引爆全網關注！事件始末與背後關鍵深度解析",
+    "logline": "深度梳理「伊隆·馬斯克」引發熱烈討論的關鍵核心，從背景脈絡到各界反應完整解密。",
+    "category": "時事焦點與深度剖析",
+    "recommended_duration": 5.0,
+    "recommended_style": "tech_schematic",
+    "proof": {
+      "platform": "Google Trends (台灣即時熱搜)",
+      "metrics": "搜尋量 200+ / 即時話題前列",
+      "headline": "烏克蘭Starshield合約2027年中到期 基輔急啟續約協商確保軍事通訊",
+      "url": "https://www.digitimes.com.tw/tech/dt/n/shwnws.asp?id=774078",
+      "source_name": "DIGITIMES",
+      "why_popular": "登上 Google 即時搜尋熱門趨勢，短時間內累積大量搜尋與新聞報導，深具大眾討論度。"
+    },
+    "created_at": "2026-11-10T23:53:43.493930"
+  },
+  {
     "id": "tq_1793924146357",
     "topic": "工業電腦 引爆全網關注！事件始末與背後關鍵深度解析",
     "logline": "深度梳理「工業電腦」引發熱烈討論的關鍵核心，從背景脈絡到各界反應完整解密。",

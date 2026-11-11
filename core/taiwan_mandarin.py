@@ -49,6 +49,7 @@ PROHIBITED_CHINA_NAMES = [
     "中國新聞社", "中新社", "光明日報", "中國日報", "求是", "學習強國",
     "百度", "知乎", "嗶哩嗶哩", "抖音", "小紅書", "今日頭條", "微博",
     "澎湃新聞", "共青團", "國務院新聞辦", "中共中央", "中宣部",
+    "cctv", "cgtn", "百家讲坛", "百家講壇", "央视频", "央視頻",
 ]
 
 
@@ -72,9 +73,9 @@ def is_prohibited_china_source(source_str: str) -> tuple[bool, str]:
             if dom in src_lower:
                 return True, f"Prohibited PRC platform or domain ({dom})"
                 
-    # Check state media / organization names
+    # Check state media / organization names (case-insensitive)
     for name in PROHIBITED_CHINA_NAMES:
-        if name in source_str:
+        if name.lower() in src_lower:
             return True, f"Prohibited PRC state media or platform ({name})"
             
     return False, ""
@@ -116,6 +117,10 @@ _SIMPLIFIED_DISTINCT_CHARS = set(
     "状桩捉桌灼拙卓茁浊准酌著啄孜兹滋淄资仔姿滋子自宗总纵阻祖组钻攥罪尊遵昨左佐作做座"
 )
 
+# Characters that are legitimately standard Traditional Chinese characters but s2t maps them anyway
+TRADITIONAL_COMPATIBLE_MERGED = set("岳里后面才干松板台准余只复钟秋系致谷征采胡沈苏郁注脏折")
+
+
 def contains_simplified_chinese(text: str) -> tuple[bool, list[str]]:
     """Detect if text contains simplified Chinese characters that differ from Taiwan Traditional characters.
     
@@ -127,17 +132,26 @@ def contains_simplified_chinese(text: str) -> tuple[bool, list[str]]:
     found: list[str] = []
     if _CC_S2T:
         try:
-            converted = _CC_S2T.convert(text)
-            for orig_ch, conv_ch in zip(text, converted):
-                if orig_ch != conv_ch and re.match(r"[\u4e00-\u9fff]", orig_ch):
-                    found.append(orig_ch)
+            for c in text:
+                if not ("\u4e00" <= c <= "\u9fff"):
+                    continue
+                conv_ch = _CC_S2T.convert(c)
+                if c != conv_ch and c not in TRADITIONAL_COMPATIBLE_MERGED:
+                    found.append(c)
                     if len(found) >= 10:
                         break
             return bool(found), found
         except Exception:
             pass
 
-    return False, []
+    # Fallback if OpenCC is unavailable
+    for c in text:
+        if c in _SIMPLIFIED_DISTINCT_CHARS and c not in TRADITIONAL_COMPATIBLE_MERGED:
+            found.append(c)
+            if len(found) >= 10:
+                break
+
+    return bool(found), found
 
 
 def sanitize_and_filter_sources(sources: list[str] | list[dict]) -> tuple[list[str], list[str]]:

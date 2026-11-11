@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class SceneType(str, Enum):
+    EDITORIAL_EXPLAINER = "EditorialExplainerScene"
     BRANCH_PATHWAY = "BranchPathwayScene"
     LEADER_CALLOUT = "LeaderCalloutScene"
     SCALE_COMPARE = "ScaleCompareScene"
@@ -41,6 +42,30 @@ class BaseSceneProps(BaseModel):
     dim: Optional[float] = Field(default=0.75, ge=0.0, le=1.0)
     accent_color: Optional[str] = Field(default="#00F5FF", alias="accentColor")
     badge: Optional[str] = Field(default="INVESTIGATIVE ANALYSIS")
+
+    model_config = {"populate_by_name": True}
+
+
+class EditorialExplainerItem(BaseModel):
+    label: str = Field(..., min_length=1, max_length=80)
+    value: str = Field(default="", max_length=50)
+    note: str = Field(default="", max_length=180)
+    status: Literal["neutral", "positive", "negative", "active"] = Field(default="neutral")
+
+
+class EditorialExplainerSceneProps(BaseModel):
+    scene_role: Literal["hook", "identity", "process", "metric", "comparison", "constraint", "timeline", "evidence", "synthesis"] = Field(..., alias="sceneRole")
+    kicker: str = Field(default="EXPLAINER", max_length=60)
+    title: str = Field(..., min_length=1, max_length=120)
+    statement: str = Field(default="", max_length=280)
+    metric: str = Field(default="", max_length=40)
+    metric_label: str = Field(default="", max_length=80, alias="metricLabel")
+    items: List[EditorialExplainerItem] = Field(default_factory=list, max_length=6)
+    source: str = Field(default="", max_length=160)
+    media_src: str = Field(default="", alias="mediaSrc")
+    accent_color: str = Field(default="#F59E0B", alias="accentColor")
+    positive_color: str = Field(default="#43D39E", alias="positiveColor")
+    negative_color: str = Field(default="#FF6B6B", alias="negativeColor")
 
     model_config = {"populate_by_name": True}
 
@@ -379,6 +404,7 @@ class WirelessSceneProps(BaseSceneProps):
 
 
 PROPS_SCHEMA_MAP = {
+    SceneType.EDITORIAL_EXPLAINER: EditorialExplainerSceneProps,
     SceneType.AGENT_SIMULATION: AgentSimulationSceneProps,
     SceneType.WIRELESS_NETWORK: WirelessSceneProps,
     SceneType.WIFI_ASSOCIATION: WirelessSceneProps,

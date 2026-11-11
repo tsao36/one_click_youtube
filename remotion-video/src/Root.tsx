@@ -15,6 +15,7 @@ import { BranchPathwayScene } from "./BranchPathwayScene";
 import { LeaderCalloutScene } from "./LeaderCalloutScene";
 import { ScaleCompareScene } from "./ScaleCompareScene";
 import { EvidenceHighlightScene } from "./EvidenceHighlightScene";
+import { EditorialExplainerScene } from "./EditorialExplainerScene";
 import { FoxHeaderScene } from "./FoxHeaderScene";
 import { FoxMetricScene } from "./FoxMetricScene";
 import { FoxDataListScene } from "./FoxDataListScene";
@@ -24,6 +25,7 @@ import {
   LeaderCalloutSceneSchema,
   ScaleCompareSceneSchema,
   EvidenceHighlightSceneSchema,
+  EditorialExplainerSceneSchema,
   FoxHeaderSceneSchema,
   FoxMetricSceneSchema,
   FoxDataListSceneSchema,
@@ -72,6 +74,29 @@ export const RemotionRoot: React.FC = () => {
   return (
     <>
       {/* 1. Production Documentary Archetypes */}
+      <Folder name="Editorial-Explainer-Template">
+        <Composition
+          id="EditorialExplainerScene"
+          component={EditorialExplainerScene}
+          schema={EditorialExplainerSceneSchema}
+          durationInFrames={180}
+          {...videoDimensions}
+          defaultProps={{
+            sceneRole: "constraint",
+            kicker: "SYSTEM BOTTLENECK",
+            title: "需求可以快速成長，供應鏈卻只能逐節擴張",
+            statement: "真正的上限通常不在資金，而在最慢、最稀缺、交期最長的依賴節點。",
+            items: [
+              { label: "核心產能", value: "2×", note: "中心系統的理論擴張上限", status: "active" },
+              { label: "設備", note: "交期與全球供給受限", status: "negative" },
+              { label: "材料", note: "每一步都需要合格投入", status: "neutral" },
+              { label: "人才", note: "經驗無法即時複製", status: "neutral" },
+              { label: "良率", note: "擴產初期仍需爬坡", status: "positive" },
+            ],
+            source: "Template preview · replace every field with verified subject data",
+          }}
+        />
+      </Folder>
       <Folder name="Documentary-Archetypes">
         <Composition
           id="BranchPathwayScene"

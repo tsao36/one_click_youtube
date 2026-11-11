@@ -9,6 +9,31 @@ export const BaseScenePropsSchema = z.object({
 });
 export type BaseSceneProps = z.infer<typeof BaseScenePropsSchema>;
 
+// Subject-agnostic editorial explainer template.
+export const EditorialExplainerItemSchema = z.object({
+  label: z.string().min(1).max(80),
+  value: z.string().max(50).optional().default(""),
+  note: z.string().max(180).optional().default(""),
+  status: z.enum(["neutral", "positive", "negative", "active"]).optional().default("neutral"),
+});
+export type EditorialExplainerItem = z.input<typeof EditorialExplainerItemSchema>;
+
+export const EditorialExplainerSceneSchema = z.object({
+  sceneRole: z.enum(["hook", "identity", "process", "metric", "comparison", "constraint", "timeline", "evidence", "synthesis"]),
+  kicker: z.string().max(60).optional().default("EXPLAINER"),
+  title: z.string().min(1).max(120),
+  statement: z.string().max(280).optional().default(""),
+  metric: z.string().max(40).optional().default(""),
+  metricLabel: z.string().max(80).optional().default(""),
+  items: z.array(EditorialExplainerItemSchema).max(6).optional().default([]),
+  source: z.string().max(160).optional().default(""),
+  mediaSrc: z.string().optional().default(""),
+  accentColor: z.string().optional().default("#F59E0B"),
+  positiveColor: z.string().optional().default("#43D39E"),
+  negativeColor: z.string().optional().default("#FF6B6B"),
+});
+export type EditorialExplainerSceneProps = z.input<typeof EditorialExplainerSceneSchema>;
+
 // 1. BranchPathwayScene Schema
 export const PathwayNodeSchema = z.object({
   id: z.string(),

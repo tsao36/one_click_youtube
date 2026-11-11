@@ -1,0 +1,60 @@
+{
+  "template": "EditorialExplainerScene",
+  "designTokens": {
+    "accentColor": "#F59E0B",
+    "positiveColor": "#43D39E",
+    "negativeColor": "#FF6B6B"
+  },
+  "scenes": [
+    {
+      "sceneRole": "hook",
+      "kicker": "THE QUESTION",
+      "title": "Why does more demand not automatically create more supply?",
+      "statement": "The answer is usually hidden in the slowest dependency."
+    },
+    {
+      "sceneRole": "process",
+      "kicker": "HOW IT WORKS",
+      "title": "Turn the mechanism into visible states",
+      "items": [
+        { "label": "Input", "note": "What enters the system" },
+        { "label": "Transformation", "note": "What must happen in order", "status": "active" },
+        { "label": "Output", "note": "What the audience ultimately sees" }
+      ]
+    },
+    {
+      "sceneRole": "constraint",
+      "kicker": "THE BOTTLENECK",
+      "title": "One unavailable node limits the whole network",
+      "items": [
+        { "label": "Core system", "value": "2×", "status": "active" },
+        { "label": "Equipment", "note": "Long lead time", "status": "negative" },
+        { "label": "Materials", "note": "Qualified supply only" },
+        { "label": "People", "note": "Experience compounds slowly" },
+        { "label": "Quality", "note": "Yield must recover", "status": "positive" }
+      ]
+    },
+    {
+      "sceneRole": "evidence",
+      "kicker": "PRIMARY SOURCE",
+      "title": "Show the evidence, then interpret it",
+      "statement": "Place the verified excerpt here and keep the on-screen summary shorter than the spoken narration.",
+      "items": [
+        { "label": "Claim", "value": "Verified", "status": "positive" },
+        { "label": "Scope", "value": "Specific" }
+      ],
+      "source": "Source name · publication date · URL or document identifier"
+    },
+    {
+      "sceneRole": "synthesis",
+      "kicker": "THE ANSWER",
+      "title": "Recombine the mechanism, evidence, and constraint",
+      "statement": "The conclusion should feel inevitable because every visual beat prepared it.",
+      "items": [
+        { "label": "Mechanism", "note": "How the system works" },
+        { "label": "Evidence", "note": "Why the claim is credible" },
+        { "label": "Implication", "note": "Why the audience should care", "status": "active" }
+      ]
+    }
+  ]
+}

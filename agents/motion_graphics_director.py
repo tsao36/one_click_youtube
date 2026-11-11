@@ -56,6 +56,10 @@ DIRECTOR_SYSTEM_PROMPT = """你是一位專門為深度科技科普、AI 工作�
 8. LeaderCalloutScene：精確細節、結構引線、HUD 科技標記。
 9. ScaleCompareScene：極限尺度對比與數量級震撼。
 10. EvidenceHighlightScene：實體文獻、報告數據與核心遙測卡。
+11. EditorialExplainerScene（跨題材編輯解說模板）：
+   當場景的主要任務可明確歸類為破題、人物/來源定位、機制流程、核心數據、雙向比較、瓶頸依賴、時間演進、證據展示或結論整合時使用。
+   包含: sceneRole（僅可為 hook, identity, process, metric, comparison, constraint, timeline, evidence, synthesis 其中之一）、kicker、title、statement、metric、metricLabel、items（最多 6 項，每項含 label, value, note, status）、source、accentColor。
+   每個場景只能選一個 sceneRole；先判斷該段旁白在整體論證中的功能，再填入已查證資料，不可按題材名稱硬套版型。
 
 核心守則：
 1. 寧缺勿濫：動態圖卡只在「能大幅提升理解」時使用。不是每一句都要配圖表。

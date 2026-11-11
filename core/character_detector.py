@@ -237,6 +237,20 @@ def is_media_relevant_for_character(char: dict[str, Any], title: str, descriptio
     if not name:
         return True
 
+    # 0. Check for Simplified Chinese and PRC sources
+    try:
+        from core.taiwan_mandarin import contains_simplified_chinese, is_prohibited_china_source
+        is_proh, p_reason = is_prohibited_china_source(text)
+        if is_proh:
+            log.info("Rejecting media '%s': %s", title, p_reason)
+            return False
+        has_simp, simp_chars = contains_simplified_chinese(title or "")
+        if has_simp:
+            log.info("Rejecting media '%s': contains Simplified Chinese characters %s", title, simp_chars)
+            return False
+    except Exception as e:
+        log.debug("Mandarin check error in is_media_relevant_for_character: %s", e)
+
     # 1. Negative Homophone & Confusable Name Filter
     # Check for 1-character suffix or prefix substitution imposters
     if 2 <= len(name) <= 4 and re.match(r"^[\u4e00-\u9fff]+$", name):
@@ -298,13 +312,26 @@ def is_youtube_clip_relevant_to_scene(
     if clip_url in rejected_urls or (clip_id and clip_id in rejected_urls):
         return False, f"Clip '{title}' (ID: {clip_id}) is user-blacklisted"
 
-    # 2. General entertainment, gaming, reaction, and clickbait noise
+    # 2. Check for Simplified Chinese and prohibited PRC state/media sources
+    channel = clip.get("channel", "") or ""
+    try:
+        from core.taiwan_mandarin import contains_simplified_chinese, is_prohibited_china_source
+        is_proh, p_reason = is_prohibited_china_source(f"{title} {channel}")
+        if is_proh:
+            return False, f"Clip source is prohibited PRC media: {p_reason}"
+        has_simp, simp_chars = contains_simplified_chinese(f"{title} {channel}")
+        if has_simp:
+            return False, f"Clip contains Simplified Chinese characters: {simp_chars}"
+    except Exception as e:
+        log.debug("Mandarin check error in is_youtube_clip_relevant_to_scene: %s", e)
+
+    # 3. General entertainment, gaming, reaction, and clickbait noise
     title_lower = title.lower()
     for pat in DISALLOWED_CLIP_TITLE_PATTERNS:
         if re.search(pat, title_lower):
             return False, f"Clip title contains entertainment/noise pattern '{pat}': {title}"
 
-    # 3. Scene semantic conflict check
+    # 4. Scene semantic conflict check
     narration = getattr(scene, "narration", "") or (scene.get("narration", "") if isinstance(scene, dict) else "")
     prompt = getattr(scene, "prompt", "") or (scene.get("prompt", "") if isinstance(scene, dict) else "")
     scene_text = f"{narration} {prompt}".lower()
@@ -381,7 +408,7 @@ def fetch_online_media_for_character(char: dict[str, Any], extra_queries: Option
 
         # 3. YouTube authentic video clips & thumbnails (with strict title verification)
         try:
-            yt_videos = search_youtube_videos(kw, limit=4)
+            yt_videos = search_youtube_videos(kw, limit=8, filter_simplified_chinese=True)
             for v in yt_videos:
                 v_title = v.get("title") or kw
                 v_desc = v.get("description", "") or v_title
