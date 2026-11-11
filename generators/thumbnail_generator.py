@@ -629,6 +629,10 @@ def _draw_tracked_text(
         total_char_w = sum(char_widths)
         tracking = int((avail_w - total_char_w) / (len(chars) - 1))
         tracking = max(-18, min(90, tracking))
+    elif not fit_full_width and len(chars) > 1 and tracking > -8:
+        total_char_w = sum(char_widths)
+        if total_char_w + tracking * (len(chars) - 1) > avail_w:
+            tracking = max(-8, int((avail_w - total_char_w) / (len(chars) - 1)))
 
     total_w = sum(char_widths) + tracking * max(0, len(chars) - 1)
     if align == "center":
@@ -877,6 +881,10 @@ def _render_cinema_impact(
 ) -> None:
     """Render Template 2: 'cinema_impact' (台灣知識型百萬YTR大字風)."""
     primary_rgba = _hex_to_rgba(config.get("primary_color", "#FFE600"), 255)
+    font_family = config.get("font_family")
+    font_weight = config.get("font_weight", "bold")
+    title_scale = float(config.get("title_scale", 1.0))
+
     top_kicker = (config.get("top_kicker") if config.get("top_kicker") is not None else "深度調查報告").strip()
     main_title = (config.get("main_title") if config.get("main_title") is not None else "真相大公開").strip()
     left_line1 = (config.get("left_line1") or "").strip()
@@ -884,104 +892,221 @@ def _render_cinema_impact(
     left_line2 = (config.get("left_line2") or "").strip()
     right_line2 = (config.get("right_line2") or "").strip()
 
-    line1 = " ｜ ".join(x for x in [left_line1, right_line1] if x)
-    line2 = " ｜ ".join(x for x in [left_line2, right_line2] if x)
-    has_any_text = bool(top_kicker or main_title or line1 or line2)
+    # Layout bounds: 1280 x 720 HD screen
+    margin_x = 44
+    avail_w = THUMB_W - margin_x * 2  # 1192px safe width
+    safe_bottom = THUMB_H - 42        # 678px safe bottom (above YouTube timestamp badge)
 
-    # Bottom gradient bar for heavy readability (only when text is present)
+    # Resolve subtitle lines
+    sub_lines: list[str] = []
+    if left_line1 and right_line1 and not left_line2 and not right_line2 and (len(left_line1) + len(right_line1) > 16):
+        # Long single pair: split into 2 lines for much better readability
+        sub_lines = [left_line1, right_line1]
+    else:
+        l1 = " ｜ ".join(x for x in [left_line1, right_line1] if x)
+        l2 = " ｜ ".join(x for x in [left_line2, right_line2] if x)
+        if l1:
+            sub_lines.append(l1)
+        if l2:
+            sub_lines.append(l2)
+
+    has_any_text = bool(top_kicker or main_title or sub_lines)
+
+    # 1. Main Title sizing & wrapping
+    dummy = Image.new("RGBA", (10, 10))
+    d_draw = ImageDraw.Draw(dummy)
+
+    title_lines = [l.strip() for l in main_title.splitlines() if l.strip()] if main_title else []
+    if not title_lines and main_title:
+        title_lines = [main_title]
+
+    if title_lines:
+        max_chars = max(len(l) for l in title_lines)
+        if len(title_lines) == 1:
+            if max_chars <= 4:
+                base_sz = 160
+            elif max_chars <= 6:
+                base_sz = 142
+            elif max_chars <= 8:
+                base_sz = 125
+            elif max_chars <= 10:
+                base_sz = 110
+            else:
+                base_sz = max(65, int(1120 / max_chars))
+        else:
+            base_sz = max(60, min(120, int(980 / max_chars)))
+
+        sz = int(round(base_sz * title_scale))
+        tracking = 6 if sz >= 120 else (4 if sz >= 90 else 2)
+
+        # Horizontally fit every line with auto-shrink
+        while sz > 45:
+            t_font = _find_zh_font(sz, weight=font_weight, font_family=font_family)
+            fits = True
+            for tl in title_lines:
+                chars = list(tl)
+                lw = sum(d_draw.textbbox((0, 0), ch, font=t_font)[2] - d_draw.textbbox((0, 0), ch, font=t_font)[0] for ch in chars) + tracking * max(0, len(chars) - 1)
+                if lw > avail_w:
+                    fits = False
+                    break
+            if fits:
+                break
+            sz -= 3
+
+        title_font = _find_zh_font(sz, weight=font_weight, font_family=font_family)
+        line_heights = []
+        for tl in title_lines:
+            bb = d_draw.textbbox((0, 0), tl, font=title_font)
+            line_heights.append(bb[3] - bb[1])
+        line_spacing = int(sz * 0.18)
+        total_title_h = sum(line_heights) + line_spacing * (len(title_lines) - 1)
+
+        # Vertical anchor for main title
+        if not sub_lines:
+            title_start_y = min(500, safe_bottom - total_title_h - 25)
+        else:
+            title_start_y = safe_bottom - total_title_h - 12
+    else:
+        title_font = None
+        sz = 0
+        tracking = 0
+        total_title_h = 0
+        line_heights = []
+        line_spacing = 0
+        title_start_y = safe_bottom
+
+    # 2. Subtitle sizing & positioning
+    sub_font = None
+    sub_line_height = 0
+    if sub_lines:
+        sub_sz = 34 if len(sub_lines) >= 2 else 38
+        while sub_sz > 22:
+            s_font = _find_zh_bold_font(sub_sz, font_family=font_family)
+            fits = True
+            for sl in sub_lines:
+                s_chars = list(sl)
+                sw = sum(d_draw.textbbox((0, 0), ch, font=s_font)[2] - d_draw.textbbox((0, 0), ch, font=s_font)[0] for ch in s_chars) + 4 * max(0, len(s_chars) - 1)
+                if sw > avail_w:
+                    fits = False
+                    break
+            if fits:
+                sub_font = s_font
+                break
+            sub_sz -= 2
+        if sub_font is None:
+            sub_font = _find_zh_bold_font(22, font_family=font_family)
+        s_bb = d_draw.textbbox((0, 0), "測試Ay", font=sub_font)
+        sub_line_height = s_bb[3] - s_bb[1]
+
+    # Calculate subtitle Y positions above main title
+    sub_y_positions = []
+    if sub_lines:
+        gap_to_title = 24
+        cur_y = title_start_y - gap_to_title - sub_line_height
+        if len(sub_lines) == 1:
+            sub_y_positions = [cur_y]
+        elif len(sub_lines) == 2:
+            gap_between = 14
+            sub_y_positions = [cur_y - gap_between - sub_line_height, cur_y]
+
+    # 3. Dynamic atmospheric gradient bar for heavy readability
     if has_any_text:
+        top_text_y = sub_y_positions[0] if sub_y_positions else (title_start_y if title_lines else THUMB_H // 2)
+        grad_start = max(180, min(THUMB_H // 2, top_text_y - 65))
         grad = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
         g_draw = ImageDraw.Draw(grad)
-        for y in range(THUMB_H // 2, THUMB_H):
-            alpha = int(215 * ((y - THUMB_H // 2) / (THUMB_H // 2)) ** 1.3)
+        for y in range(grad_start, THUMB_H):
+            ratio = (y - grad_start) / (THUMB_H - grad_start)
+            alpha = int(220 * (ratio ** 1.25))
             g_draw.line([(0, y), (THUMB_W, y)], fill=(8, 10, 15, alpha))
         canvas.alpha_composite(grad)
 
-    # Top-left pill badge
+    # 4. Top-left Pill Badge (centered & auto-fitted)
     if top_kicker:
-        font_family = config.get("font_family")
-        k_font = _find_zh_bold_font(34, font_family=font_family)
+        k_sz = 26
+        k_font = _find_zh_bold_font(k_sz, font_family=font_family)
+        while k_sz > 18:
+            k_font = _find_zh_bold_font(k_sz, font_family=font_family)
+            k_bb = d_draw.textbbox((0, 0), top_kicker, font=k_font, stroke_width=1)
+            kw = k_bb[2] - k_bb[0]
+            if kw + 44 <= avail_w:
+                break
+            k_sz -= 2
+
+        k_bb = d_draw.textbbox((0, 0), top_kicker, font=k_font, stroke_width=1)
+        kw = k_bb[2] - k_bb[0]
+        kh = k_bb[3] - k_bb[1]
+        pw = kw + 36
+        ph = kh + 20
+        px = margin_x
+        py = 36
+
         pill = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
         p_draw = ImageDraw.Draw(pill)
-        bbox = p_draw.textbbox((0, 0), top_kicker, font=k_font, stroke_width=1)
-        pw = (bbox[2] - bbox[0]) + 44
-        ph = (bbox[3] - bbox[1]) + 26
-        p_draw.rounded_rectangle([42, 38, 42 + pw, 38 + ph], radius=10, fill=primary_rgba)
-        p_draw.text((64, 46), top_kicker, font=k_font, fill=(12, 14, 18, 255), stroke_width=1, stroke_fill=(12, 14, 18, 255))
+        p_draw.rounded_rectangle([px, py, px + pw, py + ph], radius=8, fill=primary_rgba)
+        tx = px + (pw - kw) // 2 - k_bb[0]
+        ty = py + (ph - kh) // 2 - k_bb[1]
+        p_draw.text((tx, ty), top_kicker, font=k_font, fill=(12, 14, 18, 255), stroke_width=1, stroke_fill=(12, 14, 18, 255))
         canvas.alpha_composite(pill)
 
-    # Subtitle line(s) above main title (Supports 3A/4A Line 1 and 3B/4B Line 2)
-    line1 = " ｜ ".join(x for x in [left_line1, right_line1] if x)
-    line2 = " ｜ ".join(x for x in [left_line2, right_line2] if x)
-    if line1 and line2:
-        s_font = _find_zh_bold_font(36, font_family=font_family)
+    # 5. Draw Subtitles
+    for i, s_line in enumerate(sub_lines):
+        sy = sub_y_positions[i]
+        alpha = 255 if i == 0 else 235
         _draw_tracked_text(
             canvas,
-            line1,
-            y=375,
-            font=s_font,
-            fill_rgba=(255, 255, 255, 255),
+            s_line,
+            y=sy,
+            font=sub_font,
+            fill_rgba=(255, 255, 255, alpha),
             align="left",
-            x_left=44,
-            x_right=THUMB_W - 44,
+            x_left=margin_x,
+            x_right=margin_x + avail_w,
             tracking=4,
             stroke_width=0,
             shadow_alpha=220,
             shadow_offset=(0, 3),
-        )
-        _draw_tracked_text(
-            canvas,
-            line2,
-            y=425,
-            font=s_font,
-            fill_rgba=(255, 255, 255, 235),
-            align="left",
-            x_left=44,
-            x_right=THUMB_W - 44,
-            tracking=4,
-            stroke_width=0,
-            shadow_alpha=220,
-            shadow_offset=(0, 3),
-        )
-    elif line1 or line2:
-        s_font = _find_zh_bold_font(44)
-        _draw_tracked_text(
-            canvas,
-            line1 or line2,
-            y=415,
-            font=s_font,
-            fill_rgba=(255, 255, 255, 255),
-            align="left",
-            x_left=44,
-            x_right=THUMB_W - 44,
-            tracking=4,
-            stroke_width=0,
-            shadow_alpha=220,
-            shadow_offset=(0, 4),
         )
 
-    # Giant bottom headline
-    if main_title:
-        n_chars = max(1, len(main_title))
-        title_scale = float(config.get("title_scale", 1.0))
-        sz = min(220, max(110, int(round((1080 / max(4, n_chars)) * title_scale))))
-        font_weight = config.get("font_weight", "bold")
-        t_font = _find_zh_font(sz, weight=font_weight, font_family=font_family)
+    # 6. Draw Giant Bottom Headline
+    if title_lines:
         stroke_w = 1 if font_weight == "heavy" else 0
-        _draw_tracked_text(
-            canvas,
-            main_title,
-            y=485,
-            font=t_font,
-            fill_rgba=primary_rgba,
-            align="left",
-            x_left=40,
-            x_right=THUMB_W - 40,
-            tracking=8,
-            stroke_width=stroke_w,
-            shadow_alpha=230,
-            shadow_offset=(0, 6),
-        )
+        cur_ty = title_start_y
+        for i, tl in enumerate(title_lines):
+            _draw_tracked_text(
+                canvas,
+                tl,
+                y=cur_ty,
+                font=title_font,
+                fill_rgba=primary_rgba,
+                align="left",
+                x_left=margin_x,
+                x_right=margin_x + avail_w,
+                tracking=tracking,
+                stroke_width=stroke_w,
+                shadow_alpha=230,
+                shadow_offset=(0, 6),
+            )
+            cur_ty += line_heights[i] + line_spacing
+
+    # 7. Optional Corner Badge
+    badge_text = (config.get("duration_badge") or "").strip()
+    if badge_text:
+        b_font = _find_zh_bold_font(30, font_family=font_family)
+        b_bb = d_draw.textbbox((0, 0), badge_text, font=b_font)
+        bw = (b_bb[2] - b_bb[0]) + 32
+        bh = (b_bb[3] - b_bb[1]) + 20
+        bx = THUMB_W - bw - margin_x
+        by = safe_bottom - bh
+        b_layer = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
+        bl_draw = ImageDraw.Draw(b_layer)
+        bl_draw.rounded_rectangle([bx, by, bx + bw, by + bh], radius=8, fill=(15, 18, 20, 220))
+        bl_draw.text((bx + 16, by + 10), badge_text, font=b_font, fill=(255, 255, 255, 255))
+        canvas.alpha_composite(b_layer)
+
+    # 8. Optional Subject Depth Overlap
+    if config.get("subject_overlap", False) and main_title:
+        _apply_subject_depth_overlap(canvas, bg_processed, strength=float(config.get("overlap_strength", 0.75)))
 
 
 def _render_minimal_poster(
@@ -1263,6 +1388,14 @@ def _render_hiphop_mv_3d(
     title_scale = float(config.get("title_scale", 1.0))
     title_sz = int(round(title_sz * title_scale))
 
+    # Auto-fit title_sz if main_title is long to avoid rotating off-screen
+    while title_sz > 55:
+        test_font = _find_zh_font(title_sz, weight="heavy" if font_weight in ("heavy", "bold") else font_weight, font_family=font_family)
+        tb = t_draw.textbbox((0, 0), main_title, font=test_font, stroke_width=4)
+        if (tb[2] - tb[0]) <= 1120:
+            break
+        title_sz -= 4
+
     title_font = _find_zh_font(title_sz, weight="heavy" if font_weight in ("heavy", "bold") else font_weight, font_family=font_family)
     kicker_font = _find_zh_font(int(round(title_sz * 0.26)), weight="bold", font_family=font_family)
     sub_lg_font = _find_zh_font(int(round(title_sz * 0.36)), weight="bold", font_family=font_family)
@@ -1411,7 +1544,7 @@ def _render_hiphop_mv_3d(
         avatar_path = None
         if config.get("avatar_path") and Path(config["avatar_path"]).exists():
             avatar_path = Path(config["avatar_path"])
-        elif project:
+        elif project and hasattr(project, "settings"):
             def_av = project.settings.get("default_avatar") or "Mini_V3"
             candidate = ROOT / "data" / "avatars" / def_av / "portrait.png"
             if candidate.exists():
@@ -1449,7 +1582,14 @@ def _render_hiphop_mv_3d(
             av_box.paste(av_img, (BADGE_CX - BADGE_RADIUS, BADGE_CY - BADGE_RADIUS), mask)
             canvas.alpha_composite(av_box)
 
-            rim.alpha_composite(rim)
+            rim = Image.new("RGBA", (THUMB_W, THUMB_H), (0, 0, 0, 0))
+            r_draw = ImageDraw.Draw(rim)
+            r_draw.ellipse(
+                [BADGE_CX - BADGE_RADIUS, BADGE_CY - BADGE_RADIUS, BADGE_CX + BADGE_RADIUS, BADGE_CY + BADGE_RADIUS],
+                outline=primary_color,
+                width=5,
+            )
+            canvas.alpha_composite(rim)
 
 
 def _render_cinematic_cast(
