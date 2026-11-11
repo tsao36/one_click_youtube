@@ -88,6 +88,30 @@ def test_compose_human_anatomy_and_face_anchoring_scene45_type():
     assert "strictly two arms and two hands only" in prompt
     assert "detailed clear facial features" in prompt
     assert "distinct individual faces" in prompt
+
+
+def test_compose_technocrats_multi_person_strips_single_focal():
+    # Simulates epic_chronicle_mural style which has single clear primary focal subject in its lens
+    style = {
+        "style": "masterful epic chronicle digital oil painting, textured impasto brushwork",
+        "lighting": "dramatic natural sunlight",
+        "lens": "cinematic 50mm lens, single clear primary focal subject, centered heroic perspective",
+        "mood": "grand, solemn, gritty",
+    }
+    parts = {
+        "subject": "Technocrats analyzing construction progress",
+        "environment": "Modern city municipal council",
+        "composition": "wide shot",
+    }
+    prompt = compose(parts, style, [], "image")
+
+    # Conflicting single-subject instructions MUST be stripped for multi-person scenes
+    assert "single clear primary focal subject" not in prompt
+    assert "centered heroic perspective" not in prompt
+    assert "balanced multi-person ensemble composition" in prompt
+    assert "distinct individual faces" in prompt
+    assert "absolutely no identical faces" in prompt
+
     assert "absolutely no identical faces" in prompt
 
 
@@ -158,6 +182,30 @@ def test_compose_scene5_children_anti_clone():
     assert "strictly two arms and two hands only" in prompt
     assert "detailed clear facial features" in prompt
     assert "distinct individual faces" in prompt
+
+
+def test_compose_technocrats_multi_person_strips_single_focal():
+    # Simulates epic_chronicle_mural style which has single clear primary focal subject in its lens
+    style = {
+        "style": "masterful epic chronicle digital oil painting, textured impasto brushwork",
+        "lighting": "dramatic natural sunlight",
+        "lens": "cinematic 50mm lens, single clear primary focal subject, centered heroic perspective",
+        "mood": "grand, solemn, gritty",
+    }
+    parts = {
+        "subject": "Technocrats analyzing construction progress",
+        "environment": "Modern city municipal council",
+        "composition": "wide shot",
+    }
+    prompt = compose(parts, style, [], "image")
+
+    # Conflicting single-subject instructions MUST be stripped for multi-person scenes
+    assert "single clear primary focal subject" not in prompt
+    assert "centered heroic perspective" not in prompt
+    assert "balanced multi-person ensemble composition" in prompt
+    assert "distinct individual faces" in prompt
+    assert "absolutely no identical faces" in prompt
+
     assert "absolutely no identical faces" in prompt
     assert "no cloned triplets" in prompt
 

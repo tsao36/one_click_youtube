@@ -176,6 +176,53 @@ def compose(parts: dict, style: dict, entity_desc: list[str], visual_type: str, 
                 continue
         filtered_entity_desc.append(ed)
 
+    # Detect human figures and multi-person scenes early to resolve conflicting composition directives
+    combined_text = " ".join([
+        parts.get("subject") or "",
+        parts.get("environment") or "",
+        parts.get("composition") or "",
+        *entity_desc
+    ]).lower()
+    has_human = bool(re.search(
+        r"\b(person|people|man|men|woman|women|human|humans|figure|figures|character|characters|"
+        r"worker|workers|engineer|engineers|soldier|soldiers|officer|officers|official|officials|"
+        r"judge|judges|lawyer|lawyers|defendant|defendants|witness|witnesses|jury|clerk|clerks|"
+        r"leader|leaders|politician|politicians|president|minister|mayor|governor|emperor|king|queen|"
+        r"audience|crowd|group|team|military|personnel|citizens|bystanders|spectators|passersby|"
+        r"child|children|boy|boys|girl|girls|student|students|teacher|teachers|doctor|doctors|scientist|scientists|"
+        r"technocrat|technocrats|bureaucrat|bureaucrats|expert|experts|specialist|specialists|staff|crew|"
+        r"activist|activists|journalist|journalists|reporter|reporters|"
+        r"hand|hands|arm|arms|face|faces|portrait|portraits|headshot|speaker|host|avatar|turnaround)\b",
+        combined_text
+    ))
+    has_multiple_people = bool(re.search(
+        r"\b(people|crowd|audience|workers|engineers|team|soldiers|officers|officials|judges|lawyers|"
+        r"men|women|group|citizens|bystanders|spectators|passersby|military|personnel|colleagues|"
+        r"students|children|kids|boys|girls|youths|siblings|teens|toddlers|friends|trio|pair|assembly|delegates|representatives|jurors|"
+        r"technocrats|bureaucrats|experts|specialists|staff|crew|panel|committee|cabinet|activists|journalists|reporters)\b",
+        combined_text
+    ))
+
+    # Anti-Cloning & Multi-Person Staging: Strip contradictory single-focal tokens when multiple people are depicted
+    if has_multiple_people:
+        for pat in [
+            r"\bsingle clear primary focal subject,?\s*",
+            r"\bsingle primary focal subject,?\s*",
+            r"\bprimary focal subject,?\s*",
+            r"\bcentered heroic perspective,?\s*",
+            r"\bheroic perspective,?\s*",
+        ]:
+            lens_str = re.sub(pat, "", lens_str, flags=re.IGNORECASE)
+            style_str = re.sub(pat, "", style_str, flags=re.IGNORECASE)
+            mood_str = re.sub(pat, "", mood_str, flags=re.IGNORECASE)
+        lens_str = lens_str.strip().strip(",")
+        style_str = style_str.strip().strip(",")
+        mood_str = mood_str.strip().strip(",")
+        if lens_str:
+            lens_str = f"balanced multi-person ensemble composition, {lens_str}"
+        else:
+            lens_str = "balanced multi-person ensemble composition"
+
     pieces = [
         parts.get("subject"),
         parts.get("environment"),
@@ -203,31 +250,6 @@ def compose(parts: dict, style: dict, entity_desc: list[str], visual_type: str, 
             pieces.append("simple minimalist circular-head cartoon figure, two small black dot eyes, single line mouth, no hair, no ears, no nose, simple cylindrical limbs, mitt hands, consistent flat vector cartoon style")
     else:
         # Provide positive anatomical baseline and high-definition facial clarity across FLUX and SDXL
-        combined_text = " ".join([
-            parts.get("subject") or "",
-            parts.get("environment") or "",
-            parts.get("composition") or "",
-            *entity_desc
-        ]).lower()
-        has_human = bool(re.search(
-            r"\b(person|people|man|men|woman|women|human|humans|figure|figures|character|characters|"
-            r"worker|workers|engineer|engineers|soldier|soldiers|officer|officers|official|officials|"
-            r"judge|judges|lawyer|lawyers|defendant|defendants|witness|witnesses|jury|clerk|clerks|"
-            r"leader|leaders|politician|politicians|president|minister|mayor|governor|emperor|king|queen|"
-            r"audience|crowd|group|team|military|personnel|citizens|bystanders|spectators|passersby|"
-            r"child|children|boy|boys|girl|girls|student|students|teacher|teachers|doctor|doctors|scientist|scientists|"
-            r"technocrat|technocrats|bureaucrat|bureaucrats|expert|experts|specialist|specialists|staff|crew|"
-            r"activist|activists|journalist|journalists|reporter|reporters|"
-            r"hand|hands|arm|arms|face|faces|portrait|portraits|headshot|speaker|host|avatar|turnaround)\b",
-            combined_text
-        ))
-        has_multiple_people = bool(re.search(
-            r"\b(people|crowd|audience|workers|engineers|team|soldiers|officers|officials|judges|lawyers|"
-            r"men|women|group|citizens|bystanders|spectators|passersby|military|personnel|colleagues|"
-            r"students|children|kids|boys|girls|youths|siblings|teens|toddlers|friends|trio|pair|assembly|delegates|representatives|jurors|"
-            r"technocrats|bureaucrats|experts|specialists|staff|crew|panel|committee|cabinet|activists|journalists|reporters)\b",
-            combined_text
-        ))
         if has_human:
             pieces.append("strictly two arms and two hands only, anatomically correct, natural ergonomic posture, plausible body proportions")
             pieces.append("detailed clear facial features, sharp distinct facial structures, clear expressive eyes and mouth")

@@ -631,8 +631,34 @@ class NanoBanana21ImageProvider(ImageProvider):
         full_neg = merge_negative_prompts(UNIVERSAL_QUALITY_NEGATIVE, req.negative)
         system_prompt = build_image_system_prompt(full_neg)
 
+        # Multi-person positive individuation guard
+        has_multi = bool(re.search(
+            r"\b(people|crowd|audience|workers|engineers|team|soldiers|officers|officials|judges|lawyers|"
+            r"men|women|group|citizens|bystanders|spectators|passersby|military|personnel|colleagues|"
+            r"students|children|kids|boys|girls|youths|siblings|teens|toddlers|friends|trio|pair|assembly|delegates|representatives|jurors|"
+            r"technocrats|bureaucrats|experts|specialists|staff|crew|panel|committee|cabinet|activists|journalists|reporters)\b",
+            clean_prompt,
+            re.IGNORECASE
+        ))
+        multi_directive = ""
+        if has_multi:
+            # Strip contradictory single-focal tokens from prompt
+            clean_prompt = re.sub(
+                r"\b(single clear primary focal subject|single primary focal subject|primary focal subject|centered heroic perspective)\b,?\s*",
+                "",
+                clean_prompt,
+                flags=re.IGNORECASE
+            ).strip(" ,")
+            multi_directive = (
+                "CRITICAL MULTI-PERSON ENSEMBLE REQUIREMENT: Every person in this image MUST be rendered with a completely distinct, "
+                "unique facial structure, different age, varied skin tone and texture, unique eye shape, different haircut or hairstyle, "
+                "and unique personal expression. STRICTLY FORBIDDEN: identical faces, duplicate people, clone lookalikes, twin faces, "
+                "or same face syndrome across different people. "
+            )
+
         enhanced_prompt = (
             f"{clean_prompt}. {aspect_desc}. "
+            f"{multi_directive}"
             f"Ensure all human subjects have natural anatomy with strictly two arms and two hands, "
             f"clear detailed facial features, and completely distinct individual faces with diverse varied appearances, "
             f"different hairstyles, and unique personal expressions. Absolutely no identical faces or cloned people. "
