@@ -73,6 +73,7 @@ music:
 rendering:
   encoder: auto
   threads: 0
+  # 0 = auto (scales up to 12 parallel workers on 16-24+ thread CPUs for fast scene clip rendering)
   clip_concurrency: 0
   crf: 20
   preset: medium

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -36,11 +37,12 @@ def render_composition(remotion_dir: Path, composition: str, props: dict[str, An
     out_path = Path(out_path).resolve()
     out_path.parent.mkdir(parents=True, exist_ok=True)
     frames = max(30, int(frames))
+    remotion_concurrency = str(max(2, min(6, (os.cpu_count() or 4) // 4)))
     command = [
         "npx.cmd" if sys.platform == "win32" else "npx", "remotion", "render",
         composition, str(out_path), f"--props={props_file.name}",
         f"--duration={frames}", f"--frames=0-{frames - 1}",
-        "--concurrency=1", "--overwrite",
+        f"--concurrency={remotion_concurrency}", "--overwrite",
     ]
     if use_gpu_gl:
         command.append("--gl=angle")

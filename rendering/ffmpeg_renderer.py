@@ -550,8 +550,8 @@ def render_project(project: Project, draft: bool = False, progress: Callable[[in
     max_workers = int(r.get("clip_concurrency", 0))
     if max_workers <= 0:
         cpu_cnt = os.cpu_count() or 4
-        # 4-6 parallel workers cleanly saturates multi-core CPUs without I/O thrashing
-        max_workers = min(6, max(2, cpu_cnt // 4))
+        # Scale concurrency with CPU cores (up to 12 parallel workers on 16-24+ thread CPUs)
+        max_workers = min(12, max(2, cpu_cnt // 2))
 
     clips: list[Path | None] = [None] * len(scenes)
     done_count = 0

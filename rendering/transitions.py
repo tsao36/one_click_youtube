@@ -17,8 +17,8 @@ XFADE = {"crossfade": "fade", "fadeblack": "fadeblack", "dissolve": "dissolve",
          "wipeleft": "wipeleft", "slideleft": "slideleft", "cut": "fade"}
 
 _CPU_COUNT = os.cpu_count() or 8
-_XFADE_THREADS = str(min(_CPU_COUNT, 16))
-_FILTER_THREADS = str(min(_CPU_COUNT, 8))
+_XFADE_THREADS = str(min(_CPU_COUNT, 24))
+_FILTER_THREADS = str(min(_CPU_COUNT, 16))
 
 
 @dataclass
@@ -87,7 +87,7 @@ LOW_MEM_X264 = [
 
 
 def xfade_join(clips: list[Path], slots: list[Slot], output: Path, encoder_args: list[str], fps: int,
-               chunk_size: int = 5, _level: int = 0) -> None:
+               chunk_size: int = 16, _level: int = 0) -> None:
     """Join clips with per-scene transitions. Large lists are joined hierarchically to keep graphs small."""
     if len(clips) != len(slots):
         raise ValueError("clips/slots mismatch")
