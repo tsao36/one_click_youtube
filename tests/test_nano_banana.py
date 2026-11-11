@@ -53,9 +53,13 @@ def test_nano_banana_multi_person_prompt_sanitization_mocked(monkeypatch, tmp_pa
     prov = get_image_provider("nano-banana-2.1", {})
     monkeypatch.setattr("core.config.get_secret", lambda k: "mock_gemini_api_key")
 
-    # Generate a tiny 1x1 test PNG in memory to return from mock
+    # Generate a tiny non-solid test PNG in memory to return from mock
     buf = io.BytesIO()
-    Image.new("RGB", (100, 100), color="blue").save(buf, format="PNG")
+    test_img = Image.new("RGB", (100, 100))
+    for x in range(100):
+        for y in range(100):
+            test_img.putpixel((x, y), (x * 2, y * 2, (x + y) % 255))
+    test_img.save(buf, format="PNG")
     b64_img = base64.b64encode(buf.getvalue()).decode("utf-8")
 
     captured_payloads = []
