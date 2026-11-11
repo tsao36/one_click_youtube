@@ -41,7 +41,8 @@ SCENE_TAG_KEYWORDS = {
     "conclusion": [
         "conclusion", "outro", "ending", "summary", "outlook", "vision", "takeaway", "epilogue", "future",
         "總結", "結語", "展望", "未來", "啟示", "尾聲", "結局", "建議", "思考", "夥伴", "下一步", "終章",
-        "願景", "期許", "昇華", "走向", "明亮", "黎明", "回顧", "希望", "新局", "legacy", "horizon"
+        "願景", "期許", "昇華", "走向", "明亮", "黎明", "回顧", "希望", "新局", "legacy", "horizon",
+        "作者觀點", "author's take", "author take", "迴響", "歷史的迴響"
     ],
 }
 
@@ -80,6 +81,8 @@ def normalize_style(s: str | None) -> str:
         return "documentary_cinematic"
     if s_clean in ("lofi", "lo_fi"):
         return "lofi"
+    if s_clean in ("ambient", "ambient_pad", "ambient_drone", "soundscape"):
+        return "ambient"
     return s_clean
 
 
@@ -378,7 +381,7 @@ def pick_track(
 
         # Check if preference matches style override
         p_norm_style = normalize_style(p_clean)
-        if p_norm_style in ("documentary_cinematic", "lofi"):
+        if p_norm_style in ("documentary_cinematic", "lofi", "ambient"):
             target_style = p_norm_style
 
         # Check if preference matches a specific track filename
@@ -642,6 +645,9 @@ def plan_music_timeline(
 
         if merged_blocks:
             merged_blocks[0]["start"] = 0.0
+            for k in range(1, len(merged_blocks)):
+                # Ensure contiguous playback without silence gaps between narrative movements
+                merged_blocks[k - 1]["end"] = merged_blocks[k]["start"]
             merged_blocks[-1]["end"] = total_duration
 
         mood_blocks = merged_blocks

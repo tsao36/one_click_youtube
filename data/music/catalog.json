@@ -1164,6 +1164,296 @@
         ],
         "terms_url": "https://creativecommons.org/publicdomain/zero/1.0/"
       }
+    },
+    {
+      "id": "ambient/Calm_Ambient_Pad.mp3",
+      "name": "Calm Ambient Pad",
+      "title": "Calm Ambient Pad",
+      "style": "ambient",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation",
+        "hook"
+      ],
+      "category": "explanation",
+      "category_label": "Explanation & Analysis",
+      "filename": "ambient/Calm_Ambient_Pad.mp3",
+      "basename": "Calm_Ambient_Pad.mp3",
+      "size_mb": 1.37,
+      "duration_sec": 60.0,
+      "bpm": 60.0,
+      "key": "F",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Warm gentle harmonic pad chords with lush ambient thickness.",
+      "description": "Atmospheric harmonic pad progression, completely non-intrusive for documentary focus.",
+      "energy_level": "low",
+      "movement_roles": [
+        "intro",
+        "development",
+        "explanation"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.02,
+      "voiceover_fitness": 5.0,
+      "tags": [
+        "ambient",
+        "pad",
+        "calm",
+        "warm",
+        "peaceful"
+      ],
+      "url": "/api/music/audio/ambient/Calm_Ambient_Pad.mp3",
+      "license": {
+        "license_type": "CC0-1.0",
+        "name": "Creative Commons CC0 1.0 Universal Public Domain Dedication",
+        "attribution_required": false,
+        "attribution_text": "Music: Calm Ambient Pad (CC0 1.0 Universal - Public Domain)",
+        "artist": "Antigravity Ambient Studio",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": true,
+        "api_accessible": true,
+        "restrictions": [
+          "Public domain; no restrictions"
+        ],
+        "terms_url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      }
+    },
+    {
+      "id": "ambient/Deep_Documentary_Drone.mp3",
+      "name": "Deep Documentary Drone",
+      "title": "Deep Documentary Drone",
+      "style": "ambient",
+      "scene_tag": "serious",
+      "scene_tags": [
+        "serious",
+        "explanation"
+      ],
+      "category": "serious",
+      "category_label": "Serious & Critical",
+      "filename": "ambient/Deep_Documentary_Drone.mp3",
+      "basename": "Deep_Documentary_Drone.mp3",
+      "size_mb": 1.37,
+      "duration_sec": 60.0,
+      "bpm": 60.0,
+      "key": "D",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Deep scientific documentary ambient drone with evolving sub-harmonics.",
+      "description": "Mysterious sub-harmonic drone establishing gravitas, tension, and investigative depth.",
+      "energy_level": "low",
+      "movement_roles": [
+        "development",
+        "serious",
+        "investigation"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.02,
+      "voiceover_fitness": 5.0,
+      "tags": [
+        "ambient",
+        "drone",
+        "documentary",
+        "serious",
+        "deep"
+      ],
+      "url": "/api/music/audio/ambient/Deep_Documentary_Drone.mp3",
+      "license": {
+        "license_type": "CC0-1.0",
+        "name": "Creative Commons CC0 1.0 Universal Public Domain Dedication",
+        "attribution_required": false,
+        "attribution_text": "Music: Deep Documentary Drone (CC0 1.0 Universal - Public Domain)",
+        "artist": "Antigravity Ambient Studio",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": true,
+        "api_accessible": true,
+        "restrictions": [
+          "Public domain; no restrictions"
+        ],
+        "terms_url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      }
+    },
+    {
+      "id": "ambient/Ocean_Breeze_Soundscape.mp3",
+      "name": "Ocean Breeze Soundscape",
+      "title": "Ocean Breeze Soundscape",
+      "style": "ambient",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation",
+        "conclusion"
+      ],
+      "category": "explanation",
+      "category_label": "Explanation & Analysis",
+      "filename": "ambient/Ocean_Breeze_Soundscape.mp3",
+      "basename": "Ocean_Breeze_Soundscape.mp3",
+      "size_mb": 1.37,
+      "duration_sec": 60.0,
+      "bpm": 60.0,
+      "key": "Eb",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Serene oceanic ambient soundscape with rolling gentle water swell and harmonic pads.",
+      "description": "Smooth oceanic soundscape providing tranquil breathing room for deep narrations.",
+      "energy_level": "low",
+      "movement_roles": [
+        "development",
+        "conclusion",
+        "peaceful"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.02,
+      "voiceover_fitness": 5.0,
+      "tags": [
+        "ambient",
+        "soundscape",
+        "ocean",
+        "peaceful",
+        "water"
+      ],
+      "url": "/api/music/audio/ambient/Ocean_Breeze_Soundscape.mp3",
+      "license": {
+        "license_type": "CC0-1.0",
+        "name": "Creative Commons CC0 1.0 Universal Public Domain Dedication",
+        "attribution_required": false,
+        "attribution_text": "Music: Ocean Breeze Soundscape (CC0 1.0 Universal - Public Domain)",
+        "artist": "Antigravity Ambient Studio",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": true,
+        "api_accessible": true,
+        "restrictions": [
+          "Public domain; no restrictions"
+        ],
+        "terms_url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      }
+    },
+    {
+      "id": "ambient/Cinematic_Inspiration.mp3",
+      "name": "Cinematic Inspiration",
+      "title": "Cinematic Inspiration",
+      "style": "ambient",
+      "scene_tag": "revelation",
+      "scene_tags": [
+        "revelation",
+        "conclusion"
+      ],
+      "category": "revelation",
+      "category_label": "Revelation & Discovery",
+      "filename": "ambient/Cinematic_Inspiration.mp3",
+      "basename": "Cinematic_Inspiration.mp3",
+      "size_mb": 1.37,
+      "duration_sec": 60.0,
+      "bpm": 60.0,
+      "key": "G",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Inspiring gentle uplifting cinematic progression with shimmering harmonics.",
+      "description": "Warm harmonic shimmer lifting pivotal realizations and conclusive outlooks.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "climax",
+        "conclusion",
+        "revelation"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 5.0,
+      "tags": [
+        "ambient",
+        "inspiring",
+        "uplifting",
+        "wonder",
+        "light"
+      ],
+      "url": "/api/music/audio/ambient/Cinematic_Inspiration.mp3",
+      "license": {
+        "license_type": "CC0-1.0",
+        "name": "Creative Commons CC0 1.0 Universal Public Domain Dedication",
+        "attribution_required": false,
+        "attribution_text": "Music: Cinematic Inspiration (CC0 1.0 Universal - Public Domain)",
+        "artist": "Antigravity Ambient Studio",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": true,
+        "api_accessible": true,
+        "restrictions": [
+          "Public domain; no restrictions"
+        ],
+        "terms_url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      }
+    },
+    {
+      "id": "ambient/LoFi_Warmth_Chills.mp3",
+      "name": "Lo-Fi Warmth Chills",
+      "title": "Lo-Fi Warmth Chills",
+      "style": "ambient",
+      "scene_tag": "hook",
+      "scene_tags": [
+        "hook",
+        "explanation"
+      ],
+      "category": "hook",
+      "category_label": "Hook & Teaser",
+      "filename": "ambient/LoFi_Warmth_Chills.mp3",
+      "basename": "LoFi_Warmth_Chills.mp3",
+      "size_mb": 1.37,
+      "duration_sec": 60.0,
+      "bpm": 60.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Mellow Rhodes warmth with gentle jazz neo-soul ambient chords.",
+      "description": "Gentle electric piano bells and warm chords establishing relaxed curiosity.",
+      "energy_level": "low",
+      "movement_roles": [
+        "intro",
+        "hook",
+        "relaxed"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 5.0,
+      "tags": [
+        "ambient",
+        "lofi",
+        "rhodes",
+        "warm",
+        "gentle"
+      ],
+      "url": "/api/music/audio/ambient/LoFi_Warmth_Chills.mp3",
+      "license": {
+        "license_type": "CC0-1.0",
+        "name": "Creative Commons CC0 1.0 Universal Public Domain Dedication",
+        "attribution_required": false,
+        "attribution_text": "Music: Lo-Fi Warmth Chills (CC0 1.0 Universal - Public Domain)",
+        "artist": "Antigravity Ambient Studio",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": true,
+        "api_accessible": true,
+        "restrictions": [
+          "Public domain; no restrictions"
+        ],
+        "terms_url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      }
     }
   ]
 }
