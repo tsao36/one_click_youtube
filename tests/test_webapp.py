@@ -105,6 +105,12 @@ class TestUIStaticServing:
         assert res.status_code == 200
         assert "text/html" in res.headers.get("content-type", "")
         assert "no-cache" in res.headers.get("cache-control", "")
+        # Verify topic blank warning modal and no hardcoded default topic value
+        html = res.text
+        assert 'id="topic-blank-warning-modal"' in html
+        assert 'id="topic-blank-inline-alert"' in html
+        assert 'value="Why Wi-Fi becomes slow in crowded airports"' not in html
+        assert 'value="開除我？那套AI是我寫的"' not in html
 
     def test_serve_app_js(self, webapp_env):
         client = webapp_env["client"]
@@ -186,6 +192,16 @@ class TestProjectLifecycle:
         assert "project" in s_data
         assert s_data["project"]["state"] == "idle"
         assert "stages" in s_data["project"]
+
+    def test_create_project_blank_topic_rejected(self, webapp_env):
+        client = webapp_env["client"]
+        res_empty = client.post("/api/projects", json={"topic": "", "start_now": False})
+        assert res_empty.status_code == 400
+        assert "blank" in res_empty.json()["detail"].lower()
+
+        res_spaces = client.post("/api/projects", json={"topic": "   \n\t  ", "start_now": False})
+        assert res_spaces.status_code == 400
+        assert "blank" in res_spaces.json()["detail"].lower()
 
     def test_create_short_drama_project(self, webapp_env):
         client = webapp_env["client"]

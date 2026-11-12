@@ -152,7 +152,10 @@
           <span>Video Topic / 影片主題靈感</span>
           <span id="creator-topic-subtext" style="font-size: 11.5px; font-weight: normal; color: var(--text-muted);">輸入想探討的主題、科技突破或歷史事件</span>
         </label>
-        <input type="text" id="topic" placeholder="e.g. Why Wi-Fi becomes slow in crowded airports" value="Why Wi-Fi becomes slow in crowded airports" style="padding: 12px 14px; font-size: 14px; font-weight: 600; border-color: rgba(124, 145, 182, 0.35);">
+        <input type="text" id="topic" placeholder="e.g. Why Wi-Fi becomes slow in crowded airports" style="padding: 12px 14px; font-size: 14px; font-weight: 600; border-color: rgba(124, 145, 182, 0.35);">
+        <div id="topic-blank-inline-alert" style="display: none; color: #f87171; font-size: 12px; font-weight: 600; margin-top: 5px; align-items: center; gap: 4px;">
+          <span>⚠️ 請填寫影片主題，主題不可為空白！ (Topic cannot be blank)</span>
+        </div>
       </div>
 
       <!-- 2. Essential Settings Grid (Core 4 options only) -->
@@ -893,7 +896,10 @@
             <span>短劇劇名 / 主題衝突靈感 (Drama Title & Core Conflict)</span>
             <span style="font-size: 11px; font-weight: normal; color: #94a3b8;">輸入短劇標題或開場衝突一句話</span>
           </label>
-          <input type="text" id="drama-topic" value="開除我？那套AI是我寫的" placeholder="例如: 開除我？那套AI是我寫的 / 假千金回歸逆襲 / 豪門繼承人對決" style="padding: 11px 14px; font-size: 14px; font-weight: 600; border-color: rgba(245, 158, 11, 0.4); background: #070913; color: #fff;">
+          <input type="text" id="drama-topic" placeholder="例如: 開除我？那套AI是我寫的 / 假千金回歸逆襲 / 豪門繼承人對決" style="padding: 11px 14px; font-size: 14px; font-weight: 600; border-color: rgba(245, 158, 11, 0.4); background: #070913; color: #fff;">
+          <div id="drama-topic-blank-inline-alert" style="display: none; color: #f87171; font-size: 12px; font-weight: 600; margin-top: 5px; align-items: center; gap: 4px;">
+            <span>⚠️ 請填寫短劇主題，主題不可為空白！ (Drama topic cannot be blank)</span>
+          </div>
         </div>
 
         <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 14px; align-items: end;">
@@ -4204,6 +4210,47 @@
         </button>
         <button type="button" class="btn-primary" id="btn-ok-create-confirm" data-ui-click="static_298" onclick="confirmAndProceedWithVideo()" style="padding:10px 24px; font-size:14px; font-weight:800; background:linear-gradient(135deg, #0284c7 0%, #0369a1 100%); box-shadow:0 0 16px rgba(2, 132, 199, 0.5); border:none; cursor:pointer; letter-spacing:0.02em;">
           🚀 OK, Proceed / 確認製作
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOPIC BLANK WARNING MODAL -->
+  <div id="topic-blank-warning-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); backdrop-filter:blur(6px); z-index:100010; justify-content:center; align-items:center;">
+    <div style="background:var(--card, #0f172a); border:1.5px solid #f59e0b; border-radius:14px; max-width:480px; width:92%; overflow:hidden; box-shadow:0 16px 40px rgba(0,0,0,0.85), 0 0 24px rgba(245,158,11,0.3);">
+      <div style="padding:16px 20px; border-bottom:1px solid rgba(245,158,11,0.25); display:flex; justify-content:space-between; align-items:center; background:#080d16;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:22px;">⚠️</span>
+          <div>
+            <h2 style="font-size:16px; font-weight:800; color:#f8fafc; margin:0;">
+              Topic is Blank / 影片主題未填寫
+            </h2>
+            <div style="font-size:12px; color:#f59e0b; margin-top:2px; font-weight:600;">
+              Please enter a topic before creating a video
+            </div>
+          </div>
+        </div>
+        <button type="button" class="btn-sec" id="btn-close-topic-blank-modal" onclick="closeTopicBlankWarningModal()" style="padding:4px 10px; font-size:13px; cursor:pointer;" title="關閉">✕</button>
+      </div>
+
+      <div style="padding:22px 20px; display:flex; flex-direction:column; gap:14px;">
+        <div style="background:rgba(245, 158, 11, 0.08); border:1px solid rgba(245, 158, 11, 0.25); border-radius:10px; padding:14px 16px; color:#e2e8f0; font-size:13.5px; line-height:1.6;">
+          <p style="margin:0 0 8px 0; font-weight:700; color:#fbbf24;">
+            ⚠️ 影片主題欄位目前為空白！
+          </p>
+          <p style="margin:0; color:#cbd5e1; font-size:13px;">
+            系統不會自動套用預設主題。請先在上方輸入您想要製作的主題靈感或劇情衝突，再點擊「CREATE VIDEO」開始製作。
+          </p>
+        </div>
+        <div style="font-size:12px; color:var(--text-muted, #94a3b8); display:flex; align-items:center; gap:6px;">
+          <span>💡</span>
+          <span>小提示：您也可以在下方「Trend Scout 熱搜趨勢」中一鍵挑選最新熱門話題。</span>
+        </div>
+      </div>
+
+      <div style="padding:14px 20px; border-top:1px solid rgba(124, 145, 182, 0.25); display:flex; justify-content:flex-end; gap:10px; align-items:center; background:#080d16;">
+        <button type="button" class="btn-primary" id="btn-ok-topic-blank" onclick="closeTopicBlankWarningModal()" style="padding:9px 24px; font-size:13.5px; font-weight:800; background:linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color:#000; box-shadow:0 0 16px rgba(245, 158, 11, 0.4); border:none; cursor:pointer; letter-spacing:0.02em;">
+          ✍️ 前往填寫主題 (Enter Topic)
         </button>
       </div>
     </div>

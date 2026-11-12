@@ -592,6 +592,10 @@ def persist_project_inputs(p: Project, req: CreateProjectRequest) -> None:
 
 @app.post("/api/projects")
 def create_project(req: CreateProjectRequest, background_tasks: BackgroundTasks):
+    if not req.topic or not req.topic.strip():
+        raise HTTPException(status_code=400, detail="Topic cannot be blank. Please enter a video topic.")
+    req.topic = req.topic.strip()
+
     profiles = list_profiles()
     resolved_voice_profile = None
     if req.voice_profile and req.voice_profile not in KNOWN_VOICE_PROVIDERS:

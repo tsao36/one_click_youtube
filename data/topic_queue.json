@@ -1,5 +1,23 @@
 [
   {
+    "topic": "AI 算力大塞車！台積電埃米時代 GAA 奈米片與次世代 HBM4 記憶體，如何成為全球 AI 霸權生死線？",
+    "logline": "解密記憶體牆（Memory Wall）瓶頸，拆解 3D IC、台積電 CoWoS 先進封裝與三星/SK海力士 16 層堆疊 HBM4 如何決定下一代人工智慧的生死極限。",
+    "category": "半導體製程與先進封裝",
+    "recommended_duration": 10.0,
+    "recommended_style": "tech_schematic",
+    "proof": {
+      "platform": "台積電開放創新平台（OIP）論壇與 JEDEC 固態技術協會標準",
+      "metrics": "HBM4 匯流排寬度倍增至 2048 位元 / 台積電 CoWoS 產能年增超過 150%",
+      "headline": "JEDEC publishes HBM4 memory standard: double the interconnect width for next-gen AI accelerators",
+      "url": "https://www.jedec.org/",
+      "source_name": "TSMC Technology Symposium / JEDEC / SK Hynix",
+      "why_popular": "台灣半導體位居全球 AI 革命核心心臟，拆解晶片底層物理極限與先進封裝技術，既具備高度家國榮譽感，又充滿深度知識含金量。"
+    },
+    "type": "ai_technology",
+    "id": "tq_1794448363220",
+    "created_at": "2026-11-12T09:52:43.220938"
+  },
+  {
     "topic": "宋朝連皇帝都偷叫外賣？州橋夜市通宵營業、外送小哥穿梭臨安的奢華日常",
     "logline": "從滴酥水晶鱠到開封二十四小時不夜城，剖析宋代如何取消宵禁、誕生逐臭之夫、外賣制度與世界最早的紙幣交子。",
     "category": "宋代生活奇觀與經濟",

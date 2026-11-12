@@ -2514,12 +2514,11 @@
       renderDramaCharactersEditor();
     }
 
-        async function generateDramaScriptByDuration() {
+    async function generateDramaScriptByDuration() {
       const topicEl = document.getElementById('drama-topic') || document.getElementById('topic');
       const topic = topicEl ? topicEl.value.trim() : '';
       if (!topic) {
-        alert("請先在上方輸入短劇主題 (Topic)！");
-        if (topicEl) topicEl.focus();
+        showTopicBlankWarning('drama-topic');
         return;
       }
       const durEl = document.getElementById('drama-duration');
@@ -2737,9 +2736,6 @@
           dramaCastTabBtn.style.fontWeight = '700';
         }
 
-        if (topicInput && (!topicInput.value || topicInput.value.includes('Wi-Fi'))) {
-          topicInput.value = '開除我？那套AI是我寫的';
-        }
         if (topicInput) {
           topicInput.placeholder = 'e.g. 開除我？那套AI是我寫的 / 假千金回歸逆襲 / 逆風翻盤職場打臉';
         }
@@ -2865,9 +2861,6 @@
           dramaCastTabBtn.style.fontWeight = '';
         }
 
-        if (topicInput && topicInput.value === '開除我？那套AI是我寫的') {
-          topicInput.value = 'Why Wi-Fi becomes slow in crowded airports';
-        }
         if (topicInput) {
           topicInput.placeholder = 'e.g. Why Wi-Fi becomes slow in crowded airports';
         }
@@ -3593,6 +3586,50 @@
     }
     window.closeCreateVideoConfirmModal = closeCreateVideoConfirmModal;
 
+    function showTopicBlankWarning(targetFieldId = 'topic') {
+      const modal = document.getElementById('topic-blank-warning-modal');
+      const inputEl = document.getElementById(targetFieldId) || document.getElementById('topic') || document.getElementById('drama-topic');
+      const inlineAlert = document.getElementById(targetFieldId === 'drama-topic' ? 'drama-topic-blank-inline-alert' : 'topic-blank-inline-alert');
+
+      if (inlineAlert) {
+        inlineAlert.style.display = 'flex';
+      }
+
+      if (inputEl) {
+        inputEl.style.borderColor = '#ef4444';
+        inputEl.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.35)';
+        try {
+          inputEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } catch (_) {}
+      }
+
+      if (modal) {
+        modal.style.display = 'flex';
+        setTimeout(() => {
+          const btn = document.getElementById('btn-ok-topic-blank');
+          if (btn) btn.focus();
+        }, 50);
+      } else {
+        alert("⚠️ 影片主題不可為空白 (Topic cannot be blank)！\n\n系統不會使用預設主題，請先在上方輸入主題後再建立影片。");
+        if (inputEl) inputEl.focus();
+      }
+    }
+    window.showTopicBlankWarning = showTopicBlankWarning;
+
+    function closeTopicBlankWarningModal() {
+      const modal = document.getElementById('topic-blank-warning-modal');
+      if (modal) modal.style.display = 'none';
+
+      const targetInput = (currentCreatorProjectMode === 'short_drama' && document.getElementById('drama-topic'))
+        ? document.getElementById('drama-topic')
+        : document.getElementById('topic');
+
+      if (targetInput) {
+        targetInput.focus();
+      }
+    }
+    window.closeTopicBlankWarningModal = closeTopicBlankWarningModal;
+
     function confirmAndProceedWithVideo() {
       const action = pendingCreationAction;
       closeCreateVideoConfirmModal();
@@ -3649,11 +3686,10 @@
     }
 
     async function startDramaCreation() {
-      const topicEl = document.getElementById('drama-topic');
-      const topic = (topicEl ? topicEl.value.trim() : '') || '開除我？那套AI是我寫的';
+      const topicEl = document.getElementById('drama-topic') || document.getElementById('topic');
+      const topic = topicEl ? topicEl.value.trim() : '';
       if (!topic) {
-        alert("請輸入短劇主題 (Drama Topic)！");
-        if (topicEl) topicEl.focus();
+        showTopicBlankWarning('drama-topic');
         return;
       }
       const durEl = document.getElementById('drama-duration');
@@ -3715,6 +3751,11 @@
 
     async function executeDramaCreation(params) {
       const { topic, durationSec, formula, aspectRatio, scriptText, animEngine, sanitizedCharacters } = params;
+      if (!topic || !topic.trim()) {
+        if (typeof closeCreateVideoConfirmModal === 'function') closeCreateVideoConfirmModal();
+        showTopicBlankWarning('drama-topic');
+        return;
+      }
       const btn = document.getElementById('btn-create-drama-video');
       const origText = btn ? btn.innerHTML : '🎬 CREATE AI SHORT DRAMA';
       if (btn) {
@@ -3755,6 +3796,11 @@
         showToast(`🎬 微短劇專案已成功建立: ${data.project_id}！已啟動全自動生成。`);
         await loadProjectsList();
         selectProject(data.project_id);
+
+        const dramaTopicEl = document.getElementById('drama-topic');
+        if (dramaTopicEl) dramaTopicEl.value = '';
+        const topicEl = document.getElementById('topic');
+        if (topicEl) topicEl.value = '';
       } catch (err) {
         alert("微短劇專案建立失敗: " + err.message);
       } finally {
@@ -3773,8 +3819,8 @@
       const topicEl = document.getElementById('topic');
       const topic = topicEl ? topicEl.value.trim() : '';
       if (!topic) {
-        if (topicEl) topicEl.focus();
-        return alert("Please enter a topic");
+        showTopicBlankWarning('topic');
+        return;
       }
 
       const durationEl = document.getElementById('duration');
@@ -3847,8 +3893,13 @@
     }
 
     async function executeCreation() {
-      const topic = document.getElementById('topic').value.trim();
-      if (!topic) return alert("Please enter a topic");
+      const topicEl = document.getElementById('topic');
+      const topic = topicEl ? topicEl.value.trim() : '';
+      if (!topic) {
+        if (typeof closeCreateVideoConfirmModal === 'function') closeCreateVideoConfirmModal();
+        showTopicBlankWarning('topic');
+        return;
+      }
       const duration = parseFloat(document.getElementById('duration').value);
       const language = document.getElementById('language').value;
       let voice = document.getElementById('voice-select').value;
@@ -3968,6 +4019,8 @@
         // Reset topic input field for the next video
         const topicEl = document.getElementById('topic');
         if (topicEl) topicEl.value = '';
+        const dramaTopicEl = document.getElementById('drama-topic');
+        if (dramaTopicEl) dramaTopicEl.value = '';
       } catch (err) {
         console.error("Project creation failed:", err);
         alert(`Failed to create project: ${err.message}`);
@@ -16894,8 +16947,55 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
           if (m && m.style.display === 'flex') {
             closeCreateVideoConfirmModal();
           }
+          const mBlank = document.getElementById('topic-blank-warning-modal');
+          if (mBlank && mBlank.style.display === 'flex') {
+            closeTopicBlankWarningModal();
+          }
         }
       });
+
+      // Topic blank warning modal handlers & input validation listeners
+      const topicBlankModalEl = document.getElementById('topic-blank-warning-modal');
+      if (topicBlankModalEl) {
+        topicBlankModalEl.addEventListener('click', (e) => {
+          if (e.target === topicBlankModalEl) {
+            closeTopicBlankWarningModal();
+          }
+        });
+      }
+
+      const btnOkTopicBlank = document.getElementById('btn-ok-topic-blank');
+      if (btnOkTopicBlank) {
+        btnOkTopicBlank.addEventListener('click', () => closeTopicBlankWarningModal());
+      }
+      const btnCloseTopicBlank = document.getElementById('btn-close-topic-blank-modal');
+      if (btnCloseTopicBlank) {
+        btnCloseTopicBlank.addEventListener('click', () => closeTopicBlankWarningModal());
+      }
+
+      // Automatically clear warning styles once user starts typing a topic
+      const topicIn = document.getElementById('topic');
+      if (topicIn) {
+        topicIn.addEventListener('input', () => {
+          if (topicIn.value.trim()) {
+            topicIn.style.borderColor = 'rgba(124, 145, 182, 0.35)';
+            topicIn.style.boxShadow = '';
+            const alertEl = document.getElementById('topic-blank-inline-alert');
+            if (alertEl) alertEl.style.display = 'none';
+          }
+        });
+      }
+      const dramaTopicIn = document.getElementById('drama-topic');
+      if (dramaTopicIn) {
+        dramaTopicIn.addEventListener('input', () => {
+          if (dramaTopicIn.value.trim()) {
+            dramaTopicIn.style.borderColor = 'rgba(245, 158, 11, 0.4)';
+            dramaTopicIn.style.boxShadow = '';
+            const alertEl = document.getElementById('drama-topic-blank-inline-alert');
+            if (alertEl) alertEl.style.display = 'none';
+          }
+        });
+      }
     });
 
     // ==================== OPENOPUS CLASSICAL MUSIC INTEGRATION ====================
