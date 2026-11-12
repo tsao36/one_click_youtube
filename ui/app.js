@@ -48,6 +48,70 @@
     let timerInterval = null;
     let cachedRerenderVoices = [];
 
+    // ---------------- VOICE PROFILE SORTING HELPERS ----------------
+    function getVoiceGender(v) {
+      if (!v) return 'unknown';
+      const g = String(v.gender || '').toLowerCase().trim();
+      const gl = String(v.gender_label || '');
+      const disp = String(v.display_name || '');
+      const desc = String(v.description || '');
+      const persona = String(v.persona || '');
+      const name = String(v.name || '');
+      const combined = `${g} ${gl} ${disp} ${desc} ${persona} ${name}`.toLowerCase();
+      if (g === 'female' || g === 'f' || g === 'woman' || combined.includes('女') || /\bfemale\b|\bwoman\b|\bgirl\b|\blady\b/i.test(combined)) {
+        return 'female';
+      }
+      if (g === 'male' || g === 'm' || g === 'man' || combined.includes('男') || /\bmale\b|\bman\b|\bboy\b|\bgentleman\b/i.test(combined)) {
+        return 'male';
+      }
+      return 'unknown';
+    }
+
+    function getVoiceAge(v) {
+      if (!v) return null;
+      if (typeof v.age === 'number' && !isNaN(v.age) && isFinite(v.age)) return v.age;
+      if (typeof v.age === 'string' && v.age.trim() !== '') {
+        const parsed = parseFloat(v.age);
+        if (!isNaN(parsed) && isFinite(parsed)) return parsed;
+      }
+      const match = (v.display_name || '').match(/(\d+)\s*歲/);
+      if (match) {
+        const num = parseFloat(match[1]);
+        if (!isNaN(num) && isFinite(num)) return num;
+      }
+      return null;
+    }
+
+    function sortVoicesByGenderAndAgeDesc(voices) {
+      if (!Array.isArray(voices)) return [];
+      return voices.slice().sort((a, b) => {
+        const genA = getVoiceGender(a);
+        const genB = getVoiceGender(b);
+        const rank = { 'female': 1, 'male': 2, 'unknown': 3 };
+        const rA = rank[genA] || 3;
+        const rB = rank[genB] || 3;
+        if (rA !== rB) return rA - rB;
+
+        const ageA = getVoiceAge(a);
+        const ageB = getVoiceAge(b);
+        if (ageA !== null && ageB !== null) {
+          if (ageB !== ageA) return ageB - ageA; // older first (descending)
+        } else if (ageA !== null) {
+          return -1;
+        } else if (ageB !== null) {
+          return 1;
+        }
+
+        const nameA = (a.display_name || a.name || '').toLowerCase();
+        const nameB = (b.display_name || b.name || '').toLowerCase();
+        return nameA.localeCompare(nameB);
+      });
+    }
+
+    window.getVoiceGender = getVoiceGender;
+    window.getVoiceAge = getVoiceAge;
+    window.sortVoicesByGenderAndAgeDesc = sortVoicesByGenderAndAgeDesc;
+
 
         // ---------------- RE-RENDER AVATAR CLIPS & VIDEO MODAL LOGIC ----------------
     let cachedPresenterScenes = [];
@@ -146,7 +210,7 @@
         ]);
 
         cachedRaAvatars = aData.avatars || [];
-        cachedRaVoices = Array.isArray(vData) ? vData : (vData.voices || []);
+        cachedRaVoices = sortVoicesByGenderAndAgeDesc(Array.isArray(vData) ? vData : (vData.voices || []));
         const proj = pData.project || {};
         const scenes = pData.scenes || [];
 
@@ -347,8 +411,9 @@
 
     function previewRerenderSelectedVoice() {
       const sel = document.getElementById('rv-voice-profile');
+      const btn = document.querySelector('[data-ui-click="static_279"]');
       if (!sel || !sel.value) return;
-      playExistingVoiceSample(sel.value);
+      previewVoiceByName(sel.value, btn);
     }
 
     async function switchProjectGlobalVoiceProfile(newProfileName, reloadView = 'studio') {
@@ -423,7 +488,7 @@
           apiJson('/api/voices'),
           apiJson(`/api/projects/${currentProjectId}`)
         ]);
-        cachedRerenderVoices = voiceData;
+        cachedRerenderVoices = sortVoicesByGenderAndAgeDesc(voiceData || []);
         const proj = pData.project || {};
         const scenes = pData.scenes || [];
 
@@ -699,11 +764,11 @@
       try {
         const voices = await apiJson('/api/voices');
 
-        cachedVoiceList = voices;
+        cachedVoiceList = sortVoicesByGenderAndAgeDesc(voices);
         const sel = document.getElementById('voice-select');
         if (!sel) return;
         sel.innerHTML = '';
-        voices.forEach(v => {
+        cachedVoiceList.forEach(v => {
           const opt = document.createElement('option');
           opt.value = v.name;
           const pLabel = getVoiceProviderLabel(v.provider);
@@ -715,7 +780,7 @@
           sel.appendChild(opt);
         });
         // Fallback: if mytsaovoice exists in list, ensure it's selected
-        if (voices.some(v => v.name === 'mytsaovoice')) {
+        if (cachedVoiceList.some(v => v.name === 'mytsaovoice')) {
           sel.value = 'mytsaovoice';
         }
         onVoiceProfileSelectChange(false);
@@ -2301,8 +2366,9 @@
 
         // Build voice options
         let voiceOptionsHtml = '';
-        if (cachedVoiceList && cachedVoiceList.length > 0) {
-          voiceOptionsHtml = cachedVoiceList.map(v => {
+        const sortedDramaVoices = sortVoicesByGenderAndAgeDesc(cachedVoiceList || []);
+        if (sortedDramaVoices && sortedDramaVoices.length > 0) {
+          voiceOptionsHtml = sortedDramaVoices.map(v => {
             const isSel = (c.voice_profile === v.name) ? 'selected' : '';
             return `<option value="${v.name}" ${isSel}>${v.display_name} (${v.provider})</option>`;
           }).join('');
@@ -2355,7 +2421,7 @@
             <div>
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
                 <label style="font-size: 11px; font-weight: 700; color: #38bdf8;">🎙️ 專屬聲音音色 (Voice Profile):</label>
-                <button type="button" onclick="previewDramaCharVoice(${idx})" class="btn-sec" style="font-size: 10px; padding: 1px 6px; border-color: #0284c7; color: #38bdf8;">
+                <button type="button" onclick="previewDramaCharVoice(${idx}, this)" class="btn-sec" style="font-size: 10px; padding: 1px 6px; border-color: #0284c7; color: #38bdf8;" title="試聽角色聲音">
                   🔊 試聽音色
                 </button>
               </div>
@@ -2469,14 +2535,10 @@
       }
     }
 
-    function previewDramaCharVoice(idx) {
+    function previewDramaCharVoice(idx, btnEl = null) {
       const c = currentProjectDramaCharacters[idx];
       if (!c || !c.voice_profile) return;
-      if (typeof testVoiceProfile === 'function') {
-        testVoiceProfile(c.voice_profile, false);
-      } else {
-        alert(`所選音色: ${c.voice_profile}`);
-      }
+      previewVoiceByName(c.voice_profile, btnEl);
     }
 
     function resetDramaCharactersToFormula() {
@@ -3054,11 +3116,12 @@
     function populateCharFormVoices() {
       const sel = document.getElementById('char-input-voice-profile');
       if (!sel) return;
-      if (!cachedVoiceList || cachedVoiceList.length === 0) {
+      const sorted = sortVoicesByGenderAndAgeDesc(cachedVoiceList || []);
+      if (!sorted || sorted.length === 0) {
         sel.innerHTML = `<option value="default_local">Default Local Voice</option>`;
         return;
       }
-      sel.innerHTML = cachedVoiceList.map(v => `
+      sel.innerHTML = sorted.map(v => `
         <option value="${v.name}">${v.display_name} (${v.provider})</option>
       `).join('');
     }
@@ -3094,7 +3157,7 @@
               </div>
               <div style="font-size: 11px; color: #38bdf8; margin-top: 4px; display: flex; align-items: center; justify-content: space-between;">
                 <span>🎙️ <b>${c.voice_profile || '預設音色'}</b></span>
-                <button type="button" class="btn-sec" onclick="testVoiceProfile('${c.voice_profile}', false)" style="font-size: 10px; padding: 1px 5px; color: #38bdf8; border-color: #0284c7;">🔊 試聽</button>
+                <button type="button" class="btn-sec" onclick="previewVoiceByName('${c.voice_profile}', this)" style="font-size: 10px; padding: 1px 5px; color: #38bdf8; border-color: #0284c7; cursor:pointer;" title="試聽角色聲音">🔊 試聽</button>
               </div>
             </div>
           </div>
@@ -5104,30 +5167,6 @@
     let currentVoiceAgeFilter = 'all';
     let currentVoiceSearch = '';
 
-    function getVoiceGender(v) {
-      if (!v) return 'unknown';
-      if (v.gender === 'female' || v.gender === '女') return 'female';
-      if (v.gender === 'male' || v.gender === '男') return 'male';
-      const text = [v.gender_label, v.display_name, v.persona, v.name].filter(Boolean).join(' ');
-      if (/女聲|女生|女|female|woman|lady|娘/i.test(text)) return 'female';
-      if (/男聲|男生|男|male|man/i.test(text)) return 'male';
-      return 'unknown';
-    }
-
-    function getVoiceAge(v) {
-      if (!v) return null;
-      if (v.age !== undefined && v.age !== null && v.age !== '') {
-        const num = parseFloat(v.age);
-        if (!isNaN(num) && isFinite(num)) return num;
-      }
-      const match = (v.display_name || '').match(/(\d+)\s*歲/);
-      if (match) {
-        const num = parseFloat(match[1]);
-        if (!isNaN(num) && isFinite(num)) return num;
-      }
-      return null;
-    }
-
     function setVoiceSortMode(mode) {
       currentVoiceSort = mode;
       const sel = document.getElementById('voice-sort-by');
@@ -5313,10 +5352,19 @@
           return nameA.localeCompare(nameB);
         }
 
-        // default: pinned default_local first, then original
-        if (a.name === 'default_local') return -1;
-        if (b.name === 'default_local') return 1;
-        return 0;
+        // default: sort by gender and by age descending order
+        const rank = { 'female': 1, 'male': 2, 'unknown': 3 };
+        const rA = rank[genA] || 3;
+        const rB = rank[genB] || 3;
+        if (rA !== rB) return rA - rB;
+        if (ageA !== null && ageB !== null) {
+          if (ageB !== ageA) return ageB - ageA;
+        } else if (ageA !== null) {
+          return -1;
+        } else if (ageB !== null) {
+          return 1;
+        }
+        return nameA.localeCompare(nameB);
       });
 
       // Update badge
@@ -5520,6 +5568,13 @@
     window.renderVoiceProfilesList = renderVoiceProfilesList;
     window.getVoiceGender = getVoiceGender;
     window.getVoiceAge = getVoiceAge;
+    window.previewVoiceByName = previewVoiceByName;
+    window.previewVoiceFromSelect = previewVoiceFromSelect;
+    window.previewVoaiFormSpeaker = previewVoaiFormSpeaker;
+    window.previewEdgePresetVoice = previewEdgePresetVoice;
+    window.previewCreatorSelectedVoice = previewCreatorSelectedVoice;
+    window.previewRerenderSelectedVoice = previewRerenderSelectedVoice;
+    window.previewDramaCharVoice = previewDramaCharVoice;
 
     function toggleRenameVoiceBox(vName) {
       const box = document.getElementById(`v-rename-box-${vName}`);
@@ -5709,64 +5764,139 @@
       } catch (e) { setVoiceCustStatus(vName, '❌ ' + e.message, '#f87171'); }
     }
 
-    function previewCreatorSelectedVoice() {
-      const sel = document.getElementById('voice-select');
-      if (!sel || !sel.value) return;
-      playExistingVoiceSample(sel.value);
-    }
+    let currentVoicePreviewAudio = null;
+    let currentVoicePreviewBtn = null;
 
-    async function batchGenerateAllVoaiSamples() {
-      const btn = document.getElementById('btn-batch-samples');
-      if (btn) { btn.disabled = true; btn.textContent = '⏳ 正在批次生成試聽樣本 (Generating)...'; }
-      showToast('🚀 開始批次生成 VoAI 聲音試聽檔，請稍候...');
-      try {
-        const data = await apiJson('/api/voices/generate_missing_samples?provider=voai', { method: 'POST' });
+    async function previewVoiceByName(vName, btnEl = null) {
+      if (!vName) {
+        if (typeof showToast === 'function') showToast('⚠️ 未指定聲音音色 (No voice profile specified)', '#f59e0b');
+        return;
+      }
 
-
-        showToast(`✅ 完成！成功生成 ${data.generated} 個 VoAI 試聽樣本檔！`);
-        await loadVoiceProfiles();
-      } catch (err) {
-        alert(`批次生成試聽失敗: ${err.message}`);
-      } finally {
-        if (btn) {
-          btn.disabled = false;
-          btn.innerHTML = '🎵 批次生成全部試聽樣本 (Batch Generate Samples)';
+      // If already playing this voice, toggle pause/stop
+      if (currentVoicePreviewAudio && !currentVoicePreviewAudio.paused) {
+        currentVoicePreviewAudio.pause();
+        currentVoicePreviewAudio.currentTime = 0;
+        const prevBtn = currentVoicePreviewBtn;
+        if (prevBtn) {
+          prevBtn.innerHTML = prevBtn.dataset.origHtml || '▶️ 試聽';
+          prevBtn.classList.remove('playing');
+          prevBtn.disabled = false;
+        }
+        if (currentVoicePreviewAudio.dataset.vname === vName) {
+          currentVoicePreviewAudio = null;
+          currentVoicePreviewBtn = null;
+          if (typeof showToast === 'function') showToast(`⏹️ 已停止試聽「${vName}」`);
+          return;
         }
       }
-    }
 
-    async function playExistingVoiceSample(vName) {
-      if (!vName) return;
-      const btn = document.getElementById(`btn-play-${vName}`);
-      const origText = btn ? btn.innerHTML : '';
+      const btn = btnEl || document.getElementById(`btn-play-${vName}`);
+      const origHtml = btn ? (btn.dataset.origHtml || btn.innerHTML) : '';
       if (btn) {
+        btn.dataset.origHtml = origHtml;
         btn.disabled = true;
         btn.innerHTML = '⏳ 載入中...';
       }
-      showToast(`🔊 正在準備「${vName}」聲音試聽...`);
+      if (typeof showToast === 'function') showToast(`🔊 正在準備「${vName}」試聽...`);
 
       try {
-        let audioEl = document.getElementById(`audio-player-${vName}`);
-        if (audioEl) {
-          if (!audioEl.src || audioEl.src.includes('undefined')) {
-            audioEl.src = `/media/voices/${vName}/test_sample.wav?t=${Date.now()}`;
+        const audio = new Audio(`/api/voices/${encodeURIComponent(vName)}/test_sample?t=${Date.now()}`);
+        audio.dataset.vname = vName;
+        currentVoicePreviewAudio = audio;
+        currentVoicePreviewBtn = btn;
+
+        audio.onended = () => {
+          if (btn) {
+            btn.innerHTML = btn.dataset.origHtml || '▶️ 試聽';
+            btn.classList.remove('playing');
+            btn.disabled = false;
           }
-          audioEl.currentTime = 0;
-          await audioEl.play();
-        } else {
-          const audio = new Audio(`/media/voices/${vName}/test_sample.wav?t=${Date.now()}`);
-          await audio.play();
-        }
-        showToast(`▶️ 正在播放「${vName}」試聽樣本`);
-      } catch (err) {
-        console.error("Voice playback error:", err);
-        showToast(`⚠️ 聲音播放失敗: ${err.message}`, '#f87171');
-      } finally {
+          currentVoicePreviewAudio = null;
+          currentVoicePreviewBtn = null;
+        };
+
+        audio.onerror = (e) => {
+          console.error('Audio playback error:', e);
+          if (typeof showToast === 'function') showToast(`⚠️ 聲音播放失敗，試聽檔可能尚在合成中`, '#f87171');
+          if (btn) {
+            btn.innerHTML = btn.dataset.origHtml || '▶️ 試聽';
+            btn.classList.remove('playing');
+            btn.disabled = false;
+          }
+          currentVoicePreviewAudio = null;
+          currentVoicePreviewBtn = null;
+        };
+
+        await audio.play();
         if (btn) {
           btn.disabled = false;
-          btn.innerHTML = origText || '▶️ 試聽 (Play)';
+          btn.innerHTML = '⏹️ 停止';
+          btn.classList.add('playing');
         }
+        if (typeof showToast === 'function') showToast(`▶️ 正在播放「${vName}」試聽音訊`);
+      } catch (err) {
+        console.error('Voice playback error:', err);
+        if (typeof showToast === 'function') showToast(`⚠️ 試聽失敗: ${err.message}`, '#f87171');
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = origHtml || '▶️ 試聽';
+        }
+        currentVoicePreviewAudio = null;
+        currentVoicePreviewBtn = null;
       }
+    }
+
+    function previewVoiceFromSelect(selectIdOrEl, btnEl = null) {
+      const sel = typeof selectIdOrEl === 'string' ? document.getElementById(selectIdOrEl) : selectIdOrEl;
+      if (!sel) return;
+      let val = (sel.value || '').trim();
+      if (!val) {
+        val = (currentProject && currentProject.settings && currentProject.settings.voice_profile) ||
+              (document.getElementById('voice-select')?.value) ||
+              'mytsaovoice';
+        if (typeof showToast === 'function') showToast(`ℹ️ 未指定獨立音色，試聽預設專案音色: ${val}`);
+      }
+      previewVoiceByName(val, btnEl);
+    }
+
+    function previewVoaiFormSpeaker(btnEl = null) {
+      const spkSel = document.getElementById('v-voai-speaker');
+      if (!spkSel) return;
+      const spk = spkSel.value;
+      const matched = (cachedVoiceList || []).find(v => v.provider === 'voai' && (v.speaker === spk || v.name.includes(spk) || v.voice_id === spk));
+      if (matched) {
+        previewVoiceByName(matched.name, btnEl);
+      } else {
+        previewVoiceByName(`voai_${spk}`, btnEl);
+      }
+    }
+
+    function previewEdgePresetVoice(btnEl = null) {
+      const edgeSel = document.getElementById('v-edge-voice');
+      if (!edgeSel) return;
+      const val = edgeSel.value;
+      const matched = (cachedVoiceList || []).find(v => v.provider === 'edge' && (v.voice === val || v.voice_id === val));
+      if (matched) {
+        previewVoiceByName(matched.name, btnEl);
+      } else if (val.includes('HsiaoChen')) {
+        previewVoiceByName('hsiaochen_mandarin', btnEl);
+      } else if (val.includes('YunJhe')) {
+        previewVoiceByName('yunjhe_mandarin', btnEl);
+      } else {
+        if (typeof showToast === 'function') showToast(`Edge 語音: ${val}`);
+      }
+    }
+
+    function previewCreatorSelectedVoice() {
+      const sel = document.getElementById('voice-select');
+      const btn = document.querySelector('[data-ui-click="static_033"]');
+      if (!sel || !sel.value) return;
+      previewVoiceByName(sel.value, btn);
+    }
+
+    async function playExistingVoiceSample(vName) {
+      return previewVoiceByName(vName);
     }
 
     function handleElevenVoiceSelect() {
@@ -6384,12 +6514,13 @@
                     ${av.voice_profile ? `<span style="background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.4); color: #6ee7b7; padding: 1px 6px; border-radius: 4px; font-weight: 700;">● ${av.voice_profile}</span>` : '<span style="color: #64748b;">(未綁定 · 使用專案預設音色)</span>'}
                   </span>
                 </div>
-                <div style="display: flex; align-items: center; gap: 6px;">
+                <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
                   <span style="font-size: 11px; color: #94a3b8;">切換音色:</span>
-                  <select onchange="updateAvatarVoiceProfile('${av.name}', this.value)" style="padding: 4px 10px; font-size: 12px; background: #020617; border: 1px solid #3b82f6; color: #93c5fd; border-radius: 5px; font-weight: 700; cursor: pointer;">
+                  <select id="av-voice-select-${av.name}" onchange="updateAvatarVoiceProfile('${av.name}', this.value)" style="flex: 1; min-width: 160px; padding: 4px 10px; font-size: 12px; background: #020617; border: 1px solid #3b82f6; color: #93c5fd; border-radius: 5px; font-weight: 700; cursor: pointer;">
                     <option value="">(使用專案預設音色 - Follow Project Voice)</option>
-                    ${(cachedVoiceList || []).map(v => `<option value="${v.name}" ${av.voice_profile === v.name ? 'selected' : ''}>${v.display_name} [${getVoiceProviderLabel(v.provider)}]${v.name === 'mytsaovoice' ? ' (Default)' : ''}</option>`).join('')}
+                    ${sortVoicesByGenderAndAgeDesc(cachedVoiceList || []).map(v => `<option value="${v.name}" ${av.voice_profile === v.name ? 'selected' : ''}>${v.display_name} [${getVoiceProviderLabel(v.provider)}]${v.name === 'mytsaovoice' ? ' (Default)' : ''}</option>`).join('')}
                   </select>
+                  <button type="button" class="btn-sec" onclick="previewVoiceFromSelect('av-voice-select-${av.name}', this)" style="padding: 4px 8px; font-size: 11px; background: #1e293b; color: #38bdf8; border: 1px solid #0284c7; border-radius: 4px; font-weight: 600; cursor: pointer; white-space: nowrap;" title="試聽此主播聲音">▶️ 試聽</button>
                 </div>
               </div>
 
@@ -6432,8 +6563,9 @@
       if (!sel) return;
       const cur = sel.value;
       sel.innerHTML = '<option value="">(使用專案預設音色 - Project Default Voice)</option>';
-      if (cachedVoiceList && cachedVoiceList.length) {
-        cachedVoiceList.forEach(v => {
+      const sorted = sortVoicesByGenderAndAgeDesc(cachedVoiceList || []);
+      if (sorted && sorted.length) {
+        sorted.forEach(v => {
           const opt = document.createElement('option');
           opt.value = v.name;
           const pLabel = getVoiceProviderLabel(v.provider);
@@ -8733,7 +8865,7 @@
         const vName = data.voice_name || 'tsao';
         const hasRef = vProf.reference_wav;
         const refSrc = hasRef ? `/media/voices/${vName}/reference.wav` : '';
-        const availVoicesTop = data.available_voices || [];
+        const availVoicesTop = sortVoicesByGenderAndAgeDesc(data.available_voices || []);
         let topVoiceOptsHtml = '';
         availVoicesTop.forEach(av => {
           const isSel = (av.name === vName);
@@ -8753,6 +8885,7 @@
                   <select id="insp-global-voice-profile" onchange="switchProjectGlobalVoiceProfile(this.value, 'inspector')" style="flex:1; min-width:220px; padding:6px 10px; font-size:13px; font-weight:600; background:#040811; border:1px solid #10b981; color:#fff; border-radius:6px;">
                     ${topVoiceOptsHtml}
                   </select>
+                  <button type="button" class="btn-sec" onclick="previewVoiceFromSelect('insp-global-voice-profile', this)" style="padding:6px 12px; font-size:12px; font-weight:700; background:#1e293b; color:#38bdf8; border:1px solid #0284c7; border-radius:6px; display:inline-flex; align-items:center; gap:4px; cursor:pointer;" title="試聽此專案音色">▶️ 試聽 (Preview)</button>
                   <button class="btn-primary" style="padding:6px 12px; font-size:12px; font-weight:700; background:linear-gradient(135deg, #059669 0%, #047857 100%);" onclick="openRerenderVoiceModal(document.getElementById('insp-global-voice-profile')?.value)">🎙️🔄 Re-render Voice & Update Video</button>
                 </div>
                 <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">
@@ -8772,7 +8905,7 @@
           <div style="display:flex; flex-direction:column; gap:10px;">
         `;
 
-        const availVoices = data.available_voices || [];
+        const availVoices = sortVoicesByGenderAndAgeDesc(data.available_voices || []);
         scenes.forEach((s, idx) => {
           const hasAudio = s.audio && s.audio.path;
           const aSrc = hasAudio ? `/media/${currentProjectId}/${s.audio.path}?t=${Date.now()}` : '';
@@ -8807,11 +8940,12 @@
               </div>
 
               <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; background:#0e1e38; border:1px solid #1e3a8a; border-radius:4px; padding:6px 10px;">
-                <div style="display:flex; align-items:center; gap:6px; flex:1; min-width:220px;">
+                <div style="display:flex; align-items:center; gap:6px; flex:1; min-width:240px;">
                   <label style="font-size: 12px; font-weight:600; color:#93c5fd; white-space:nowrap;">🎙️ Voice:</label>
-                  <select id="insp-scene-voice-${s.scene_id}" style="width:100%; font-size: 12px; padding:4px 6px; background:#04070e; border:1px solid #1e293b; color:#cbd5e1; border-radius:4px;">
+                  <select id="insp-scene-voice-${s.scene_id}" style="flex:1; font-size: 12px; padding:4px 6px; background:#04070e; border:1px solid #1e293b; color:#cbd5e1; border-radius:4px;">
                     ${perSceneVoiceOptions}
                   </select>
+                  <button type="button" class="btn-sec" onclick="previewVoiceFromSelect('insp-scene-voice-${s.scene_id}', this)" style="padding:4px 8px; font-size:11px; background:#1e293b; color:#38bdf8; border:1px solid #0284c7; border-radius:4px; font-weight:600; white-space:nowrap; cursor:pointer;" title="試聽此分鏡選擇的聲音">▶️ 試聽</button>
                 </div>
                 <button class="btn-sec" style="font-size: 12px; padding:4px 10px; background:#1e3a8a; border-color:#3b82f6; color:#fff; font-weight:600;" onclick="regenVoiceAndRefresh(${s.scene_id})" id="insp-btn-voice-${s.scene_id}">🎙️ Synthesize</button>
               </div>
@@ -12509,7 +12643,10 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
           <div style="background: #0e1e38; border: 1px solid #1e3a8a; border-radius: 8px; padding: 16px 20px; margin-bottom: 20px;">
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
               <div>
-                <div style="font-size: 15px; font-weight: 700; color: #fff;">Active Voice Profile: <span style="color: #93c5fd;">${vProf.display_name || vName}</span></div>
+                <div style="font-size: 15px; font-weight: 700; color: #fff; display:flex; align-items:center; gap:8px;">
+                  <span>Active Voice Profile: <span style="color: #93c5fd;">${vProf.display_name || vName}</span></span>
+                  <button type="button" class="btn-sec" onclick="previewVoiceByName('${vName}', this)" style="padding:2px 8px; font-size:11px; background:#1e293b; color:#38bdf8; border:1px solid #0284c7; border-radius:4px; font-weight:600; cursor:pointer;" title="試聽目前專案生效音色">▶️ 試聽</button>
+                </div>
                 <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
                   ${isStudioEleven ? `
                     Provider: <b style="color: #60a5fa;">ElevenLabs Cloud TTS</b> | Model: <b style="color: #93c5fd;">${vProf.model_id || 'eleven_multilingual_v2'}</b> | Voice ID: <b>${vProf.voice_id || vProf.voice || 'Rachel'}</b>
@@ -12535,7 +12672,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
           <div style="display: flex; flex-direction: column; gap: 12px;">
         `;
 
-        const availVoices = data.available_voices || [];
+        const availVoices = sortVoicesByGenderAndAgeDesc(data.available_voices || []);
         scenes.forEach(s => {
           const hasAudio = s.audio && s.audio.path;
           const aSrc = hasAudio ? `/media/${currentProjectId}/${s.audio.path}?t=${buster}` : '';
@@ -12571,11 +12708,12 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
 
               <!-- Voice Profile Selector & Regeneration Controls -->
               <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; background: #0e1e38; border: 1px solid #1e3a8a; border-radius: 6px; padding: 8px 12px;">
-                <div style="display: flex; align-items: center; gap: 8px; flex: 1; min-width: 240px;">
+                <div style="display: flex; align-items: center; gap: 8px; flex: 1; min-width: 260px;">
                   <label style="font-size: 12px; font-weight: 600; color: #93c5fd; white-space: nowrap;">🎙️ Scene Voice:</label>
-                  <select id="studio-scene-voice-${s.scene_id}" style="width: 100%; font-size: 12px; padding: 5px 8px; background: #04070e; border: 1px solid #1e293b; color: #cbd5e1; border-radius: 4px;">
+                  <select id="studio-scene-voice-${s.scene_id}" style="flex: 1; font-size: 12px; padding: 5px 8px; background: #04070e; border: 1px solid #1e293b; color: #cbd5e1; border-radius: 4px;">
                     ${perSceneVoiceOptions}
                   </select>
+                  <button type="button" class="btn-sec" onclick="previewVoiceFromSelect('studio-scene-voice-${s.scene_id}', this)" style="padding: 5px 10px; font-size: 11px; background: #1e293b; color: #38bdf8; border: 1px solid #0284c7; border-radius: 4px; font-weight: 600; white-space: nowrap; cursor: pointer;" title="試聽此分鏡選擇的聲音">▶️ 試聽</button>
                 </div>
                 <div style="display: flex; gap: 8px; align-items: center;">
                   <button class="btn-sec" style="font-size: 12px; padding: 6px 14px; background: #1e3a8a; border-color: #3b82f6; color: #fff; font-weight: 600;" onclick="regenStudioVoice(${s.scene_id})" id="studio-btn-voice-${s.scene_id}">🎙️ Synthesize Voice</button>

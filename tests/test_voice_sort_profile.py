@@ -15,6 +15,30 @@ def test_list_profiles_has_gender_and_age():
     assert len(with_gender) >= 80
     assert len(with_age) >= 80
 
+def test_list_profiles_sorted_by_gender_and_age_descending():
+    profiles = list_profiles()
+    assert len(profiles) > 0
+
+    # Ensure female voices appear before male voices
+    first_male_idx = next(i for i, p in enumerate(profiles) if p.get("gender") == "male")
+    last_female_idx = max(i for i, p in enumerate(profiles) if p.get("gender") == "female")
+    assert last_female_idx < first_male_idx, "All female voices should appear before male voices"
+
+    # Ensure within female voices, ages are in descending order
+    female_ages = [p.get("age") for p in profiles if p.get("gender") == "female" and p.get("age") is not None]
+    for i in range(len(female_ages) - 1):
+        assert female_ages[i] >= female_ages[i + 1], f"Female ages should be descending: {female_ages[i]} < {female_ages[i+1]}"
+
+    # Ensure within male voices, ages are in descending order
+    male_ages = [p.get("age") for p in profiles if p.get("gender") == "male" and p.get("age") is not None]
+    for i in range(len(male_ages) - 1):
+        assert male_ages[i] >= male_ages[i + 1], f"Male ages should be descending: {male_ages[i]} < {male_ages[i+1]}"
+
+    # Verify oldest female is at the start (73)
+    assert female_ages[0] >= 70
+    # Verify oldest male is near start of male block (60)
+    assert male_ages[0] >= 55
+
 def test_rename_profile_updates_gender_and_age(tmp_path):
     test_voice_id = "test_custom_voice_tmp"
     test_dir = VOICES_DIR / test_voice_id

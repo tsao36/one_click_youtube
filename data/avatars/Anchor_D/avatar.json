@@ -1,0 +1,13 @@
+{
+  "name": "Anchor_D",
+  "display_name": "D主播",
+  "provider": "fal-ai/kling-video/v1/pro/ai-avatar",
+  "layout": "fullscreen",
+  "is_default": false,
+  "is_masked": true,
+  "voice_profile": "voai_悅青",
+  "created_at": "2026-11-12 19:13:05",
+  "image_filename": "portrait.png",
+  "has_base_video": true,
+  "has_image": true
+}

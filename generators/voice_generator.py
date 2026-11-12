@@ -42,6 +42,39 @@ def audio_is_current(scene, path: Path | None, voice: str | None = None,
 
 
 # ---------------- voice profiles ----------------
+def voice_sort_key(p: dict) -> tuple:
+    """Sort key: Gender (Female=0, Male=1, Unknown=2), Age descending (older first), Display name."""
+    g = str(p.get("gender") or "").lower()
+    gl = str(p.get("gender_label") or "")
+    disp = str(p.get("display_name") or "")
+    combined = f"{g} {gl} {disp}".lower()
+    if g == "female" or "女" in combined:
+        g_rank = 0
+    elif g == "male" or "男" in combined:
+        g_rank = 1
+    else:
+        g_rank = 2
+
+    age = p.get("age")
+    age_num = None
+    if age is not None:
+        try:
+            age_num = float(age)
+        except Exception:
+            pass
+    if age_num is None:
+        m = re.search(r"(\d+)\s*歲", disp)
+        if m:
+            try:
+                age_num = float(m.group(1))
+            except Exception:
+                pass
+
+    age_key = -age_num if age_num is not None else float("inf")
+    name_key = str(p.get("display_name") or p.get("name") or "").lower()
+    return (g_rank, age_key, name_key)
+
+
 def list_profiles() -> list[dict]:
     out = []
     if VOICES_DIR.exists():
@@ -56,7 +89,7 @@ def list_profiles() -> list[dict]:
                     out.append(p)
                 except json.JSONDecodeError:
                     log.warning("Invalid voice.json in %s", d)
-    return out
+    return sorted(out, key=voice_sort_key)
 
 
 def load_profile(name: str) -> dict:

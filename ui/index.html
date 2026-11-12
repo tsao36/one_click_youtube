@@ -1431,7 +1431,10 @@
           </div>
 
           <div class="form-group">
-            <label>Speaker (配音員名稱)</label>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+              <label style="margin-bottom:0;">Speaker (配音員名稱)</label>
+              <button type="button" class="btn-sec" onclick="previewVoaiFormSpeaker(this)" style="padding:2px 8px; font-size:11px; background:#1e293b; color:#38bdf8; border:1px solid #0284c7; border-radius:4px; font-weight:600; cursor:pointer;" title="試聽此配音員聲音">▶️ 試聽</button>
+            </div>
             <select id="v-voai-speaker" data-ui-change="static_125">
               <option value="佑希" selected>佑希 (女 · 溫柔 — 預設/聊天/輕鬆)</option>
               <option value="子墨">子墨 (男 · 厚實 — 預設/沉穩)</option>
@@ -1564,7 +1567,10 @@
         </div>
         <div class="form-grid">
           <div class="form-group">
-            <label>臺灣國語聲線 (Taiwan Mandarin Neural Voice)</label>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+              <label style="margin-bottom:0;">臺灣國語聲線 (Taiwan Mandarin Neural Voice)</label>
+              <button type="button" class="btn-sec" onclick="previewEdgePresetVoice(this)" style="padding:2px 8px; font-size:11px; background:#1e293b; color:#34d399; border:1px solid #10b981; border-radius:4px; font-weight:600; cursor:pointer;" title="試聽此神經語音">▶️ 試聽</button>
+            </div>
             <select id="v-edge-voice">
               <option value="zh-TW-HsiaoChenNeural" selected>👧 曉臻 (zh-TW-HsiaoChenNeural — 臺灣溫柔知性女聲)</option>
               <option value="zh-TW-HsiaoYuNeural">👧 曉雨 (zh-TW-HsiaoYuNeural — 臺灣甜美清亮女孩)</option>
@@ -1852,7 +1858,10 @@
           </div>
 
           <div class="form-group">
-            <label>🎙️ 搭配聲音音色 (Audio Voice Profile)</label>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+              <label style="margin-bottom:0;">🎙️ 搭配聲音音色 (Audio Voice Profile)</label>
+              <button type="button" class="btn-sec" onclick="previewVoiceFromSelect('av-voice-profile', this)" style="padding:2px 8px; font-size:11px; background:#1e293b; color:#38bdf8; border:1px solid #0284c7; border-radius:4px; font-weight:600; cursor:pointer;" title="試聽此主播聲音音色">▶️ 試聽</button>
+            </div>
             <select id="av-voice-profile">
               <option value="">(使用專案預設音色 - Project Default Voice)</option>
             </select>
@@ -1964,7 +1973,10 @@
           </div>
 
           <div class="form-group">
-            <label>🎙️ 專屬聲音音色 (Assigned Voice Profile)</label>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+              <label style="margin-bottom:0;">🎙️ 專屬聲音音色 (Assigned Voice Profile)</label>
+              <button type="button" class="btn-sec" onclick="previewVoiceFromSelect('char-input-voice-profile', this)" style="padding:2px 8px; font-size:11px; background:#1e293b; color:#38bdf8; border:1px solid #0284c7; border-radius:4px; font-weight:600; cursor:pointer;" title="試聽此角色專屬聲音">▶️ 試聽</button>
+            </div>
             <select id="char-input-voice-profile" style="width: 100%;">
               <!-- Populated dynamically -->
             </select>
@@ -4050,9 +4062,14 @@
             <label style="font-size:13px; font-weight:700; color:#34d399; margin:0;">
               🎙️ Voice Profile (Narrator / Presenter Voice):
             </label>
-            <span id="ra-voice-badge" style="font-size:11px; font-weight:700; padding:2px 8px; border-radius:4px; background:rgba(100, 116, 139, 0.25); color:#94a3b8;">
-              Keep Current Voice
-            </span>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <button type="button" class="btn-sec" onclick="previewVoiceFromSelect('ra-voice-profile', this)" style="padding:2px 8px; font-size:11px; background:#1e293b; color:#38bdf8; border:1px solid #0284c7; border-radius:4px; font-weight:600; cursor:pointer;" title="試聽目前選擇的聲音音色">
+                ▶️ 試聽 (Preview)
+              </button>
+              <span id="ra-voice-badge" style="font-size:11px; font-weight:700; padding:2px 8px; border-radius:4px; background:rgba(100, 116, 139, 0.25); color:#94a3b8;">
+                Keep Current Voice
+              </span>
+            </div>
           </div>
           <select id="ra-voice-profile" data-ui-change="static_288" style="width:100%; padding:9px 12px; font-size:13px; font-weight:600; background:#070d18; border:1px solid #10b981; color:#fff; border-radius:6px;">
             <option value="">Keep Existing Voice Audio (Do not change voice)</option>
