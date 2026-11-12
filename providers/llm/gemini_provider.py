@@ -96,7 +96,7 @@ class GeminiProvider(LLMProvider):
             body["generationConfig"]["responseMimeType"] = "application/json"
         return self._text(self._call(body))
 
-    def generate_with_search(self, prompt, system="") -> str:
+    def generate_with_search(self, prompt, system="", json_mode: bool = False, temperature: float = 0.7, max_tokens: int = 8192) -> str:
         effective_sys = system or (
             "STRICT FACTUAL INTEGRITY & SOURCE DIRECTIVE: 100% avoid retrieving or citing materials, sources, or domains "
             "from the People's Republic of China (.cn domains, PRC state media, or mainland Chinese platforms), "
@@ -107,12 +107,14 @@ class GeminiProvider(LLMProvider):
         body: dict = {
             "contents": [{"role": "user", "parts": [{"text": prompt}]}],
             "tools": [{"google_search": {}}],
-            "generationConfig": {"maxOutputTokens": 8192},
+            "generationConfig": {"maxOutputTokens": max(max_tokens, 8192), "temperature": temperature},
             "systemInstruction": {"parts": [{"text": effective_sys}]},
         }
+        if json_mode:
+            body["generationConfig"]["responseMimeType"] = "application/json"
         try:
             return self._text(self._call(body))
         except LLMError as e:
             # If Google Search grounding hits quota or tool restrictions, fall back to standard generation
             log.warning("Google search grounding unavailable (%s); falling back to direct LLM generation", e)
-            return self.generate(prompt, system=system)
+            return self.generate(prompt, system=system, json_mode=json_mode, temperature=temperature, max_tokens=max_tokens)

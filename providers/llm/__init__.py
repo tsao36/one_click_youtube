@@ -71,12 +71,19 @@ class LLMClient:
         return self.provider.generate(prompt, system, json_mode=False, temperature=temperature, max_tokens=max_tokens)
 
     def json(self, prompt: str, system: str = "", temperature: float = 0.6, max_tokens: int = 4096,
-             validate: Callable[[Any], Any] | None = None) -> Any:
+             validate: Callable[[Any], Any] | None = None, search: bool = False) -> Any:
         last: Exception | None = None
         for attempt in range(1, self.json_retries + 1):
             self._track()
             try:
-                raw = self.provider.generate(prompt, system, json_mode=True, temperature=temperature, max_tokens=max_tokens)
+                if search and hasattr(self.provider, "generate_with_search"):
+                    raw = self.provider.generate_with_search(
+                        prompt, system, json_mode=True, temperature=temperature, max_tokens=max_tokens
+                    )
+                else:
+                    raw = self.provider.generate(
+                        prompt, system, json_mode=True, temperature=temperature, max_tokens=max_tokens
+                    )
                 data = extract_json(raw)
                 return validate(data) if validate else data
             except Exception as e:  # parse or validation error -> retry
@@ -84,6 +91,11 @@ class LLMClient:
                 log.warning("LLM JSON attempt %d/%d for %s failed: %s", attempt, self.json_retries, self.job, str(e)[:200])
                 temperature = max(0.2, temperature - 0.15)
         raise LLMError(f"LLM failed to return valid JSON for {self.job}: {last}")
+
+    def search_json(self, prompt: str, system: str = "", temperature: float = 0.2, max_tokens: int = 8192,
+                    validate: Callable[[Any], Any] | None = None) -> Any:
+        self._track()
+        return self.json(prompt, system=system, temperature=temperature, max_tokens=max_tokens, validate=validate, search=True)
 
     def search(self, prompt: str, system: str = "") -> str:
         self._track()

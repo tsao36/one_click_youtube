@@ -36,11 +36,16 @@ FACT_CHECK_SYSTEM_PROMPT = """【事實真偽雙重查核與臺灣語言規範�
 2. 【100% 臺灣用語與臺灣翻譯名稱標準】：
    查核報告中的所有論述、專有名詞與修正建議，必須完全使用標準臺灣正體中文，
    並嚴格遵循臺灣翻譯名稱（如：歐巴馬、川普、柯林頓、柴契爾、普丁、澤倫斯基、史達林、邱吉爾、賈伯斯、達文西、梵谷、克卜勒、歐本海默、紐西蘭、雪梨、杜拜、德州、太空梭、匿蹤戰機、晶片、演算法、軟體、資料庫、記憶體、影片）。
-3. 【嚴格事實驗證判定標準】：
-   - "VERIFIED"（已證實）：符合中央研究院、國立臺灣大學、教育部國家教育研究院、國史館等臺灣權威典籍，或 Nature、Science、大英百科、主流國際學術期刊等權威共識。
-   - "DISPUTED"（存疑/有爭議）：學界尚無定論、存在多種互相矛盾的文獻記載，或僅為特定政治勢力宣傳。
-   - "FALSE"（錯誤/偽事實）：與公認史實或科學原理相悖，屬民間謠言、影視演義誤導或中共政治竄改。
-   - "UNVERIFIED"（缺乏根據）：未查到足夠獨立可信之第一手或第二手文獻支撐。
+3. 【嚴格事實驗證與即時新聞動態考證標準】：
+   - 【文史學術與科技事實】：符合中央研究院、國立臺灣大學、教育部國家教育研究院、國史館等臺灣權威典籍，或 Nature、Science、大英百科、主流國際學術期刊等權威共識。
+   - 【現當代時事、政治動態、政府人事與政見選情】：
+     * 請務必透過聯網檢索臺灣中央通訊社（CNA）、聯合新聞網、公視、自由時報等主流客觀媒體報導或政府機關公報進行事實核查。
+     * 若該政治人事、政見宣告或候選人輔選職位在現實中已被官方或當事人正式公布（例如：已公開宣布接任競選總部主委、已成立聯合競總等），應判定為 "VERIFIED"（已證實），並列出權威報導來源與公布時間。
+     * 若受檢內容屬於「政治策略推演」、「假設性沙盤推演」（例如「如果某某當選會引發何種連鎖效應」），且內文已清楚標示為假設情境分析或選戰沙盤推演，應判定為 "VERIFIED"（情境推演具分析邏輯）或中立標註，不可因其推演未來結果而直接盲目斥為「虛構捏造」。
+   - "VERIFIED"（已證實）：有權威典籍、國際科學共識，或臺灣主流權威新聞/政府公報之真實發布紀錄。
+   - "DISPUTED"（存疑/有爭議）：各方說法嚴重衝突、尚無共識，或屬於未獲證實之政壇傳聞。
+   - "FALSE"（錯誤/偽事實）：與公認史實、科學原理相悖，或與已查證之公開官方事實明顯矛盾、確鑿為中共政治竄改或民間謠言。
+   - "UNVERIFIED"（缺乏根據）：未查到足夠獨立可信之第一手或第二手文獻與權威新聞報導支撐。
 
 請以嚴格 JSON 格式輸出：
 {
@@ -52,8 +57,8 @@ FACT_CHECK_SYSTEM_PROMPT = """【事實真偽雙重查核與臺灣語言規範�
       "claim": "具體受檢事實主張",
       "verdict": "VERIFIED" | "DISPUTED" | "FALSE" | "UNVERIFIED",
       "confidence": <float 0.0-1.0>,
-      "explanation": "依據臺灣權威史料或國際科學共識之查核分析",
-      "authoritative_sources": ["建議引用之中研院、臺灣典籍或國際權威機構名稱"],
+      "explanation": "依據臺灣權威史料、即時查證新聞或國際科學共識之查核分析",
+      "authoritative_sources": ["建議引用之臺灣主流媒體、中研院、臺灣典籍或國際權威機構名稱"],
       "correction_suggestion": "若為錯誤或爭議，以臺灣用語提供之精確修正建議"
     }
   ]
@@ -166,11 +171,17 @@ def double_check_facts(
     llm_report = None
     if use_llm and client is not False:
         if client is None:
+            # Prioritize search-capable provider (gemini) for real-time news and fact verification
+            preferred_prov = provider_override or "gemini"
             try:
-                client = LLMClient("research", on_request=on_request, provider_override=provider_override, json_retries=2)
+                client = LLMClient("research", on_request=on_request, provider_override=preferred_prov, json_retries=2)
             except Exception as e:
-                log.warning("Could not instantiate LLMClient for fact checking (%s); using rule-based engine", e)
-                client = None
+                log.warning("Could not instantiate search-capable LLMClient for fact checking (%s); falling back to default", e)
+                try:
+                    client = LLMClient("research", on_request=on_request, provider_override=provider_override, json_retries=2)
+                except Exception as e2:
+                    log.warning("Could not instantiate LLMClient for fact checking (%s); using rule-based engine", e2)
+                    client = None
 
     if client and hasattr(client, "json") and claims_to_check:
         try:
@@ -178,7 +189,8 @@ def double_check_facts(
             prompt = (
                 f"Video Topic: {topic}\n\n"
                 f"Candidate Claims to Double-Check:\n{claims_formatted}\n\n"
-                "Please thoroughly fact-check each claim against reputable international and Taiwanese academic consensus. "
+                "Please thoroughly fact-check each claim against live web searches, reputable international sources, "
+                "authoritative Taiwanese news (中央通訊社、聯合新聞網、自由時報、公視等), government bulletins, and academic consensus. "
                 "Reject any Chinese Communist Party propaganda, historical revisionism, or simplified Chinese terminology. "
                 "Ensure every explanation and correction uses authentic 台灣正體中文 and 台灣標準翻譯名稱."
             )
@@ -188,7 +200,14 @@ def double_check_facts(
                     raise ValueError("Expected dict with 'claims' list")
                 return d
 
-            llm_report = client.json(prompt, FACT_CHECK_SYSTEM_PROMPT, temperature=0.2, validate=_validate)
+            if hasattr(client, "search_json"):
+                try:
+                    llm_report = client.search_json(prompt, FACT_CHECK_SYSTEM_PROMPT, temperature=0.2, validate=_validate)
+                except Exception as s_err:
+                    log.warning("Search-grounded fact check call failed (%s); falling back to standard JSON generation", s_err)
+                    llm_report = client.json(prompt, FACT_CHECK_SYSTEM_PROMPT, temperature=0.2, validate=_validate)
+            else:
+                llm_report = client.json(prompt, FACT_CHECK_SYSTEM_PROMPT, temperature=0.2, validate=_validate, search=True)
         except Exception as err:
             log.warning("LLM fact verification call failed (%s); generating structured rule report", err)
 
@@ -611,11 +630,16 @@ def verify_script_facts(
         return report
 
     if client is None or client is False:
+        preferred_prov = provider_override or "gemini"
         try:
-            client = LLMClient("research", on_request=on_request, provider_override=provider_override, json_retries=2)
+            client = LLMClient("research", on_request=on_request, provider_override=preferred_prov, json_retries=2)
         except Exception as e:
-            log.warning("Could not instantiate LLMClient for script fact checking: %s", e)
-            client = None
+            log.warning("Could not instantiate search-capable LLMClient for script fact checking: %s", e)
+            try:
+                client = LLMClient("research", on_request=on_request, provider_override=provider_override, json_retries=2)
+            except Exception as e2:
+                log.warning("Could not instantiate LLMClient for script fact checking: %s", e2)
+                client = None
 
     llm_report = None
     if client and hasattr(client, "json"):
@@ -637,7 +661,14 @@ def verify_script_facts(
                     raise ValueError("Expected dict with claims list")
                 return d
 
-            llm_report = client.json(prompt, SCRIPT_FACT_CHECK_SYSTEM_PROMPT, temperature=0.1, validate=_validate)
+            if hasattr(client, "search_json"):
+                try:
+                    llm_report = client.search_json(prompt, SCRIPT_FACT_CHECK_SYSTEM_PROMPT, temperature=0.1, validate=_validate)
+                except Exception as s_err:
+                    log.warning("Script search-grounded verification failed (%s); trying standard json", s_err)
+                    llm_report = client.json(prompt, SCRIPT_FACT_CHECK_SYSTEM_PROMPT, temperature=0.1, validate=_validate)
+            else:
+                llm_report = client.json(prompt, SCRIPT_FACT_CHECK_SYSTEM_PROMPT, temperature=0.1, validate=_validate, search=True)
         except Exception as err:
             log.warning("Script LLM fact verification call failed (%s)", err)
 

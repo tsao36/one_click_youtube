@@ -582,6 +582,7 @@
                 <option value="broadcast_news">專題電視新聞橫條 (Broadcast News Bar · 新聞專題風格)</option>
                 <option value="none">停用場景訊息 · 純淨圖像 (No Message Overlay · 僅 Ken Burns/AI 圖像)</option>
               </select>
+              <div id="creator-callout-preview-container" style="margin-top: 10px;"></div>
             </div>
           </div>
         </div>
@@ -1837,7 +1838,7 @@
           <!-- Masked Speaker Mode Toggle -->
           <div class="form-group" style="grid-column: 1 / -1;">
             <div style="display: flex; align-items: flex-start; gap: 10px; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 6px; padding: 10px 14px;">
-              <input type="checkbox" id="av-is-masked" checked data-ui-change="static_159" style="width: 18px; height: 18px; accent-color: #10b981; cursor: pointer; margin-top: 2px;">
+              <input type="checkbox" id="av-is-masked" data-ui-change="static_159" style="width: 18px; height: 18px; accent-color: #10b981; cursor: pointer; margin-top: 2px;">
               <div>
                 <label for="av-is-masked" style="margin: 0; font-weight: 700; color: #6ee7b7; cursor: pointer; font-size: 13px;">
                   😷 講者配戴口罩 (Masked Speaker 模式 · 僅需上傳自錄短片，免肖像照，無臉部辨識限制)
@@ -2156,6 +2157,7 @@
           <div style="font-size: 11px; color: #94a3b8; margin-top: 3px;">
             預設將背景輕度壓暗，於畫面中央顯示大型白色重點訊息；亦可切換其他題材樣式或完全停用。
           </div>
+          <div id="settings-callout-preview-container" style="margin-top: 10px;"></div>
         </div>
       </div>
       <div style="background: #0c1526; border: 1px solid #1e3a8a; border-radius: 8px; padding: 12px 16px; margin: 12px 0; display: flex; justify-content: space-between; align-items: center;">
@@ -4135,7 +4137,7 @@
 
   <script src="/api.js"></script>
   <script src="/events.js?v=20261111_v1"></script>
-  <script src="/app.js?v=20261111_confirm_v1"></script>
+  <script src="/app.js?v=20261112_callout_preview_v1"></script>
 
   <!-- Formula Manager Modal -->
   <div id="formula-manager-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 99999; align-items: center; justify-content: center; backdrop-filter: blur(4px);">
@@ -4270,6 +4272,17 @@
             <span id="confirm-modal-avatar" style="font-size:13px; font-weight:700; color:#c084fc; text-align:right; max-width:60%; word-break:break-word;">
               --
             </span>
+          </div>
+
+          <!-- 3b. Avatar Mask Status / 口罩與口型對嘴狀態 -->
+          <div id="confirm-modal-avatar-mask-row" style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.06); padding-bottom:10px; gap:10px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span id="confirm-modal-mask-icon" style="font-size:16px;">👄</span>
+              <span style="font-size:13px; color:#cbd5e1; font-weight:600;">Avatar Mask Status / 口罩與口型狀態</span>
+            </div>
+            <div id="confirm-modal-avatar-mask" style="font-size:12px; font-weight:700; text-align:right; max-width:65%; word-break:break-word;">
+              --
+            </div>
           </div>
 
           <!-- 4. Language -->

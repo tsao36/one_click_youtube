@@ -49,7 +49,11 @@ def list_avatars() -> list[dict]:
                         samples[key] = int(sp.stat().st_mtime)
                 p["engine_samples"] = samples
                 p["has_base_video"] = (d / "base_video.mp4").exists()
-                p["is_masked"] = bool(p.get("is_masked", False)) or p.get("provider") == "masked_speaker"
+                prov = p.get("provider", "")
+                if prov and prov != "masked_speaker" and any(e["provider"] == prov for e in ENGINES.values() if e["provider"] != "masked_speaker"):
+                    p["is_masked"] = False
+                else:
+                    p["is_masked"] = bool(p.get("is_masked", False)) or prov == "masked_speaker"
                 out.append(p)
             except Exception as e:
                 log.warning("Could not read avatar %s: %s", d.name, e)
@@ -801,11 +805,13 @@ def generate_talking_avatar(
         except Exception as e:
             log.warning("Could not extract frame from base video: %s", e)
 
-    provider = avatar.get("provider", "masked_speaker" if avatar.get("is_masked") else "fal-ai/sadtalker")
+    provider = avatar.get("provider")
+    if not provider:
+        provider = "masked_speaker" if avatar.get("is_masked") else "fal-ai/sadtalker"
     key = engine or engine_key_for_provider(provider)
 
     # 1. Masked Speaker Video Avatar: pure video pacing without facial lip-sync
-    if key == "masked_speaker" or (not engine and (avatar.get("is_masked") or provider in ("masked_speaker", "masked_video", "local_masked_speaker"))):
+    if key == "masked_speaker":
         if base_video.exists():
             return _generate_masked_speaker_avatar(base_video, audio_path, output_mp4, width=width, height=height, fps=fps)
         elif portrait_path.exists():

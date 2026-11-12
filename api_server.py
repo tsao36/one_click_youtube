@@ -5341,8 +5341,7 @@ def set_avatar_provider(name: str, engine: str):
         raise HTTPException(status_code=400, detail="請先上傳真人底片影片才能使用此引擎")
     prof = _json.loads(aj.read_text(encoding="utf-8"))
     prof["provider"] = ENGINES[engine]["provider"]
-    if engine == "masked_speaker":
-        prof["is_masked"] = True
+    prof["is_masked"] = (engine == "masked_speaker")
     aj.write_text(_json.dumps(prof, indent=2, ensure_ascii=False), encoding="utf-8")
     return {"status": "ok", "provider": prof["provider"]}
 

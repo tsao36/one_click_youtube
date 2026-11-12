@@ -3786,6 +3786,8 @@
 
       const remotionRow = document.getElementById('confirm-modal-remotion-row');
       if (remotionRow) remotionRow.style.display = 'none';
+      const modalAvatarMaskRow = document.getElementById('confirm-modal-avatar-mask-row');
+      if (modalAvatarMaskRow) modalAvatarMaskRow.style.display = 'none';
 
       pendingCreationAction = () => executeDramaCreation({
         topic,
@@ -3936,6 +3938,45 @@
         if (remotionStyleEl) remotionStyleEl.textContent = remotionInfo.styleName;
       } else {
         if (remotionRow) remotionRow.style.display = 'none';
+      }
+
+      // Avatar Mask & Lip-Sync Status display
+      const modalAvatarMaskRow = document.getElementById('confirm-modal-avatar-mask-row');
+      const modalAvatarMaskEl = document.getElementById('confirm-modal-avatar-mask');
+      const modalMaskIconEl = document.getElementById('confirm-modal-mask-icon');
+
+      const isAvatarActive = !isPureRemotionNoPresenter && autoPresenter && presenterPlacement !== 'none';
+      if (isAvatarActive && defaultAvatar) {
+        const chosenAv = (cachedAvatarsList || []).find(a => a.name === defaultAvatar);
+        const isMasked = chosenAv ? (Boolean(chosenAv.is_masked) || chosenAv.provider === 'masked_speaker') : (avatarEl?.selectedOptions?.[0]?.dataset?.isMasked === 'true');
+        const providerName = chosenAv?.provider || 'AI Lip-Sync';
+
+        if (modalAvatarMaskRow) modalAvatarMaskRow.style.display = 'flex';
+        if (modalMaskIconEl) modalMaskIconEl.textContent = isMasked ? '😷' : '👄';
+
+        if (isMasked) {
+          if (modalAvatarMaskEl) {
+            modalAvatarMaskEl.innerHTML = `
+              <span style="display:inline-flex; align-items:center; gap:5px; background:rgba(245, 158, 11, 0.2); border:1px solid #f59e0b; color:#fbbf24; padding:3px 9px; border-radius:5px; font-size:12px; font-weight:800;">
+                😷 戴口罩自錄模式 (Masked Speaker)
+              </span>
+              <div style="font-size:11px; color:#fde68a; margin-top:3px; font-weight:500; line-height:1.3;">
+                ⚠️ 無唇形對嘴 · 依自錄影片動作長度自動剪輯
+              </div>`;
+          }
+        } else {
+          if (modalAvatarMaskEl) {
+            modalAvatarMaskEl.innerHTML = `
+              <span style="display:inline-flex; align-items:center; gap:5px; background:rgba(16, 185, 129, 0.2); border:1px solid #10b981; color:#6ee7b7; padding:3px 9px; border-radius:5px; font-size:12px; font-weight:800;">
+                👄 露臉口型同步 (Full Lip-Sync)
+              </span>
+              <div style="font-size:11px; color:#94a3b8; margin-top:3px; font-weight:500; line-height:1.3;">
+                ✓ 具備面部表情與唇形即時對嘴 · 引擎: <span style="color:#38bdf8; font-weight:700;">${providerName}</span>
+              </div>`;
+          }
+        }
+      } else {
+        if (modalAvatarMaskRow) modalAvatarMaskRow.style.display = 'none';
       }
 
       pendingCreationAction = () => executeCreation();
@@ -6605,8 +6646,11 @@
     function onAvatarProviderChange() {
       const prov = document.getElementById('av-provider').value;
       const isMaskedCheck = document.getElementById('av-is-masked');
-      const isMasked = prov === 'masked_speaker' || (isMaskedCheck && isMaskedCheck.checked);
+      if (prov !== 'masked_speaker' && isMaskedCheck && isMaskedCheck.checked) {
+        isMaskedCheck.checked = false;
+      }
       if (isMaskedCheck && prov === 'masked_speaker') isMaskedCheck.checked = true;
+      const isMasked = prov === 'masked_speaker' || (isMaskedCheck && isMaskedCheck.checked);
 
       const vBadge = document.getElementById('av-video-badge');
       const photoHint = document.getElementById('av-photo-hint');
@@ -6923,7 +6967,11 @@
           avatars.forEach(av => {
             const opt = document.createElement('option');
             opt.value = av.name;
-            opt.textContent = `${av.display_name || av.name}${av.is_default ? ' ★ (Default)' : ''} [${av.provider || 'latentsync'}]`;
+            const isM = Boolean(av.is_masked) || av.provider === 'masked_speaker';
+            const maskTag = isM ? ' [😷 口罩無對嘴]' : ' [👄 露臉對嘴]';
+            opt.textContent = `${av.display_name || av.name}${av.is_default ? ' ★ (Default)' : ''}${maskTag} [${av.provider || 'latentsync'}]`;
+            opt.dataset.isMasked = isM ? 'true' : 'false';
+            opt.dataset.provider = av.provider || '';
             if (av.is_default) opt.selected = true;
             creatorSel.appendChild(opt);
           });
@@ -6937,7 +6985,11 @@
           avatars.forEach(av => {
             const opt = document.createElement('option');
             opt.value = av.name;
-            opt.textContent = `${av.display_name || av.name}${av.is_default ? ' ★' : ''}`;
+            const isM = Boolean(av.is_masked) || av.provider === 'masked_speaker';
+            const maskTag = isM ? ' [😷 口罩無對嘴]' : ' [👄 露臉對嘴]';
+            opt.textContent = `${av.display_name || av.name}${av.is_default ? ' ★' : ''}${maskTag}`;
+            opt.dataset.isMasked = isM ? 'true' : 'false';
+            opt.dataset.provider = av.provider || '';
             if (av.is_default) opt.selected = true;
             studioSel.appendChild(opt);
           });
@@ -7849,6 +7901,335 @@
         alert("Failed to save settings: " + e.message);
       }
     }
+
+    // ==================== MESSAGE OVERLAY STYLE PREVIEW SYSTEM ====================
+    const CALLOUT_STYLES_INFO = {
+      neutral_centered: {
+        key: 'neutral_centered',
+        name: '中性置中大字',
+        en: 'Neutral Centered',
+        badge: '置中大字 · 輕度壓暗背景',
+        desc: '全片推薦預設：於畫面中央浮現清晰大字，並輕度壓暗全景背景（保留下方字幕原位），視覺聚焦力強、最具電影感與史詩張力。',
+        tag: '重點解析',
+        title: '歷史的關鍵轉折點',
+        subtitle: '權力博弈與時代變革的深刻分水嶺',
+        tags: ['⭐ 推薦預設', '高張力轉折', '歷史與政治'],
+        chipLabel: '🎬 置中大字',
+        accent: '#38bdf8'
+      },
+      modern_pill: {
+        key: 'modern_pill',
+        name: '極簡深色毛玻璃膠囊橫幅',
+        en: 'Modern Glass Pill',
+        badge: '頂部浮窗 · 現代俐落霓虹',
+        desc: '頂部深色毛玻璃半透明膠囊橫幅，天藍/霓虹青標籤，適合現代科技、財經都會題材。',
+        tag: '重點解析',
+        title: '關鍵戰略佈局與影響分析',
+        subtitle: '核心數據突破與發展態勢',
+        tags: ['科技商業', '現代都會', '毛玻璃質感'],
+        chipLabel: '💎 毛玻璃膠囊',
+        accent: '#00F5FF'
+      },
+      archival_parchment: {
+        key: 'archival_parchment',
+        name: '歷史檔案古籍牛皮紙印章',
+        en: 'Archival Parchment',
+        badge: '古籍印章 · 歷史紀錄片推薦',
+        desc: '深木褐底框配硃砂紅印章標籤，牛皮紙古典溫潤字色，文史考證紀錄片首選。',
+        tag: '史實考證',
+        title: '檔案解密與第一手文獻記載',
+        subtitle: '國史館與中研院珍貴文獻',
+        tags: ['歷史文史', '珍貴檔案', '典雅古典'],
+        chipLabel: '📜 牛皮紙印章',
+        accent: '#eab308'
+      },
+      minimal_clean: {
+        key: 'minimal_clean',
+        name: '極簡無框俐落字體',
+        en: 'Minimal Clean',
+        badge: '清透極簡 · 無邊框干擾',
+        desc: '無外框純文字排版，極簡微點標籤與柔和陰影襯托，不破壞原始畫面構圖與攝影美感。',
+        tag: '關鍵脈絡',
+        title: '當代政局架構與深層動力',
+        subtitle: '結構性變數與長線演進趨勢',
+        tags: ['文藝沈浸', '無邊框', '純淨清透'],
+        chipLabel: '✨ 極簡無框',
+        accent: '#cbd5e1'
+      },
+      broadcast_news: {
+        key: 'broadcast_news',
+        name: '專題電視新聞橫條',
+        en: 'Broadcast News Bar',
+        badge: '電視新聞 · 頂部快訊標題',
+        desc: '新聞專題與快訊風格橫條，天藍左側強調線與明黃快訊標籤，權威公信力感強烈。',
+        tag: '專題快訊',
+        title: '最新選情調查與民意風向走勢',
+        subtitle: '深度追蹤與各界焦點反應',
+        tags: ['時事評論', '新聞調查', '專業權威'],
+        chipLabel: '📺 電視新聞',
+        accent: '#facc15'
+      },
+      none: {
+        key: 'none',
+        name: '停用場景訊息',
+        en: 'No Message Overlay',
+        badge: '純淨畫面 · 僅 Ken Burns/圖像',
+        desc: '完全不疊加任何場景重點訊息字卡，保留最純淨的 AI 運鏡或歷史實拍畫面。',
+        tag: '',
+        title: '',
+        subtitle: '',
+        tags: ['純淨視覺', '無文字覆蓋', '原始畫面'],
+        chipLabel: '🚫 停用訊息',
+        accent: '#64748b'
+      }
+    };
+
+    function renderCalloutStyleScreenHtml(styleKey, isMini = false) {
+      const info = CALLOUT_STYLES_INFO[styleKey] || CALLOUT_STYLES_INFO.neutral_centered;
+      let overlayHtml = '';
+
+      if (styleKey === 'neutral_centered') {
+        const titleSize = isMini ? '12px' : '18px';
+        const subSize = isMini ? '9px' : '11px';
+        overlayHtml = `
+          <div style="position:absolute; inset:0; background:rgba(0,0,0,0.58); backdrop-filter:blur(1px); pointer-events:none;"></div>
+          <div style="position:absolute; top:30%; bottom:30%; left:0; right:0; background:rgba(0,0,0,0.45); border-top:1px solid rgba(255,255,255,0.08); border-bottom:1px solid rgba(255,255,255,0.08); pointer-events:none;"></div>
+          <div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:2; padding:0 ${isMini ? '8px' : '16px'}; text-align:center; pointer-events:none;">
+            <div style="font-size:${titleSize}; font-weight:900; color:#ffffff; letter-spacing:0.04em; text-shadow:0 2px 10px rgba(0,0,0,0.95), 0 0 1px #000; line-height:1.3;">
+              ${info.title}
+            </div>
+            <div style="font-size:${subSize}; font-weight:500; color:#cbd5e1; margin-top:${isMini ? '2px' : '4px'}; text-shadow:0 2px 6px rgba(0,0,0,0.9);">
+              ${info.subtitle}
+            </div>
+          </div>
+        `;
+      } else if (styleKey === 'modern_pill') {
+        const topPos = isMini ? '8px' : '14px';
+        const pad = isMini ? '3px 10px' : '6px 16px';
+        const tagSize = isMini ? '9px' : '11px';
+        const titleSize = isMini ? '10px' : '12px';
+        overlayHtml = `
+          <div style="position:absolute; top:${topPos}; left:50%; transform:translateX(-50%); z-index:2; width:90%; max-width:${isMini ? '240px' : '380px'}; pointer-events:none;">
+            <div style="background:rgba(10, 16, 28, 0.85); border:1px solid rgba(56, 189, 248, 0.5); border-radius:999px; padding:${pad}; box-shadow:0 4px 18px rgba(0,0,0,0.7), 0 0 12px rgba(56, 189, 248, 0.25); backdrop-filter:blur(10px); display:flex; align-items:center; justify-content:center; gap:${isMini ? '4px' : '8px'};">
+              <span style="color:#38bdf8; font-size:${tagSize}; font-weight:800; letter-spacing:0.05em; white-space:nowrap;">[ ${info.tag} ]</span>
+              <span style="color:#ffffff; font-size:${titleSize}; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${info.title}</span>
+            </div>
+          </div>
+        `;
+      } else if (styleKey === 'archival_parchment') {
+        const topPos = isMini ? '8px' : '14px';
+        const pad = isMini ? '3px 8px' : '5px 14px';
+        const tagSize = isMini ? '8px' : '10px';
+        const titleSize = isMini ? '10px' : '12px';
+        overlayHtml = `
+          <div style="position:absolute; top:${topPos}; left:50%; transform:translateX(-50%); z-index:2; width:90%; max-width:${isMini ? '240px' : '380px'}; pointer-events:none;">
+            <div style="background:rgba(26, 18, 12, 0.92); border:1.5px solid #854d0e; border-radius:4px; padding:${pad}; box-shadow:0 4px 18px rgba(0,0,0,0.85); display:flex; align-items:center; justify-content:center; gap:${isMini ? '4px' : '8px'};">
+              <span style="background:#991b1b; color:#fef08a; padding:1px 5px; border-radius:2px; font-size:${tagSize}; font-weight:800; font-family:serif; border:1px solid #b91c1c; white-space:nowrap;">【 ${info.tag} 】</span>
+              <span style="color:#fef3c7; font-size:${titleSize}; font-weight:700; font-family:serif; letter-spacing:0.03em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${info.title}</span>
+            </div>
+          </div>
+        `;
+      } else if (styleKey === 'minimal_clean') {
+        const topPos = isMini ? '8px' : '14px';
+        const tagSize = isMini ? '8px' : '10px';
+        const titleSize = isMini ? '11px' : '13px';
+        overlayHtml = `
+          <div style="position:absolute; top:${topPos}; left:50%; transform:translateX(-50%); z-index:2; width:90%; text-align:center; pointer-events:none;">
+            <div style="color:#94a3b8; font-size:${tagSize}; font-weight:700; letter-spacing:0.12em; text-transform:uppercase;">• ${info.tag} •</div>
+            <div style="color:#ffffff; font-size:${titleSize}; font-weight:800; margin-top:2px; letter-spacing:0.02em; text-shadow:0 2px 8px rgba(0,0,0,0.95); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${info.title}</div>
+          </div>
+        `;
+      } else if (styleKey === 'broadcast_news') {
+        const topPos = isMini ? '8px' : '14px';
+        const pad = isMini ? '3px 8px' : '5px 14px';
+        const tagSize = isMini ? '9px' : '11px';
+        const titleSize = isMini ? '10px' : '12px';
+        overlayHtml = `
+          <div style="position:absolute; top:${topPos}; left:50%; transform:translateX(-50%); z-index:2; width:92%; max-width:${isMini ? '250px' : '400px'}; pointer-events:none;">
+            <div style="background:linear-gradient(90deg, rgba(8, 24, 54, 0.95) 0%, rgba(15, 35, 75, 0.88) 100%); border-left:4px solid #38bdf8; border-top:1px solid rgba(56, 189, 248, 0.35); border-right:1px solid rgba(56, 189, 248, 0.35); border-bottom:1px solid rgba(56, 189, 248, 0.35); border-radius:4px; padding:${pad}; box-shadow:0 4px 18px rgba(0,0,0,0.8); display:flex; align-items:center; justify-content:center; gap:${isMini ? '4px' : '8px'};">
+              <span style="color:#fde047; font-size:${tagSize}; font-weight:900; white-space:nowrap;">▶ ${info.tag}</span>
+              <span style="color:#ffffff; font-size:${titleSize}; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${info.title}</span>
+            </div>
+          </div>
+        `;
+      } else if (styleKey === 'none') {
+        overlayHtml = `
+          <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; z-index:2; flex-direction:column; gap:${isMini ? '2px' : '5px'}; pointer-events:none;">
+            <span style="background:rgba(15, 23, 42, 0.85); border:1px dashed rgba(148, 163, 184, 0.45); color:#94a3b8; padding:${isMini ? '2px 6px' : '4px 12px'}; border-radius:6px; font-size:${isMini ? '9px' : '11px'}; font-weight:700;">
+              🚫 純淨圖像 (No Overlay)
+            </span>
+            ${!isMini ? '<span style="font-size:10px; color:#64748b;">保留原始 Ken Burns / AI 鏡頭畫面</span>' : ''}
+          </div>
+        `;
+      }
+
+      // Simulated subtitle at the bottom
+      const subPad = isMini ? '1px 6px' : '2px 10px';
+      const subSize = isMini ? '8px' : '10.5px';
+      const bottomSubtitleHtml = `
+        <div style="position:absolute; bottom:${isMini ? '4px' : '7px'}; left:0; right:0; text-align:center; z-index:3; pointer-events:none; padding:0 8px;">
+          <span style="display:inline-block; background:rgba(0,0,0,0.7); border:1px solid rgba(255,255,255,0.06); padding:${subPad}; border-radius:3px; color:#ffffff; font-size:${subSize}; font-weight:600; text-shadow:0 1px 3px rgba(0,0,0,0.9); white-space:nowrap; max-width:92%; overflow:hidden; text-overflow:ellipsis;">
+            每一項關鍵抉擇，都深切牽動著未來的走向。
+          </span>
+        </div>
+      `;
+
+      return `
+        <div style="position:relative; width:100%; aspect-ratio:16/9; border-radius:${isMini ? '5px' : '8px'}; overflow:hidden; background:radial-gradient(circle at 65% 35%, rgba(30, 58, 95, 0.85) 0%, rgba(10, 15, 30, 0.95) 70%, #030712 100%), linear-gradient(135deg, #09121f 0%, #0f172a 100%); border:1px solid ${isMini ? 'rgba(124, 145, 182, 0.3)' : 'rgba(56, 189, 248, 0.35)'}; box-shadow:${isMini ? '0 2px 8px rgba(0,0,0,0.5)' : '0 6px 22px rgba(0,0,0,0.7), inset 0 0 20px rgba(0,0,0,0.5)'};">
+          <div style="position:absolute; inset:0; opacity:0.18; pointer-events:none; background-image:linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px); background-size:${isMini ? '30px 30px' : '60px 60px'};"></div>
+          
+          ${!isMini ? `
+            <div style="position:absolute; top:8px; left:10px; z-index:4; display:flex; align-items:center; gap:6px; pointer-events:none;">
+              <span style="font-size:9.5px; background:rgba(2, 132, 199, 0.3); border:1px solid rgba(56, 189, 248, 0.4); color:#38bdf8; padding:1px 6px; border-radius:3px; font-weight:700; letter-spacing:0.04em;">16:9 PREVIEW</span>
+              <span style="font-size:9.5px; color:#94a3b8; font-weight:600;">${info.en}</span>
+            </div>
+          ` : ''}
+
+          ${overlayHtml}
+          ${bottomSubtitleHtml}
+        </div>
+      `;
+    }
+
+    function renderCalloutStyleWidgetHtml(selectId, containerId, currentVal, isExpanded = false) {
+      const activeInfo = CALLOUT_STYLES_INFO[currentVal] || CALLOUT_STYLES_INFO.neutral_centered;
+
+      // 1. Quick Chips Row
+      const chipsHtml = Object.keys(CALLOUT_STYLES_INFO).map(key => {
+        const item = CALLOUT_STYLES_INFO[key];
+        const isActive = key === currentVal;
+        return `
+          <button type="button" class="btn-sec" onclick="selectCalloutStyle('${selectId}', '${containerId}', '${key}')"
+            style="padding:3px 9px; font-size:11px; font-weight:700; border-radius:4px; transition:all .15s; cursor:pointer;
+            ${isActive ? 'background:rgba(2, 132, 199, 0.25); border-color:#38bdf8; color:#38bdf8; box-shadow:0 0 8px rgba(56, 189, 248, 0.3);' : 'background:rgba(15, 23, 42, 0.7); border-color:#334155; color:#94a3b8;'}">
+            ${item.chipLabel}
+          </button>
+        `;
+      }).join('');
+
+      // 2. Comparison Grid (6 styles side by side)
+      let compareGridHtml = '';
+      if (isExpanded) {
+        const cardsHtml = Object.keys(CALLOUT_STYLES_INFO).map(key => {
+          const item = CALLOUT_STYLES_INFO[key];
+          const isActive = key === currentVal;
+          return `
+            <div onclick="selectCalloutStyle('${selectId}', '${containerId}', '${key}')"
+              style="cursor:pointer; background:#080d16; border:1.5px solid ${isActive ? '#38bdf8' : '#1e293b'}; border-radius:6px; padding:7px; display:flex; flex-direction:column; gap:5px; transition:all .15s; ${isActive ? 'box-shadow:0 0 12px rgba(56, 189, 248, 0.3);' : ''}">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:11px; font-weight:700; color:${isActive ? '#38bdf8' : '#e2e8f0'}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${item.name}</span>
+                ${isActive ? '<span style="font-size:9.5px; color:#38bdf8; font-weight:800; white-space:nowrap;">● 選用中</span>' : ''}
+              </div>
+              ${renderCalloutStyleScreenHtml(key, true)}
+              <div style="font-size:10px; color:#94a3b8; line-height:1.2; margin-top:2px;">${item.badge}</div>
+            </div>
+          `;
+        }).join('');
+
+        compareGridHtml = `
+          <div style="margin-top:10px; background:#04070e; border:1px solid #1e293b; border-radius:8px; padding:10px;">
+            <div style="font-size:11px; font-weight:700; color:#cbd5e1; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+              <span>👀 全部 6 款訊息風格視覺對比 (點擊卡片即可切換套用)</span>
+              <span style="color:#64748b; font-size:10px;">Click card to apply</span>
+            </div>
+            <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:8px;">
+              ${cardsHtml}
+            </div>
+          </div>
+        `;
+      }
+
+      return `
+        <div style="background:#060a12; border:1px solid #1e293b; border-radius:8px; padding:10px 12px; margin-top:8px;">
+          <!-- Quick Chips -->
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <span style="font-size:11px; font-weight:700; color:#cbd5e1;">即時樣式切換與預覽 (Live Style Preview):</span>
+            <span style="font-size:10px; color:#38bdf8; font-weight:600;">16:9 模擬畫面</span>
+          </div>
+          <div style="display:flex; gap:5px; flex-wrap:wrap; margin-bottom:10px;">
+            ${chipsHtml}
+          </div>
+
+          <!-- Featured Screen -->
+          <div style="max-width:480px; margin:0 auto;">
+            ${renderCalloutStyleScreenHtml(currentVal, false)}
+          </div>
+
+          <!-- Info Bar -->
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; flex-wrap:wrap; gap:6px; background:#080d16; border:1px solid #1e293b; border-radius:6px; padding:8px 12px;">
+            <div style="flex:1; min-width:200px;">
+              <span style="font-size:12px; font-weight:700; color:#f8fafc;">${activeInfo.name}</span>
+              <span style="font-size:11px; color:#38bdf8; margin-left:6px; font-weight:600;">${activeInfo.badge}</span>
+              <div style="font-size:11px; color:#94a3b8; margin-top:2px; line-height:1.4;">${activeInfo.desc}</div>
+            </div>
+            <div style="display:flex; gap:4px; flex-wrap:wrap;">
+              ${activeInfo.tags.map(t => `<span style="font-size:10px; background:rgba(255,255,255,0.06); color:#cbd5e1; border:1px solid rgba(255,255,255,0.1); padding:1px 6px; border-radius:3px;">${t}</span>`).join('')}
+            </div>
+          </div>
+
+          <!-- Compare All Toggle Button -->
+          <div style="margin-top:8px;">
+            <button type="button" class="btn-sec" onclick="toggleCalloutCompareGrid('${selectId}', '${containerId}')"
+              style="width:100%; padding:5px 10px; font-size:11px; font-weight:700; color:#93c5fd; background:rgba(59,130,246,0.08); border:1px dashed rgba(59,130,246,0.35); border-radius:5px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
+              <span>${isExpanded ? '▲ 收合 6 款樣式對比 (Hide All Styles)' : '🔍 展開 6 款樣式並排對比 (Compare All Styles)'}</span>
+            </button>
+          </div>
+
+          <!-- Expandable Comparison Grid -->
+          ${compareGridHtml}
+        </div>
+      `;
+    }
+
+    function updateCalloutStyleWidget(selectId, containerId) {
+      const sel = document.getElementById(selectId);
+      const cont = document.getElementById(containerId);
+      if (!sel || !cont) return;
+      const currentVal = sel.value || 'neutral_centered';
+      const isExpanded = cont.dataset.expanded === 'true';
+      cont.innerHTML = renderCalloutStyleWidgetHtml(selectId, containerId, currentVal, isExpanded);
+
+      // Update callout-style-hint if on creator form
+      if (selectId === 'creator-callout-style') {
+        const hintEl = document.getElementById('callout-style-hint');
+        if (hintEl && CALLOUT_STYLES_INFO[currentVal]) {
+          hintEl.textContent = CALLOUT_STYLES_INFO[currentVal].badge;
+        }
+      }
+    }
+
+    window.selectCalloutStyle = function(selectId, containerId, styleKey) {
+      const sel = document.getElementById(selectId);
+      if (sel) {
+        sel.value = styleKey;
+        sel.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      updateCalloutStyleWidget(selectId, containerId);
+    };
+
+    window.toggleCalloutCompareGrid = function(selectId, containerId) {
+      const cont = document.getElementById(containerId);
+      if (!cont) return;
+      cont.dataset.expanded = (cont.dataset.expanded === 'true') ? 'false' : 'true';
+      updateCalloutStyleWidget(selectId, containerId);
+    };
+
+    function initCalloutStyleWidget(selectId, containerId) {
+      const sel = document.getElementById(selectId);
+      const cont = document.getElementById(containerId);
+      if (!sel || !cont) return;
+
+      if (!sel.dataset.hasPreviewListener) {
+        sel.dataset.hasPreviewListener = 'true';
+        sel.addEventListener('change', () => {
+          updateCalloutStyleWidget(selectId, containerId);
+        });
+      }
+
+      updateCalloutStyleWidget(selectId, containerId);
+    }
+    window.initCalloutStyleWidget = initCalloutStyleWidget;
+    window.updateCalloutStyleWidget = updateCalloutStyleWidget;
 
     function populateRemotionSettingsUI(remCfg = {}) {
       if (!remCfg) remCfg = {};
@@ -9576,6 +9957,7 @@
                   <option value="none" ${calloutStyle === 'none' ? 'selected' : ''}>None — disable message overlays</option>
                 </select>
                 <div style="font-size:11px; color:#64748b; margin-top:5px;">Applied when the subtitle stage is rerun.</div>
+                <div id="insp-callout-preview-container" style="margin-top:10px;"></div>
               </div>
               ${calloutsHtml}
             `}
@@ -9605,6 +9987,9 @@
 
       bodyEl.innerHTML = bodyHtml;
       actionsEl.innerHTML = actionButtons;
+      if (stageName === 'subtitles') {
+        initCalloutStyleWidget('insp-callout-style', 'insp-callout-preview-container');
+      }
     }
 
     async function saveInspectedStage(stageName, runNextAfter = false) {
@@ -13522,6 +13907,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
                   <option value="none" ${calloutStyle === 'none' ? 'selected' : ''}>None — disable message overlays</option>
                 </select>
                 <div style="font-size:11px; color:#64748b; margin-top:5px;">Save, then rerun subtitles to regenerate the overlay styling.</div>
+                <div id="studio-callout-preview-container" style="margin-top:10px;"></div>
               </div>
               ${calloutsHtml}
             ` : `
@@ -13617,6 +14003,9 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       `;
 
       wsEl.innerHTML = headerHtml + versionBarHtml + liveBannerHtml + bodyHtml + footerHtml;
+      if (stKey === 'subtitles') {
+        initCalloutStyleWidget('studio-callout-style', 'studio-callout-preview-container');
+      }
       if (stKey === 'scenes' && cachedAvatarsList && cachedAvatarsList.length > 0) {
         populatePresenterAvatarSelectors(cachedAvatarsList);
       }
@@ -17331,6 +17720,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
           const setCallout = document.getElementById('set-callout-banner-style');
           if (setCallout && setCallout.value !== calloutCreator.value) {
             setCallout.value = calloutCreator.value;
+            updateCalloutStyleWidget('set-callout-banner-style', 'settings-callout-preview-container');
           }
         });
       }
@@ -17341,9 +17731,13 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
           const setCreator = document.getElementById('creator-callout-style');
           if (setCreator && setCreator.value !== calloutSettings.value) {
             setCreator.value = calloutSettings.value;
+            updateCalloutStyleWidget('creator-callout-style', 'creator-callout-preview-container');
           }
         });
       }
+
+      initCalloutStyleWidget('creator-callout-style', 'creator-callout-preview-container');
+      initCalloutStyleWidget('set-callout-banner-style', 'settings-callout-preview-container');
 
       setTimeout(() => {
         onStageModelChange();

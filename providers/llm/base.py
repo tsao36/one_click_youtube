@@ -24,7 +24,8 @@ class LLMProvider(ABC):
                  temperature: float = 0.7, max_tokens: int = 4096) -> str:
         ...
 
-    def generate_with_search(self, prompt: str, system: str = "") -> str:
+    def generate_with_search(self, prompt: str, system: str = "", json_mode: bool = False,
+                             temperature: float = 0.7, max_tokens: int = 4096) -> str:
         raise LLMError(f"{self.name} does not support web search grounding")
 
     @abstractmethod
