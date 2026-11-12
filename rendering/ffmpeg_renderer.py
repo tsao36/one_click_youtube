@@ -375,6 +375,17 @@ def build_audio_mix(project: Project, narration: Path, total: float, out: Path,
                         loaded_plan.append(seg)
                 if len(loaded_plan) == len(plan_data) and len(loaded_plan) > 0:
                     music_plan = loaded_plan
+                    from core.music_intelligence import validate_music_plan
+                    loaded_qa = validate_music_plan(music_plan, total)
+                    try:
+                        project.path("music", "music_plan_qa.json").write_text(
+                            json.dumps(loaded_qa, indent=2, ensure_ascii=False), encoding="utf-8"
+                        )
+                    except Exception as qa_exc:
+                        log.warning("Could not persist music plan QA report: %s", qa_exc)
+                    if loaded_qa["status"] != "pass":
+                        log.warning("Pre-planned music timeline failed QA (%s); re-planning", loaded_qa["errors"])
+                        music_plan = []
                     log.info("Loaded pre-planned music timeline with %d segments from %s", len(music_plan), music_plan_file)
                     if plan_repaired:
                         try:

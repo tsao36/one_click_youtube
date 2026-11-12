@@ -2,8 +2,10 @@
 from __future__ import annotations
 
 import argparse
+import array
 import concurrent.futures
 import json
+import math
 import re
 import subprocess
 import sys
@@ -33,6 +35,11 @@ def extract_audio_profile(track_path: Path) -> dict[str, Any]:
         "filename_tags": [],
         "has_vocals": False,
         "vocal_type": "instrumental",
+        "energy_curve": [],
+        "energy_slope": 0.0,
+        "transient_density": 0.0,
+        "zero_crossing_rate": 0.0,
+        "speech_band_risk": 0.0,
     }
 
     # 1. Filename heuristic vocal tags
@@ -91,10 +98,73 @@ def extract_audio_profile(track_path: Path) -> dict[str, Any]:
     except Exception as e:
         log.warning("volumedetect failed for %s: %s", track_path.name, e)
 
+    # 4. Decode a low-rate mono analysis stream.  These features are cheap,
+    # deterministic and sufficient to reject busy beds without shipping a
+    # heavyweight audio-ML runtime in the web application.
+    try:
+        pcm_cmd = [
+            ffmpeg_bin(), "-v", "error", "-t", "90", "-i", str(track_path),
+            "-ac", "1", "-ar", "8000", "-f", "s16le", "pipe:1",
+        ]
+        pres = subprocess.run(pcm_cmd, capture_output=True, timeout=25)
+        if pres.returncode == 0 and pres.stdout:
+            samples = array.array("h")
+            samples.frombytes(pres.stdout)
+            if sys.byteorder != "little":
+                samples.byteswap()
+            window = 8000
+            energies = []
+            crossings = 0
+            sharp_changes = 0
+            previous = samples[0]
+            diff_threshold = 9000
+            for sample in samples[1:]:
+                crossings += int((sample >= 0) != (previous >= 0))
+                sharp_changes += int(abs(sample - previous) >= diff_threshold)
+                previous = sample
+            for start in range(0, len(samples), window):
+                chunk = samples[start:start + window]
+                if not chunk:
+                    continue
+                rms = math.sqrt(sum(float(v) * float(v) for v in chunk) / len(chunk)) / 32768.0
+                energies.append(rms)
+            peak_energy = max(energies, default=1.0) or 1.0
+            curve = [round(value / peak_energy, 4) for value in energies]
+            profile["energy_curve"] = curve
+            profile["energy_slope"] = round((curve[-1] - curve[0]) / max(1, len(curve) - 1), 4) if curve else 0.0
+            profile["transient_density"] = round(sharp_changes / max(1, len(samples) - 1), 5)
+            zcr = crossings / max(1, len(samples) - 1)
+            profile["zero_crossing_rate"] = round(zcr, 5)
+            # Speech-like mid-frequency activity correlates with moderate ZCR
+            # and high transient density.  It is a conservative risk signal,
+            # not a claim of vocal-source separation.
+            profile["speech_band_risk"] = round(min(1.0, zcr * 4.0 + profile["transient_density"] * 8.0), 4)
+    except Exception as e:
+        log.warning("PCM feature extraction failed for %s: %s", track_path.name, e)
+
     return profile
 
 
-def grade_single_track(track: dict[str, Any], directory: str, client: TypeSafeClient) -> bool:
+def deterministic_fitness(audio_profile: dict[str, Any], track: dict[str, Any]) -> dict[str, Any]:
+    """Offline safety grade used when semantic AI is absent or unavailable."""
+    vocal = bool(audio_profile.get("has_vocals") or track.get("vocals") is True)
+    transient = float(audio_profile.get("transient_density", 0.0) or 0.0)
+    band_risk = float(audio_profile.get("speech_band_risk", 0.0) or 0.0)
+    distraction = min(1.0, (0.75 if vocal else 0.0) + transient * 5.0 + band_risk * 0.28)
+    fitness = max(1.0, min(5.0, 5.0 - distraction * 3.5))
+    role = str(track.get("scene_tag") or track.get("category") or "explanation")
+    return {
+        "voiceover_fitness": round(fitness, 2),
+        "distraction_prob": round(distraction, 3),
+        "is_voiceover_ready": bool(not vocal and fitness >= 3.0 and distraction <= 0.40),
+        "speech_intrusive": bool(vocal or fitness < 3.0 or distraction > 0.40),
+        "movement_role": role,
+        "confidence": 0.65,
+        "grading_mode": "deterministic_offline",
+    }
+
+
+def grade_single_track(track: dict[str, Any], directory: str, client: TypeSafeClient | None) -> bool:
     """Grade a single track and update its dictionary in-place."""
     rel_fn = track.get("filename") or track.get("id")
     file_path = ROOT / directory / rel_fn
@@ -104,7 +174,15 @@ def grade_single_track(track: dict[str, Any], directory: str, client: TypeSafeCl
 
     audio_profile = extract_audio_profile(file_path)
     try:
-        fitness = client.evaluate_track_fitness(audio_profile, track)
+        if client is not None and client.is_configured():
+            try:
+                fitness = client.evaluate_track_fitness(audio_profile, track)
+                fitness["grading_mode"] = "typesafe_semantic"
+            except Exception as exc:
+                log.warning("TypeSafe grade failed for '%s'; using offline grade: %s", track.get("name"), exc)
+                fitness = deterministic_fitness(audio_profile, track)
+        else:
+            fitness = deterministic_fitness(audio_profile, track)
         track.update({
             "voiceover_fitness": fitness["voiceover_fitness"],
             "distraction_prob": fitness["distraction_prob"],
@@ -112,6 +190,7 @@ def grade_single_track(track: dict[str, Any], directory: str, client: TypeSafeCl
             "speech_intrusive": fitness["speech_intrusive"],
             "typesafe_movement_role": fitness["movement_role"],
             "typesafe_confidence": fitness["confidence"],
+            "grading_mode": fitness["grading_mode"],
             "acoustic_profile": audio_profile,
             "typesafe_graded_at": int(time.time()),
         })
@@ -134,10 +213,11 @@ def grade_inventory(
     limit: int | None = None,
     concurrency: int = 5,
     progress_callback=None,
+    strict_typesafe: bool = False,
 ) -> dict[str, Any]:
     """Grade tracks in the catalog with TypeSafe AI System One models using ThreadPoolExecutor."""
     client = TypeSafeClient()
-    if not client.is_configured():
+    if strict_typesafe and not client.is_configured():
         raise TypeSafeUnavailableError(
             "TypeSafe AI API key is not configured. Please set TYPESAFE_API_KEY in Settings or .env."
         )
@@ -161,7 +241,8 @@ def grade_inventory(
         to_grade = to_grade[:limit]
 
     total_count = len(to_grade)
-    log.info("Found %d tracks requiring TypeSafe AI grading in %s", total_count, directory)
+    mode = "TypeSafe + deterministic fallback" if client.is_configured() else "deterministic offline"
+    log.info("Found %d tracks requiring grading in %s (%s)", total_count, directory, mode)
     if total_count == 0:
         passed = sum(1 for t in tracks if t.get("is_voiceover_ready"))
         return {"total": len(tracks), "graded": 0, "passed": passed, "failed": len(tracks) - passed}
@@ -219,15 +300,19 @@ def grade_inventory(
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Grade music inventory using TypeSafe AI (ADR 0017)")
+    parser = argparse.ArgumentParser(description="Grade music inventory locally, with optional TypeSafe semantic judgment")
     parser.add_argument("--force", action="store_true", help="Re-grade tracks that already have scores")
     parser.add_argument("--limit", type=int, default=None, help="Limit number of tracks to grade")
     parser.add_argument("--concurrency", type=int, default=5, help="Number of concurrent TypeSafe requests")
     parser.add_argument("--dir", default="data/music", help="Path to music directory")
+    parser.add_argument("--strict-typesafe", action="store_true", help="Fail instead of using the deterministic offline grader")
     args = parser.parse_args()
 
     try:
-        res = grade_inventory(directory=args.dir, force=args.force, limit=args.limit, concurrency=args.concurrency)
+        res = grade_inventory(
+            directory=args.dir, force=args.force, limit=args.limit,
+            concurrency=args.concurrency, strict_typesafe=args.strict_typesafe,
+        )
         print(f"\nFinished! Total: {res['total']} | Graded: {res['graded']} | Passed (Ready): {res['passed']} | Filtered (Intrusive): {res['failed']}")
     except TypeSafeUnavailableError as e:
         print(f"\nCONFIG ERROR: {e}", file=sys.stderr)

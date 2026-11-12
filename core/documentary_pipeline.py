@@ -2295,6 +2295,9 @@ class DocumentaryPipeline(BasePipeline):
             # Persist plan to music/music_plan.json
             plan_dicts = [seg.to_dict() for seg in music_plan]
             self.p.write_json("music/music_plan.json", plan_dicts)
+            from core.music_intelligence import validate_music_plan
+            plan_qa = validate_music_plan(music_plan, total)
+            self.p.write_json("music/music_plan_qa.json", plan_qa)
             log.info("Planned and saved ambient music with %d segments to music/music_plan.json", len(plan_dicts))
 
             elapsed = round(time.perf_counter() - t0, 2)

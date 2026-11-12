@@ -11,6 +11,12 @@ from typing import Any
 
 from core.config import ROOT
 from core.logging_setup import log
+from core.music_intelligence import (
+    MusicIntent,
+    infer_music_intent,
+    optimize_soundtrack,
+    validate_music_plan,
+)
 
 AUDIO_EXT = {".mp3", ".wav", ".m4a", ".ogg", ".flac", ".aac"}
 DEFAULT_STYLE = "ambient"
@@ -408,6 +414,7 @@ def pick_track(
     # 3. Filter candidates
     style_matched_candidates = []
     fallback_candidates = []
+    safe_candidates = []
 
     for p in all_tracks:
         if p in exclude_set:
@@ -437,6 +444,8 @@ def pick_track(
         if not valid:
             continue
 
+        safe_candidates.append(p)
+
         # Scene tag matching
         track_tags = meta.get("scene_tags", [meta.get("scene_tag")])
         tag_matches = target_tag in track_tags or target_tag in p.stem.lower()
@@ -450,7 +459,9 @@ def pick_track(
 
     candidates = style_matched_candidates or fallback_candidates
     if not candidates:
-        candidates = [p for p in all_tracks if p not in exclude_set] or all_tracks
+        # Never weaken the vocal/distraction/licence gates merely because the
+        # desired mood has no exact match.  Silence is safer than unsafe music.
+        candidates = [p for p in safe_candidates if p not in exclude_set]
 
     if not candidates:
         return None
@@ -484,6 +495,10 @@ class MusicSegment:
     start_offset: float = 0.0
     license: dict[str, Any] = field(default_factory=dict)
     attribution_text: str = ""
+    intent: dict[str, Any] = field(default_factory=dict)
+    score_breakdown: dict[str, float] = field(default_factory=dict)
+    confidence: float = 0.0
+    selection_mode: str = "deterministic_global"
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -500,6 +515,10 @@ class MusicSegment:
             "start_offset": round(float(self.start_offset or 0.0), 2),
             "license": self.license,
             "attribution_text": self.attribution_text,
+            "intent": self.intent,
+            "score_breakdown": self.score_breakdown,
+            "confidence": round(float(self.confidence or 0.0), 4),
+            "selection_mode": self.selection_mode,
         }
 
     @classmethod
@@ -525,6 +544,10 @@ class MusicSegment:
             start_offset=float(data.get("start_offset", 0.0) or 0.0),
             license=dict(data.get("license", {})),
             attribution_text=str(data.get("attribution_text", "")),
+            intent=dict(data.get("intent", {})),
+            score_breakdown=dict(data.get("score_breakdown", {})),
+            confidence=float(data.get("confidence", 0.0) or 0.0),
+            selection_mode=str(data.get("selection_mode", "legacy")),
         )
 
 
@@ -674,7 +697,76 @@ def plan_music_timeline(
                 {"tag": "conclusion", "start": t_outro, "end": total_duration},
             ]
 
-    # 2. Pick tracks for each meaningful mood transition
+    # 2. Translate each movement into a content-aware music intent, then choose
+    # the complete sequence globally.  This avoids locally attractive tracks
+    # producing a tonally incoherent soundtrack when placed next to each other.
+    intents: list[MusicIntent] = []
+    for blk in mood_blocks:
+        block_text = ""
+        block_duration = max(0.1, float(blk["end"]) - float(blk["start"]))
+        if scenes and blk.get("scenes"):
+            pieces = []
+            for scene_index in blk["scenes"]:
+                if 0 <= scene_index < len(scenes):
+                    sc = scenes[scene_index]
+                    pieces.append(f"{getattr(sc, 'section', '')} {getattr(sc, 'narration', '')}")
+            block_text = " ".join(pieces).strip()
+        if not block_text:
+            block_text = f"{topic or ''} {context_text or ''}".strip()
+        word_rate = len(block_text.split()) / block_duration
+        intents.append(infer_music_intent(blk["tag"], block_text, word_rate))
+
+    path_by_catalog_id: dict[str, Path] = {}
+    for trk in all_tracks:
+        rel = trk.relative_to(ROOT / directory).as_posix() if (ROOT / directory) in trk.parents else trk.name
+        path_by_catalog_id[rel] = trk
+        path_by_catalog_id[trk.name] = trk
+
+    # Stale catalog rows must never win selection: only score tracks that can
+    # actually be opened by the renderer.
+    catalog_tracks = []
+    for item in cat_data.get("tracks", []):
+        if not isinstance(item, dict):
+            continue
+        item_id = str(item.get("filename") or item.get("id") or item.get("basename") or "")
+        if item_id in path_by_catalog_id or str(item.get("basename") or "") in path_by_catalog_id:
+            catalog_tracks.append(dict(item))
+    optimized = []
+    autonomous_matching = bool(m.get("autonomous_matching", True)) and not (pref and len(mood_blocks) == 1)
+    semantic_scores: list[dict[str, float]] = []
+    if autonomous_matching and bool(m.get("typesafe_rerank", True)):
+        try:
+            from providers.typesafe_client import TypeSafeClient
+            from core.music_intelligence import is_safe_candidate, score_candidate
+            semantic_client = TypeSafeClient(timeout=float(m.get("typesafe_timeout", 8.0)))
+            if semantic_client.is_configured():
+                for intent in intents:
+                    shortlist = [item for item in catalog_tracks if is_safe_candidate(item)[0]]
+                    shortlist.sort(key=lambda item: score_candidate(item, intent, chosen_style)[0], reverse=True)
+                    shortlist = [dict(item) for item in shortlist[:5]]
+                    ranked = semantic_client.rank_candidate_tracks(
+                        shortlist,
+                        topic=topic or "",
+                        chapter_synopsis=intent.synopsis,
+                        movement_name=intent.scene_tag,
+                    )
+                    semantic_scores.append({
+                        str(item.get("id") or item.get("filename")): float(item.get("rank_prob", 0.0) or 0.0)
+                        for item in ranked
+                    })
+        except Exception as exc:
+            log.warning("Optional TypeSafe shortlist reranking unavailable; continuing deterministically: %s", exc)
+            semantic_scores = []
+    if autonomous_matching:
+        optimized = optimize_soundtrack(
+            intents=intents,
+            candidates=catalog_tracks,
+            style=chosen_style,
+            recent_ids=set(get_recent_tracks(directory, limit=3)),
+            semantic_scores=semantic_scores,
+        )
+
+    # 3. Materialize the selected sequence as the backward-compatible plan.
     segments: list[MusicSegment] = []
     used_tracks: set[Path] = set()
 
@@ -684,19 +776,27 @@ def plan_music_timeline(
         if dur <= 0.5:
             continue
 
-        trk = pick_track(
-            directory=directory,
-            key=f"{key}_{stag}_{i}",
-            preferred=pref if len(mood_blocks) == 1 else None,
-            topic=topic,
-            context_text=context_text,
-            scene_tag=stag,
-            style=chosen_style,
-            exclude=used_tracks if len(all_tracks) >= len(mood_blocks) else None,
-        )
+        selected_meta = optimized[i] if i < len(optimized) else {}
+        selected_id = str(selected_meta.get("filename") or selected_meta.get("id") or selected_meta.get("basename") or "")
+        trk = path_by_catalog_id.get(selected_id) or path_by_catalog_id.get(str(selected_meta.get("basename") or ""))
+        if trk is None:
+            trk = pick_track(
+                directory=directory,
+                key=f"{key}_{stag}_{i}",
+                preferred=pref if len(mood_blocks) == 1 else None,
+                topic=topic,
+                context_text=context_text,
+                scene_tag=stag,
+                style=chosen_style,
+                exclude=used_tracks if len(all_tracks) >= len(mood_blocks) else None,
+            )
 
         if not trk:
-            trk = all_tracks[0]
+            log.warning(
+                "No voiceover-safe licensed music candidate exists for movement %s; using voice-only fallback",
+                stag,
+            )
+            return []
 
         used_tracks.add(trk)
         lic_dict, attr_text = get_track_license_meta(trk)
@@ -720,9 +820,17 @@ def plan_music_timeline(
             name=trk.name,
             license=lic_dict,
             attribution_text=attr_text,
+            intent=intents[i].to_dict() if i < len(intents) else {},
+            score_breakdown=dict(selected_meta.get("score_breakdown", {})),
+            confidence=float(selected_meta.get("selection_score", 0.0) or 0.0),
+            selection_mode="deterministic_global" if selected_meta else "legacy_fallback",
         )
         segments.append(seg)
         record_track_selection(trk.name, project_id=key, directory=directory)
+
+    qa = validate_music_plan(segments, total_duration)
+    if qa["status"] != "pass":
+        log.warning("Generated music plan failed QA: %s", qa["errors"])
 
     log.info(
         "Planned %d-movement background music timeline: %s (calibrated BGM volume: %.1f dBFS, style: %s)",
