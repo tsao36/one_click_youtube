@@ -72,11 +72,72 @@ def project_style(settings: dict, seed: int) -> dict:
             "aspect_ratio": v.get("aspect_ratio", "16:9"), "consistency_seed": seed}
 
 
+DOMAIN_JARGON_MAPPINGS = [
+    {
+        "pattern": r"\b(?:cleanroom\s+)?bunny\s+suits?\b",
+        "replacement": "semiconductor cleanroom suit (antistatic hooded cleanroom jumpsuit, protective goggles, sterile fabric face mask, strictly no rabbit ears or animal costume)",
+        "negatives": ["rabbit ears", "bunny ears", "animal costume", "rabbit costume", "cosplay", "easter bunny", "hare ears", "animal tail"],
+    },
+    {
+        "pattern": r"\b(?:electronic\s+)?breadboards?\b",
+        "replacement": "solderless electronic prototyping breadboard",
+        "negatives": ["sliced bread", "bakery bread", "cutting board", "kitchen breadboard", "food"],
+    },
+    {
+        "pattern": r"\b(?:pipeline\s+)?pigs?\b(?=\s+(?:tool|gauge|inspection|pipeline|run|launcher|receiver))",
+        "replacement": "pipeline inspection gauge tool",
+        "negatives": ["farm pig", "pork", "swine", "farm animal", "livestock"],
+    },
+    {
+        "pattern": r"\bbutterfly\s+valves?\b",
+        "replacement": "industrial quarter-turn butterfly valve pipe fitting",
+        "negatives": ["butterfly wings", "insect", "flying insect"],
+    },
+    {
+        "pattern": r"\bcanary\s+(?:release|deployment)s?\b",
+        "replacement": "gradual staged software deployment rollout",
+        "negatives": ["yellow bird", "pet canary", "feathered bird"],
+    },
+    {
+        "pattern": r"\b(?:computer\s+)?mouse\b(?=.*\b(?:cursor|keyboard|click|screen|desktop|monitor|usb)\b)",
+        "replacement": "computer mouse pointing device",
+        "negatives": ["rodent", "live rat", "pet mouse", "rodent animal"],
+    },
+]
+
+
+def disambiguate_domain_jargon(text: str) -> tuple[str, list[str]]:
+    """Replaces ambiguous industry slang and technical metaphors that diffusion/image models
+    misinterpret literally, and returns corresponding negative prompt tokens.
+    """
+    if not text:
+        return text, []
+    additional_negatives = []
+    res = text
+    for entry in DOMAIN_JARGON_MAPPINGS:
+        if re.search(entry["pattern"], res, flags=re.IGNORECASE):
+            res = re.sub(entry["pattern"], entry["replacement"], res, flags=re.IGNORECASE)
+            additional_negatives.extend(entry["negatives"])
+    return res, additional_negatives
+
+
 def compose(parts: dict, style: dict, entity_desc: list[str], visual_type: str, world_setting: dict | None = None, is_cloud: bool = False, client: LLMClient | None = None) -> str:
     style_str = style.get("style", "")
     mood_str = parts.get("mood") or style.get("mood", "")
 
-    scene_text = f"{parts.get('subject', '')} {parts.get('environment', '')} {parts.get('composition', '')}".lower()
+    style_key = (style.get("key") or "").lower()
+    is_political_explainer = any(k in style_key for k in ["political_explainer", "taiwan_political", "see_world"])
+    is_cartoon_explainer = (not is_political_explainer) and any(k in style_key for k in ["cartoon", "explainer", "doodle", "stickman", "minimalist_explainer"])
+
+    subj_raw = parts.get("subject", "") or ""
+    env_raw = parts.get("environment", "") or ""
+    comp_raw = parts.get("composition", "") or ""
+
+    clean_subj, _ = disambiguate_domain_jargon(subj_raw)
+    clean_env, _ = disambiguate_domain_jargon(env_raw)
+    clean_comp, _ = disambiguate_domain_jargon(comp_raw)
+
+    scene_text = f"{clean_subj} {clean_env} {clean_comp}".lower()
     is_real_world = bool(re.search(
         r"\b(airport|terminal|hospital|clinic|ward|patient|doctor|nurse|plane|airplane|flight|"
         r"subway|train|railway|station|street|city|urban|highway|building|exterior|interior|"
@@ -160,7 +221,15 @@ def compose(parts: dict, style: dict, entity_desc: list[str], visual_type: str, 
                 env, re.IGNORECASE
             ))
             if not (is_real_world and is_hardware_env):
-                env_anchor = f"historical environment reality: {env}"
+                env_clean = env.strip()
+                if len(env_clean) > 220:
+                    split_cand = env_clean[:220]
+                    last_sep = max(split_cand.rfind("."), split_cand.rfind(","))
+                    if last_sep > 80:
+                        env_clean = split_cand[:last_sep].strip()
+                    else:
+                        env_clean = split_cand.strip()
+                env_anchor = f"historical environment reality: {env_clean}"
 
         if negatives:
             neg_list_str = ", ".join(negatives) if isinstance(negatives, list) else str(negatives)
@@ -176,12 +245,22 @@ def compose(parts: dict, style: dict, entity_desc: list[str], visual_type: str, 
                 continue
         filtered_entity_desc.append(ed)
 
+    sanitized_entity_desc = []
+    for ed in filtered_entity_desc:
+        ed_clean, _ = disambiguate_domain_jargon(ed)
+        if is_cartoon_explainer:
+            # Strip photorealistic facial traits that clash with minimalist circular-head cartoon characters
+            ed_clean = re.sub(r"\b(?:distinct|piercing|sharp|focused|deep)\s+(?:dark\s+)?(?:focused\s+)?eyes\b", "small black dot eyes", ed_clean, flags=re.IGNORECASE)
+            ed_clean = re.sub(r"\b(?:realistic|detailed|sharp|wrinkled)\s+facial\s+features\b", "simple minimalist cartoon face", ed_clean, flags=re.IGNORECASE)
+            ed_clean = re.sub(r"\b(?:distinct|short|curly|long|neat)\s+(?:brown|black|grey|blonde)?\s*(?:hair|haircut|hairstyle)\b", "bald cartoon head with no hair", ed_clean, flags=re.IGNORECASE)
+        sanitized_entity_desc.append(ed_clean)
+
     # Detect human figures and multi-person scenes early to resolve conflicting composition directives
     combined_text = " ".join([
-        parts.get("subject") or "",
-        parts.get("environment") or "",
-        parts.get("composition") or "",
-        *entity_desc
+        clean_subj,
+        clean_env,
+        clean_comp,
+        *sanitized_entity_desc
     ]).lower()
     has_human = bool(re.search(
         r"\b(person|people|man|men|woman|women|human|humans|figure|figures|character|characters|"
@@ -223,32 +302,42 @@ def compose(parts: dict, style: dict, entity_desc: list[str], visual_type: str, 
         else:
             lens_str = "balanced multi-person ensemble composition"
 
+    # Hierarchy: Art Style & Medium FIRST -> Subject -> Entity Specs -> Framing -> Setting -> Lighting -> Anchors
     pieces = [
-        parts.get("subject"),
-        parts.get("environment"),
-        parts.get("composition"),
-        era_anchor,
-        env_anchor,
-        *filtered_entity_desc,
-        parts.get("lighting") or style.get("lighting"),
         style_str,
-        lens_str,
-        mood_str,
     ]
-    
-    style_key = (style.get("key") or "").lower()
-    is_political_explainer = any(k in style_key for k in ["political_explainer", "taiwan_political", "see_world"])
-    is_cartoon_explainer = (not is_political_explainer) and any(k in style_key for k in ["cartoon", "explainer", "doodle", "stickman", "minimalist_explainer"])
 
     if visual_type == "diagram":
         pieces.append("clean illustrated visual metaphor, simple shapes, no text")
     elif is_political_explainer:
         pieces.append("2D clean vector flat editorial illustration, Japanese and Taiwanese political caricature art style, solid pitch black background, clean bold outlines, flat solid color fills, dramatic stage lighting, high contrast")
     elif is_cartoon_explainer:
-        subj_str = (parts.get("subject") or "").lower()
-        if any(w in subj_str for w in ["person", "man", "woman", "engineer", "people", "worker", "human", "character", "soldier", "hand", "hands", "face", "portrait"]):
+        pieces.append("minimalist 2D vector explainer illustration, clean uniform black line-art outlines, flat solid color fills, zero gradients, no 3D shading, editorial infographic style")
+        subj_str = (clean_subj or "").lower()
+        if any(w in subj_str for w in ["person", "man", "woman", "engineer", "people", "worker", "human", "character", "soldier", "hand", "hands", "face", "portrait", "operator", "figure"]):
             pieces.append("simple minimalist circular-head cartoon figure, two small black dot eyes, single line mouth, no hair, no ears, no nose, simple cylindrical limbs, mitt hands, consistent flat vector cartoon style")
-    else:
+
+    pieces.append(clean_subj)
+    pieces.extend(sanitized_entity_desc)
+    pieces.append(clean_comp)
+    if lens_str:
+        pieces.append(lens_str)
+    pieces.append(clean_env)
+    if env_anchor:
+        pieces.append(env_anchor)
+
+    lighting_val = parts.get("lighting") or style.get("lighting")
+    if lighting_val:
+        pieces.append(lighting_val)
+    if mood_str:
+        pieces.append(mood_str)
+
+    if era_anchor:
+        pieces.append(era_anchor)
+    if era_constraints:
+        pieces.append(era_constraints)
+
+    if not (is_cartoon_explainer or is_political_explainer or visual_type == "diagram"):
         # Provide positive anatomical baseline and high-definition facial clarity across FLUX and SDXL
         if has_human:
             pieces.append("strictly two arms and two hands only, anatomically correct, natural ergonomic posture, plausible body proportions")
@@ -257,9 +346,8 @@ def compose(parts: dict, style: dict, entity_desc: list[str], visual_type: str, 
                 pieces.append("distinct individual faces with diverse varied features and unique facial appearances, completely different facial structure, varied haircuts and hairstyles, distinct personal expressions, absolutely no identical faces, no cloned triplets or duplicate lookalikes")
         # Global anti-text requirement for all scenes: prevent malformed Chinese characters and gibberish typography
         pieces.append("strictly no text, no chinese characters, no letters, no words, blank signage and clean displays")
-    if era_constraints:
-        pieces.append(era_constraints)
-    pieces.append("16:9 widescreen composition, high detail")
+
+    pieces.append("16:9 widescreen composition, high detail" if not is_cloud else "16:9 widescreen composition")
     seen, out = set(), []
     for p in pieces:
         p = (p or "").strip().strip(",")
@@ -393,11 +481,16 @@ def generate_prompts(scenes: list[Scene], style: dict, bible: dict, client: LLMC
         s_ents = getattr(s, "entities", None) or []
         entity_desc = [ents[e] for e in s_ents if e in ents]
         s.prompt = compose(parts, style, entity_desc, s.visual_type, world_setting=world_setting, client=client)
+
+        # Harvest domain-specific negative prompts from technical jargon
+        combined_text = f"{parts.get('subject', '')} {parts.get('environment', '')} {' '.join(entity_desc)}"
+        _, domain_negs = disambiguate_domain_jargon(combined_text)
+
         base_neg = (style.get("negative") or "").strip()
         negs = []
         if world_setting and world_setting.get("negative_anachronisms"):
             negs = world_setting["negative_anachronisms"]
-        s.negative_prompt = merge_negative_prompts(base_neg, UNIVERSAL_QUALITY_NEGATIVE, negs)
+        s.negative_prompt = merge_negative_prompts(base_neg, UNIVERSAL_QUALITY_NEGATIVE, negs, domain_negs)
         s.seed = int(style["consistency_seed"]) + s.scene_id * 101
         out.append({"scene_id": s.scene_id, "prompt": s.prompt, "negative": s.negative_prompt, "seed": s.seed,
                     "parts": parts})

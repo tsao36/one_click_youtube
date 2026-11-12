@@ -66,29 +66,33 @@ UNIVERSAL_QUALITY_NEGATIVE = (
 def build_image_system_prompt(negative_prompt: str | list[str] | None = None) -> str:
     """Builds a strict system prompt instruction for image generation backends (Gemini, Imagen, etc.).
     
-    Explicitly enforces anti-cloning negative constraints, distinct individual facial diversity,
-    biologically accurate anatomy, and total avoidance of malformed Chinese or English text.
+    Explicitly enforces visual style faithfulness, anti-cloning negative constraints, distinct individual
+    facial diversity, biologically accurate anatomy, and total avoidance of malformed Chinese or English text.
     """
     full_neg = merge_negative_prompts(UNIVERSAL_QUALITY_NEGATIVE, negative_prompt)
     return (
-        "You are an expert cinematic visual director and photorealistic image generator.\n"
+        "You are an expert visual director and versatile image generator executing the requested art style with strict visual fidelity.\n"
         "CRITICAL SYSTEM DIRECTIVES & STRICT NEGATIVE CONSTRAINTS:\n"
-        "1. STRICTLY NO IDENTICAL FACES / ANTI-CLONING:\n"
+        "1. STRICT VISUAL STYLE FAITHFULNESS:\n"
+        "   - Strictly adhere to the primary medium and visual art style specified in the prompt.\n"
+        "   - When a 2D vector illustration, flat line-art, editorial graphic, or minimalist cartoon style is requested, "
+        "STRICTLY NEVER render 3D CGI, 3D claymation, Pixar-style 3D characters, or photorealistic human skin textures.\n"
+        "2. STRICTLY NO IDENTICAL FACES / ANTI-CLONING:\n"
         "   - When multiple people, children, groups, or crowds appear in the scene, EVERY SINGLE individual "
         "MUST have a distinct, unique facial appearance, individual bone structure, different eye shape, "
         "distinct haircut or hairstyle, varied skin tone/texture, and individual personal facial expressions.\n"
         "   - NEVER generate cloned faces, identical lookalikes, duplicate triplets/twins, copy-paste features, "
         "or same face syndrome across different people in the same frame.\n"
-        "2. BIOLOGICALLY ACCURATE ANATOMY:\n"
+        "3. BIOLOGICALLY ACCURATE ANATOMY:\n"
         "   - Every human figure must have strictly and exactly two natural arms, two natural hands, "
         "five fingers per hand, and natural ergonomic posture.\n"
-        "3. STRICTLY NO TEXT / NO CHINESE CHARACTERS:\n"
+        "4. STRICTLY NO TEXT / NO CHINESE CHARACTERS:\n"
         "   - Absolutely NO written text, no Chinese characters (漢字), no English letters, no words, no subtitles, "
         "no watermarks, and no fake gibberish typography anywhere in the image.\n"
         "   - All signboards, digital screens, monitors, blueprints, newspapers, documents, street banners, and "
         "commercial billboards must be completely blank, unwritten, or contain purely abstract visual graphics/icons "
         "with zero readable text or characters.\n"
-        f"4. NEGATIVE PROMPT (STRICTLY AVOID AND EXCLUDE):\n"
+        f"5. NEGATIVE PROMPT (STRICTLY AVOID AND EXCLUDE):\n"
         f"   {full_neg}\n"
     )
 

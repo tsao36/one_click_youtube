@@ -624,8 +624,13 @@ class NanoBanana21ImageProvider(ImageProvider):
         aspect_desc = "16:9 widescreen format, high resolution, cinematic composition" if req.width >= req.height else "9:16 vertical portrait format, high resolution"
 
         clean_prompt = req.prompt.strip()
-        if len(clean_prompt) > 1200:
-            clean_prompt = clean_prompt[:1200]
+        # Bound prompt length gracefully at sentence/clause boundary to prevent amputating style directives
+        if len(clean_prompt) > 2500:
+            boundary = max(clean_prompt.rfind(",", 0, 2500), clean_prompt.rfind(".", 0, 2500))
+            if boundary > 1000:
+                clean_prompt = clean_prompt[:boundary].strip(" ,.")
+            else:
+                clean_prompt = clean_prompt[:2500]
 
         # Prevent clone faces / identical people across scenes (critical for multi-character & crowd shots)
         full_neg = merge_negative_prompts(UNIVERSAL_QUALITY_NEGATIVE, req.negative)

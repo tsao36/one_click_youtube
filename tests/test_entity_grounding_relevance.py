@@ -212,3 +212,68 @@ def test_is_youtube_clip_relevant_to_scene_rejects_private_banquets_and_karaoke(
     }
     is_rel_g, reason_g = is_youtube_clip_relevant_to_scene(clip_golf, scene_30, char_douglas)
     assert not is_rel_g, f"Golfing video should be rejected: {reason_g}"
+
+
+def test_disambiguate_domain_jargon():
+    """Ensure technical jargon like 'bunny suit' and 'breadboard' are converted to literal descriptions
+    and generate the required negative tokens."""
+    from agents.prompt_generator import disambiguate_domain_jargon
+
+    text = "Engineer in cleanroom bunny suit adjusting dial on fab console"
+    clean, negs = disambiguate_domain_jargon(text)
+    assert "bunny suit" not in clean
+    assert "semiconductor cleanroom suit" in clean
+    assert "rabbit ears" in negs
+    assert "animal costume" in negs
+
+    breadboard_text = "Microcontroller wired on a breadboard"
+    clean_bb, negs_bb = disambiguate_domain_jargon(breadboard_text)
+    assert "solderless electronic prototyping breadboard" in clean_bb
+    assert "sliced bread" in negs_bb
+
+
+def test_compose_scene11_cleanroom_and_style_priority():
+    """Ensure Scene 11 (cleanroom cartoon engineer) places 2D vector style at the front,
+    eliminates 'bunny suit' polysemy, sanitizes conflicting realistic facial features from visual bible,
+    and prevents prompt bloat."""
+    from agents.prompt_generator import compose
+
+    style = {
+        "key": "minimalist_explainer",
+        "style": "Flat warm yellow and ivory ambient tones, minimalist 2D vector explainer illustration, clean uniform black line-art outlines, flat solid color fills, zero gradients, no 3D shading, editorial infographic style",
+        "lighting": "amber and soft daylight LED cleanroom illumination",
+        "lens": "flat 2D isometric or front-on editorial graphic composition",
+        "mood": "Confident, productive, optimized, energetic",
+        "negative": "ugly, distorted",
+    }
+    parts = {
+        "subject": "Simple round-headed cartoon engineer in bunny suit with mitt hands adjusting large dial on cleanroom console",
+        "environment": "Clean TSMC Fab chamber backdrop, amber yellow wall panels, giant wall meter showing soaring performance needle",
+        "composition": "Waist-up medium shot, centered cartoon operator figure",
+    }
+    entity_desc = [
+        "Senior semiconductor process engineer wearing a pristine white antistatic cleanroom jumpsuit with hood, clear protective safety goggles showing distinct dark focused eyes, sterile fabric face mask, and blue nitrile gloves."
+    ]
+    world_setting = {
+        "temporal_era": "Near-future 2025-2029 advanced semiconductor era",
+        "environment_reality": "Ultra-sterile semiconductor ISO 1 cleanroom environments, automated wafer transport systems (FOUP overhead tracks), high-vacuum plasma etching chambers, extreme ultraviolet (EUV) photolithography halls, server racks inside hyper-scale AI datacenters with glowing liquid-cooling pipes, ultra-dense silicon wafer cross-sections showing nanoscale crystalline layers",
+        "negative_anachronisms": ["antiquated 20th-century vacuum tube electronics", "bare-handed technicians touching silicon wafers"]
+    }
+
+    prompt = compose(parts, style, entity_desc, "image", world_setting=world_setting)
+
+    # 1. Medium & 2D Vector style must be at the very front
+    assert prompt.startswith("Flat warm yellow and ivory ambient tones, minimalist 2D vector explainer illustration")
+
+    # 2. 'bunny suit' must be replaced with semiconductor cleanroom suit
+    assert "bunny suit" not in prompt
+    assert "semiconductor cleanroom suit" in prompt
+    assert "strictly no rabbit ears" in prompt
+
+    # 3. Conflicting realistic facial traits from visual bible must be sanitized in cartoon mode
+    assert "distinct dark focused eyes" not in prompt
+    assert "small black dot eyes" in prompt
+
+    # 4. Critical era constraints preserved
+    assert "CRITICAL ERA CONSTRAINTS" in prompt
+    assert "antiquated 20th-century vacuum tube electronics" in prompt
