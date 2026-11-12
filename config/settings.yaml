@@ -289,6 +289,23 @@ visual_styles:
     mood: sophisticated, modern, clear
     negative: text, watermark, logo, photorealistic, 3D render, noise, complex clutter,
       gradients
+  japanese_tv_info_illustration:
+    label: Japanese TV Info Cartoon (日本電視資訊插畫風)
+    style: clean 2D Japanese television informational program illustration, friendly
+      late-1990s to early-2000s educational TV cartoon aesthetic, bold smooth dark
+      outlines, flat warm color fills, restrained two-step cel shading, expressive
+      oval eyes and readable facial expressions, simplified natural human proportions,
+      neat hairstyles and everyday clothing, cozy domestic interiors, clearly drawn
+      household props, uncluttered broadcast-ready composition
+    lighting: bright soft indoor ambient light, gentle warm highlights, minimal soft
+      cast shadows, evenly readable television graphics lighting
+    lens: flat 2D front-on or three-quarter medium-wide composition, eye-level view,
+      clear foreground subject and simple layered background
+    mood: cheerful, approachable, nostalgic, practical, family-friendly, informative
+    negative: photorealistic, live action, 3D, CGI, clay render, painterly brushwork,
+      anime action scene, chibi proportions, bald dot-eye stick figures, hyper-detailed
+      skin, dramatic cinematic lighting, heavy gradients, neon colors, messy linework,
+      clutter, text, captions, subtitles, watermark, logo, television channel bug
   dark_fantasy:
     label: Dark Fantasy Gothic
     style: dark gothic fantasy artwork, brooding atmospheric concept art, Elden Ring

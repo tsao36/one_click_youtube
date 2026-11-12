@@ -570,6 +570,10 @@ class TestSettingsAPI:
         client = webapp_env["client"]
         styles_res = client.get("/api/images/styles")
         assert styles_res.status_code == 200
+        styles = styles_res.json()
+        japanese_tv_style = styles["japanese_tv_info_illustration"]
+        assert japanese_tv_style["label"] == "Japanese TV Info Cartoon (日本電視資訊插畫風)"
+        assert "Japanese television informational program illustration" in japanese_tv_style["style"]
 
         models_res = client.get("/api/images/models")
         assert models_res.status_code == 200
