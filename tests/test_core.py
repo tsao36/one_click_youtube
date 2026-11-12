@@ -312,6 +312,7 @@ def test_timeline_phase_turn_expansion(tmp_path):
         assert len(expanded_scenes) == 4
         assert len(slots) == 4
         assert expanded_scenes[1].visual_type == "phase_turn_card"
+        assert expanded_scenes[1].image == s2.image
         assert slots[1].length == 3.0
         assert slots[1].audio_length == 0.0
     finally:
@@ -336,13 +337,13 @@ def test_universal_chapter_framework(tmp_path):
         assert chunks[0].formatted_timestamp == "00:00"
         assert chunks[0].has_phase_turn_card is False
 
-        # Chapter 2 has black card and drum trigger
+        # Chapter 2 has a phase-turn card and drum trigger
         assert chunks[1].has_phase_turn_card is True
         assert chunks[1].card_slot_index is not None
         assert slots[chunks[1].card_slot_index].start == chunks[1].start_time
         assert "關鍵轉折：架構全面升級" in chunks[1].card_text
 
-        # Chapter 3 has black card
+        # Chapter 3 has a phase-turn card
         assert chunks[2].has_phase_turn_card is True
         assert slots[chunks[2].card_slot_index].start == chunks[2].start_time
 

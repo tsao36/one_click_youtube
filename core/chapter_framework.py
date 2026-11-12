@@ -1,12 +1,12 @@
 """Universal Chapter & Phase Turn Framework for AI YouTube Video Generation.
 
-Aligns major chapter segments with dramatic black background interstitial frames
-and cinematic drum sound effects across all generated videos.
+Aligns major chapter segments with neutral image-backed interstitial frames and
+cinematic drum sound effects across all generated videos.
 
 Guarantees:
   1. Synchronized Alignment: YouTube chapter timestamps (MM:SS) match the rendered
      video timeline down to the millisecond, jumping directly to the start of each
-     black background frame and drum hit.
+     phase-turn frame and drum hit.
   2. Uncluttered Fast-Forward Navigation: Combines granular scene sequences into
      substantial narrative chapter chunks (30s-150s), preventing micro-fragmentation.
   3. Universal Consistency: Applied automatically across all projects (tech explainers,
@@ -33,7 +33,7 @@ class ChapterChunk:
     """Represents a major narrative chapter chunk containing one or more scenes."""
     chapter_index: int                       # 1-indexed (1, 2, 3...)
     title: str                               # High-level chapter title for YouTube
-    card_text: str                           # Critical turning text displayed on black screen
+    card_text: str                           # Critical turning text displayed over a dimmed scene image
     scenes: list[Scene] = field(default_factory=list)
     has_phase_turn_card: bool = False        # True for chapters 2+ when phase turns enabled
     start_time: float = 0.0                  # Resolved start time in final rendered video (seconds)
@@ -200,7 +200,7 @@ def plan_chapter_chunks(
         sec = g["section"].strip()
         sec_lower = sec.lower()
 
-        # Phase turn / Critical text on black frame
+        # Phase turn / critical text on an image-backed transition frame
         pt = (
             getattr(first_sc, "phase_turn_text", None)
             or getattr(first_sc, "callout_text", None)
@@ -231,8 +231,8 @@ def plan_chapter_chunks(
         card_text = normalize_to_taiwan_mandarin(card_text)
         ch_title = normalize_to_taiwan_mandarin(ch_title)
 
-        # Chapter 1 is the Cold Open / Hook (no preceding black card)
-        # Chapters 2+ have a preceding dramatic black frame with card_text
+        # Chapter 1 is the Cold Open / Hook (no preceding transition card)
+        # Chapters 2+ have a preceding image-backed frame with card_text
         has_card = (idx > 0)
 
         chunks.append(ChapterChunk(
@@ -254,7 +254,7 @@ def build_chapter_timeline(
     phase_turns_enabled: bool | None = None,
     phase_turn_dur: float | None = None,
 ) -> tuple[list[Scene], list[Slot], list[ChapterChunk]]:
-    """Construct a unified video timeline with perfectly aligned chapter black frames.
+    """Construct a unified video timeline with aligned chapter transition frames.
 
     Returns:
       (expanded_scenes, slots, chapter_chunks)
@@ -299,7 +299,9 @@ def build_chapter_timeline(
     pt_count = 0
 
     for idx, chunk in enumerate(chunks):
-        # Insert black background interstitial card for Chapter 2+ if enabled
+        # Insert an image-backed interstitial card for Chapter 2+ if enabled.
+        # Reuse the first scene image in the upcoming chapter so the transition
+        # remains visually connected to the message it introduces.
         card_slot_index: Optional[int] = None
         if pt_enabled and chunk.has_phase_turn_card:
             pt_count += 1
@@ -313,6 +315,8 @@ def build_chapter_timeline(
                 transition="fadeblack",
                 audio_duration=0.0
             )
+            if chunk.scenes:
+                pt_scene.image = chunk.scenes[0].image.model_copy(deep=True)
             setattr(pt_scene, "_phase_tag", f"phase_turn_{pt_count:02d}")
             card_slot_index = len(timeline_items)
             expanded_scenes.append(pt_scene)
@@ -342,7 +346,7 @@ def build_chapter_timeline(
     # Resolve exact start times and durations for all chapters
     for i, chunk in enumerate(chunks):
         if chunk.card_slot_index is not None and chunk.card_slot_index < len(slots):
-            # Chapter starts exactly when the black background card begins!
+            # Chapter starts exactly when its transition card begins.
             chunk.start_time = slots[chunk.card_slot_index].start
         elif chunk.first_scene_slot_index is not None and chunk.first_scene_slot_index < len(slots):
             chunk.start_time = slots[chunk.first_scene_slot_index].start
@@ -386,7 +390,7 @@ def sync_project_chapters(project: Project) -> list[ChapterChunk]:
         youtube_lines = [c.youtube_line for c in chunks]
         project.data.outputs["chapters"] = youtube_lines
         project.save()
-        log.info("Synchronized %d chapter segments with black background frames for %s", len(chunks), project.id)
+        log.info("Synchronized %d chapter segments with image-backed transition frames for %s", len(chunks), project.id)
         return chunks
     except Exception as e:
         log.warning("Failed to sync project chapters for %s: %s", project.id, e)

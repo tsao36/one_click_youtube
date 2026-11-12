@@ -60,7 +60,7 @@ class Scene(BaseModel):
     narrative_emphasis: float = 0.5
     callout_text: Optional[str] = None          # Kinetic on-screen badge / metric / key term
     callout_type: Optional[str] = None          # "metric" | "keyword" | "chapter"
-    phase_turn_text: Optional[str] = None       # Critical text on black screen foretelling next phase
+    phase_turn_text: Optional[str] = None       # Centered transition message foretelling the next phase
     speaker: Optional[str] = None               # For drama mode: character speaking the line (e.g. "王經理", "沈總監")
     character_id: Optional[str] = None          # For drama mode: unique character slug ID (e.g. "manager_wang")
     costume_variant: Optional[str] = "default"  # Drama mode: costume variant ("default" locks to master anchor)

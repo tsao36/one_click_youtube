@@ -2427,7 +2427,7 @@ def format_stage3_script_content(p: Project, scenes: list[Scene], fmt: str = "tx
             speaker = getattr(sc, "speaker", None) or getattr(sc, "character", None) or ("真人主播" if getattr(sc, "is_presenter", False) else "")
             spk_badge = f'<span class="pill" style="border-color:#f59e0b; color:#fbbf24; background:rgba(245,158,11,0.15);">👤 {esc(speaker)}</span>' if speaker else ""
             callout_badge = f'<div style="margin-top:6px; font-size:12px; color:#38bdf8;"><b>✨ 重點字卡 (Callout):</b> {esc(sc.callout_text)}</div>' if sc.callout_text else ""
-            phase_turn_badge = f'<div style="margin-top:4px; font-size:12px; color:#c084fc;"><b>🥁 黑幕轉場 (Phase Turn):</b> {esc(sc.phase_turn_text)}</div>' if sc.phase_turn_text else ""
+            phase_turn_badge = f'<div style="margin-top:4px; font-size:12px; color:#c084fc;"><b>🥁 章節轉場 (Phase Turn):</b> {esc(sc.phase_turn_text)}</div>' if sc.phase_turn_text else ""
             vdesc = f'<div style="margin-top:6px; font-size:12.5px; color:#94a3b8;"><b>🎨 畫面規劃:</b> {esc(sc.visual_description)}</div>' if sc.visual_description else ""
 
             card = f"""
@@ -2598,7 +2598,7 @@ def format_stage3_script_content(p: Project, scenes: list[Scene], fmt: str = "tx
             "畫面類型 (Visual Type)",
             "畫面設定 (Visual Description)",
             "動態字卡 (Callout Text)",
-            "黑幕轉場 (Phase Turn)",
+            "章節轉場 (Phase Turn)",
             "審核反饋 / 修改建議 (Review Feedback)"
         ])
         for sc in scenes:
@@ -2681,7 +2681,7 @@ def format_stage3_script_content(p: Project, scenes: list[Scene], fmt: str = "tx
             if sc.callout_text:
                 lines.append(f"- **動態字卡 (Callout)**: `{sc.callout_text}`")
             if sc.phase_turn_text:
-                lines.append(f"- **黑幕轉場 (Phase Turn)**: `{sc.phase_turn_text}`")
+                lines.append(f"- **章節轉場 (Phase Turn)**: `{sc.phase_turn_text}`")
             lines.append(f"- **審核回饋 / 修改建議 (Review Feedback)**: ")
             lines.append("")
             lines.append("---")
@@ -2728,7 +2728,7 @@ def format_stage3_script_content(p: Project, scenes: list[Scene], fmt: str = "tx
                 lines.append(f"【動態重點字卡 (Callout)】: {sc.callout_text}")
                 lines.append("")
             if sc.phase_turn_text:
-                lines.append(f"【黑幕轉場字卡 (Phase Turn)】: {sc.phase_turn_text}")
+                lines.append(f"【章節轉場字卡 (Phase Turn)】: {sc.phase_turn_text}")
                 lines.append("")
             lines.append("【審核意見 / 修改建議 (Review Feedback)】:")
             lines.append("________________________________________________________________________________")

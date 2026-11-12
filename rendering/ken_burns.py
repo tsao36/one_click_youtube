@@ -158,8 +158,9 @@ def render_title_card(text_file: Path, output: Path, seconds: float, width: int,
 
 
 def render_phase_turn_card(text: str, output: Path, seconds: float, width: int, height: int, fps: int,
+                           background: Path | None = None,
                            encoder_args: list[str] | None = None) -> None:
-    """Render a dramatic interstitial card: pure black background with centered critical text."""
+    """Render a neutral interstitial: dimmed scene image and large centered message."""
     frames = max(2, math.ceil(seconds * fps) + 1)
     font = _best_chinese_font_file()
         
@@ -179,22 +180,40 @@ def render_phase_turn_card(text: str, output: Path, seconds: float, width: int, 
     tf.write_text(text, encoding="utf-8")
     tf_str = str(tf.resolve()).replace("\\", "/").replace(":", "\\:").replace(" ", "\\ ")
     
-    fs = max(24, height // 14)
+    line_count = text.count("\n") + 1
+    fs = max(36, height // (11 if line_count > 1 else 9))
     fade_d = 0.35
     alpha_expr = f"if(lt(t,{fade_d}),t/{fade_d},if(gt(t,{seconds - fade_d}),({seconds}-t)/{fade_d},1))"
-    
+
+    band_pad = max(28, height // 24)
     draw = (f"drawtext=fontfile='{font}':textfile='{tf_str}':fontcolor=white:fontsize={fs}:"
-            f"line_spacing=24:x=(w-text_w)/2:y=(h-text_h)/2:alpha='{alpha_expr}'")
+            f"line_spacing={max(18, height // 48)}:x=(w-text_w)/2:y=(h-text_h)/2:"
+            f"box=1:boxcolor=black@0.48:boxborderw={band_pad}:"
+            f"shadowcolor=black@0.65:shadowx=2:shadowy=3:alpha='{alpha_expr}'")
             
     enc = encoder_args or ["-c:v", "libx264", "-preset", "veryfast", "-crf", "17", "-threads", "4", "-pix_fmt", "yuv420p"]
     output.parent.mkdir(parents=True, exist_ok=True)
     
-    run_ffmpeg([
-        "-threads", "4",
-        "-f", "lavfi", "-i", f"color=c=black:s={width}x{height}:r={fps}",
-        "-vf", f"{draw},format=yuv420p",
-        "-frames:v", str(frames),
-        "-r", str(fps),
-        *enc, "-an", str(output)
-    ])
+    if background and background.exists():
+        vf = (
+            f"scale={width}:{height}:force_original_aspect_ratio=increase,"
+            f"crop={width}:{height},loop=-1:1:0,"
+            f"eq=brightness=-0.14:saturation=0.82:contrast=0.96,"
+            f"{draw},setsar=1,format=yuv420p"
+        )
+        run_ffmpeg([
+            "-threads", "4", "-i", str(background),
+            "-vf", vf,
+            "-frames:v", str(frames), "-r", str(fps),
+            *enc, "-an", str(output),
+        ])
+    else:
+        run_ffmpeg([
+            "-threads", "4",
+            "-f", "lavfi", "-i", f"color=c=0x242424:s={width}x{height}:r={fps}",
+            "-vf", f"{draw},format=yuv420p",
+            "-frames:v", str(frames),
+            "-r", str(fps),
+            *enc, "-an", str(output),
+        ])
 

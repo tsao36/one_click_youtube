@@ -707,9 +707,9 @@ def generate_youtube_metadata(project: Project) -> dict[str, Any]:
         title = raw_title or f"Video: {project.id}"
     title = normalize_to_taiwan_mandarin(title)
 
-    # 2. Build Chapter Markers aligned with Video Black Frames (Universal Framework)
+    # 2. Build Chapter Markers aligned with phase-turn frames (Universal Framework)
     # YouTube requires chapters to start at 00:00 and have at least 3 chapters.
-    # Group smaller scene segments into bigger coherent narrative chunks synchronized to black frames and drum hits.
+    # Group smaller scene segments into coherent narrative chunks synchronized to transition frames and drum hits.
     scenes = project.active_scenes()
     from core.chapter_framework import build_chapter_timeline
     try:

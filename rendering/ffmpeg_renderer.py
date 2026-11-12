@@ -98,7 +98,15 @@ def _clip_key(sc: Scene, slot: Slot, w: int, h: int, fps: int, project: Project,
                              "intermediate": INTERMEDIATE}, sort_keys=True)
     if sc.visual_type == "phase_turn_card":
         txt = getattr(sc, "phase_turn_text", None) or sc.section
-        return hashlib.md5(f"phase_turn|{txt}|{slot.clip_length:.3f}|{w}x{h}@{fps}|{motion_key}".encode()).hexdigest()[:10]
+        background = project.abs(sc.image.path) if sc.image.status == Status.COMPLETED else None
+        background_key = (
+            f"{sc.image.path}:{background.stat().st_mtime_ns}"
+            if background and background.exists()
+            else "no_background"
+        )
+        return hashlib.md5(
+            f"phase_turn_v2|{txt}|{slot.clip_length:.3f}|{w}x{h}@{fps}|{background_key}|{motion_key}".encode()
+        ).hexdigest()[:10]
     is_drama = bool(
         settings.get("project_mode") == "short_drama"
         or (hasattr(project, "data") and project.data and project.data.settings.get("project_mode") == "short_drama")
@@ -143,7 +151,17 @@ def render_scene_clip(project: Project, sc: Scene, slot: Slot, w: int, h: int, f
     try:
         if sc.visual_type == "phase_turn_card":
             card_text = getattr(sc, "phase_turn_text", None) or sc.section
-            ken_burns.render_phase_turn_card(card_text, tmp_out, seconds, w, h, fps, INTERMEDIATE)
+            background = project.abs(sc.image.path) if sc.image.status == Status.COMPLETED else None
+            ken_burns.render_phase_turn_card(
+                card_text,
+                tmp_out,
+                seconds,
+                w,
+                h,
+                fps,
+                background=background if background and background.exists() else None,
+                encoder_args=INTERMEDIATE,
+            )
             tmp_out.replace(out)
             return out
 
