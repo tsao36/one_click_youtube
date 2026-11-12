@@ -467,12 +467,27 @@ def extract_motion_callouts(
         if card_end - card_start < 1.8:
             continue
 
+        entry_tag = str(callout_data.get("tag", "⚡ 關鍵重點")).strip()
+        entry_title = title_str
+        entry_sub = str(callout_data.get("subtitle", "")).strip()
+
+        # Specific optimization for historical timeline banner
+        if str(banner_style or "").strip().lower() in ("historical_timeline", "timeline_badge"):
+            m_yr = re.search(r"(?:西元\s*)?(\b(?:1[0-9]{3}|20[0-2][0-9]|[2-9][0-9]{2})\b)\s*年?", narr_text)
+            if m_yr:
+                found_yr = m_yr.group(1)
+                # If current tag doesn't contain the year, override tag with the year number
+                if not re.search(r"\b\d{3,4}\b", entry_tag):
+                    entry_tag = found_yr
+                # Strip leading year from title to avoid repetition
+                entry_title = re.sub(r"^\s*(?:西元)?\d{3,4}\s*年?\s*", "", entry_title).strip() or entry_title
+
         callout_entry = {
             "start": round(card_start, 2),
             "end": round(card_end, 2),
-            "tag": callout_data.get("tag", "⚡ 關鍵重點"),
-            "title": title_str,
-            "subtitle": callout_data.get("subtitle", ""),
+            "tag": entry_tag,
+            "title": entry_title,
+            "subtitle": entry_sub,
             "style": "FoxCalloutCard",
             "banner_style": banner_style,
             "scene_id": getattr(sc, "scene_id", 0),

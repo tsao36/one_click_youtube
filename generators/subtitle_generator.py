@@ -343,6 +343,87 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                     anim_tag = f"{{\\an5\\pos({mid_x},{center_y})\\fad(220,260)}}"
                     event_style = "NeutralMessage"
 
+                elif b_style in ("historical_timeline", "timeline_badge"):
+                    # Historical Timeline Banner: Top-left giant outline year/tag + dark translucent card with crimson red bottom accent line
+                    fade = r"{\fad(220,260)}"
+                    x_start = round(width * 0.05)
+                    y_start = round(height * 0.08)
+
+                    # Extract year or numeric tag if present, else clean tag
+                    year_match = re.search(r"(\b\d{3,4}\b)", clean_tag) or re.search(r"(\b\d{3,4}\b)", title)
+                    year_text = year_match.group(1) if year_match else clean_tag
+                    if len(year_text) > 8:
+                        year_text = year_text[:8]
+
+                    # Clean title if it duplicates the year
+                    clean_title = re.sub(r"^\s*(?:西元)?\d{3,4}\s*年?\s*", "", title).strip() or title
+
+                    # Sizing calculations for 16:9 ASS canvas
+                    tag_len = max(3, len(year_text))
+                    tag_width = round(tag_len * 46 * scale)
+                    gap = round(16 * scale)
+                    card_x1 = x_start + tag_width + gap
+
+                    card_w = max(
+                        round(len(clean_title) * 44 * scale),
+                        round(len(subtitle) * 26 * scale) if subtitle else 0,
+                        round(300 * scale),
+                    ) + round(36 * scale)
+                    card_x2 = min(width - round(40 * scale), card_x1 + card_w)
+                    card_h = round(94 * scale) if subtitle else round(60 * scale)
+                    card_y2 = y_start + card_h
+
+                    # 1. Dark charcoal/sepia card background (Layer 1)
+                    card_box = f"m {card_x1} {y_start} l {card_x2} {y_start} l {card_x2} {card_y2} l {card_x1} {card_y2}"
+                    raw_events.append((
+                        c_start,
+                        f"Dialogue: 1,{_ts_ass(c_start)},{_ts_ass(c_end)},FoxCalloutBox,,0,0,0,,"
+                        f"{{\\an7\\pos(0,0)\\p1\\bord0\\shad0\\1c&H0016181A&\\1a&H20&{fade}}}{card_box}",
+                    ))
+
+                    # 2. Crimson red bottom accent line (Layer 2)
+                    red_h = max(3, round(3.5 * scale))
+                    red_line = f"m {card_x1} {card_y2} l {card_x2} {card_y2} l {card_x2} {card_y2 + red_h} l {card_x1} {card_y2 + red_h}"
+                    raw_events.append((
+                        c_start,
+                        f"Dialogue: 2,{_ts_ass(c_start)},{_ts_ass(c_end)},FoxCalloutBox,,0,0,0,,"
+                        f"{{\\an7\\pos(0,0)\\p1\\bord0\\shad0\\1c&H001C1CB9&\\1a&H00&{fade}}}{red_line}",
+                    ))
+
+                    # 3. Giant hollow outline year badge on the left (Layer 3)
+                    outline_w = max(2.5, round(3.8 * scale))
+                    shad_w = max(1.5, round(2.5 * scale))
+                    raw_events.append((
+                        c_start,
+                        f"Dialogue: 3,{_ts_ass(c_start)},{_ts_ass(c_end)},FoxCalloutCard,,0,0,0,,"
+                        f"{{\\an7\\pos({x_start},{y_start - round(4 * scale)})\\fnImpact\\fs{round(90 * scale)}\\b1"
+                        f"\\1c&H0016181A&\\1a&HE0&\\3c&H00FFFFFF&\\bord{outline_w}\\shad{shad_w}{fade}}}{year_text}",
+                    ))
+
+                    # 4. Title and Subtitle inside the card (Layer 3)
+                    text_x = card_x1 + round(16 * scale)
+                    if subtitle:
+                        title_y = y_start + round(10 * scale)
+                        sub_y = y_start + round(52 * scale)
+                        raw_events.append((
+                            c_start,
+                            f"Dialogue: 3,{_ts_ass(c_start)},{_ts_ass(c_end)},FoxCalloutCard,,0,0,0,,"
+                            f"{{\\an7\\pos({text_x},{title_y})\\fs{round(40 * scale)}\\b1\\c&H00FFFFFF&\\3c&H00100C0A&\\bord1.8\\shad2{fade}}}{clean_title}",
+                        ))
+                        raw_events.append((
+                            c_start,
+                            f"Dialogue: 3,{_ts_ass(c_start)},{_ts_ass(c_end)},FoxCalloutCard,,0,0,0,,"
+                            f"{{\\an7\\pos({text_x},{sub_y})\\fs{round(24 * scale)}\\b0\\c&H00D0C8C0&\\3c&H00100C0A&\\bord1.2\\shad1{fade}}}{subtitle}",
+                        ))
+                    else:
+                        title_y = y_start + round(12 * scale)
+                        raw_events.append((
+                            c_start,
+                            f"Dialogue: 3,{_ts_ass(c_start)},{_ts_ass(c_end)},FoxCalloutCard,,0,0,0,,"
+                            f"{{\\an7\\pos({text_x},{title_y})\\fs{round(44 * scale)}\\b1\\c&H00FFFFFF&\\3c&H00100C0A&\\bord2.0\\shad2{fade}}}{clean_title}",
+                        ))
+                    continue
+
                 elif b_style == "archival_parchment":
                     # Historical Archival Stamp banner (Vintage Crimson Stamp + Warm Parchment Text)
                     tag_decor = f"【  {clean_tag}  】"

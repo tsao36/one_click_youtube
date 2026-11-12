@@ -7943,6 +7943,19 @@
         chipLabel: '📜 牛皮紙印章',
         accent: '#eab308'
       },
+      historical_timeline: {
+        key: 'historical_timeline',
+        name: '歷史紀年文獻卡',
+        en: 'Historical Timeline',
+        badge: '左側巨型年份 · 硃紅底線字卡',
+        desc: '經典歷史紀錄片版型：左側高對比空心年份/紀事數字，搭配深色橫幅與底部硃砂紅強調線，歷史厚重感強烈。',
+        tag: '1871',
+        title: '岩倉使節團',
+        subtitle: '右大臣岩倉具視帶隊，考察歐美將近兩年',
+        tags: ['經典歷史', '巨型年份', '紀錄片首選'],
+        chipLabel: '🏛️ 歷史紀年',
+        accent: '#ef4444'
+      },
       minimal_clean: {
         key: 'minimal_clean',
         name: '極簡無框俐落字體',
@@ -8026,6 +8039,32 @@
             <div style="background:rgba(26, 18, 12, 0.92); border:1.5px solid #854d0e; border-radius:4px; padding:${pad}; box-shadow:0 4px 18px rgba(0,0,0,0.85); display:flex; align-items:center; justify-content:center; gap:${isMini ? '4px' : '8px'};">
               <span style="background:#991b1b; color:#fef08a; padding:1px 5px; border-radius:2px; font-size:${tagSize}; font-weight:800; font-family:serif; border:1px solid #b91c1c; white-space:nowrap;">【 ${info.tag} 】</span>
               <span style="color:#fef3c7; font-size:${titleSize}; font-weight:700; font-family:serif; letter-spacing:0.03em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${info.title}</span>
+            </div>
+          </div>
+        `;
+      } else if (styleKey === 'historical_timeline') {
+        const topPos = isMini ? '8px' : '14px';
+        const leftPos = isMini ? '8px' : '14px';
+        const yearSize = isMini ? '22px' : '36px';
+        const strokeW = isMini ? '1px' : '1.8px';
+        const pad = isMini ? '3px 8px' : '5px 12px';
+        const titleSize = isMini ? '9.5px' : '13px';
+        const subSize = isMini ? '7.5px' : '10px';
+        const redLineH = isMini ? '2px' : '3px';
+        overlayHtml = `
+          <div style="position:absolute; top:${topPos}; left:${leftPos}; z-index:2; display:flex; align-items:center; gap:${isMini ? '6px' : '10px'}; max-width:92%; pointer-events:none;">
+            <!-- Hollow Outline Year Badge -->
+            <div style="font-family:'Arial Black', Impact, 'Segoe UI Black', sans-serif; font-size:${yearSize}; font-weight:900; line-height:1; letter-spacing:0.02em; color:rgba(20,20,20,0.65); -webkit-text-stroke:${strokeW} #ffffff; text-shadow:0 3px 12px rgba(0,0,0,0.9); white-space:nowrap;">
+              ${info.tag || '1871'}
+            </div>
+            <!-- Translucent Dark Card with Crimson Red Bottom Line -->
+            <div style="background:rgba(28, 25, 23, 0.88); border-bottom:${redLineH} solid #b91c1c; border-top:1px solid rgba(255,255,255,0.06); border-right:1px solid rgba(255,255,255,0.06); border-left:1px solid rgba(255,255,255,0.06); padding:${pad}; box-shadow:0 6px 20px rgba(0,0,0,0.85); display:flex; flex-direction:column; justify-content:center;">
+              <div style="color:#ffffff; font-size:${titleSize}; font-weight:800; letter-spacing:0.03em; line-height:1.25; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                ${info.title}
+              </div>
+              <div style="color:#d6d3d1; font-size:${subSize}; font-weight:500; margin-top:${isMini ? '1px' : '2px'}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                ${info.subtitle}
+              </div>
             </div>
           </div>
         `;
@@ -8129,7 +8168,7 @@
         compareGridHtml = `
           <div style="margin-top:10px; background:#04070e; border:1px solid #1e293b; border-radius:8px; padding:10px;">
             <div style="font-size:11px; font-weight:700; color:#cbd5e1; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
-              <span>👀 全部 6 款訊息風格視覺對比 (點擊卡片即可切換套用)</span>
+              <span>👀 全部 ${Object.keys(CALLOUT_STYLES_INFO).length} 款訊息風格視覺對比 (點擊卡片即可切換套用)</span>
               <span style="color:#64748b; font-size:10px;">Click card to apply</span>
             </div>
             <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:8px;">
@@ -8171,7 +8210,7 @@
           <div style="margin-top:8px;">
             <button type="button" class="btn-sec" onclick="toggleCalloutCompareGrid('${selectId}', '${containerId}')"
               style="width:100%; padding:5px 10px; font-size:11px; font-weight:700; color:#93c5fd; background:rgba(59,130,246,0.08); border:1px dashed rgba(59,130,246,0.35); border-radius:5px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
-              <span>${isExpanded ? '▲ 收合 6 款樣式對比 (Hide All Styles)' : '🔍 展開 6 款樣式並排對比 (Compare All Styles)'}</span>
+              <span>${isExpanded ? `▲ 收合 ${Object.keys(CALLOUT_STYLES_INFO).length} 款樣式對比 (Hide All Styles)` : `🔍 展開 ${Object.keys(CALLOUT_STYLES_INFO).length} 款樣式並排對比 (Compare All Styles)`}</span>
             </button>
           </div>
 
@@ -9952,6 +9991,7 @@
                   <option value="neutral_centered" ${calloutStyle === 'neutral_centered' ? 'selected' : ''}>Neutral centered — large text with dimmed background</option>
                   <option value="modern_pill" ${calloutStyle === 'modern_pill' ? 'selected' : ''}>Modern glass pill — top banner</option>
                   <option value="archival_parchment" ${calloutStyle === 'archival_parchment' ? 'selected' : ''}>Archival parchment — top banner</option>
+                  <option value="historical_timeline" ${calloutStyle === 'historical_timeline' ? 'selected' : ''}>Historical timeline — top-left year badge & red underline</option>
                   <option value="minimal_clean" ${calloutStyle === 'minimal_clean' ? 'selected' : ''}>Minimal clean — top text</option>
                   <option value="broadcast_news" ${calloutStyle === 'broadcast_news' ? 'selected' : ''}>Broadcast news — top banner</option>
                   <option value="none" ${calloutStyle === 'none' ? 'selected' : ''}>None — disable message overlays</option>
@@ -13902,6 +13942,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
                   <option value="neutral_centered" ${calloutStyle === 'neutral_centered' ? 'selected' : ''}>Neutral centered — large text with dimmed background</option>
                   <option value="modern_pill" ${calloutStyle === 'modern_pill' ? 'selected' : ''}>Modern glass pill — top banner</option>
                   <option value="archival_parchment" ${calloutStyle === 'archival_parchment' ? 'selected' : ''}>Archival parchment — top banner</option>
+                  <option value="historical_timeline" ${calloutStyle === 'historical_timeline' ? 'selected' : ''}>Historical timeline — top-left year badge & red underline</option>
                   <option value="minimal_clean" ${calloutStyle === 'minimal_clean' ? 'selected' : ''}>Minimal clean — top text</option>
                   <option value="broadcast_news" ${calloutStyle === 'broadcast_news' ? 'selected' : ''}>Broadcast news — top banner</option>
                   <option value="none" ${calloutStyle === 'none' ? 'selected' : ''}>None — disable message overlays</option>
