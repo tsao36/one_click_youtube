@@ -9,8 +9,10 @@ STYLE_KEY = "japanese_tv_info_illustration"
 
 def test_japanese_tv_info_style_is_available_in_creator_mode():
     index_html = (Path(__file__).parents[1] / "ui" / "index.html").read_text(encoding="utf-8")
+    app_js = (Path(__file__).parents[1] / "ui" / "app.js").read_text(encoding="utf-8")
 
     assert f'<option value="{STYLE_KEY}">' in index_html
+    assert f"{{ value: '{STYLE_KEY}'," in app_js
 
 
 def test_japanese_tv_info_style_preserves_expressive_character_design():

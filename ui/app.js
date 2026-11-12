@@ -1139,6 +1139,7 @@
       { value: 'retro_comic', localLabel: 'Retro Comic Book / Pop Art', cloudLabel: 'Retro Comic Book' },
       { value: 'dark_fantasy', localLabel: 'Dark Fantasy Gothic', cloudLabel: 'Dark Fantasy Gothic' },
       { value: 'minimalist_vector', localLabel: 'Minimalist Modern Vector', cloudLabel: 'Minimalist Modern Vector' },
+      { value: 'japanese_tv_info_illustration', localLabel: 'Japanese TV Info Cartoon (日本電視資訊插畫風)', cloudLabel: 'Japanese TV Info Cartoon (日本電視資訊插畫風)' },
       { value: 'minimalist_explainer_cartoon', localLabel: 'Minimalist Vector Explainer (商業大師 / Doodle Cartoon)', cloudLabel: 'Minimalist Vector Explainer (商業大師風格)' }
     ];
 
