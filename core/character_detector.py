@@ -291,6 +291,14 @@ DISALLOWED_CLIP_TITLE_PATTERNS = [
     r"\blofi\b", r"\btier list\b", r"\bfunny\b", r"\bcomedy\b", r"\bcover\b",
     r"\btutorial\b", r"\bhow to\b", r"\bgaming\b", r"奇葩", r"噩夢", r"漫畫",
     r"未解之謎", r"神秘學", r"慢活", r"睡前", r"放鬆", r"催眠", r"開箱", r"搞笑",
+    # Private social events, banquets, retirement, weddings, parties
+    r"餐會", r"宴會", r"晚宴", r"晚會", r"尾牙", r"春酒", r"聚餐", r"飯局",
+    r"榮退", r"退休", r"入場", r"進場", r"迎賓", r"送別", r"歡送", r"同學會",
+    r"慶生", r"生日", r"切蛋糕", r"婚禮", r"喪禮", r"公祭", r"告別式", r"結婚", r"訂婚",
+    # Talent shows, singing competitions, karaoke, sports meets
+    r"好聲音", r"中年好聲音", r"歌唱比賽", r"\bk歌\b", r"卡拉ok", r"伴唱", r"選秀", r"海選", r"全中運",
+    # Casual hobbies and sports
+    r"\bgolf\b", r"\bgolfing\b", r"高爾夫", r"打球", r"釣魚", r"做菜", r"烹飪", r"逛街", r"旅遊",
 ]
 
 
@@ -331,10 +339,30 @@ def is_youtube_clip_relevant_to_scene(
         if re.search(pat, title_lower):
             return False, f"Clip title contains entertainment/noise pattern '{pat}': {title}"
 
-    # 4. Scene semantic conflict check
+    # 4. Character presence validation: the character must actually be mentioned in the scene
+    char_name = (char.get("name") or "").strip()
+    char_orig = (char.get("original_name") or "").strip()
+    char_aliases = char.get("aliases") or []
+    char_tokens = [t for t in [char_name, char_orig] + char_aliases if t and len(t) >= 2]
+
     narration = getattr(scene, "narration", "") or (scene.get("narration", "") if isinstance(scene, dict) else "")
     prompt = getattr(scene, "prompt", "") or (scene.get("prompt", "") if isinstance(scene, dict) else "")
-    scene_text = f"{narration} {prompt}".lower()
+    vdesc = getattr(scene, "visual_description", "") or (scene.get("visual_description", "") if isinstance(scene, dict) else "")
+    entities = getattr(scene, "entities", []) or (scene.get("entities", []) if isinstance(scene, dict) else [])
+    
+    comb_scene_text = f"{narration} {' '.join(str(e) for e in entities)} {vdesc} {prompt}".lower()
+    
+    if char_tokens and not any(tok.lower() in comb_scene_text for tok in char_tokens):
+        return False, f"Character '{char_name}' is not mentioned in scene narration or visual description"
+
+    # 5. Private social events and parties cannot serve as technical/documentary footage unless scene explicitly describes them
+    social_patterns = [r"餐會", r"宴會", r"晚宴", r"晚會", r"尾牙", r"春酒", r"聚餐", r"飯局", r"榮退", r"退休", r"入場", r"進場", r"迎賓", r"送別", r"歡送", r"同學會", r"慶生", r"生日", r"婚禮", r"喪禮", r"公祭", r"告別式", r"好聲音", r"歌唱比賽", r"\bk歌\b", r"卡拉ok"]
+    for sp in social_patterns:
+        if re.search(sp, title_lower) and not re.search(sp, narration.lower()):
+            return False, f"Clip is private event/social noise '{sp}' not mentioned in scene narration: {title}"
+
+    # 6. Scene semantic conflict check
+    scene_text = comb_scene_text
 
     # Distinct historical subject entity conflict check
     if "天皇" in scene_text and "裕仁" not in title_lower and "hirohito" not in title_lower and "emperor" not in title_lower:
@@ -415,6 +443,10 @@ def fetch_online_media_for_character(char: dict[str, Any], extra_queries: Option
                 # Strict validation: reject confusable imposters and unverified videos
                 if not is_media_relevant_for_character(char, v_title, v_desc):
                     continue
+                # Systematic filter against disallowed clip patterns (banquets, karaoke, etc.)
+                if any(re.search(pat, f"{v_title} {v_desc}", re.IGNORECASE) for pat in DISALLOWED_CLIP_TITLE_PATTERNS):
+                    log.info("Filtering out disallowed clip '%s' for character '%s'", v_title, char.get("name"))
+                    continue
 
                 v_url = v.get("url")
                 thumb = v.get("thumbnail_url")
@@ -466,6 +498,17 @@ COMMON_CHARACTER_STOPWORDS = {
     "臺北", "台北", "新北", "台中", "臺中", "高雄", "台南", "臺南", "台灣", "臺灣",
     "市府", "政府", "中央", "議會", "立院", "立法院", "行政院", "國會",
     "市長", "局長", "議員", "立委", "部長", "主席", "總統", "院長",
+    "初代", "二代", "三代", "快傑",
+}
+
+
+TECH_AND_CORP_STOPWORDS = {
+    "先進封裝", "晶片", "半導體", "晶圓", "晶圓代工", "微影", "光刻", "製程",
+    "散熱", "伺服器", "資料中心", "網路", "標準", "協定", "架構", "代工",
+    "工廠", "技術", "平台", "產品", "硬體", "軟體", "台積電", "台積", "聯發科",
+    "鴻海", "英偉達", "輝達", "超微", "英特爾", "高通", "蘋果", "微軟", "谷歌",
+    "cowos", "gaa", "hbm", "hbm4", "a16", "euv", "spr", "soic", "coupe",
+    "cuda", "gpu", "cpu", "dram", "sram", "wifi", "wi-fi", "router", "ai",
 }
 
 
@@ -494,8 +537,14 @@ def match_scenes_for_character(char: dict[str, Any], scenes: list[Any], topic: s
     for sk in char.get("search_keywords", []):
         if sk and isinstance(sk, str) and not is_descriptive_character_keyword(sk):
             sk_clean = sk.strip()
+            # Must NOT be purely Latin acronym or technical abbreviation (e.g. "CoWoS", "GAA", "A16", "EUV")
+            if re.match(r"^[A-Za-z0-9_.\-]+$", sk_clean):
+                continue
+            # Must NOT contain tech or corporate keywords
+            if any(stop in sk_clean.lower() for stop in TECH_AND_CORP_STOPWORDS):
+                continue
             # Only include short single-term proper aliases (e.g. "虎錠之介", "柯P"), never multi-word queries or phrases containing spaces/topics
-            if 2 <= len(sk_clean) <= 5 and " " not in sk_clean and not any(w in sk_clean for w in ["案", "合", "市府", "中央", "連任", "選舉", "黨", "戰"]):
+            if 2 <= len(sk_clean) <= 6 and " " not in sk_clean and not any(w in sk_clean for w in ["案", "合", "市府", "中央", "連任", "選舉", "黨", "戰"]):
                 candidate_names.append(sk_clean)
 
     match_patterns: list[tuple[str, bool]] = []
@@ -505,7 +554,7 @@ def match_scenes_for_character(char: dict[str, Any], scenes: list[Any], topic: s
         p_clean = pat.strip().lower()
         if not p_clean or p_clean in seen_patterns:
             return
-        if p_clean in COMMON_CHARACTER_STOPWORDS or p_clean in topic_tokens:
+        if p_clean in COMMON_CHARACTER_STOPWORDS or p_clean in topic_tokens or p_clean in TECH_AND_CORP_STOPWORDS:
             return
         seen_patterns.add(p_clean)
         match_patterns.append((p_clean, is_word))
@@ -523,13 +572,14 @@ def match_scenes_for_character(char: dict[str, Any], scenes: list[Any], topic: s
                 clean_cjk = re.sub(r"[·・\s]+", "", sname)
                 if len(clean_cjk) >= 2:
                     _add_pat(clean_cjk, False)
-                # For long titular franchise hero names like 快傑獅子丸 or 初代虎丸, allow matching root name suffix (e.g. 獅子丸, 虎丸)
-                # NEVER slice the first 2 characters clean_cjk[:2] (e.g. '臺北' from '臺北市長'), which causes massive false positives across unrelated scenes
-                if len(clean_cjk) >= 4:
+                # For 4-character personal names like 虎錠之介, allow matching 2-character given name/abbreviation (e.g. 虎錠)
+                if len(clean_cjk) == 4:
                     _add_pat(clean_cjk[:2], False)
                     _add_pat(clean_cjk[2:], False)
-                    if len(clean_cjk) >= 5:
-                        _add_pat(clean_cjk[-3:], False)
+                elif len(clean_cjk) >= 5:
+                    # For 5+ char titular hero/franchise names like 快傑獅子丸, match root character suffix (e.g. 獅子丸)
+                    _add_pat(clean_cjk[2:], False)
+                    _add_pat(clean_cjk[-3:], False)
             else:
                 clean_lat = sname.strip().lower()
                 if " " in clean_lat:

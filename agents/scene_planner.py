@@ -331,6 +331,38 @@ def extract_phase_turn_text(section_name: str, narration: str, topic: str = "") 
     return "關鍵轉折：核心真相解析"
 
 
+def ensure_word_boundaries(pattern_str: str) -> str:
+    """Ensure all ASCII/Latin alphanumeric tokens inside a regex alternation have strict \\b word boundaries.
+    
+    Prevents false substring matches like 'Putin' inside 'computing', 'Su' inside 'issue', etc.
+    """
+    inner = pattern_str
+    has_non_capturing = False
+    has_capturing = False
+    if pattern_str.startswith("(?:") and pattern_str.endswith(")"):
+        inner = pattern_str[3:-1]
+        has_non_capturing = True
+    elif pattern_str.startswith("(") and pattern_str.endswith(")"):
+        inner = pattern_str[1:-1]
+        has_capturing = True
+
+    branches = inner.split("|")
+    new_branches = []
+    for b in branches:
+        b_strip = b.strip()
+        starts_ascii = bool(re.match(r"^[A-Za-z0-9]", b_strip))
+        ends_ascii = bool(re.search(r"[A-Za-z0-9]$", b_strip))
+        prefix = r"\b" if starts_ascii and not b_strip.startswith(r"\b") else ""
+        suffix = r"\b" if ends_ascii and not b_strip.endswith(r"\b") else ""
+        new_branches.append(f"{prefix}{b_strip}{suffix}")
+
+    joined = "|".join(new_branches)
+    if has_non_capturing:
+        return f"(?:{joined})"
+    elif has_capturing:
+        return f"({joined})"
+    return joined
+
 # Domain-specific tech hardware & software patterns (only evaluated for tech hardware topics)
 TECH_HARDWARE_PATTERNS: list[tuple[str, str, str]] = [
     # Key Tech Personalities & Leaders (authentic biographical portraits)
@@ -453,10 +485,13 @@ GENERAL_AND_HISTORY_PATTERNS: list[tuple[str, str, str]] = [
     (r"(?:賀錦麗|Kamala Harris)", "Kamala Harris", "stock_portrait"),
     (r"(?:歐巴馬|Barack Obama)", "Barack Obama", "stock_portrait"),
     (r"(?:習近平|Xi Jinping)", "Xi Jinping", "stock_portrait"),
-    (r"(?:普丁|普京|Putin)", "Vladimir Putin", "stock_portrait"),
+    (r"(?:普丁|普京|\bPutin\b)", "Vladimir Putin", "stock_portrait"),
 ]
 
 # Combined real media patterns
+# Ensure strict word boundaries on all pattern definitions
+TECH_HARDWARE_PATTERNS = [(ensure_word_boundaries(p[0]), p[1], p[2]) for p in TECH_HARDWARE_PATTERNS]
+GENERAL_AND_HISTORY_PATTERNS = [(ensure_word_boundaries(p[0]), p[1], p[2]) for p in GENERAL_AND_HISTORY_PATTERNS]
 REAL_MEDIA_PATTERNS: list[tuple[str, str, str]] = TECH_HARDWARE_PATTERNS + GENERAL_AND_HISTORY_PATTERNS
 
 TECH_HARDWARE_KEYWORDS = re.compile(
@@ -487,7 +522,7 @@ PERSON_ENTITY_REGEX = re.compile(
     r"奧本海默|Oppenheimer|曼哈頓計畫|圖靈|Alan Turing|"
     r"沈柏洋|沈伯洋|Puma Shen|黃國昌|柯文哲|賴清德|蕭美琴|蔡英文|馬英九|蔣萬安|陳水扁|"
     r"韓國瑜|蘇貞昌|游錫堃|郭台銘|曹興誠|川普|特朗普|Donald Trump|拜登|Joe Biden|"
-    r"賀錦麗|Kamala Harris|歐巴馬|Barack Obama|習近平|Xi Jinping|普丁|普京|Putin)",
+    r"賀錦麗|Kamala Harris|歐巴馬|Barack Obama|習近平|Xi Jinping|普丁|普京|\bPutin\b)",
     re.IGNORECASE,
 )
 
@@ -532,6 +567,11 @@ def detect_real_world_footage_target(narration: str, visual_desc: str = "", mode
     # Domain Gating: only evaluate tech hardware patterns if topic is tech/hardware related
     patterns_to_check = (TECH_HARDWARE_PATTERNS if is_tech_hardware_topic(topic) else []) + GENERAL_AND_HISTORY_PATTERNS
     for pattern, query, pref_source in patterns_to_check:
+        # In tech/hardware topics, general historical/political figures must NEVER match on pure English visual descriptions
+        if is_tech_hardware_topic(topic) and PERSON_ENTITY_REGEX.search(pattern):
+            if any(pattern == gp[0] for gp in GENERAL_AND_HISTORY_PATTERNS):
+                if not re.search(pattern, narration, flags=re.IGNORECASE):
+                    continue
         if re.search(pattern, comb_text, flags=re.IGNORECASE):
             # Guard A: If entity is a person, but visual_desc is an inanimate object/macro shot without depicting a person
             if PERSON_ENTITY_REGEX.search(pattern) and visual_desc:
