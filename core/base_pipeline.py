@@ -1949,12 +1949,12 @@ class BasePipeline:
         srt_file = self.p.path("subtitles", "subtitles.srt")
         ass_file = self.p.path("subtitles", "subtitles.ass")
         write_srt(cues, srt_file)
-        # Check if fOx Hsiao style motion graphics callouts / banners are enabled and configured
+        # Check whether transcript-driven centered message overlays are enabled.
         sub_callout_style = (
             sub_cfg.get("callout_style")
             or self.p.data.settings.get("callout_style")
             or self.p.settings.get("callout_style")
-            or "fox_kinetic"
+            or "neutral_centered"
         )
         enabled_motion_callouts = bool(
             callouts_allowed

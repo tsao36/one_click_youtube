@@ -312,7 +312,6 @@ def test_timeline_phase_turn_expansion(tmp_path):
         assert len(expanded_scenes) == 4
         assert len(slots) == 4
         assert expanded_scenes[1].visual_type == "phase_turn_card"
-        assert expanded_scenes[1].image == s2.image
         assert slots[1].length == 3.0
         assert slots[1].audio_length == 0.0
     finally:
@@ -337,13 +336,13 @@ def test_universal_chapter_framework(tmp_path):
         assert chunks[0].formatted_timestamp == "00:00"
         assert chunks[0].has_phase_turn_card is False
 
-        # Chapter 2 has a phase-turn card and drum trigger
+        # Chapter 2 has black card and drum trigger
         assert chunks[1].has_phase_turn_card is True
         assert chunks[1].card_slot_index is not None
         assert slots[chunks[1].card_slot_index].start == chunks[1].start_time
         assert "關鍵轉折：架構全面升級" in chunks[1].card_text
 
-        # Chapter 3 has a phase-turn card
+        # Chapter 3 has black card
         assert chunks[2].has_phase_turn_card is True
         assert slots[chunks[2].card_slot_index].start == chunks[2].start_time
 
@@ -520,7 +519,7 @@ def test_fox_callout_extraction():
     assert "百分之百" in t5["title"]
 
 
-def test_write_ass_with_fox_callout(tmp_path):
+def test_write_ass_with_neutral_centered_callout(tmp_path):
     from generators.subtitle_generator import Cue, write_ass
     cues = [Cue(start=1.0, end=5.0, text="這是標準字幕測試內容")]
     callouts = [
@@ -536,9 +535,13 @@ def test_write_ass_with_fox_callout(tmp_path):
     ass_path = tmp_path / "fox_test.ass"
     write_ass(cues, ass_path, style="youtube_standard", callouts=callouts)
     content = ass_path.read_text(encoding="utf-8")
-    assert "FoxCalloutCard" in content
-    assert r"\move(" in content
-    assert r"\fad(250,300)" in content
+    assert "NeutralMessage" in content
+    assert r"\an5\pos(960,540)" in content
+    assert r"\fs96" in content
+    assert r"\p1" in content
+    assert r"\1a&H98&" in content
+    assert r"\1a&H55&" in content
+    assert "◆" not in content
     assert "320 MHz 超大頻寬" in content
     assert "十六線道超級高速公路" in content
 
@@ -566,7 +569,7 @@ def test_pipeline_motion_callouts_toggle(tmp_path):
         pipe = get_pipeline(p)
         pipe._run_subtitles()
         ass_content = p.path("subtitles", "subtitles.ass").read_text(encoding="utf-8")
-        on_dialogues = [line for line in ass_content.splitlines() if "FoxCalloutCard" in line and line.startswith("Dialogue:")]
+        on_dialogues = [line for line in ass_content.splitlines() if "NeutralMessage" in line and line.startswith("Dialogue:")]
         assert len(on_dialogues) >= 1
         assert "320 MHz" in on_dialogues[0]
 
@@ -578,7 +581,7 @@ def test_pipeline_motion_callouts_toggle(tmp_path):
         pipe2 = get_pipeline(p)
         pipe2._run_subtitles()
         ass_content_off = p.path("subtitles", "subtitles.ass").read_text(encoding="utf-8")
-        off_dialogues = [line for line in ass_content_off.splitlines() if "FoxCalloutCard" in line and line.startswith("Dialogue:")]
+        off_dialogues = [line for line in ass_content_off.splitlines() if "NeutralMessage" in line and line.startswith("Dialogue:")]
         assert len(off_dialogues) == 0
     finally:
         Project.delete_project(p.id)

@@ -60,7 +60,7 @@ subtitles:
   font: Microsoft JhengHei UI
   motion_graphics_callouts: true
   callouts_enabled: true
-  callout_style: fox_kinetic
+  callout_style: neutral_centered
   max_chars_per_line: 42
   max_lines: 2
 music:

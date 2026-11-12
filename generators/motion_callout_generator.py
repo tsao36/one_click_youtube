@@ -1,9 +1,8 @@
 """Transcript-driven motion graphic callout extraction for video overlays.
 
-Inspired by fOx Hsiao's tech explainers:
-Dynamically overlays floating kinetic cards & metric badges matching the narration
-stream without colliding with bottom subtitles. Supports both tech/finance metrics
-and general/historical/documentary terminology and Chinese numeral metrics.
+Dynamically overlays neutral centered messages matching the narration stream without
+colliding with bottom subtitles. Supports both tech/finance metrics and general,
+historical, documentary terminology and Chinese numeral metrics.
 """
 from __future__ import annotations
 
@@ -375,7 +374,7 @@ def extract_motion_callouts(
     scenes: list[Scene],
     slots: list[Slot],
     min_interval: float = 3.5,
-    banner_style: str = "fox_kinetic",
+    banner_style: str = "neutral_centered",
 ) -> list[dict[str, Any]]:
     """Extract timeline-synchronized motion graphic callouts for all scenes.
 

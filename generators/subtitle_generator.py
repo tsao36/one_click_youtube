@@ -267,6 +267,7 @@ Style: CalloutBadge,{font},{round(58 * scale)},&H0000F5FF,&H000000FF,&H000F0F0F,
 Style: ChapterTag,{font},{round(34 * scale)},&H00E0E0E0,&H000000FF,&H00000000,&H90000000,-1,0,0,0,100,100,1,0,1,3,1,7,{round(60 * scale)},80,{round(55 * scale)},1
 Style: FoxCalloutBox,{font},{round(20 * scale)},&H18221107,&H000000FF,&H20FFE500,&H70000000,0,0,0,0,100,100,0,0,1,2.5,4.0,7,0,0,0,1
 Style: FoxCalloutCard,{font},{round(52 * scale)},&H00FFFFFF,&H000000FF,&H00120A04,&H80000000,-1,0,0,0,100,100,1.5,0,1,3.0,2.0,8,60,60,{round(60 * scale)},1
+Style: NeutralMessage,{font},{round(96 * scale)},&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,1.2,0,1,2.5,2.0,5,80,80,0,1
 Style: AIWatermark,{font},{round(22 * scale)},&H60FFFFFF,&H000000FF,&H00000000,&H90000000,-1,0,0,0,100,100,1.0,0,1,1.5,1.0,9,{round(30 * scale)},{round(30 * scale)},{round(25 * scale)},1
 
 [Events]
@@ -288,7 +289,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 continue
 
             if c_style == "FoxCalloutCard":
-                b_style = str(co.get("banner_style") or kwargs.get("callout_style") or "fox_kinetic").lower().strip()
+                b_style = str(co.get("banner_style") or kwargs.get("callout_style") or "neutral_centered").lower().strip()
                 if b_style in ("none", "off", "disabled"):
                     continue
 
@@ -312,7 +313,37 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 anim_tag = f"{{\\an8\\move({mid_x},{y_top_start},{mid_x},{y_top_target},0,320)\\fad(250,300)}}"
                 has_metric = bool(re.search(r"(\d|[一二三四五六七八九十百千萬兩]+\s*[尊枚把件座名位人戶個條份公釐公厘毫米公分公尺公里倍成%])", title))
 
-                if b_style == "archival_parchment":
+                if b_style in ("neutral_centered", "fox_kinetic"):
+                    # Neutral editorial message. The legacy fox_kinetic value is
+                    # intentionally migrated here so existing projects stop using
+                    # the old technology-themed top banner as well.
+                    center_y = round(height / 2)
+                    band_top = round(height * 0.37)
+                    band_bottom = round(height * 0.63)
+                    fade = "\\fad(220,260)"
+                    full_frame = f"m 0 0 l {width} 0 l {width} {height} l 0 {height}"
+                    center_band = f"m 0 {band_top} l {width} {band_top} l {width} {band_bottom} l 0 {band_bottom}"
+                    raw_events.append((
+                        c_start,
+                        f"Dialogue: 1,{_ts_ass(c_start)},{_ts_ass(c_end)},FoxCalloutBox,,0,0,0,,"
+                        f"{{\\an7\\pos(0,0)\\p1\\bord0\\shad0\\1c&H000000&\\1a&H98&{fade}}}{full_frame}",
+                    ))
+                    raw_events.append((
+                        c_start,
+                        f"Dialogue: 2,{_ts_ass(c_start)},{_ts_ass(c_end)},FoxCalloutBox,,0,0,0,,"
+                        f"{{\\an7\\pos(0,0)\\p1\\bord0\\shad0\\1c&H000000&\\1a&H55&{fade}}}{center_band}",
+                    ))
+                    card_lines = [
+                        f"{{\\fs{round(96 * scale)}\\c&H00FFFFFF&\\3c&H00000000&\\bord2.5\\shad2.5\\b1}}{title}",
+                    ]
+                    if subtitle:
+                        card_lines.append(
+                            f"{{\\fs{round(36 * scale)}\\c&H00E5E7EB&\\3c&H00000000&\\bord1.8\\shad2\\b0}}{subtitle}"
+                        )
+                    anim_tag = f"{{\\an5\\pos({mid_x},{center_y})\\fad(220,260)}}"
+                    event_style = "NeutralMessage"
+
+                elif b_style == "archival_parchment":
                     # Historical Archival Stamp banner (Vintage Crimson Stamp + Warm Parchment Text)
                     tag_decor = f"【  {clean_tag}  】"
                     card_lines = [
@@ -354,7 +385,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                         card_lines.append(f"{{\\fs{fs_sub}\\c&H00E2E8F0&\\3c&H00081020&\\bord2.2\\shad2.5\\b0}}{subtitle}")
 
                 else:
-                    # fox_kinetic (Classic Cyan Diamond floating typography)
+                    # Compatibility fallback for unknown custom styles.
                     title_color = "&H0038D8FF&" if has_metric else "&H00FFFFFF&"
                     card_lines = [
                         f"{{\\fs{fs_tag}\\c&H00FFE500&\\3c&H00140A04&\\bord2.5\\shad3\\b1}}◆  {clean_tag}  ◆",
@@ -362,10 +393,12 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                     ]
                     if subtitle:
                         card_lines.append(f"{{\\fs{fs_sub}\\c&H00F2E6D8&\\3c&H00100804&\\bord2.4\\shad2.5\\b0}}{subtitle}")
+                if b_style not in ("neutral_centered", "fox_kinetic"):
+                    event_style = c_style
                 formatted_content = "\\N".join(card_lines)
                 raw_events.append((
                     c_start,
-                    f"Dialogue: 1,{_ts_ass(c_start)},{_ts_ass(c_end)},{c_style},,0,0,0,,{anim_tag}{formatted_content}",
+                    f"Dialogue: 3,{_ts_ass(c_start)},{_ts_ass(c_end)},{event_style},,0,0,0,,{anim_tag}{formatted_content}",
                 ))
             else:
                 layer = 2 if c_style == "ChapterTag" else 1

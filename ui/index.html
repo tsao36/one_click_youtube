@@ -571,16 +571,16 @@
             <!-- Motion Graphic & Banner Callout Style -->
             <div class="form-group" id="creator-callout-style-group">
               <label style="display: flex; justify-content: space-between; align-items: center;">
-                <span>🏷️ 頂部動態字卡與橫幅風格 (Top Motion Banner)</span>
-                <span id="callout-style-hint" style="font-size: 11px; color: #38bdf8; font-weight: 600;">✨ 支援古籍牛皮紙/極簡膠囊</span>
+                <span>🎬 場景重點訊息風格 (Scene Message Overlay)</span>
+                <span id="callout-style-hint" style="font-size: 11px; color: #38bdf8; font-weight: 600;">置中大字 · 輕度壓暗背景</span>
               </label>
               <select id="creator-callout-style">
-                <option value="fox_kinetic" selected>經典漂浮動態字卡 (fOx Hsiao 風格 · 青藍菱形光標)</option>
+                <option value="neutral_centered" selected>中性置中大字 (Neutral Centered · 輕度壓暗背景)</option>
                 <option value="modern_pill">極簡深色毛玻璃膠囊橫幅 (Modern Glass Pill · 現代俐落質感)</option>
                 <option value="archival_parchment">歷史檔案古籍牛皮紙印章 (Archival Parchment · 歷史紀錄片推薦)</option>
                 <option value="minimal_clean">極簡無框俐落字體 (Minimal Clean · 清透極簡風格)</option>
                 <option value="broadcast_news">專題電視新聞橫條 (Broadcast News Bar · 新聞專題風格)</option>
-                <option value="none">停用頂部橫幅 · 純淨圖像 (No Banner Overlay · 僅 Ken Burns/AI 圖像)</option>
+                <option value="none">停用場景訊息 · 純淨圖像 (No Message Overlay · 僅 Ken Burns/AI 圖像)</option>
               </select>
             </div>
           </div>
@@ -1245,6 +1245,70 @@
           </button>
         </div>
       </div>
+
+      <!-- Voice Sort & Filter Toolbar -->
+      <div id="voice-profiles-toolbar" style="background:#070d18; border:1px solid #1e293b; border-radius:var(--radius); padding:12px 16px; margin:14px 0 16px; display:flex; flex-direction:column; gap:12px;">
+        <!-- Row 1: Sort Controls & Quick Sort Buttons -->
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+          <!-- Left: Sort By selector + Quick Sort Pills -->
+          <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+            <div style="display:flex; align-items:center; gap:6px;">
+              <span style="font-size:12px; font-weight:700; color:#38bdf8; display:flex; align-items:center; gap:4px;">
+                <span>🔃 排序 (Sort):</span>
+              </span>
+              <select id="voice-sort-by" onchange="onVoiceSortFilterChange()" style="padding:6px 12px; font-size:12px; font-weight:600; background:#0b1324; border:1px solid #0284c7; border-radius:6px; color:#38bdf8; cursor:pointer;">
+                <option value="default" selected>預設排序 (Default)</option>
+                <option value="age_asc">年齡：由幼至長 👶 ➔ 👴 (Age: Youngest → Oldest)</option>
+                <option value="age_desc">年齡：由長至幼 👴 ➔ 👶 (Age: Oldest → Youngest)</option>
+                <option value="gender_female">性別：女性優先 ♀ (Gender: Female first)</option>
+                <option value="gender_male">性別：男性優先 ♂ (Gender: Male first)</option>
+                <option value="gender_female_age">性別(女聲優先) + 年齡由幼至長 (Female + Youngest)</option>
+                <option value="gender_male_age">性別(男聲優先) + 年齡由幼至長 (Male + Youngest)</option>
+                <option value="name_asc">名稱：A 到 Z (Name: A → Z)</option>
+              </select>
+            </div>
+
+            <!-- Quick Sort Quick-Click Pills -->
+            <div style="display:flex; gap:5px; flex-wrap:wrap; align-items:center;">
+              <button type="button" class="btn-sec voice-sort-quick-btn" onclick="setVoiceSortMode('age_asc')" id="btn-sort-age-asc" style="padding:4px 9px; font-size:11px; font-weight:600; border-radius:12px; background:#0b1324; border:1px solid #334155; color:#cbd5e1;" title="以年齡由幼至長排序">👶 年齡 ↑</button>
+              <button type="button" class="btn-sec voice-sort-quick-btn" onclick="setVoiceSortMode('age_desc')" id="btn-sort-age-desc" style="padding:4px 9px; font-size:11px; font-weight:600; border-radius:12px; background:#0b1324; border:1px solid #334155; color:#cbd5e1;" title="以年齡由長至幼排序">👴 年齡 ↓</button>
+              <button type="button" class="btn-sec voice-sort-quick-btn" onclick="setVoiceSortMode('gender_female')" id="btn-sort-gender-female" style="padding:4px 9px; font-size:11px; font-weight:600; border-radius:12px; background:#0b1324; border:1px solid #334155; color:#f472b6;" title="女聲優先排列">♀ 女聲優先</button>
+              <button type="button" class="btn-sec voice-sort-quick-btn" onclick="setVoiceSortMode('gender_male')" id="btn-sort-gender-male" style="padding:4px 9px; font-size:11px; font-weight:600; border-radius:12px; background:#0b1324; border:1px solid #334155; color:#60a5fa;" title="男聲優先排列">♂ 男聲優先</button>
+              <button type="button" class="btn-sec voice-sort-quick-btn" onclick="setVoiceSortMode('default')" id="btn-sort-default" style="padding:4px 9px; font-size:11px; font-weight:600; border-radius:12px; background:#0b1324; border:1px solid #334155; color:#94a3b8;" title="恢復預設排序">預設</button>
+            </div>
+          </div>
+
+          <!-- Right: Search Box & Voice Count Badge -->
+          <div style="display:flex; align-items:center; gap:10px; flex:1; justify-content:flex-end; min-width:240px;">
+            <input type="text" id="voice-search-input" oninput="onVoiceSortFilterChange()" placeholder="🔍 搜尋聲優、音色名稱或風格..." style="padding:6px 12px; font-size:12px; background:#040914; border:1px solid #334155; border-radius:6px; color:#fff; width:100%; max-width:260px;">
+            <span id="voice-count-badge" style="font-size:12px; color:#38bdf8; font-weight:700; background:rgba(2,132,199,0.15); border:1px solid #0284c7; padding:4px 10px; border-radius:14px; white-space:nowrap;">87 位音色</span>
+          </div>
+        </div>
+
+        <!-- Row 2: Filter by Gender & Filter by Age Group -->
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; padding-top:8px; border-top:1px solid rgba(255,255,255,0.06);">
+          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <span style="font-size:11px; font-weight:700; color:#94a3b8;">性別篩選 (Gender Filter):</span>
+            <div id="voice-gender-filter-pills" style="display:flex; gap:5px;">
+              <button type="button" class="btn-sec voice-gender-pill" onclick="setVoiceGenderFilter('all')" data-gender="all" style="padding:3px 10px; font-size:11px; font-weight:700; border-radius:12px; background:#1e3a8a; border:1px solid #3b82f6; color:#93c5fd;">全部</button>
+              <button type="button" class="btn-sec voice-gender-pill" onclick="setVoiceGenderFilter('female')" data-gender="female" style="padding:3px 10px; font-size:11px; font-weight:600; border-radius:12px; background:#0b1324; border:1px solid #334155; color:#f472b6;">♀ 女聲</button>
+              <button type="button" class="btn-sec voice-gender-pill" onclick="setVoiceGenderFilter('male')" data-gender="male" style="padding:3px 10px; font-size:11px; font-weight:600; border-radius:12px; background:#0b1324; border:1px solid #334155; color:#60a5fa;">♂ 男聲</button>
+            </div>
+          </div>
+
+          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <span style="font-size:11px; font-weight:700; color:#94a3b8;">年齡層篩選 (Age Group):</span>
+            <select id="voice-age-group-filter" onchange="onVoiceSortFilterChange()" style="padding:4px 8px; font-size:11px; background:#040914; border:1px solid #334155; border-radius:6px; color:#cbd5e1; cursor:pointer;">
+              <option value="all" selected>全部年齡 (All Ages)</option>
+              <option value="child">👶 兒童少年 (&lt; 18歲)</option>
+              <option value="young">🧑 青年 (18–35歲)</option>
+              <option value="middle">👩‍💼 中年 (36–55歲)</option>
+              <option value="senior">🧓 熟齡長者 (&gt; 55歲)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
       <div id="voice-profiles-list"></div>
       <hr style="border: 0; border-top: 1px solid var(--card-border); margin: 20px 0;">
       <div class="card-title">Add New Voice Profile</div>
@@ -1274,6 +1338,18 @@
           <input type="file" id="v-file" accept="audio/*,video/*" data-ui-change="static_120">
           <audio id="v-file-preview" controls style="display:none; width:100%; height:32px; margin-top:6px;"></audio>
           <div id="v-file-info" style="font-size:11px; color:var(--text-muted); margin-top:3px;"></div>
+        </div>
+        <div class="form-group">
+          <label>Gender (性別)</label>
+          <select id="v-gender">
+            <option value="" selected>未指定 / 不設</option>
+            <option value="female">♀ 女聲 (Female)</option>
+            <option value="male">♂ 男聲 (Male)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Age (年齡)</label>
+          <input type="number" id="v-age" placeholder="例如: 28" min="1" max="120">
         </div>
       </div>
 
@@ -2056,25 +2132,25 @@
           </div>
         </div>
         <div class="form-group">
-          <label>🏷️ 頂部動態字卡與橫幅風格 (Top Motion Banner Style)</label>
+          <label>🎬 場景重點訊息風格 (Scene Message Overlay Style)</label>
           <select id="set-callout-banner-style">
-            <option value="fox_kinetic" selected>經典漂浮動態字卡 (fOx Hsiao 風格 · 青藍菱形光標)</option>
+            <option value="neutral_centered" selected>中性置中大字 (Neutral Centered · 輕度壓暗背景)</option>
             <option value="modern_pill">極簡深色毛玻璃膠囊橫幅 (Modern Glass Pill · 現代俐落質感)</option>
             <option value="archival_parchment">歷史檔案古籍牛皮紙印章 (Archival Parchment · 歷史紀錄片推薦)</option>
             <option value="minimal_clean">極簡無框俐落字體 (Minimal Clean · 清透極簡風格)</option>
             <option value="broadcast_news">專題電視新聞橫條 (Broadcast News Bar · 新聞專題風格)</option>
-            <option value="none">停用頂部橫幅 · 純淨圖像 (No Banner Overlay · 僅 Ken Burns/AI 圖像)</option>
+            <option value="none">停用場景訊息 · 純淨圖像 (No Message Overlay · 僅 Ken Burns/AI 圖像)</option>
           </select>
           <div style="font-size: 11px; color: #94a3b8; margin-top: 3px;">
-            可自由切換或停用畫面上方重點字卡橫幅，擺脫早期單一硬編碼的青藍菱形樣式，亦可隨歷史題材切換為牛皮紙古籍風。
+            預設將背景輕度壓暗，於畫面中央顯示大型白色重點訊息；亦可切換其他題材樣式或完全停用。
           </div>
         </div>
       </div>
       <div style="background: #0c1526; border: 1px solid #1e3a8a; border-radius: 8px; padding: 12px 16px; margin: 12px 0; display: flex; justify-content: space-between; align-items: center;">
         <div>
-          <b style="color: #38bdf8; font-size: 13px;">動態重點字卡特效 (fOx Hsiao 風格)</b>
+          <b style="color: #38bdf8; font-size: 13px;">場景重點訊息特效 (Centered Message Overlay)</b>
           <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">
-            根據旁白關鍵詞、財務數據與核心技術架構，在畫面上方自動浮現動態重點字卡（完全不遮擋下方字幕）
+            根據旁白關鍵詞與核心觀點，在部分場景中央顯示大型重點訊息，並輕度壓暗背景（下方字幕維持原位）
           </div>
         </div>
         <label style="position: relative; display: inline-block; width: 44px; height: 24px; margin: 0; cursor: pointer;">

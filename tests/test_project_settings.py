@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 
 from api_server import CreateProjectRequest, app, build_project_settings
+from core.config import load_settings
 from core.project_manager import Project
 
 
@@ -36,6 +37,10 @@ def test_build_documentary_settings_once():
     assert settings["auto_presenter"] is True
     assert settings["default_avatar"] == "host"
     assert settings["user_research"] == "source notes"
+
+
+def test_default_callout_style_is_neutral_centered():
+    assert load_settings()["subtitles"]["callout_style"] == "neutral_centered"
 
 
 def test_build_short_drama_settings_and_normalises_character_ids():

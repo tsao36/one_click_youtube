@@ -141,7 +141,13 @@ def save_profile(name: str, data: dict, reference_wav: bytes | None = None, ref_
     return prof
 
 
-def rename_profile(old_name: str, new_name: str, new_display_name: str | None = None) -> dict:
+def rename_profile(
+    old_name: str,
+    new_name: str,
+    new_display_name: str | None = None,
+    gender: str | None = None,
+    age: int | float | str | None = None,
+) -> dict:
     """Rename a voice profile identifier (folder) and/or display name, updating all references."""
     old_name = old_name.strip()
     target_old_dir = VOICES_DIR / old_name
@@ -176,6 +182,21 @@ def rename_profile(old_name: str, new_name: str, new_display_name: str | None = 
     prof["name"] = clean_new_name
     if new_display_name is not None and new_display_name.strip():
         prof["display_name"] = new_display_name.strip()
+
+    if gender is not None:
+        g = gender.strip()
+        prof["gender"] = g
+        prof["gender_label"] = "女聲" if g == "female" else ("男聲" if g == "male" else g)
+
+    if age is not None:
+        try:
+            if isinstance(age, str) and not age.strip():
+                prof.pop("age", None)
+            else:
+                num = float(age)
+                prof["age"] = int(num) if num.is_integer() else num
+        except Exception:
+            prof["age"] = age
 
     if prof.get("reference_wav"):
         old_rel = f"data/voices/{old_name}/"

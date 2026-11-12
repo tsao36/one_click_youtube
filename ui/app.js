@@ -829,7 +829,7 @@
       window.activeRemotionPreset = 'archival_history';
       setVal('model-stage-animation', 'remotion_archival_doc');
       setVal('ai-video-pct', '0');
-      setVal('creator-callout-style', 'archival_parchment');
+      setVal('creator-callout-style', 'neutral_centered');
 
       setVal('creator-presenter-placement', 'none');
       if (typeof onPresenterPlacementChange === 'function') onPresenterPlacementChange();
@@ -879,7 +879,7 @@
       window.activeRemotionPreset = 'vox_journalism';
       setVal('model-stage-animation', 'remotion_vox_split');
       setVal('ai-video-pct', '0');
-      setVal('creator-callout-style', 'broadcast_news');
+      setVal('creator-callout-style', 'neutral_centered');
 
       setVal('creator-presenter-placement', 'none');
       if (typeof onPresenterPlacementChange === 'function') onPresenterPlacementChange();
@@ -929,7 +929,7 @@
       window.activeRemotionPreset = 'coordinate_zero';
       setVal('model-stage-animation', 'remotion_coordinate_scale');
       setVal('ai-video-pct', '0');
-      setVal('creator-callout-style', 'modern_pill');
+      setVal('creator-callout-style', 'neutral_centered');
 
       // Turn off virtual presenter for 100% pure tactile desktop graphics
       setVal('creator-presenter-placement', 'none');
@@ -1291,18 +1291,6 @@
     }
 
     function onCreatorStyleChange(styleKey) {
-      // Suggest matching top motion banner style
-      const bannerEl = document.getElementById('creator-callout-style');
-      if (bannerEl) {
-        if (styleKey === 'ink_wash_history' || styleKey === 'vintage_archive') {
-          bannerEl.value = 'archival_parchment';
-        } else if (styleKey === 'tech_schematic') {
-          bannerEl.value = 'fox_kinetic';
-        } else if (styleKey === 'photorealistic_cinema' || styleKey === 'cinematic_documentary') {
-          bannerEl.value = 'modern_pill';
-        }
-      }
-
       if (isCloudAccelerationActive()) return;
       const sel = document.getElementById('checkpoint-select');
       if (!sel) return;
@@ -3972,7 +3960,7 @@
             ai_video_percentage: ai_pct,
             cloud_enabled: cloud,
             stage_models: stageModels,
-            callout_style: (document.getElementById('creator-callout-style')?.value || document.getElementById('set-callout-banner-style')?.value || 'fox_kinetic'),
+            callout_style: (document.getElementById('creator-callout-style')?.value || document.getElementById('set-callout-banner-style')?.value || 'neutral_centered'),
             music_track: musicTrack,
             music_category: musicCategory,
             music_progression: musicProgression,
@@ -5110,33 +5098,274 @@
       }
     }
 
+    let cachedVoiceProfilesList = [];
+    let currentVoiceSort = 'default';
+    let currentVoiceGenderFilter = 'all';
+    let currentVoiceAgeFilter = 'all';
+    let currentVoiceSearch = '';
+
+    function getVoiceGender(v) {
+      if (!v) return 'unknown';
+      if (v.gender === 'female' || v.gender === '女') return 'female';
+      if (v.gender === 'male' || v.gender === '男') return 'male';
+      const text = [v.gender_label, v.display_name, v.persona, v.name].filter(Boolean).join(' ');
+      if (/女聲|女生|女|female|woman|lady|娘/i.test(text)) return 'female';
+      if (/男聲|男生|男|male|man/i.test(text)) return 'male';
+      return 'unknown';
+    }
+
+    function getVoiceAge(v) {
+      if (!v) return null;
+      if (v.age !== undefined && v.age !== null && v.age !== '') {
+        const num = parseFloat(v.age);
+        if (!isNaN(num) && isFinite(num)) return num;
+      }
+      const match = (v.display_name || '').match(/(\d+)\s*歲/);
+      if (match) {
+        const num = parseFloat(match[1]);
+        if (!isNaN(num) && isFinite(num)) return num;
+      }
+      return null;
+    }
+
+    function setVoiceSortMode(mode) {
+      currentVoiceSort = mode;
+      const sel = document.getElementById('voice-sort-by');
+      if (sel) sel.value = mode;
+      updateVoiceSortQuickButtons();
+      renderVoiceProfilesList();
+    }
+
+    function updateVoiceSortQuickButtons() {
+      const btns = document.querySelectorAll('.voice-sort-quick-btn');
+      btns.forEach(b => {
+        b.style.background = '#0b1324';
+        b.style.borderColor = '#334155';
+        if (b.id === 'btn-sort-gender-female') b.style.color = '#f472b6';
+        else if (b.id === 'btn-sort-gender-male') b.style.color = '#60a5fa';
+        else b.style.color = '#cbd5e1';
+      });
+      const activeMap = {
+        'age_asc': 'btn-sort-age-asc',
+        'age_desc': 'btn-sort-age-desc',
+        'gender_female': 'btn-sort-gender-female',
+        'gender_male': 'btn-sort-gender-male',
+        'default': 'btn-sort-default'
+      };
+      const activeId = activeMap[currentVoiceSort];
+      if (activeId) {
+        const activeBtn = document.getElementById(activeId);
+        if (activeBtn) {
+          activeBtn.style.background = '#1e3a8a';
+          activeBtn.style.borderColor = '#3b82f6';
+          activeBtn.style.color = '#93c5fd';
+        }
+      }
+    }
+
+    function setVoiceGenderFilter(val) {
+      currentVoiceGenderFilter = val;
+      const pills = document.querySelectorAll('.voice-gender-pill');
+      pills.forEach(p => {
+        const g = p.getAttribute('data-gender');
+        if (g === val) {
+          p.style.background = '#1e3a8a';
+          p.style.borderColor = '#3b82f6';
+          p.style.color = '#93c5fd';
+          p.style.fontWeight = '700';
+        } else {
+          p.style.background = '#0b1324';
+          p.style.borderColor = '#334155';
+          p.style.color = g === 'female' ? '#f472b6' : (g === 'male' ? '#60a5fa' : '#cbd5e1');
+          p.style.fontWeight = '600';
+        }
+      });
+      renderVoiceProfilesList();
+    }
+
+    function onVoiceSortFilterChange() {
+      const sortSel = document.getElementById('voice-sort-by');
+      if (sortSel) currentVoiceSort = sortSel.value;
+      const ageGroupSel = document.getElementById('voice-age-group-filter');
+      if (ageGroupSel) currentVoiceAgeFilter = ageGroupSel.value;
+      const searchInput = document.getElementById('voice-search-input');
+      if (searchInput) currentVoiceSearch = searchInput.value.trim().toLowerCase();
+      updateVoiceSortQuickButtons();
+      renderVoiceProfilesList();
+    }
+
     async function loadVoiceProfiles() {
       const voices = await apiJson('/api/voices');
+      cachedVoiceProfilesList = voices || [];
+      renderVoiceProfilesList();
+    }
 
+    function renderVoiceProfilesList() {
       const listEl = document.getElementById('voice-profiles-list');
+      if (!listEl) return;
       listEl.innerHTML = '';
-      if (!voices.length) {
-        listEl.innerHTML = '<div style="color:var(--text-muted)">No custom voices created yet.</div>';
+
+      if (!cachedVoiceProfilesList || !cachedVoiceProfilesList.length) {
+        listEl.innerHTML = '<div style="color:var(--text-muted); padding:16px;">No custom voices created yet.</div>';
+        const badge = document.getElementById('voice-count-badge');
+        if (badge) badge.textContent = '0 位音色';
         return;
       }
+
+      // 1. Filter
+      let list = cachedVoiceProfilesList.slice();
+
+      // Gender filter
+      if (currentVoiceGenderFilter && currentVoiceGenderFilter !== 'all') {
+        list = list.filter(v => getVoiceGender(v) === currentVoiceGenderFilter);
+      }
+
+      // Age group filter
+      if (currentVoiceAgeFilter && currentVoiceAgeFilter !== 'all') {
+        list = list.filter(v => {
+          const age = getVoiceAge(v);
+          if (age === null) return false;
+          if (currentVoiceAgeFilter === 'child') return age < 18;
+          if (currentVoiceAgeFilter === 'young') return age >= 18 && age <= 35;
+          if (currentVoiceAgeFilter === 'middle') return age >= 36 && age <= 55;
+          if (currentVoiceAgeFilter === 'senior') return age > 55;
+          return true;
+        });
+      }
+
+      // Search filter
+      if (currentVoiceSearch) {
+        const q = currentVoiceSearch;
+        list = list.filter(v => {
+          const name = (v.name || '').toLowerCase();
+          const disp = (v.display_name || '').toLowerCase();
+          const prov = (v.provider || '').toLowerCase();
+          const spk = (v.speaker || v.voice_id || '').toLowerCase();
+          const persona = (v.persona || '').toLowerCase();
+          return name.includes(q) || disp.includes(q) || prov.includes(q) || spk.includes(q) || persona.includes(q);
+        });
+      }
+
+      // 2. Sort
+      list.sort((a, b) => {
+        const ageA = getVoiceAge(a);
+        const ageB = getVoiceAge(b);
+        const genA = getVoiceGender(a);
+        const genB = getVoiceGender(b);
+        const nameA = (a.display_name || a.name || '').toLowerCase();
+        const nameB = (b.display_name || b.name || '').toLowerCase();
+
+        if (currentVoiceSort === 'age_asc') {
+          if (ageA !== null && ageB !== null) return ageA - ageB || nameA.localeCompare(nameB);
+          if (ageA !== null) return -1;
+          if (ageB !== null) return 1;
+          return nameA.localeCompare(nameB);
+        }
+
+        if (currentVoiceSort === 'age_desc') {
+          if (ageA !== null && ageB !== null) return ageB - ageA || nameA.localeCompare(nameB);
+          if (ageA !== null) return -1;
+          if (ageB !== null) return 1;
+          return nameA.localeCompare(nameB);
+        }
+
+        if (currentVoiceSort === 'gender_female') {
+          const rank = { 'female': 1, 'male': 2, 'unknown': 3 };
+          const rA = rank[genA] || 3;
+          const rB = rank[genB] || 3;
+          if (rA !== rB) return rA - rB;
+          if (ageA !== null && ageB !== null) return ageA - ageB;
+          return nameA.localeCompare(nameB);
+        }
+
+        if (currentVoiceSort === 'gender_male') {
+          const rank = { 'male': 1, 'female': 2, 'unknown': 3 };
+          const rA = rank[genA] || 3;
+          const rB = rank[genB] || 3;
+          if (rA !== rB) return rA - rB;
+          if (ageA !== null && ageB !== null) return ageA - ageB;
+          return nameA.localeCompare(nameB);
+        }
+
+        if (currentVoiceSort === 'gender_female_age') {
+          const rank = { 'female': 1, 'male': 2, 'unknown': 3 };
+          const rA = rank[genA] || 3;
+          const rB = rank[genB] || 3;
+          if (rA !== rB) return rA - rB;
+          if (ageA !== null && ageB !== null) return ageA - ageB;
+          if (ageA !== null) return -1;
+          if (ageB !== null) return 1;
+          return nameA.localeCompare(nameB);
+        }
+
+        if (currentVoiceSort === 'gender_male_age') {
+          const rank = { 'male': 1, 'female': 2, 'unknown': 3 };
+          const rA = rank[genA] || 3;
+          const rB = rank[genB] || 3;
+          if (rA !== rB) return rA - rB;
+          if (ageA !== null && ageB !== null) return ageA - ageB;
+          if (ageA !== null) return -1;
+          if (ageB !== null) return 1;
+          return nameA.localeCompare(nameB);
+        }
+
+        if (currentVoiceSort === 'name_asc') {
+          return nameA.localeCompare(nameB);
+        }
+
+        // default: pinned default_local first, then original
+        if (a.name === 'default_local') return -1;
+        if (b.name === 'default_local') return 1;
+        return 0;
+      });
+
+      // Update badge
+      const countBadge = document.getElementById('voice-count-badge');
+      if (countBadge) {
+        if (list.length === cachedVoiceProfilesList.length) {
+          countBadge.textContent = `${list.length} 位音色`;
+        } else {
+          countBadge.textContent = `顯示 ${list.length} / 共 ${cachedVoiceProfilesList.length} 位`;
+        }
+      }
+
+      if (!list.length) {
+        listEl.innerHTML = '<div style="color:var(--text-muted); padding:24px; text-align:center;">無符合目前篩選條件的聲音音色。</div>';
+        return;
+      }
+
       const buster = Date.now();
-      voices.forEach(v => {
+      list.forEach(v => {
         const hasSample = !!v.has_test_sample;
         const sampleUrl = `/media/voices/${v.name}/test_sample.wav?t=${buster}`;
         const isEleven = v.provider === 'elevenlabs';
         const isVoai = v.provider === 'voai';
         const isEdge = v.provider === 'edge';
+        const g = getVoiceGender(v);
+        const age = getVoiceAge(v);
+
+        const genderBadge = g === 'female'
+          ? `<span style="background:rgba(236,72,153,0.18); border:1px solid #ec4899; color:#f472b6; font-size:11px; font-weight:700; padding:1px 7px; border-radius:4px; display:inline-flex; align-items:center; gap:3px;">♀ 女聲</span>`
+          : (g === 'male'
+            ? `<span style="background:rgba(59,130,246,0.18); border:1px solid #3b82f6; color:#60a5fa; font-size:11px; font-weight:700; padding:1px 7px; border-radius:4px; display:inline-flex; align-items:center; gap:3px;">♂ 男聲</span>`
+            : `<span style="background:rgba(148,163,184,0.12); border:1px solid #475569; color:#94a3b8; font-size:11px; padding:1px 6px; border-radius:4px;">性別未設</span>`);
+
+        const ageBadge = age !== null
+          ? `<span style="background:rgba(16,185,129,0.18); border:1px solid #10b981; color:#34d399; font-size:11px; font-weight:700; padding:1px 7px; border-radius:4px; display:inline-flex; align-items:center; gap:3px;">🎂 ${age} 歲</span>`
+          : '';
 
         listEl.innerHTML += `
           <div style="background:#080d16; border:1px solid var(--card-border); padding:14px; border-radius:var(--radius); margin-bottom:12px; display:flex; flex-direction:column; gap:10px;">
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
               <div>
-                <div style="font-weight:600; font-size:14px; display:flex; align-items:center; gap:8px;">
+                <div style="font-weight:600; font-size:14px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                   <span>${v.display_name}</span>
                   <span style="font-size: 12px; color:var(--text-muted);">(${v.name})</span>
+                  ${genderBadge}
+                  ${ageBadge}
                   ${isEleven ? '<span style="background:rgba(37,99,235,0.25); border:1px solid #2563eb; color:#60a5fa; font-size: 12px; font-weight:700; padding:1px 6px; border-radius:4px;">⚡ ElevenLabs</span>' : ''}
                   ${isVoai ? '<span style="background:rgba(2,132,199,0.25); border:1px solid #0284c7; color:#38bdf8; font-size: 12px; font-weight:700; padding:1px 6px; border-radius:4px;">🇹🇼 VoAI 絕好聲創</span>' : ''}
-                  ${isEdge ? `<span style="background:rgba(16,185,129,0.22); border:1px solid #10b981; color:#6ee7b7; font-size: 12px; font-weight:700; padding:1px 6px; border-radius:4px;">🇹🇼 Edge-TTS ${v.gender === 'male' ? '臺灣男聲' : '臺灣女聲'}</span>` : ''}
+                  ${isEdge ? `<span style="background:rgba(16,185,129,0.22); border:1px solid #10b981; color:#6ee7b7; font-size: 12px; font-weight:700; padding:1px 6px; border-radius:4px;">🇹🇼 Edge-TTS ${g === 'male' ? '臺灣男聲' : '臺灣女聲'}</span>` : ''}
                   ${hasSample ? '<span style="background:rgba(5,150,105,0.25); border:1px solid #059669; color:#34d399; font-size: 12px; font-weight:700; padding:1px 6px; border-radius:4px;">✓ Sample Ready</span>' : '<span style="font-size: 12px; color:#38bdf8; background:rgba(56,189,248,0.15); border:1px solid #0284c7; padding:1px 6px; border-radius:4px;">⚡ 點擊即播 (Auto-Sample)</span>'}
                 </div>
                 <div style="font-size:12px; color:var(--text-muted); margin-top:3px;">
@@ -5156,30 +5385,42 @@
                 <audio controls preload="none" src="${sampleUrl}" style="height:32px; max-width:230px;" id="audio-player-${v.name}"></audio>
                 <button class="btn-sec" style="padding:6px 12px; font-size:12px; background:#1e293b;" onclick="playExistingVoiceSample('${v.name}')" id="btn-play-${v.name}" title="Play sample (auto-generates if not yet cached)">▶️ 試聽 (Play)</button>
                 <button class="btn-sec" style="padding:6px 12px; font-size:12px; color:#93c5fd;" onclick="testVoiceProfile('${v.name}', true)" id="btn-test-${v.name}" title="Re-generate test sample with new text">🔄 自訂測試</button>
-                <button type="button" class="btn-sec" style="padding:6px 12px; font-size:12px; color:#38bdf8; background:rgba(56,189,248,0.12); border-color:#0284c7; font-weight:600;" onclick="toggleRenameVoiceBox('${v.name}')" title="Rename Voice Profile ID & Display Name">✏️ 重新命名 (Rename)</button>
+                <button type="button" class="btn-sec" style="padding:6px 12px; font-size:12px; color:#38bdf8; background:rgba(56,189,248,0.12); border-color:#0284c7; font-weight:600;" onclick="toggleRenameVoiceBox('${v.name}')" title="Rename Voice Profile ID & Display Name">✏️ 重新命名 / 編輯</button>
                 ${v.name !== 'default_local' ? `<button class="btn-sec btn-danger" style="padding:6px 12px; font-size:12px;" onclick="deleteVoiceProfile('${v.name}')">Delete</button>` : ''}
               </div>
             </div>
 
-            <!-- Inline Rename Box -->
+            <!-- Inline Rename / Edit Box -->
             <div id="v-rename-box-${v.name}" style="display:none; background:#040914; border:1px solid #0284c7; border-radius:6px; padding:12px 14px; margin-top:6px;">
               <div style="font-size:12px; font-weight:700; color:#38bdf8; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
-                <span>✏️ 重新命名聲音音色 (Rename ID & Display Name)</span>
+                <span>✏️ 編輯聲音音色屬性 (Edit Voice ID, Name, Gender & Age)</span>
               </div>
               <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end;">
-                <div style="flex:1; min-width:180px;">
-                  <label style="font-size:11px; color:#94a3b8; display:block; margin-bottom:4px; font-weight:600;">聲音代號 ID (Unique Identifier / Folder Name):</label>
+                <div style="flex:1; min-width:160px;">
+                  <label style="font-size:11px; color:#94a3b8; display:block; margin-bottom:4px; font-weight:600;">聲音代號 ID (Unique Folder Identifier):</label>
                   <input type="text" id="v-rename-id-${v.name}" value="${escapeHtml(v.name)}" ${v.name === 'default_local' ? 'disabled title="預設系統音色不可更改 ID"' : ''} style="width:100%; font-size:12px; padding:6px 8px; background:#0b1120; border:1px solid #334155; border-radius:4px; color:#e2e8f0; font-family:monospace;" placeholder="例如: my_voice_id">
                   <div style="font-size:10px; color:#64748b; margin-top:3px;">僅限英文字母、數字、底線</div>
                 </div>
-                <div style="flex:1.2; min-width:220px;">
+                <div style="flex:1.2; min-width:200px;">
                   <label style="font-size:11px; color:#94a3b8; display:block; margin-bottom:4px; font-weight:600;">顯示名稱 (Display Name):</label>
                   <input type="text" id="v-rename-disp-${v.name}" value="${escapeHtml(v.display_name || v.name)}" style="width:100%; font-size:12px; padding:6px 8px; background:#0b1120; border:1px solid #334155; border-radius:4px; color:#e2e8f0;" placeholder="例如: 曹操 AI 專屬磁性聲音">
                   <div style="font-size:10px; color:#64748b; margin-top:3px;">介面與各下拉選單顯示的名字</div>
                 </div>
+                <div style="flex:0.8; min-width:110px;">
+                  <label style="font-size:11px; color:#94a3b8; display:block; margin-bottom:4px; font-weight:600;">性別 (Gender):</label>
+                  <select id="v-rename-gender-${v.name}" style="width:100%; font-size:12px; padding:6px 8px; background:#0b1120; border:1px solid #334155; border-radius:4px; color:#e2e8f0;">
+                    <option value="" ${!v.gender ? 'selected' : ''}>未指定</option>
+                    <option value="female" ${v.gender === 'female' ? 'selected' : ''}>♀ 女聲 (Female)</option>
+                    <option value="male" ${v.gender === 'male' ? 'selected' : ''}>♂ 男聲 (Male)</option>
+                  </select>
+                </div>
+                <div style="flex:0.6; min-width:90px;">
+                  <label style="font-size:11px; color:#94a3b8; display:block; margin-bottom:4px; font-weight:600;">年齡 (Age):</label>
+                  <input type="number" id="v-rename-age-${v.name}" value="${v.age !== undefined && v.age !== null ? v.age : ''}" min="1" max="120" style="width:100%; font-size:12px; padding:6px 8px; background:#0b1120; border:1px solid #334155; border-radius:4px; color:#e2e8f0;" placeholder="例如: 32">
+                </div>
                 <div style="display:flex; gap:8px;">
                   <button type="button" class="btn-primary" onclick="submitRenameVoice('${v.name}')" style="padding:7px 16px; font-size:12px; font-weight:700; background:linear-gradient(135deg, #0284c7, #0369a1); border:none;" id="btn-save-rename-${v.name}">
-                    💾 儲存更名 (Save)
+                    💾 儲存 (Save)
                   </button>
                   <button type="button" class="btn-sec" onclick="toggleRenameVoiceBox('${v.name}')" style="padding:7px 12px; font-size:12px;">
                     取消
@@ -5272,6 +5513,14 @@
       });
     }
 
+    window.setVoiceSortMode = setVoiceSortMode;
+    window.setVoiceGenderFilter = setVoiceGenderFilter;
+    window.onVoiceSortFilterChange = onVoiceSortFilterChange;
+    window.loadVoiceProfiles = loadVoiceProfiles;
+    window.renderVoiceProfilesList = renderVoiceProfilesList;
+    window.getVoiceGender = getVoiceGender;
+    window.getVoiceAge = getVoiceAge;
+
     function toggleRenameVoiceBox(vName) {
       const box = document.getElementById(`v-rename-box-${vName}`);
       if (!box) return;
@@ -5281,11 +5530,15 @@
     async function submitRenameVoice(oldName) {
       const newIdInput = document.getElementById(`v-rename-id-${oldName}`);
       const newDispInput = document.getElementById(`v-rename-disp-${oldName}`);
+      const newGenderInput = document.getElementById(`v-rename-gender-${oldName}`);
+      const newAgeInput = document.getElementById(`v-rename-age-${oldName}`);
       const statusEl = document.getElementById(`v-rename-status-${oldName}`);
       const btn = document.getElementById(`btn-save-rename-${oldName}`);
 
       const newId = newIdInput ? newIdInput.value.trim() : oldName;
       const newDisp = newDispInput ? newDispInput.value.trim() : '';
+      const newGender = newGenderInput ? newGenderInput.value.trim() : '';
+      const newAge = newAgeInput ? newAgeInput.value.trim() : '';
 
       if (!newId) {
         alert("聲音識別碼 (ID) 不能為空！");
@@ -5295,7 +5548,7 @@
       if (btn) btn.disabled = true;
       if (statusEl) {
         statusEl.style.color = '#38bdf8';
-        statusEl.textContent = '⏳ 正在重新命名並更新相關綁定...';
+        statusEl.textContent = '⏳ 正在儲存並更新相關設定...';
       }
 
       try {
@@ -5304,13 +5557,15 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             new_name: newId,
-            new_display_name: newDisp
+            new_display_name: newDisp,
+            gender: newGender,
+            age: newAge
           })
         });
         const data = await res.json().catch(() => ({}));
 
 
-        showToast(`✓ 聲音音色已成功更名為: ${newDisp || newId} (${newId})`);
+        showToast(`✓ 聲音音色已成功更新: ${newDisp || newId} (${newId})`);
         loadVoices();
         await loadVoiceProfiles();
         if (typeof loadAvatars === 'function') loadAvatars();
@@ -5876,6 +6131,11 @@
       const refText = (document.getElementById('v-ref-text')?.value || '').trim();
       if (refText) fd.append('reference_text', refText);
 
+      const vGender = (document.getElementById('v-gender')?.value || '').trim();
+      const vAge = (document.getElementById('v-age')?.value || '').trim();
+      if (vGender) fd.append('gender', vGender);
+      if (vAge) fd.append('age', vAge);
+
       try {
         const created = await apiJson('/api/voices', {
           method: 'POST',
@@ -5885,6 +6145,8 @@
 
         document.getElementById('v-name').value = '';
         document.getElementById('v-disp').value = '';
+        if (document.getElementById('v-gender')) document.getElementById('v-gender').value = '';
+        if (document.getElementById('v-age')) document.getElementById('v-age').value = '';
         const customInput = document.getElementById('v-eleven-custom-id');
         if (customInput) customInput.value = '';
         if (fileInput) fileInput.value = '';
@@ -7428,7 +7690,7 @@
       const font = document.getElementById('set-sub-font') ? document.getElementById('set-sub-font').value : 'Microsoft JhengHei UI';
       const style = document.getElementById('set-sub-style') ? document.getElementById('set-sub-style').value : 'youtube_standard';
       const phaseTurnDur = document.getElementById('set-phase-turn-dur') ? parseFloat(document.getElementById('set-phase-turn-dur').value) || 3.0 : 3.0;
-      const calloutBannerStyle = document.getElementById('set-callout-banner-style') ? document.getElementById('set-callout-banner-style').value : 'fox_kinetic';
+      const calloutBannerStyle = document.getElementById('set-callout-banner-style') ? document.getElementById('set-callout-banner-style').value : 'neutral_centered';
       const ccs = document.getElementById('creator-callout-style');
       if (ccs) ccs.value = calloutBannerStyle;
       try {
@@ -9125,6 +9387,7 @@
       } else if (stageName === 'subtitles') {
         const srtText = data.srt || '';
         const motionEnabled = data.motion_graphics_callouts !== false;
+        const calloutStyle = data.callout_style || 'neutral_centered';
         const calloutsList = data.callouts_preview || [];
         let calloutsHtml = '';
         if (calloutsList.length > 0 && !isDrama) {
@@ -9158,8 +9421,8 @@
             ` : `
               <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; background:#0c1526; padding:10px 14px; border-radius:6px; border:1px solid #1e3a8a;">
                 <div>
-                  <b style="color:#38bdf8; font-size:13px;">✨ 動態重點字卡特效 (fOx Hsiao 風格)</b>
-                  <div style="font-size:11px; color:#94a3b8; margin-top:2px;">根據旁白關鍵詞與指標，在畫面上方自動浮現動態重點字卡（不遮擋下方字幕）</div>
+                  <b style="color:#38bdf8; font-size:13px;">✨ 場景重點訊息特效</b>
+                  <div style="font-size:11px; color:#94a3b8; margin-top:2px;">在部分場景中央顯示大型重點訊息，並輕度壓暗背景（下方字幕維持原位）</div>
                 </div>
                 <label style="position:relative; display:inline-block; width:44px; height:24px; margin:0; cursor:pointer;">
                   <input type="checkbox" id="insp-motion-callouts" ${motionEnabled ? 'checked' : ''} onchange="toggleProjectMotionCallouts(this.checked)" style="opacity:0; width:0; height:0;">
@@ -9167,6 +9430,18 @@
                     <span id="insp-motion-callouts-knob" style="position:absolute; height:18px; width:18px; left:${motionEnabled ? '23px' : '3px'}; bottom:3px; background-color:#ffffff; transition:.25s; border-radius:50%; box-shadow:0 1px 3px rgba(0,0,0,0.4);"></span>
                   </span>
                 </label>
+              </div>
+              <div style="margin-bottom:10px; background:#080d16; border:1px solid #1e293b; border-radius:6px; padding:10px 14px;">
+                <label for="insp-callout-style" style="display:block; color:#cbd5e1; font-size:12px; font-weight:700; margin-bottom:6px;">Message overlay style</label>
+                <select id="insp-callout-style" style="width:100%; padding:7px 9px; background:#04070e; border:1px solid #334155; color:#e2e8f0; border-radius:4px;">
+                  <option value="neutral_centered" ${calloutStyle === 'neutral_centered' ? 'selected' : ''}>Neutral centered — large text with dimmed background</option>
+                  <option value="modern_pill" ${calloutStyle === 'modern_pill' ? 'selected' : ''}>Modern glass pill — top banner</option>
+                  <option value="archival_parchment" ${calloutStyle === 'archival_parchment' ? 'selected' : ''}>Archival parchment — top banner</option>
+                  <option value="minimal_clean" ${calloutStyle === 'minimal_clean' ? 'selected' : ''}>Minimal clean — top text</option>
+                  <option value="broadcast_news" ${calloutStyle === 'broadcast_news' ? 'selected' : ''}>Broadcast news — top banner</option>
+                  <option value="none" ${calloutStyle === 'none' ? 'selected' : ''}>None — disable message overlays</option>
+                </select>
+                <div style="font-size:11px; color:#64748b; margin-top:5px;">Applied when the subtitle stage is rerun.</div>
               </div>
               ${calloutsHtml}
             `}
@@ -9226,6 +9501,8 @@
         payload.srt = document.getElementById('insp-srt').value;
         const mcEl = document.getElementById('insp-motion-callouts');
         if (mcEl) payload.motion_graphics_callouts = mcEl.checked;
+        const calloutStyleEl = document.getElementById('insp-callout-style');
+        if (calloutStyleEl) payload.callout_style = calloutStyleEl.value;
       }
 
       try {
@@ -13056,6 +13333,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       } else if (stKey === 'subtitles') {
         const srtText = data.srt || '';
         const motionEnabled = data.motion_graphics_callouts !== false;
+        const calloutStyle = data.callout_style || 'neutral_centered';
         const calloutsList = data.callouts_preview || [];
         let calloutsHtml = '';
         if (!isDrama && calloutsList.length > 0) {
@@ -13085,8 +13363,8 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
             ${!isDrama ? `
               <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; background:#0c1526; padding:12px 16px; border-radius:8px; border:1px solid #1e3a8a;">
                 <div>
-                  <b style="color:#38bdf8; font-size:14px;">✨ 動態重點字卡特效 (fOx Hsiao 風格)</b>
-                  <div style="font-size:12px; color:#94a3b8; margin-top:2px;">依據當前旁白關鍵詞與數據指標，在畫面上方自動浮現動態重點字卡（不遮擋下方字幕）</div>
+                  <b style="color:#38bdf8; font-size:14px;">✨ 場景重點訊息特效</b>
+                  <div style="font-size:12px; color:#94a3b8; margin-top:2px;">依據當前旁白關鍵詞與核心觀點，在部分場景中央顯示大型訊息並輕度壓暗背景</div>
                 </div>
                 <label style="position:relative; display:inline-block; width:46px; height:26px; margin:0; cursor:pointer;">
                   <input type="checkbox" id="studio-motion-callouts" ${motionEnabled ? 'checked' : ''} onchange="toggleProjectMotionCallouts(this.checked)" style="opacity:0; width:0; height:0;">
@@ -13094,6 +13372,18 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
                     <span id="studio-motion-callouts-knob" style="position:absolute; height:20px; width:20px; left:${motionEnabled ? '23px' : '3px'}; bottom:3px; background-color:#ffffff; transition:.25s; border-radius:50%; box-shadow:0 1px 3px rgba(0,0,0,0.4);"></span>
                   </span>
                 </label>
+              </div>
+              <div style="margin-bottom:14px; background:#080d16; border:1px solid #1e293b; border-radius:8px; padding:12px 16px;">
+                <label for="studio-callout-style" style="display:block; color:#cbd5e1; font-size:12px; font-weight:700; margin-bottom:7px;">Message overlay style</label>
+                <select id="studio-callout-style" style="width:100%; padding:8px 10px; background:#04070e; border:1px solid #334155; color:#e2e8f0; border-radius:5px;">
+                  <option value="neutral_centered" ${calloutStyle === 'neutral_centered' ? 'selected' : ''}>Neutral centered — large text with dimmed background</option>
+                  <option value="modern_pill" ${calloutStyle === 'modern_pill' ? 'selected' : ''}>Modern glass pill — top banner</option>
+                  <option value="archival_parchment" ${calloutStyle === 'archival_parchment' ? 'selected' : ''}>Archival parchment — top banner</option>
+                  <option value="minimal_clean" ${calloutStyle === 'minimal_clean' ? 'selected' : ''}>Minimal clean — top text</option>
+                  <option value="broadcast_news" ${calloutStyle === 'broadcast_news' ? 'selected' : ''}>Broadcast news — top banner</option>
+                  <option value="none" ${calloutStyle === 'none' ? 'selected' : ''}>None — disable message overlays</option>
+                </select>
+                <div style="font-size:11px; color:#64748b; margin-top:5px;">Save, then rerun subtitles to regenerate the overlay styling.</div>
               </div>
               ${calloutsHtml}
             ` : `
@@ -14794,6 +15084,8 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
         payload.srt = document.getElementById('studio-srt').value;
         const mcEl = document.getElementById('studio-motion-callouts');
         if (mcEl) payload.motion_graphics_callouts = mcEl.checked;
+        const calloutStyleEl = document.getElementById('studio-callout-style');
+        if (calloutStyleEl) payload.callout_style = calloutStyleEl.value;
       }
 
       try {
