@@ -49,13 +49,10 @@ def serve_project_file_from(project_id: str, file_path: str, projects_dir: Path)
     target_path = None
     p_dir = projects_dir / project_id
 
-    # 1. Try resolving strictly under project directory first
-    try:
-        cand = resolve_under(p_dir, file_path)
-        if cand.exists() and cand.is_file():
-            target_path = cand
-    except HTTPException:
-        pass
+    # 1. Resolve strictly under project directory (raises 403 Forbidden on traversal outside p_dir)
+    cand = resolve_under(p_dir, file_path)
+    if cand.exists() and cand.is_file():
+        target_path = cand
 
     # 2. If not found locally, check if project has an external archive path or absolute final video
     if not target_path and (p_dir / "project.json").exists():

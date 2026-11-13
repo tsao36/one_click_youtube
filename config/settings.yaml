@@ -102,6 +102,13 @@ youtube:
   auto_generate_tags: true
   include_asset_sources: true
 visual_styles:
+  diorama_cutaway:
+    label: 3D Architectural Diorama (立體微縮切面模型)
+    style: 3D architectural diorama cutaway model, isometric cross-section, clean studio lighting, tilt-shift photography, miniature scale model, high detail, neutral light gray studio background, no text
+    lighting: clean studio lighting, soft directional highlights, neutral studio illumination
+    lens: tilt-shift photography, 45-degree isometric orthographic view, razor sharp miniature focus
+    mood: meticulous, architectural, tactile, educational, sophisticated
+    negative: text, watermark, logo, cartoon, anime, blurry, lowres, deformed, hand, face, messy background, oversaturated colors, 2D illustration
   tech_schematic:
     label: 3D Tech Schematic & Explainer (fOx Style)
     style: 3D technical schematic, isometric mechanical cross-section diagram, clean

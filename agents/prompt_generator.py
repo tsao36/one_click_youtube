@@ -151,9 +151,9 @@ def compose(parts: dict, style: dict, entity_desc: list[str], visual_type: str, 
         scene_text
     ))
 
-    # Strip conflicting schematic / isometric tokens when scene is photographic or real-world
+    # Strip conflicting schematic / isometric tokens when scene is photographic or real-world (unless diorama/cutaway style)
     lens_str = style.get("lens", "") if visual_type != "diagram" else ""
-    if visual_type != "diagram" and (is_real_world or has_cinematic_camera):
+    if visual_type != "diagram" and (is_real_world or has_cinematic_camera) and not any(k in style_key for k in ["diorama", "cutaway"]):
         conflicting_schematic_patterns = [
             r"\b3D technical schematic,?\s*",
             r"\bisometric mechanical cross-section diagram,?\s*",
@@ -368,11 +368,19 @@ def generate_prompts(scenes: list[Scene], style: dict, bible: dict, client: LLMC
                      progress=None, topic: str = "", world_setting: dict | None = None) -> list[dict]:
     ents = {e["name"]: e["description"] for e in bible.get("entities", [])}
     style_key = (style.get("key") or "").lower()
+    is_diorama = any(k in style_key for k in ["diorama", "cutaway"])
     is_political_explainer = any(k in style_key for k in ["political_explainer", "taiwan_political", "see_world"])
-    is_cartoon_explainer = (not is_political_explainer) and any(k in style_key for k in ["cartoon", "explainer", "doodle", "stickman", "minimalist_explainer"])
+    is_cartoon_explainer = (not is_political_explainer) and (not is_diorama) and any(k in style_key for k in ["cartoon", "explainer", "doodle", "stickman", "minimalist_explainer"])
     
     cartoon_directive = ""
-    if is_cartoon_explainer:
+    if is_diorama:
+        cartoon_directive = (
+            "\nSPECIAL STYLE DIRECTIVE (3D ARCHITECTURAL DIORAMA CUTAWAY MODEL / 立體微縮模型切面風):\n"
+            "- Literal Physical Structures & Cross-Sections: ALWAYS translate spoken narration concepts and scene subjects into literal physical structures, scale models, or architectural cross-sections ('noun + physical action'). Strictly avoid abstract metaphors, floating geometric shapes, or vague conceptual clouds.\n"
+            "- Staging & Model Scale: Present every scene as an isometric miniature diorama cutaway model set on a neutral light gray studio pedestal or tabletop, showing detailed interior cutaways, structural cross-sections, and tactile miniature scale elements with tilt-shift photography.\n"
+            "- Strictly No Text / UI: Never depict readable signs, typography, UI overlays, or words embedded on the model or background.\n"
+        )
+    elif is_cartoon_explainer:
         cartoon_directive = (
             "\nSPECIAL STYLE DIRECTIVE (MINIMALIST EXPLAINER CARTOON / 商業大師 風格):\n"
             "- Human Characters: ALWAYS describe all people as simple circular-head cartoon figures with two black dot eyes and a single line mouth, completely bald (no hair, no nose, no ears), wearing simplified solid-color suits/hoodies with cylindrical limbs and mitt hands.\n"

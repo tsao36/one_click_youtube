@@ -1188,6 +1188,7 @@
     }
 
     const VISUAL_STYLE_DEFINITIONS = [
+      { value: 'diorama_cutaway', localLabel: '3D Architectural Diorama (立體微縮切面模型)', cloudLabel: '3D Architectural Diorama' },
       { value: 'tech_schematic', localLabel: 'Tech Schematic & Kinetic Callouts (fOx Hsiao style)', cloudLabel: 'Tech Schematic (fOx Style)' },
       { value: 'photorealistic_cinema', localLabel: 'Photorealistic Cinema (Juggernaut XL)', cloudLabel: 'Photorealistic Cinema' },
       { value: 'cinematic_documentary', localLabel: 'Cinematic Documentary', cloudLabel: 'Cinematic Documentary' },
@@ -2922,6 +2923,7 @@
         // Restore documentary visual styles
         if (styleSelect) {
           styleSelect.innerHTML = `
+            <option value="diorama_cutaway">3D Architectural Diorama (立體微縮切面模型)</option>
             <option value="tech_schematic">Tech Schematic & Kinetic Callouts (fOx Hsiao style)</option>
             <option value="photorealistic_cinema" selected>Photorealistic Cinema (Juggernaut XL)</option>
             <option value="cinematic_documentary">Cinematic Documentary</option>

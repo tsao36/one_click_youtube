@@ -443,6 +443,6 @@ def test_ambient_music_default_selection():
     assert len(plan) >= 1
     for seg in plan:
         assert seg.style == "ambient"
-        assert "ambient" in Path(seg.track).parts or "ambient" in seg.track.replace("\\", "/").lower()
+        assert "ambient" in Path(seg.track).parts or "ambient" in str(seg.track).replace("\\", "/").lower()
 
 
