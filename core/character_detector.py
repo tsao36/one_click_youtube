@@ -1241,7 +1241,7 @@ def enforce_all_characters_real_image_ratio(
                 chosen_img = pick_best_media_candidate(images_pool, sid, registry, min_distance=DEFAULT_MIN_SCENE_DISTANCE)
                 if chosen_img:
                     s.media_source = "stock_portrait"
-                    s.search_keyword = chosen_img.get("title") or char_name
+                    s.search_keyword = char_name or chosen_img.get("title")
                     s.visual_type = "authentic_portrait"
                     img_url = chosen_img.get("url")
                     try:
@@ -1313,7 +1313,7 @@ def reject_scene_media(project: Project, scene_id: int, reason: str = "") -> dic
                 alt = pick_best_media_candidate(imgs, scene_id, registry)
                 if alt:
                     s.media_source = "stock_portrait"
-                    s.search_keyword = alt.get("title") or mc.get("name")
+                    s.search_keyword = mc.get("name") or alt.get("title")
                     s.visual_type = "authentic_portrait"
                     try:
                         download_media_file(alt["url"], img_out)

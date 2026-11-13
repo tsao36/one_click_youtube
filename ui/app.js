@@ -4067,6 +4067,7 @@
             cloud_enabled: cloud,
             stage_models: stageModels,
             callout_style: (document.getElementById('creator-callout-style')?.value || document.getElementById('set-callout-banner-style')?.value || 'neutral_centered'),
+            motion_graphics_callouts: document.getElementById('creator-motion-callouts') ? document.getElementById('creator-motion-callouts').checked : true,
             music_track: musicTrack,
             music_category: musicCategory,
             music_progression: musicProgression,
@@ -7778,6 +7779,7 @@
           const sub = data.settings.subtitles;
           const isEnabled = sub.motion_graphics_callouts !== false && sub.callouts_enabled !== false;
           updateMotionCalloutsSwitchUI('set-motion-callouts', isEnabled);
+          updateMotionCalloutsSwitchUI('creator-motion-callouts', isEnabled);
           const sf = document.getElementById('set-sub-font');
           if (sf && sub.font) sf.value = sub.font;
           const ss = document.getElementById('set-sub-style');
@@ -7879,6 +7881,7 @@
       const calloutBannerStyle = document.getElementById('set-callout-banner-style') ? document.getElementById('set-callout-banner-style').value : 'neutral_centered';
       const ccs = document.getElementById('creator-callout-style');
       if (ccs) ccs.value = calloutBannerStyle;
+      updateMotionCalloutsSwitchUI('creator-motion-callouts', motion);
       try {
         await apiRequest('/api/settings', {
           method: 'POST',

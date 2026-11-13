@@ -157,6 +157,7 @@ class CreateProjectRequest(BaseModel):
     drama_formula: Optional[str] = "workplace_revenge"
     drama_duration_seconds: Optional[int] = 50
     callout_style: Optional[str] = None
+    motion_graphics_callouts: Optional[bool] = None
     author_conclusion: Optional[str] = None
     include_author_take: bool = True
     pause_for_conclusion: bool = False
@@ -208,6 +209,7 @@ class ProjectSubtitleSettingsRequest(BaseModel):
     style: Optional[str] = None
     font: Optional[str] = None
     callout_style: Optional[str] = None
+    motion_graphics_callouts: Optional[bool] = None
 
 
 class YouTubeUploadRequest(BaseModel):
@@ -465,6 +467,9 @@ def build_project_settings(
 
     if req.callout_style:
         settings.setdefault("subtitles", {})["callout_style"] = req.callout_style
+    if req.motion_graphics_callouts is not None:
+        settings.setdefault("subtitles", {})["motion_graphics_callouts"] = req.motion_graphics_callouts
+        settings["subtitles"]["callouts_enabled"] = req.motion_graphics_callouts
     if req.author_conclusion:
         settings["author_conclusion"] = req.author_conclusion.strip()
     settings["include_author_take"] = req.include_author_take

@@ -148,6 +148,68 @@ def estimate_llm_cost(model_name: str, prompt_tokens: int = 0, completion_tokens
     return cost, desc
 
 
+def _presenter_rate_and_label(
+    provider_name: str,
+    dur: float,
+    custom_rate: float = 0.0,
+    is_cloud: bool = False,
+) -> tuple[float, str, bool]:
+    """Return (rate_usd, display_name, is_cloud_provider) for a virtual presenter provider."""
+    p_key = (provider_name or "").lower().strip()
+    if p_key in ("masked_speaker", "masked_video", "local_masked_speaker", "masked", "local_fallback", "local"):
+        return 0.0, "Local FFmpeg (Free)", False
+
+    rate = custom_rate
+    if rate <= 0.0:
+        if "hedra" in p_key:
+            rate = round(0.025 * max(dur, 1.0), 4)
+        elif p_key in PRICING["presenter"]:
+            rate = PRICING["presenter"][p_key]
+        else:
+            for k, v in PRICING["presenter"].items():
+                if k in p_key:
+                    rate = v
+                    break
+        if rate == 0.0 and is_cloud:
+            rate = 0.050
+
+    cloud_flag = is_cloud or rate > 0.0
+    if not cloud_flag:
+        return 0.0, "Local FFmpeg (Free)", False
+
+    disp_name = provider_name
+    if "hedra" in p_key:
+        disp_name = "Hedra Character-3"
+    elif "latentsync" in p_key:
+        disp_name = "LatentSync (fal.ai)"
+    elif "kling" in p_key:
+        disp_name = "Kling AI Avatar (fal.ai)"
+    elif "sadtalker" in p_key:
+        disp_name = "SadTalker (fal.ai)"
+    return rate, disp_name, True
+
+
+def _resolve_pending_presenter_provider(scene: Any, settings: dict, avatar_cache: dict[str, dict]) -> str:
+    """Resolve the configured avatar provider for a pending presenter scene."""
+    av_name = getattr(scene, "avatar_profile", None) or settings.get("default_avatar") or ""
+    cache_key = str(av_name).strip().lower()
+    if cache_key not in avatar_cache:
+        prof = {}
+        try:
+            from generators.avatar_generator import load_avatar
+            prof = load_avatar(av_name or None) or {}
+        except Exception:
+            prof = {}
+        avatar_cache[cache_key] = prof
+    prof = avatar_cache[cache_key]
+    if prof:
+        prov = prof.get("provider")
+        if prov:
+            return str(prov)
+        return "masked_speaker" if prof.get("is_masked") else "fal-ai/sadtalker"
+    return "fal-ai/latentsync"
+
+
 def calculate_project_costs(project: Any) -> dict[str, Any]:
     """
     Examines project configuration, scene assets, and telemetry to calculate
@@ -365,64 +427,83 @@ def calculate_project_costs(project: Any) -> dict[str, Any]:
     }
 
     # 7b. VIRTUAL PRESENTER (Talking Avatar Lipsync)
+    avatar_enabled = (
+        project.is_avatar_enabled()
+        if hasattr(project, "is_avatar_enabled")
+        else (
+            settings.get("avatar_enabled") is not False
+            and settings.get("presenter_placement") not in ("none", "off", "disabled", False)
+        )
+    )
     custom_presenter_rate = float((settings.get("pricing") or {}).get("presenter_clip_usd", 0.0))
     presenter_cost = 0.0
     cloud_presenter_clips = 0
     local_presenter_clips = 0
+    pending_cloud_clips = 0
+    pending_local_clips = 0
     presenter_prov_summary = []
     total_presenter_seconds = 0.0
+    avatar_cache: dict[str, dict] = {}
 
     for s in presenter_scenes:
         anim_st = getattr(s, "animation", None)
-        if not anim_st or getattr(anim_st, "status", None) not in ("COMPLETED", "completed") or not getattr(anim_st, "path", None):
-            continue
-        meta = getattr(anim_st, "meta", {}) or {}
-        p_name = meta.get("provider") or "fal-ai/latentsync"
-        p_key = p_name.lower().strip()
-        dur = float(meta.get("duration") or getattr(s, "audio_duration", 0.0) or 0.0)
-        total_presenter_seconds += dur
-
-        rate = custom_presenter_rate
-        if rate <= 0.0:
-            if "hedra" in p_key:
-                rate = round(0.025 * max(dur, 1.0), 4)
-            elif p_key in PRICING["presenter"]:
-                rate = PRICING["presenter"][p_key]
+        is_completed = bool(
+            anim_st
+            and getattr(anim_st, "status", None) in ("COMPLETED", "completed")
+            and getattr(anim_st, "path", None)
+        )
+        if is_completed:
+            meta = getattr(anim_st, "meta", {}) or {}
+            p_name = meta.get("provider") or "fal-ai/latentsync"
+            dur = float(meta.get("duration") or getattr(s, "audio_duration", 0.0) or 0.0)
+            total_presenter_seconds += dur
+            rate, disp_name, is_cloud = _presenter_rate_and_label(
+                p_name, dur, custom_rate=custom_presenter_rate, is_cloud=bool(meta.get("is_cloud", False))
+            )
+            if is_cloud:
+                presenter_cost += rate
+                cloud_presenter_clips += 1
             else:
-                for k, v in PRICING["presenter"].items():
-                    if k in p_key:
-                        rate = v
-                        break
-            if rate == 0.0 and meta.get("is_cloud", False):
-                rate = 0.050
-
-        if meta.get("is_cloud", False) or rate > 0:
-            presenter_cost += rate
-            cloud_presenter_clips += 1
-            disp_name = p_name
-            if "hedra" in p_key: disp_name = "Hedra Character-3"
-            elif "latentsync" in p_key: disp_name = "LatentSync (fal.ai)"
-            elif "kling" in p_key: disp_name = "Kling AI Avatar (fal.ai)"
-            elif "sadtalker" in p_key: disp_name = "SadTalker (fal.ai)"
+                local_presenter_clips += 1
             if disp_name not in presenter_prov_summary:
                 presenter_prov_summary.append(disp_name)
-        else:
-            local_presenter_clips += 1
-            if "Local FFmpeg (Free)" not in presenter_prov_summary:
-                presenter_prov_summary.append("Local FFmpeg (Free)")
+        elif avatar_enabled:
+            p_name = _resolve_pending_presenter_provider(s, settings, avatar_cache)
+            est_dur = float(getattr(s, "audio_duration", 0.0) or 0.0)
+            if est_dur <= 0.0:
+                narration = getattr(s, "narration", "") or ""
+                est_dur = max(3.0, round(len(narration) / 4.5, 1)) if narration else 5.0
+            rate, disp_name, is_cloud = _presenter_rate_and_label(
+                p_name, est_dur, custom_rate=custom_presenter_rate, is_cloud=False
+            )
+            if is_cloud:
+                presenter_cost += rate
+                pending_cloud_clips += 1
+            else:
+                pending_local_clips += 1
+            if disp_name not in presenter_prov_summary:
+                presenter_prov_summary.append(disp_name)
 
     pres_prov_str = ", ".join(presenter_prov_summary) if presenter_prov_summary else ("None (No avatar)" if not presenter_scenes else "fal-ai/latentsync")
 
     stage_costs["presenter"] = round(presenter_cost, 4)
-    if cloud_presenter_clips > 0:
+    total_cloud_clips = cloud_presenter_clips + pending_cloud_clips
+    total_local_clips = local_presenter_clips + pending_local_clips
+    if cloud_presenter_clips > 0 and pending_cloud_clips > 0:
+        pres_desc = f"{cloud_presenter_clips} completed + {pending_cloud_clips} pending Cloud lipsync clips ({total_presenter_seconds:.1f}s)"
+        pres_units = f"{total_cloud_clips} cloud clips ({cloud_presenter_clips} done, {pending_cloud_clips} est.)"
+    elif cloud_presenter_clips > 0:
         pres_desc = f"{cloud_presenter_clips} Cloud lipsync clips ({total_presenter_seconds:.1f}s)"
         pres_units = f"{cloud_presenter_clips} cloud clips ({total_presenter_seconds:.1f}s)"
-    elif local_presenter_clips > 0:
-        pres_desc = f"{local_presenter_clips} Local lipsync clips ({total_presenter_seconds:.1f}s, Free)"
-        pres_units = f"{local_presenter_clips} local clips"
+    elif pending_cloud_clips > 0:
+        pres_desc = f"{pending_cloud_clips} pending Cloud lipsync clips (est.)"
+        pres_units = f"{pending_cloud_clips} cloud clips (est.)"
+    elif total_local_clips > 0:
+        pres_desc = f"{total_local_clips} Local lipsync clips ({total_presenter_seconds:.1f}s, Free)"
+        pres_units = f"{total_local_clips} local clips"
     elif len(presenter_scenes) > 0:
-        pres_desc = f"{len(presenter_scenes)} presenter scenes configured (Pending generation)"
-        pres_units = f"{len(presenter_scenes)} scenes pending"
+        pres_desc = f"{len(presenter_scenes)} presenter scenes configured (Avatar disabled)"
+        pres_units = "0 presenter clips (disabled)"
     else:
         pres_desc = "No virtual presenter in this project (Free)"
         pres_units = "0 presenter clips"

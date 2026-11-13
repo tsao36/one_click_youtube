@@ -179,6 +179,7 @@
     "static_164": function(event) { resetCharacterForm() },
     "static_165": function(event) { saveApiKeys() },
     "static_166": function(event) { updateMotionCalloutsSwitchUI('set-motion-callouts', this.checked) },
+    "creator_motion_callouts_toggle": function(event) { updateMotionCalloutsSwitchUI('creator-motion-callouts', this.checked) },
     "static_167": function(event) { saveSubtitleGlobalSettings() },
     "static_168": function(event) { selectRemotionGlobalStyle('FoxHeaderScene') },
     "static_169": function(event) { selectRemotionGlobalStyle('FoxMetricScene') },

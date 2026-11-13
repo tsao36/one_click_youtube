@@ -1490,7 +1490,7 @@ class DocumentaryPipeline(BasePipeline):
 
 
 
-                is_wiki = bool(getattr(s, "search_keyword", None) and getattr(s, "media_source", "ai") in ("wikimedia", "stock", "stock_photos", "stock_portrait"))
+                is_wiki = bool(getattr(s, "search_keyword", None) and getattr(s, "media_source", "ai") in ("wikimedia", "stock", "stock_photos"))
 
 
 

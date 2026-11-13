@@ -128,3 +128,23 @@ def test_create_project_endpoint_persists_built_settings():
     assert project.settings["video"]["width"] == 1080
     assert project.settings["remotion"]["density"] == "full"
     assert project.settings["music"]["enabled"] is False
+
+
+def test_build_project_settings_motion_graphics_callouts_toggle():
+    disabled_req = CreateProjectRequest(
+        topic="Test callouts off",
+        start_now=False,
+        motion_graphics_callouts=False,
+    )
+    disabled_settings = build_project_settings(disabled_req, VOICE_PROFILES)
+    assert disabled_settings["subtitles"]["motion_graphics_callouts"] is False
+    assert disabled_settings["subtitles"]["callouts_enabled"] is False
+
+    enabled_req = CreateProjectRequest(
+        topic="Test callouts on",
+        start_now=False,
+        motion_graphics_callouts=True,
+    )
+    enabled_settings = build_project_settings(enabled_req, VOICE_PROFILES)
+    assert enabled_settings["subtitles"]["motion_graphics_callouts"] is True
+    assert enabled_settings["subtitles"]["callouts_enabled"] is True

@@ -1,0 +1,13 @@
+{
+  "name": "D_anchor_professional",
+  "display_name": "D主播_專業",
+  "provider": "fal-ai/kling-video/v1/pro/ai-avatar",
+  "layout": "fullscreen",
+  "is_default": true,
+  "is_masked": false,
+  "voice_profile": "voai_悅青",
+  "created_at": "2026-11-13 15:26:40",
+  "image_filename": "portrait.png",
+  "has_base_video": true,
+  "has_image": true
+}
