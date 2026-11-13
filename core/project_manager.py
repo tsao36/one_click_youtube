@@ -168,9 +168,11 @@ class Project:
         s2 = data_s.get("avatar_enabled")
         p2 = data_s.get("presenter_placement")
 
-        if s1 is False or s2 is False:
+        effective_avatar_enabled = s2 if s2 is not None else s1
+        effective_placement = p2 if p2 is not None else p1
+        if effective_avatar_enabled is False:
             return False
-        if p1 in ("none", "off", "disabled", False) or p2 in ("none", "off", "disabled", False):
+        if effective_placement in ("none", "off", "disabled", False):
             return False
         return True
 

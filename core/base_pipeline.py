@@ -124,6 +124,10 @@ def apply_presenter_placement(
 
         target_indices = set(range(n))
 
+    elif strat in ("every_3", "every_third", "thirds"):
+
+        target_indices = set(range(0, n, 3))
+
     else:
 
         target_indices = {0}

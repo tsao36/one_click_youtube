@@ -5468,6 +5468,7 @@ def apply_project_presenter_placement(project_id: str, req: ApplyPresenterPlacem
 
     p.data.settings["presenter_placement"] = req.placement
     p.data.settings["auto_presenter"] = (req.placement != "none")
+    p.data.settings["avatar_enabled"] = (req.placement != "none")
     if req.avatar_profile:
         p.data.settings["default_avatar"] = req.avatar_profile
 
