@@ -2374,6 +2374,7 @@ class DocumentaryPipeline(BasePipeline):
 
         avatar_allowed = self.p.is_avatar_enabled() if hasattr(self.p, "is_avatar_enabled") else (self.p.settings.get("presenter_placement") not in ("none", "off", "disabled", False))
         presenter_scenes = [s for s in scenes if (getattr(s, "is_presenter", False) or s.visual_type == "talking_head")] if avatar_allowed else []
+        self.p.set_stage("presenter", Status.RUNNING, done=0, total=len(presenter_scenes))
 
         if presenter_scenes:
             self.p.activity(f"Stage 8/10: Generating talking avatar presenter clips for {len(presenter_scenes)} scene(s)...")
@@ -2530,6 +2531,7 @@ class DocumentaryPipeline(BasePipeline):
                 self.p.save_scenes()
                 elapsed = round(max(0.1, time.perf_counter() - t0), 1)
                 self.p.set_stage("animation", Status.COMPLETED, done=targets_count, total=max(1, targets_count), duration_override=elapsed)
+                self.p.set_stage("presenter", Status.COMPLETED, done=len(presenter_scenes), total=max(1, len(presenter_scenes)))
                 log.info("AI Motion Graphics rendered for scenes %s in %.1fs (others use Ken Burns)", done_ids, elapsed)
                 return
 
@@ -2608,6 +2610,7 @@ class DocumentaryPipeline(BasePipeline):
             elapsed = round(max(0.1, time.perf_counter() - t0), 1)
             self.p.set_stage("animation", Status.COMPLETED, done=len(targets), total=max(1, len(targets)),
                              duration_override=elapsed)
+            self.p.set_stage("presenter", Status.COMPLETED, done=len(presenter_scenes), total=max(1, len(presenter_scenes)))
             log.info("Remotion [%s] cards rendered for scenes %s in %.1fs (others use Ken Burns)", comp, done_ids, elapsed)
             return
 
@@ -2669,6 +2672,7 @@ class DocumentaryPipeline(BasePipeline):
 
 
             self.p.set_stage("animation", Status.COMPLETED, done=len(scenes), total=len(scenes), duration_override=elapsed)
+            self.p.set_stage("presenter", Status.COMPLETED, done=len(presenter_scenes), total=max(1, len(presenter_scenes)))
 
 
 
@@ -2869,6 +2873,7 @@ class DocumentaryPipeline(BasePipeline):
 
 
         self.p.set_stage("animation", Status.COMPLETED, done=total_anim, total=total_anim, duration_override=elapsed)
+        self.p.set_stage("presenter", Status.COMPLETED, done=len(presenter_scenes), total=max(1, len(presenter_scenes)))
 
 
 
