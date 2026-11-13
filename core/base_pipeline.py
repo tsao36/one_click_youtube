@@ -586,6 +586,7 @@ class BasePipeline:
             "music": self._run_music,
 
             "animation": self._run_animation,
+            "presenter": self._run_presenter,
 
             "subtitles": self._run_subtitles,
 
@@ -1928,6 +1929,10 @@ class BasePipeline:
 
     def _run_animation(self) -> None:
         raise NotImplementedError
+
+    def _run_presenter(self) -> None:
+        """Expose the avatar-presenting work as a tunable stage; generation remains single-pass."""
+        self._run_animation()
 
     def _run_subtitles(self, *, frame_aware: bool = False, callouts_allowed: bool = True, watermark_default: bool = False) -> None:
         if self._cancel_flag: raise PipelineCancelled()

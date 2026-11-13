@@ -24,6 +24,7 @@ STAGES = [
     "voice",
     "music",
     "animation",
+    "presenter",
     "subtitles",
     "render",
 ]

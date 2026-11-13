@@ -1562,7 +1562,7 @@ def get_stage_data_endpoint(project_id: str, stage_name: str):
             "script_json": p.read_json("script/script.json", {}),
             "script_md": p.read_text("script/script.md", "")
         }
-    elif stage_name in ("scenes", "prompts", "images", "voice", "animation"):
+    elif stage_name in ("scenes", "prompts", "images", "voice", "animation", "presenter"):
         if stage_name == "images":
             for sc in p.scenes:
                 ensure_initial_image_take(p, sc.scene_id)
@@ -1603,7 +1603,7 @@ def get_stage_data_endpoint(project_id: str, stage_name: str):
             sd["active_stock_source"] = sc.image.meta.get("source") if is_stock else None
             sd["active_stock_title"] = sc.image.meta.get("title") if is_stock else None
 
-            if stage_name == "animation":
+            if stage_name in ("animation", "presenter"):
                 anim_rel = f"animation/{sc.tag}.mp4"
                 has_anim = p.path(anim_rel).exists()
                 if not has_anim and sc.animation and sc.animation.path and p.path(sc.animation.path).exists():
@@ -1645,7 +1645,15 @@ def get_stage_data_endpoint(project_id: str, stage_name: str):
             "current_steps": p.data.settings.get("images", {}).get("steps") or p.settings.get("images", {}).get("steps", 25),
             "current_cfg": p.data.settings.get("images", {}).get("cfg") or p.settings.get("images", {}).get("cfg", 6.5),
         }
-        if stage_name == "animation":
+        if stage_name == "presenter":
+            ret["current_avatar"] = p.data.settings.get("default_avatar") or p.settings.get("default_avatar") or ""
+            ret["presenter_scene_count"] = sum(1 for sc in scenes_data if sc.get("is_presenter") or sc.get("visual_type") == "talking_head")
+            try:
+                from generators.avatar_generator import list_avatars
+                ret["available_avatars"] = list_avatars()
+            except Exception:
+                ret["available_avatars"] = []
+        if stage_name in ("animation", "presenter"):
             global_rem = load_settings().get("remotion", {})
             proj_rem = (p.data.settings.get("remotion") or p.settings.get("remotion") or {})
             active_style = proj_rem.get("style") or p.data.settings.get("remotion_style") or global_rem.get("style", "modern_tech_explainer")
@@ -1664,6 +1672,9 @@ def get_stage_data_endpoint(project_id: str, stage_name: str):
             ret["animation_model"] = anim_model
             ret["total_rendered_animations"] = sum(1 for s in scenes_data if s.get("has_animation"))
             ret["total_remotion_scenes"] = sum(1 for s in scenes_data if s.get("is_remotion"))
+    elif stage_name == "presenter":
+        ret["current_avatar"] = p.data.settings.get("default_avatar") or p.settings.get("default_avatar") or ""
+        ret["presenter_scene_count"] = sum(1 for sc in scenes_data if sc.get("is_presenter") or sc.get("visual_type") == "talking_head")
     elif stage_name == "subtitles":
         sub_s = p.data.settings.get("subtitles") or p.settings.get("subtitles", {})
         callouts_preview = []

@@ -675,7 +675,7 @@
       }
     }
 
-    const STAGE_ORDER = ["research", "script", "scenes", "prompts", "images", "voice", "music", "animation", "subtitles", "render"];
+    const STAGE_ORDER = ["research", "script", "scenes", "prompts", "images", "voice", "music", "animation", "presenter", "subtitles", "render"];
     const STAGE_LABELS = {
       research: "1/10 Research",
       script: "2/10 Script",
@@ -685,8 +685,9 @@
       voice: "6/10 Voice TTS",
       music: "7/10 Ambient Music",
       animation: "8/10 Animation",
-      subtitles: "9/10 Subtitles",
-      render: "10/10 Render"
+      presenter: "9/11 Virtual Presenter",
+      subtitles: "10/11 Subtitles",
+      render: "11/11 Render"
     };
 
     window.switchTab = switchTab;
@@ -1779,7 +1780,7 @@
 
     function onStageModelChange(changedStage) {
       const cloudOpts = ['gemini_search', 'gemini', 'openai_compat', 'fal-ai/flux-1/schnell', 'nano-banana-2.1', 'gpt-image-1', 'imagen-3.0-generate-002', 'dalle3', 'imagen3', 'stock', 'stock_video', 'elevenlabs', 'voai', 'edge', 'veo', 'kling', 'runway', 'hedra'];
-      const stages = ['research', 'script', 'scenes', 'prompts', 'images', 'voice', 'animation', 'subtitles', 'render'];
+      const stages = ['research', 'script', 'scenes', 'prompts', 'images', 'voice', 'animation', 'presenter', 'subtitles', 'render'];
       let cloudCount = 0;
       let localCount = 0;
       stages.forEach(st => {
@@ -1910,7 +1911,7 @@
     }
 
     function getSelectedStageModels() {
-      const stages = ['research', 'script', 'scenes', 'prompts', 'images', 'voice', 'animation', 'subtitles', 'render'];
+      const stages = ['research', 'script', 'scenes', 'prompts', 'images', 'voice', 'animation', 'presenter', 'subtitles', 'render'];
       const res = {};
       stages.forEach(st => {
         const el = document.getElementById('model-stage-' + st);
@@ -7028,6 +7029,28 @@
       }
     }
 
+    async function applyPresenterFromStage() {
+      if (!currentProjectId) return alert('Please select a project first.');
+      const avatar = document.getElementById('studio-presenter-avatar')?.value || null;
+      const placement = document.getElementById('studio-presenter-placement')?.value || 'intro';
+      if (!avatar) return alert('Please create or select an avatar first.');
+      try {
+        await apiJson(`/api/projects/${currentProjectId}/apply_presenter_placement`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ placement, avatar_profile: avatar })
+        });
+        await apiJson(`/api/projects/${currentProjectId}/rerender_avatar_clips`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ avatar_profile: avatar, scene_ids: null, voice_scope: 'all' })
+        });
+        showToast('🚀 Presenter scenes configured; avatar clips and video rerender started.');
+        startPolling();
+        setTimeout(() => loadStageStudio('presenter'), 500);
+      } catch (e) {
+        alert('Presenter configuration failed: ' + e.message);
+      }
+    }
+
     async function toggleScenePresenterMode(sceneId, isChecked) {
       if (!currentProjectId) return;
       try {
@@ -8689,6 +8712,10 @@
 
     async function runSingleStage(stName) {
       if (!currentProjectId) return alert("Please select or create a project first.");
+      if (stName === 'presenter') {
+        openRerenderAvatarModal();
+        return;
+      }
       try {
         const d = await apiJson(`/api/projects/${currentProjectId}/run_stage/${stName}`, { method: 'POST' });
 
@@ -8774,7 +8801,35 @@
         <button class="btn-primary" onclick="runSingleStage('${stageName}')">▶ Run Stage</button>
       `;
 
-      if (stageName === 'research') {
+      if (stageName === 'presenter') {
+        const presenterScenes = (data.scenes || []).filter(s => s.is_presenter || s.visual_type === 'talking_head');
+        const currentAvatar = data.current_avatar || 'Not set';
+        bodyHtml = `
+          <div style="background:linear-gradient(135deg, rgba(124,58,237,.16), rgba(30,64,175,.16)); border:1px solid rgba(139,92,246,.45); border-radius:8px; padding:14px; margin-bottom:12px;">
+            <div style="font-size:14px; font-weight:800; color:#ddd6fe;">🎭 Avatar Presenter Progress</div>
+            <div style="font-size:12px; color:#cbd5e1; margin-top:5px;">Current avatar: <b style="color:#c4b5fd;">${escapeHtml(currentAvatar)}</b> · ${presenterScenes.length ? `${presenterScenes.length} scene(s) are configured for avatar presentation.` : 'No avatar-presenting scenes are configured yet.'}</div>
+            <div style="font-size:11px; color:#94a3b8; margin-top:7px;">Reconfigure the avatar, placement, voice, or selected presenter scenes, then regenerate only those clips.</div>
+          </div>
+          ${presenterScenes.length ? `
+            <div style="font-size:12px; font-weight:700; color:#cbd5e1; margin:10px 0 8px;">Current avatar presentation clips</div>
+            <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px; margin-bottom:14px;">
+              ${presenterScenes.map(s => {
+                const src = s.animation_url ? `${s.animation_url}?t=${Date.now()}` : '';
+                return `<div style="background:#080d16; border:1px solid #293653; border-radius:8px; padding:9px;">
+                  <div style="font-size:11px; color:#c4b5fd; font-weight:700; margin-bottom:6px;">Scene #${s.scene_id}</div>
+                  ${src ? `<video controls preload="metadata" src="${src}" style="width:100%; max-height:220px; background:#000; border-radius:5px;"></video>` : `<div style="height:100px; display:flex; align-items:center; justify-content:center; color:#fbbf24; background:#04070e; border-radius:5px; font-size:11px;">No presenter clip yet</div>`}
+                  <div style="font-size:11px; color:#94a3b8; margin-top:6px;">${escapeHtml((s.narration || '').slice(0, 90))}</div>
+                </div>`;
+              }).join('')}
+            </div>
+          ` : ''}
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button class="btn-primary" onclick="openRerenderAvatarModal()">🎭 Reconfigure Avatar Presenter</button>
+            <button class="btn-sec" onclick="switchTab('avatars')">🧰 Open Presenter Library</button>
+          </div>
+        `;
+        actionButtons = `<button class="btn-primary" onclick="openRerenderAvatarModal()">▶ Apply Presenter Configuration & Re-render</button>`;
+      } else if (stageName === 'research') {
         const resText = typeof data.research === 'string' ? data.research : JSON.stringify(data.research || {}, null, 2);
         const titleLabel = isDrama ? '爆款短劇分鏡大綱與衝突節奏 (Drama Storyboard Notes):' : 'Topic Research & Knowledge Notes:';
         const tbTitle = isDrama ? '🔍 Replace Keywords in Drama Storyboard' : '🔍 Replace Keywords in Research';
@@ -12085,9 +12140,10 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       images: { num: 5, name: "Images", icon: "🖼️", title: "Stage 5/10: AI Image Generation (ComfyUI DirectML)", desc: "Generates high-res visual assets for every scene using ComfyUI DirectML hardware acceleration.", runBtn: "▶ Generate All Scene Images" },
       voice: { num: 6, name: "Voice TTS", icon: "🎙️", title: "Stage 6/10: Voiceover Synthesis (BlueMagpie-TTS)", desc: "Synthesizes expressive voiceover audio per scene using BlueMagpie-TTS voice cloning or local TTS.", runBtn: "▶ Synthesize Full Voiceover" },
       music: { num: 7, name: "Ambient Music", icon: "🎶", title: "Stage 7/10: Ambient Music & Narrative Progression", desc: "Plans and mixes dynamic multi-movement background music (Opening Context ➔ Rising Stakes ➔ Uplifting Resolution).", runBtn: "▶ Plan & Mix Ambient Music" },
-      animation: { num: 8, name: "Animation", icon: "🎞️", title: "Stage 8/10: Motion Dynamics & Video FX", desc: "Applies pan/zoom camera motion dynamics or AI video interpolation to static images.", runBtn: "▶ Run Animation Processing Only" },
-      subtitles: { num: 9, name: "Subtitles", icon: "💬", title: "Stage 9/10: Subtitles & Timed Captions", desc: "Generates precisely timed .srt subtitles aligned with voiceover narration for on-screen display.", runBtn: "▶ Generate Subtitles Only" },
-      render: { num: 10, name: "Render", icon: "🎥", title: "Stage 10/10: Final 1080p Video Composition", desc: "Composes all scenes, animations, voiceovers, background music, and subtitles into a 1080p MP4.", runBtn: "▶ Render 1080p Video" }
+      animation: { num: 8, name: "Animation", icon: "🎞️", title: "Stage 8/11: Motion Dynamics & Video FX", desc: "Applies pan/zoom camera motion dynamics or AI video interpolation to static images.", runBtn: "▶ Run Animation Processing Only" },
+      presenter: { num: 9, name: "Virtual Presenter", icon: "🎭", title: "Stage 9/11: Avatar Presenter", desc: "Shows the avatar presenting selected scenes and lets you change the avatar, placement, voice, or clips before re-rendering.", runBtn: "▶ Reconfigure Avatar Presenter" },
+      subtitles: { num: 10, name: "Subtitles", icon: "💬", title: "Stage 10/11: Subtitles & Timed Captions", desc: "Generates precisely timed .srt subtitles aligned with voiceover narration for on-screen display.", runBtn: "▶ Generate Subtitles Only" },
+      render: { num: 11, name: "Render", icon: "🎥", title: "Stage 11/11: Final 1080p Video Composition", desc: "Composes all scenes, animations, voiceovers, background music, and subtitles into a 1080p MP4.", runBtn: "▶ Render 1080p Video" }
     };
 
     const STAGE_META_DRAMA = {
@@ -12529,6 +12585,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       else if (stKey === 'voice') alertMsg = isDrama ? '合成各角色專屬對白配音中...' : 'Synthesizing expressive voiceover audio...';
       else if (stKey === 'music') alertMsg = '規劃多樂章敘事配樂時序與情緒調性中 (Planning Ambient Music Timeline)...';
       else if (stKey === 'animation') alertMsg = isDrama ? 'AI 生成演員角色對嘴與動態微表情影片中...' : 'Processing motion dynamics and animation...';
+      else if (stKey === 'presenter') alertMsg = 'Generating avatar presenter clips...';
       else if (stKey === 'subtitles') alertMsg = '對齊短劇字幕時間軸...';
       else if (stKey === 'render') alertMsg = isDrama ? 'FFmpeg 正在組裝 9:16 短劇影片、人物動態與音軌...' : 'FFmpeg is assembling scenes, audio, and subtitles into 1080p MP4...';
 
@@ -13335,6 +13392,22 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
           });
           bodyHtml += `</div>`;
         }
+      } else if (stKey === 'presenter') {
+        const presenterScenes = (data.scenes || []).filter(s => s.is_presenter || s.visual_type === 'talking_head');
+        const avatars = data.available_avatars || [];
+        const avatarOptions = avatars.map(a => `<option value="${escapeHtml(a.name)}" ${a.name === (data.current_avatar || '') ? 'selected' : ''}>${escapeHtml(a.display_name || a.name)}</option>`).join('');
+        bodyHtml += `
+          <div style="background:linear-gradient(135deg,rgba(124,58,237,.16),rgba(30,64,175,.16));border:1px solid rgba(139,92,246,.45);border-radius:8px;padding:16px;margin-bottom:16px;">
+            <div style="font-size:14px;font-weight:800;color:#ddd6fe;margin-bottom:6px;">🎭 Avatar Presenter Configuration</div>
+            <div style="font-size:12px;color:#cbd5e1;margin-bottom:12px;">${presenterScenes.length ? `${presenterScenes.length} presenter scene(s) currently configured.` : 'No presenter scenes yet. Choose where the avatar should appear, then apply the configuration.'}</div>
+            <div style="display:flex;gap:10px;align-items:end;flex-wrap:wrap;">
+              <label style="font-size:12px;color:#cbd5e1;min-width:220px;">Avatar<select id="studio-presenter-avatar" style="display:block;width:100%;margin-top:4px;padding:7px;background:#080d16;color:#fff;border:1px solid #8b5cf6;border-radius:5px;">${avatarOptions || '<option value="">No avatars available</option>'}</select></label>
+              <label style="font-size:12px;color:#cbd5e1;min-width:220px;">Placement<select id="studio-presenter-placement" style="display:block;width:100%;margin-top:4px;padding:7px;background:#080d16;color:#fff;border:1px solid #8b5cf6;border-radius:5px;"><option value="intro">Intro only</option><option value="intro_outro">Intro & outro</option><option value="all">All scenes</option><option value="every_3">Every 3rd scene</option></select></label>
+              <button class="btn-primary" style="background:linear-gradient(135deg,#7c3aed,#6d28d9);font-weight:800;" onclick="applyPresenterFromStage()">✅ Apply Presenter Configuration & Re-render</button>
+              <button class="btn-sec" onclick="openRerenderAvatarModal()">🔄 Replace Existing Presenter Clips</button>
+            </div>
+          </div>
+          ${presenterScenes.length ? `<div style="font-size:12px;font-weight:700;color:#cbd5e1;margin-bottom:8px;">Current avatar presentation clips</div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-bottom:14px;">${presenterScenes.map(s => { const src=s.animation_url ? `${s.animation_url}?t=${Date.now()}` : ''; return `<div style="background:#080d16;border:1px solid #293653;border-radius:8px;padding:9px;"><div style="font-size:11px;color:#c4b5fd;font-weight:700;margin-bottom:6px;">Scene #${s.scene_id}</div>${src ? `<video controls preload="metadata" src="${src}" style="width:100%;max-height:220px;background:#000;border-radius:5px;"></video>` : '<div style="height:100px;display:flex;align-items:center;justify-content:center;color:#fbbf24;background:#04070e;border-radius:5px;font-size:11px;">No presenter clip yet</div>'}</div>`; }).join('')}</div>` : ''}`;
       } else if (stKey === 'animation') {
         const scenes = data.scenes || [];
         if (isDrama) {
