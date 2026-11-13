@@ -20,6 +20,7 @@ import { FoxHeaderScene } from "./FoxHeaderScene";
 import { FoxMetricScene } from "./FoxMetricScene";
 import { FoxDataListScene } from "./FoxDataListScene";
 import { FoxTimelineScene } from "./FoxTimelineScene";
+import { OverlayGraphicScene } from "./OverlayGraphicScene";
 import {
   BranchPathwaySceneSchema,
   LeaderCalloutSceneSchema,
@@ -30,6 +31,7 @@ import {
   FoxMetricSceneSchema,
   FoxDataListSceneSchema,
   FoxTimelineSceneSchema,
+  OverlayGraphicSceneSchema,
 } from "./types";
 
 import { FrameworkMatrixScene } from "./FrameworkMatrixScene";
@@ -460,6 +462,26 @@ export const RemotionRoot: React.FC = () => {
               source: "資料來源：立法院國防委員會專題報告",
               accentColor: "#38BDF8",
               dim: 0.45,
+            }}
+          />
+
+          <Composition
+            id="OverlayGraphicScene"
+            component={OverlayGraphicScene}
+            schema={OverlayGraphicSceneSchema}
+            durationInFrames={120}
+            {...videoDimensions}
+            defaultProps={{
+              overlay_tag: "整座都是垃圾",
+              metric_callout: {
+                value: "2",
+                unit: "公分",
+                label: "每年下沉速率",
+              },
+              headline: "結構體沉降觀測",
+              subtext: "地質脆弱帶上的極限工程挑戰",
+              accentColor: "#38BDF8",
+              dim: 0.25,
             }}
           />
         </Folder>

@@ -59,7 +59,7 @@ def zoompan_expr(motion: str, frames: int, zoom: float) -> tuple[str, str, str]:
 
 
 def render_ken_burns(image: Path, output: Path, seconds: float, motion: str, width: int, height: int,
-                     fps: int, zoom: float = 1.12, oversample: int = 2, encoder_args: list[str] | None = None) -> None:
+                     fps: int, zoom: float = 1.08, oversample: int = 2, encoder_args: list[str] | None = None) -> None:
     frames = max(2, math.ceil(seconds * fps) + 1)
     ow, oh = width * oversample, height * oversample
     z, x, y = zoompan_expr(motion, frames, zoom)

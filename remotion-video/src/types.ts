@@ -534,6 +534,22 @@ export const VoxKeyStatSceneSchema = z.object({
 });
 export type VoxKeyStatSceneProps = z.input<typeof VoxKeyStatSceneSchema>;
 
+// Programmatic Glass Overlays
+export const MetricCalloutDataSchema = z.object({
+  value: z.string().min(1),
+  unit: z.string().optional().default(''),
+  label: z.string().optional().default(''),
+});
+export type MetricCalloutData = z.infer<typeof MetricCalloutDataSchema>;
+
+export const OverlayGraphicSceneSchema = BaseScenePropsSchema.extend({
+  overlay_tag: z.string().optional().default(''),
+  metric_callout: MetricCalloutDataSchema.nullable().optional().default(null),
+  headline: z.string().optional().default(''),
+  subtext: z.string().optional().default(''),
+});
+export type OverlayGraphicSceneProps = z.input<typeof OverlayGraphicSceneSchema>;
+
 
 // Wireless Network Visualization Schemas
 export * from "./wireless/wirelessTypes";

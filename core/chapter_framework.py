@@ -278,7 +278,7 @@ def build_chapter_timeline(
         lead_in = float(v.get("lead_in", 0.25))
         pause = float(v.get("pause_after_scene", 0.35))
         tail = 1.0
-        trans_dur = float(r.get("transition_duration", 0.5))
+        trans_dur = float(r.get("transition_duration", 0.2))
     pt_enabled = False if is_drama else (phase_turns_enabled if phase_turns_enabled is not None else r.get("phase_turns_enabled", True))
     pt_dur = phase_turn_dur if phase_turn_dur is not None else float(r.get("phase_turn_duration", 3.0))
     topic = getattr(project, "topic", "") or (project.data.topic if hasattr(project, "data") and project.data else "")

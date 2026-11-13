@@ -160,14 +160,20 @@ def extract_card_props(sc: Scene) -> dict[str, Any]:
     end_year = years[1] if len(years) >= 2 else ("2024" if len(years) == 1 else "2024")
 
     # Parse numeric value & unit
-    val_str = metric
-    if metric:
-        num_m = re.search(r"(\d+(?:\.\d+)?)", metric)
-        if num_m:
-            val_str = num_m.group(1)
-        clean_unit = re.sub(r"[\d.,\s]", "", metric)
-        if clean_unit:
-            unit = clean_unit
+    mc = getattr(sc, "metric_callout", None)
+    if isinstance(mc, dict) and mc.get("value"):
+        val_str = str(mc.get("value", "")).strip()
+        unit = str(mc.get("unit", "")).strip()
+        metric = f"{val_str}{unit}"
+    else:
+        val_str = metric
+        if metric:
+            num_m = re.search(r"(\d+(?:\.\d+)?)", metric)
+            if num_m:
+                val_str = num_m.group(1)
+            clean_unit = re.sub(r"[\d.,\s]", "", metric)
+            if clean_unit:
+                unit = clean_unit
 
     # Split narration clauses for list scenes
     clauses = [c.strip() for c in re.split(r"[，,、；;\n]+", sc.narration or "") if len(c.strip()) >= 3]
@@ -212,6 +218,9 @@ def extract_card_props(sc: Scene) -> dict[str, Any]:
         "endLabel": "現階段發展",
         "middleYear": "",
         "middleLabel": "",
+        # GlassTag & MetricCard overlays
+        "overlay_tag": getattr(sc, "overlay_tag", "") or "",
+        "metric_callout": getattr(sc, "metric_callout", None),
     }
     return sanitize_props_against_caption(out_props, narr)
 
@@ -220,6 +229,11 @@ def auto_select_style_for_scene(sc: Scene, preferred_style: str = "") -> str:
     """Intelligently pick the best Remotion archetype based on preferred style suite and transcript."""
     text = f"{sc.callout_text or ''} {sc.narration or ''}"
     
+    if preferred_style in ("OverlayGraphicScene", "overlay_graphic", "overlay"):
+        return "OverlayGraphicScene"
+    if not preferred_style and (getattr(sc, "overlay_tag", None) or getattr(sc, "metric_callout", None)):
+        return "OverlayGraphicScene"
+
     if preferred_style == "coordinate_zero":
         if any(k in text for k in ("對決", "各對一半", "爭端", "爭議", "兩派", "視角")):
             return "CoordinateZeroSplitScene"
@@ -300,6 +314,14 @@ REMOTION_STYLES = [
         "name": "⏱️ 時間演進 (fOx Timeline)",
         "label": "橫向滑軌・年代歷程",
         "description": "橫向進度動態滑軌、起訖年份節點、脈動圓點與重大里程碑說明",
+        "accentColor": "#38BDF8",
+        "type": "scene",
+    },
+    {
+        "id": "OverlayGraphicScene",
+        "name": "🏷️ 疊加標籤與數據卡 (Overlay Graphic)",
+        "label": "玻璃標籤・動態數據卡",
+        "description": "極簡半透明毛玻璃標籤 (GlassTag) 與即時跳動數據卡 (MetricCard) 疊加於背景畫面",
         "accentColor": "#38BDF8",
         "type": "scene",
     },
@@ -490,6 +512,23 @@ def _normalize_props_for_composition(comp: str, raw: dict[str, Any]) -> dict[str
         p["source"] = source
         p["accentColor"] = p.get("accentColor") or "#38BDF8"
         p["dim"] = float(p.get("dim") or 0.45)
+
+    elif comp == "OverlayGraphicScene":
+        p["overlay_tag"] = str(p.get("overlay_tag") or "").strip()
+        mc = p.get("metric_callout")
+        if isinstance(mc, dict) and mc.get("value"):
+            p["metric_callout"] = {
+                "value": str(mc.get("value", "")).strip(),
+                "unit": str(mc.get("unit", "")).strip(),
+                "label": str(mc.get("label", "")).strip(),
+            }
+        else:
+            p["metric_callout"] = None
+        p["headline"] = title
+        p["subtext"] = subtext
+        p["source"] = source
+        p["accentColor"] = p.get("accentColor") or "#38BDF8"
+        p["dim"] = float(p.get("dim") or 0.25)
 
     elif comp == "BranchPathwayScene":
         p["title"] = title

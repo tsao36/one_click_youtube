@@ -15,6 +15,7 @@ STYLES = {
     # BorderStyle = 3 creates an opaque background drop (backdrop) box around the text:
     # outline_color is box fill (&HAABBGGRR), outline is box padding/extension, shadow is box drop shadow
     "youtube_standard": ("Microsoft JhengHei UI", 42, "&H00FFFFFF", "&H35453E32", 9.5, 2.2, 2, 52, 1, 3, 1.2),
+    "minimalist_cinema": ("Microsoft JhengHei UI", 42, "&H00FFFFFF", "&H00000000", 2.0, 1.5, 2, 70, 1, 1, 1.2),
     "opaque_backdrop": ("Microsoft JhengHei UI", 42, "&H00FFFFFF", "&H35453E32", 9.5, 2.2, 2, 52, 1, 3, 1.2),
     "coordinate_zero": ("Microsoft JhengHei UI", 42, "&H00FFFFFF", "&H35453E32", 9.5, 2.2, 2, 52, 1, 3, 1.2),
     "cinematic_documentary": ("Microsoft JhengHei UI", 44, "&H00F0F3F7", "&H35453E32", 8.5, 2.0, 2, 56, 1, 3, 1.2),
@@ -156,6 +157,8 @@ def _side_margin_ratio(width: int, height: int) -> float:
 
 def caption_chars_per_line(width: int, height: int, style: str = "youtube_standard") -> int:
     """Max CJK characters per caption line that fit the frame at the style font size (scaled by short edge)."""
+    if style == "minimalist_cinema":
+        return 15
     style_vals = STYLES.get(style, STYLES["youtube_standard"])
     scale = min(width, height) / 1080
     font_px = max(1.0, style_vals[1] * scale)
@@ -167,10 +170,14 @@ def build_cues(scene_texts: list[tuple[str, Slot]], max_chars_per_line: int = 42
                frame_width: int | None = None, frame_height: int | None = None,
                style: str = "youtube_standard") -> list[Cue]:
     cues: list[Cue] = []
+    is_cinema = (style == "minimalist_cinema")
+    if is_cinema:
+        max_lines = 1
+        max_chars_per_line = min(max_chars_per_line, 15)
     fit_cjk = caption_chars_per_line(frame_width, frame_height, style) if (frame_width and frame_height) else None
     for text, slot in scene_texts:
         has_cjk = bool(re.search(r"[\u4e00-\u9fff]", text))
-        cjk_max = min(max_chars_per_line, 22) if has_cjk else max_chars_per_line
+        cjk_max = min(max_chars_per_line, 15 if is_cinema else 22) if has_cjk else max_chars_per_line
         if fit_cjk:
             cjk_max = min(cjk_max, fit_cjk)
             if not has_cjk:
@@ -179,11 +186,34 @@ def build_cues(scene_texts: list[tuple[str, Slot]], max_chars_per_line: int = 42
         phrases = split_phrases(text, chunk_budget)
         if not phrases:
             continue
+        if is_cinema:
+            cleaned_phrases: list[str] = []
+            for p in phrases:
+                if has_cjk:
+                    p = normalize_to_taiwan_mandarin(p)
+                    # Strip punctuation except ? and ？
+                    cp = re.sub(r"[，。、！!；;,.…—–\s]+", "", p).strip()
+                else:
+                    cp = re.sub(r"[,.!;:…—–]+", "", p).strip()
+                if not cp:
+                    continue
+                lim = cjk_max if has_cjk else max_chars_per_line
+                while len(cp) > lim:
+                    cleaned_phrases.append(cp[:lim])
+                    cp = cp[lim:]
+                if cp:
+                    cleaned_phrases.append(cp)
+            phrases = cleaned_phrases
+            if not phrases:
+                continue
+
         total_chars = sum(len(p) for p in phrases)
         t = slot.audio_start
         for p in phrases:
             dur = slot.audio_length * len(p) / total_chars
-            if has_cjk:
+            if is_cinema:
+                lines = [p]
+            elif has_cjk:
                 p = normalize_to_taiwan_mandarin(p)
                 if len(p) > cjk_max:
                     lines = [p[:cjk_max], p[cjk_max:cjk_max * 2]]

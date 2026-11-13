@@ -44,8 +44,8 @@ images:
   free_vram_after_stage: true
 animation:
   ai_video_percentage: 10
-  min_motion_zoom: 1.06
-  max_motion_zoom: 1.14
+  min_motion_zoom: 1.04
+  max_motion_zoom: 1.08
   oversample: 2
 voice:
   profile: mytsaovoice
@@ -80,7 +80,7 @@ rendering:
   preset: medium
   audio_bitrate: 192k
   transition: crossfade
-  transition_duration: 0.5
+  transition_duration: 0.2
   phase_turn_duration: 3.0
   final_lufs: -14
   draft_width: 854
