@@ -25,6 +25,26 @@ TRAILING_FLUFF = [
     r"[，。！？!?；;:：\s…—]+$",
 ]
 
+# Structural / meta script section names that must never appear as on-screen text
+META_SECTION_RE = re.compile(
+    r"^(?:開場鉤子|開場引言|開場核心懸念|開場|破題開場|背景導引|背景介紹|前言背景|前言|核心背景解析|"
+    r"主題核心解析|核心觀點探討|核心解析|關鍵重點解析|總結啟發|總結與展望|關鍵啟發與省思|核心總結|總結|結尾|尾聲|結語|"
+    r"作者觀點|主要章節|重點章節\s*\d*|"
+    r"hook|intro|introduction|main|explanation|body|conclusion|outro|summary|background|section\s*\d*|part\s*\d*)$",
+    re.IGNORECASE,
+)
+
+
+def is_meta_section_label(text: str | None) -> bool:
+    """Return True if `text` is a script structural outline label (e.g. 開場鉤子, 背景導引, Hook)."""
+    if not text:
+        return False
+    s = re.sub(r"\s*[\(（][^\)）]*[\)）]", "", str(text)).strip()
+    s = re.sub(r"^[0-9\.\-\s⚡📌📊💡🔬🏛️📜⏱️📏⚙️🚀⚠️◆•▶\[\]【】]+", "", s).strip()
+    if not s:
+        return True
+    return bool(META_SECTION_RE.match(s))
+
 
 def clean_filler_text(text: str) -> str:
     """Removes conversational narrative padding from spoken transcripts."""
@@ -156,15 +176,24 @@ def sanitize_props_against_caption(props: Dict[str, Any], caption: str) -> Dict[
     for key in ("title", "headline", "documentTitle"):
         if key in out and isinstance(out[key], str):
             val = out[key].strip()
-            if val == cap or (cap and val in cap and len(val) >= 12):
-                out[key] = distill_to_punchline(val, cap, max_chars=16, concept_prefix="重點議題")
+            if is_meta_section_label(val) or val == cap or (cap and val in cap and len(val) >= 12):
+                out[key] = distill_to_punchline(cap if is_meta_section_label(val) else val, cap, max_chars=16, concept_prefix="重點議題")
 
     # 3. Subtitles and Descriptions
     for key in ("subtitle", "subtext", "subhead", "description", "documentExcerpt"):
         if key in out and isinstance(out[key], str):
             val = out[key].strip()
-            if val == cap:
+            if is_meta_section_label(val):
+                out[key] = ""
+            elif val == cap:
                 out[key] = distill_to_punchline(val, cap, max_chars=22, concept_prefix="觀念解析")
+
+    # 3b. Badges, Categories, Chapters & Kickers
+    for key in ("badge", "category", "chapter", "kicker"):
+        if key in out and isinstance(out[key], str):
+            val = out[key].strip()
+            if is_meta_section_label(val):
+                out[key] = "關鍵觀點"
 
     # 4. Highlight phrases
     if "highlightPhrase" in out and isinstance(out["highlightPhrase"], str):

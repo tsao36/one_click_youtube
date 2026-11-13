@@ -6,7 +6,7 @@ Adopts the documentary motion graphics style inspired by fOx Hsiao:
 - Four core signature archetypes: FoxHeaderScene, FoxMetricScene, FoxDataListScene, FoxTimelineScene
 """
 from __future__ import annotations
-from core.text_distiller import distill_to_punchline, sanitize_props_against_caption
+from core.text_distiller import distill_to_punchline, is_meta_section_label, sanitize_props_against_caption
 
 import re
 from pathlib import Path
@@ -79,7 +79,10 @@ def select_critical_scenes(scenes: list[Scene], max_ratio: float = 0.2, max_coun
 
 # ---------------------------------------------------------------- key info
 def _clean_section(section: str) -> str:
-    return _SECTION_NOISE_RE.sub("", section or "").strip()
+    cleaned = _SECTION_NOISE_RE.sub("", section or "").strip()
+    if is_meta_section_label(cleaned):
+        return ""
+    return cleaned
 
 
 def _first_clause(text: str, max_len: int = 32) -> str:

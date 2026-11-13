@@ -12,14 +12,7 @@ from core.logging_setup import log
 from core.models import Scene
 from core.taiwan_mandarin import normalize_to_taiwan_mandarin
 from rendering.transitions import Slot
-from core.text_distiller import distill_to_punchline
-
-SECTION_ZH_MAP = {
-    "hook": "開場核心懸念",
-    "introduction": "核心背景解析",
-    "conclusion": "關鍵啟發與省思",
-    "outro": "核心總結",
-}
+from core.text_distiller import distill_to_punchline, is_meta_section_label
 
 
 def clean_text_segment(text: str) -> str:
@@ -31,19 +24,21 @@ def clean_text_segment(text: str) -> str:
 def _normalize_section_subtitle(section: str) -> str:
     if not section:
         return ""
-    s = section.strip()
-    low = s.lower()
-    if low in SECTION_ZH_MAP:
-        return SECTION_ZH_MAP[low]
-    # Strip English parentheticals or prefixes if any
-    s = re.sub(r"\s*\([A-Za-z0-9\s\-_]+\)", "", s).strip()
-    if re.fullmatch(r"[A-Za-z0-9\s\-_]+", s):
-        return "關鍵重點解析"
-    if "：" in s:
-        parts = [p.strip() for p in s.split("：", 1) if p.strip()]
-        if len(parts) == 2 and len(parts[1]) <= 18:
+    s = re.sub(r"\s*[\(（][^\)）]*[\)）]", "", section.strip()).strip()
+    if not s or is_meta_section_label(s) or re.fullmatch(r"[A-Za-z0-9\s\-_]+", s):
+        return ""
+    if "：" in s or ":" in s:
+        parts = [p.strip() for p in re.split(r"[：:]", s, maxsplit=1) if p.strip()]
+        if len(parts) == 2 and len(parts[1]) <= 18 and not is_meta_section_label(parts[1]):
             return parts[1]
+        if parts and is_meta_section_label(parts[0]):
+            return ""
     return s[:18]
+
+
+_GENERIC_AFTER_RE = re.compile(
+    r"^(?:這個|這座|這片|這種|這項|這條|這則|這個地名|這個地方|這個名字|這個名詞|這個詞|這件事|這個人)$"
+)
 
 
 def _find_context_clause(norm_narration: str, target_phrase: str, fallback_section: str = "") -> str:
@@ -63,10 +58,16 @@ def _find_context_clause(norm_narration: str, target_phrase: str, fallback_secti
             before = c[:pos].strip("「」『』 ")
             after = c[pos + len(target_phrase):].strip("「」『』 ")
 
-            # If target_phrase is near the start of the clause, `after` is the predicate
-            if len(before) <= 4 and len(after) >= 5:
+            stripped_before = re.sub(
+                r"^(?:這裡只是名為|這座名為|原本是名為|曾是名為|只是名為|名為|你是否聽過|有沒有聽過|大家常說的|所謂的|被稱為|稱為|叫做)",
+                "",
+                before,
+            ).strip()
+
+            # If target_phrase is near the start of the clause (or preceded only by a naming lead-in), `after` is the predicate
+            if len(stripped_before) <= 4 and len(after) >= 4:
                 clean_after = re.sub(r"^(的|地|得|之|上|裡|中|內|現場|時期|年間|高達|超過|達到|就是|稱為|叫做)", "", after).strip()
-                if 5 <= len(clean_after) <= 20:
+                if 4 <= len(clean_after) <= 20 and not _GENERIC_AFTER_RE.match(clean_after):
                     return clean_after
 
             # If target_phrase is at the end of the clause, `before` is the subject/action
@@ -438,7 +439,11 @@ def extract_motion_callouts(
         # Ensure callout title and subtitle never match the narration/caption verbatim
         narr_text = sc.narration or ""
         callout_data["title"] = distill_to_punchline(callout_data.get("title", ""), narr_text, max_chars=16, concept_prefix="核心重點")
-        callout_data["subtitle"] = distill_to_punchline(callout_data.get("subtitle", ""), narr_text, max_chars=22, concept_prefix="觀念解析")
+        raw_sub = (callout_data.get("subtitle") or "").strip()
+        if raw_sub and not is_meta_section_label(raw_sub):
+            callout_data["subtitle"] = distill_to_punchline(raw_sub, narr_text, max_chars=22, concept_prefix="觀念解析")
+        else:
+            callout_data["subtitle"] = ""
 
         # Avoid showing the exact same auto-extracted card title twice in a row
         title_str = callout_data.get("title", "")

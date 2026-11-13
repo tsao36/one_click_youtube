@@ -69,3 +69,40 @@ def test_remotion_cards_extract_props_never_matches_narration():
     assert props["subtext"] != caption
     assert len(props["title"]) <= 20
     assert len(props["headline"]) <= 20
+
+
+def test_meta_section_labels_never_leak_into_callouts_or_remotion_props(tmp_path):
+    from generators.motion_callout_generator import extract_motion_callout, extract_motion_callouts
+    from generators.subtitle_generator import Cue, write_ass
+    from rendering.transitions import Slot
+
+    # 1. Opening hook narration with section="開場鉤子 (Hook)" must NOT produce subtitle="開場鉤子"
+    c1 = extract_motion_callout("你是否聽過「天母」這個地名，", section="開場鉤子 (Hook)")
+    assert c1 is not None
+    assert c1["title"] == "天母"
+    assert "開場鉤子" not in (c1.get("subtitle") or "")
+    assert c1.get("subtitle") == ""
+
+    # 2. Scene with section="背景導引" extracts real context ("普通農村"), never "背景導引"
+    c2 = extract_motion_callout("這裡只是名為「三角埔」的普通農村。", section="背景導引")
+    assert c2 is not None
+    assert c2["title"] == "三角埔"
+    assert "背景導引" not in (c2.get("subtitle") or "")
+    assert "普通農村" in (c2.get("subtitle") or "")
+
+    # 3. Full timeline callouts + ASS generation never contain "開場鉤子"
+    sc = Scene(scene_id=1, section="開場鉤子 (Hook)", narration="你是否聽過「天母」這個地名，", audio_duration=2.6)
+    sl = Slot(scene_id=1, start=0.0, length=3.0, audio_start=0.25, audio_length=2.6, transition="crossfade", trans_dur=0.2)
+    callouts = extract_motion_callouts([sc], [sl], banner_style="neutral_centered")
+    assert len(callouts) == 1
+    assert callouts[0]["subtitle"] == ""
+    ass_path = tmp_path / "no_hook_label.ass"
+    write_ass([Cue(0.25, 2.85, "你是否聽過「天母」這個地名，")], ass_path, callouts=callouts)
+    ass_text = ass_path.read_text(encoding="utf-8")
+    assert "開場鉤子" not in ass_text
+
+    # 4. Remotion card props on a scene in "開場鉤子 (Hook)" never expose "開場鉤子"
+    props = extract_card_props(sc)
+    for val in props.values():
+        if isinstance(val, str):
+            assert "開場鉤子" not in val

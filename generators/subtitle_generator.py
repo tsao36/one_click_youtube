@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from core.taiwan_mandarin import normalize_to_taiwan_mandarin
+from core.text_distiller import is_meta_section_label
 from rendering.transitions import Slot
 
 STYLES = {
@@ -325,11 +326,15 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
                 raw_tag = str(co.get("tag", "")).strip()
                 clean_tag = re.sub(r"[^\u4e00-\u9fffA-Za-z0-9\s\-_/%]", "", raw_tag).strip() or "重點解析"
+                if is_meta_section_label(clean_tag):
+                    clean_tag = "重點解析"
                 title = str(co.get("title", "")).strip()
                 subtitle = str(co.get("subtitle", "")).strip()
+                if is_meta_section_label(subtitle):
+                    subtitle = ""
                 if not title and co.get("text"):
                     title = str(co.get("text")).strip()
-                if not title:
+                if not title or is_meta_section_label(title):
                     continue
 
                 fs_tag = round(25 * scale)

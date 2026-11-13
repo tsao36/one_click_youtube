@@ -210,11 +210,11 @@ def plan_chapter_chunks(
         if pt and re.search(r"\b(intro|introduction|hook|conclusion|section)\b", pt, re.IGNORECASE):
             pt = extract_phase_turn_text("", first_sc.narration, topic)
 
-        if sec_lower in ("hook", "hook (開場)", "開場"):
+        if sec_lower in ("hook", "hook (開場)", "開場", "開場鉤子", "開場鉤子 (hook)"):
             ch_title = "開場引言"
-        elif sec_lower in ("introduction", "intro", "背景介紹", "前言"):
+        elif sec_lower in ("introduction", "intro", "背景介紹", "前言", "背景導引"):
             ch_title = "前言背景"
-        elif sec_lower in ("conclusion", "總結", "結尾", "尾聲"):
+        elif sec_lower in ("conclusion", "總結", "結尾", "尾聲", "總結啟發"):
             ch_title = "總結與展望"
         elif sec and not sec.lower().startswith("section") and not sec.startswith("第") and len(sec) >= 3:
             ch_title = sec

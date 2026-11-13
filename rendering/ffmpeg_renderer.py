@@ -71,6 +71,10 @@ def _ensure_disk_space(current_project: Project) -> None:
                 if other_temp.exists():
                     shutil.rmtree(other_temp, ignore_errors=True)
                     other_temp.mkdir(exist_ok=True)
+            for root_temp in (ROOT / "temp", ROOT / "tmp", ROOT / "remotion-video" / "out" / "renders"):
+                if root_temp.exists():
+                    shutil.rmtree(root_temp, ignore_errors=True)
+                    root_temp.mkdir(parents=True, exist_ok=True)
     except Exception as e:
         log.debug("Disk space cleanup note: %s", e)
 
@@ -604,6 +608,18 @@ def render_project(project: Project, draft: bool = False, progress: Callable[[in
 
     tag = f"{w}x{h}"
     temp = project.path("temp")
+    spillover_temp: Path | None = None
+    try:
+        import shutil
+        if shutil.disk_usage(project.dir).free < 2 * (1024 ** 3):
+            for cand_drive in (Path("D:/"), Path("E:/")):
+                if cand_drive.exists() and shutil.disk_usage(cand_drive).free > 2 * (1024 ** 3):
+                    spillover_temp = cand_drive / "temp_yt_render" / project.id
+                    spillover_temp.mkdir(parents=True, exist_ok=True)
+                    temp = spillover_temp
+                    break
+    except Exception:
+        pass
     video_track = temp / f"video_track_{tag}.mp4"
     say(len(scenes), steps, "Joining scenes with transitions")
     _free_idle_gpu_services()
@@ -633,7 +649,9 @@ def render_project(project: Project, draft: bool = False, progress: Callable[[in
     sub = s["subtitles"]
     ass = project.path("subtitles", "subtitles.ass")
     srt = project.path("subtitles", "subtitles.srt")
-    args = ["-i", video_track.relative_to(project.dir).as_posix(), "-i", mix.relative_to(project.dir).as_posix()]
+    vt_arg = video_track.relative_to(project.dir).as_posix() if video_track.is_relative_to(project.dir) else str(video_track)
+    mix_arg = mix.relative_to(project.dir).as_posix() if mix.is_relative_to(project.dir) else str(mix)
+    args = ["-i", vt_arg, "-i", mix_arg]
     burn = sub.get("enabled", True) and sub.get("burn_in", True) and ass.exists()
     soft = sub.get("enabled", True) and not burn and srt.exists()
     if soft:
@@ -675,6 +693,9 @@ def render_project(project: Project, draft: bool = False, progress: Callable[[in
                 f.unlink(missing_ok=True)
             except OSError:
                 pass
+        if spillover_temp and spillover_temp.exists():
+            import shutil
+            shutil.rmtree(spillover_temp.parent, ignore_errors=True)
     say(steps, steps, "Done")
     try:
         from core.chapter_framework import sync_project_chapters

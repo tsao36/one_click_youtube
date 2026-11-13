@@ -5,7 +5,7 @@ explanations, selects suitable Remotion components from a controlled registry,
 validates properties with Pydantic schemas, and anchors timing to real TTS audio durations.
 """
 from __future__ import annotations
-from core.text_distiller import sanitize_props_against_caption, distill_to_punchline
+from core.text_distiller import sanitize_props_against_caption, distill_to_punchline, is_meta_section_label
 
 import json
 import logging
@@ -70,6 +70,7 @@ DIRECTOR_SYSTEM_PROMPT = """你是一位專門為深度科技科普、AI 工作�
    動態圖卡上的文字（特別是 quote, text, highlightPhrase, title, subtitle, takeaway）「絕對不能」與下方旁白字幕完全相同！
    觀眾下方已有字幕在說話，若畫面中央出現一模一樣的長句會造成嚴重視覺冗餘與閱讀疲勞。
    畫面文字必須是字幕的「精煉提煉版」、「重點資訊」或「核心觀念摘要」（例如旁白：「國外研究團隊叫 50 個 AI 蓋文明，3 小時後它們在排隊領飯」，圖卡金句應為「自由演化終局：排隊領飯官僚體系」或「自發秩序：糧食配給制」，長度請控制在 16 字以內，嚴禁直接複製旁白完整句子）。
+   同時嚴禁將腳本章節結構名稱（如「開場鉤子」、「開場鉤子 (Hook)」、「背景導引」、「核心觀點探討」、「總結啟發」、「Hook」、「Introduction」等）直接作為圖卡上的 title、subtitle、badge、kicker 或任何畫面文字。
 6. 輸出格式：必須輸出合法的純 JSON 格式，包含一個 "scenes" 陣列。
 
 JSON 格式示範：
@@ -97,6 +98,14 @@ JSON 格式示範：
   ]
 }
 """
+
+
+def _safe_section_text(section: str | None, fallback: str) -> str:
+    """Return section text only if it is a content topic, never a structural label like 開場鉤子."""
+    if not section or is_meta_section_label(section):
+        return fallback
+    cleaned = re.sub(r"\s*[\(（][^\)）]*[\)）]", "", section).strip()
+    return fallback if (not cleaned or is_meta_section_label(cleaned)) else cleaned
 
 
 class MotionGraphicsDirector:
@@ -315,10 +324,10 @@ class MotionGraphicsDirector:
                         startFrame=scene_start_frames.get(sid, 0),
                         durationInFrames=scene_duration_frames.get(sid, 120),
                         props={
-                            "badge": "CONCLUSION" if (s.section or "").lower() in ("conclusion", "總結", "結語") else (s.section or "KEY TAKEAWAY"),
+                            "badge": "CONCLUSION" if (s.section or "").lower() in ("conclusion", "總結", "結語", "總結啟發") else _safe_section_text(s.section, "KEY TAKEAWAY"),
                             "text": narr[:120] if len(narr) <= 120 else narr[:117] + "...",
                             "highlightPhrase": first_sentence[:28],
-                            "subtext": "結論" if (s.section or "").lower() in ("conclusion", "總結", "結語") else "重點整理",
+                            "subtext": "結論" if (s.section or "").lower() in ("conclusion", "總結", "結語", "總結啟發") else "重點整理",
                             "accentColor": configured_accent or "#38BDF8",
                         },
                     ))
@@ -382,7 +391,7 @@ class MotionGraphicsDirector:
                     durationInFrames=scene_duration_frames[sid],
                     reason="自動識別技術代差與Before/After對比",
                     props={
-                        "title": s.section or "規格代差與架構升級對比",
+                        "title": _safe_section_text(s.section, "規格代差與架構升級對比"),
                         "subtitle": "傳統架構限制 vs 新世代核心突破",
                         "leftBadge": "前代標準 / 舊版限制",
                         "leftTitle": "傳統傳輸架構",
@@ -427,7 +436,7 @@ class MotionGraphicsDirector:
                     durationInFrames=scene_duration_frames[sid],
                     reason="自動識別多維度技術架構矩陣",
                     props={
-                        "title": s.section or "核心架構四大維度矩陣",
+                        "title": _safe_section_text(s.section, "核心架構四大維度矩陣"),
                         "subtitle": "傳輸速率 · 延遲控制 · 功耗效能 · 協定相容",
                         "badge": "TECHNICAL ARCHITECTURE",
                         "pillars": pillars,
@@ -461,7 +470,7 @@ class MotionGraphicsDirector:
                     reason="自動識別循序工作流程節點",
                     props={
                         "badge": "EXECUTION PIPELINE",
-                        "title": s.section or "循序處理與傳輸工作流",
+                        "title": _safe_section_text(s.section, "循序處理與傳輸工作流"),
                         "subtitle": "多階段協同傳輸機制",
                         "steps": steps,
                         "activeStepIndex": 0,
@@ -503,13 +512,13 @@ class MotionGraphicsDirector:
                         durationInFrames=scene_duration_frames[sid],
                         reason=f"自動提取文獻與數據劃記: {metric_full}",
                         props={
-                            "title": s.section or "核心文獻與數據考證",
+                            "title": _safe_section_text(s.section, "核心文獻與數據考證"),
                             "docHeader": "ARCHIVAL RECORD / CRITICAL METRIC",
                             "docDate": "RECORDED DATA",
                             "documentExcerpt": s.narration or "指標審查紀錄",
                             "highlightPhrase": phrase or "關鍵數據",
                             "telemetryStats": [
-                                {"label": s.section or "關鍵指標", "value": f"{val_str} {unit}", "badge": "DATA"}
+                                {"label": _safe_section_text(s.section, "關鍵指標"), "value": f"{val_str} {unit}", "badge": "DATA"}
                             ],
                         },
                     )
@@ -530,7 +539,7 @@ class MotionGraphicsDirector:
                     durationInFrames=scene_duration_frames[sid],
                     reason="自動識別微觀尺度極限對比",
                     props={
-                        "title": s.section or "極限尺度對比",
+                        "title": _safe_section_text(s.section, "極限尺度對比"),
                         "subtitle": "微觀量測 vs 宏觀基準",
                         "macroLabel": "宏觀參照物",
                         "macroValue": "100 μm",
@@ -558,7 +567,7 @@ class MotionGraphicsDirector:
                     durationInFrames=scene_duration_frames[sid],
                     reason="自動識別多路徑分支與技術淘汰",
                     props={
-                        "title": s.section or "架構路徑決策分析",
+                        "title": _safe_section_text(s.section, "架構路徑決策分析"),
                         "subtitle": "關鍵演進分支與可行性淘汰評估",
                         "paths": [
                             {"id": "p1", "name": "傳統路徑 (常規方案)", "category": "基礎方案", "detail": "依賴既有架構，擴展成本高且效能受限", "status": "eliminated", "eliminationReason": "無法突破架構瓶頸"},
@@ -582,7 +591,7 @@ class MotionGraphicsDirector:
                     durationInFrames=scene_duration_frames[sid],
                     reason="自動識別結構引線與遙測標註",
                     props={
-                        "title": s.section or "精密結構與遙測標記",
+                        "title": _safe_section_text(s.section, "精密結構與遙測標記"),
                         "subtitle": "核心組件引線與運作狀態",
                         "callouts": [
                             {"id": "c1", "label": "核心處理單元", "sublabel": "高吞吐量即時運算陣列", "anchorX": 0.38, "anchorY": 0.45, "boxX": 0.72, "boxY": 0.35, "status": "active"},
@@ -612,10 +621,10 @@ class MotionGraphicsDirector:
                         startFrame=scene_start_frames.get(sid, 0),
                         durationInFrames=scene_duration_frames.get(sid, 120),
                         props={
-                            "badge": "CONCLUSION" if (s.section or "").lower() in ("conclusion", "總結", "結語") else (s.section or "KEY TAKEAWAY"),
+                            "badge": "CONCLUSION" if (s.section or "").lower() in ("conclusion", "總結", "結語", "總結啟發") else _safe_section_text(s.section, "KEY TAKEAWAY"),
                             "text": narr[:120] if len(narr) <= 120 else narr[:117] + "...",
                             "highlightPhrase": first_sent[:28],
-                            "subtext": "結論" if (s.section or "").lower() in ("conclusion", "總結", "結語") else "重點整理",
+                            "subtext": "結論" if (s.section or "").lower() in ("conclusion", "總結", "結語", "總結啟發") else "重點整理",
                             "accentColor": configured_accent or "#38BDF8",
                         },
                     ))

@@ -471,10 +471,14 @@ def extract_auto_callout(narration: str) -> tuple[str | None, str | None]:
 
 def extract_phase_turn_text(section_name: str, narration: str, topic: str = "") -> str:
     """Extract an impactful 8-22 character critical text in Traditional Chinese to foretell the next phase's story."""
-    clean_sec = re.sub(r"\s*\([^\)]*\)", "", section_name).strip() if section_name else ""
+    clean_sec = re.sub(r"\s*[\(（][^\)）]*[\)）]", "", section_name).strip() if section_name else ""
     is_template_sec = bool(
         not clean_sec
-        or re.match(r"^(intro|introduction|hook|conclusion|summary|background|section\s*\d*)$", clean_sec.strip().lower())
+        or re.match(
+            r"^(intro|introduction|hook|conclusion|summary|background|section\s*\d*|"
+            r"開場鉤子|開場引言|開場|背景導引|背景介紹|前言背景|前言|主題核心解析|核心觀點探討|核心解析|總結啟發|總結與展望|總結|結尾|尾聲)$",
+            clean_sec.strip().lower(),
+        )
         or not re.search(r"[\u4e00-\u9fff]", clean_sec)
     )
 
