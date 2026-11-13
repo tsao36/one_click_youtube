@@ -21,6 +21,7 @@ import { FoxMetricScene } from "./FoxMetricScene";
 import { FoxDataListScene } from "./FoxDataListScene";
 import { FoxTimelineScene } from "./FoxTimelineScene";
 import { OverlayGraphicScene } from "./OverlayGraphicScene";
+import { CornerMetricOverlayScene } from "./CornerMetricOverlayScene";
 import {
   BranchPathwaySceneSchema,
   LeaderCalloutSceneSchema,
@@ -482,6 +483,18 @@ export const RemotionRoot: React.FC = () => {
               subtext: "地質脆弱帶上的極限工程挑戰",
               accentColor: "#38BDF8",
               dim: 0.25,
+            }}
+          />
+          <Composition
+            id="CornerMetricOverlayScene"
+            component={CornerMetricOverlayScene}
+            schema={OverlayGraphicSceneSchema}
+            durationInFrames={120}
+            {...videoDimensions}
+            defaultProps={{
+              metric_callout: { value: "7800", unit: "", label: "起火後3天 又產生的垃圾" },
+              accentColor: "#FF5A1F",
+              dim: 0.2,
             }}
           />
         </Folder>

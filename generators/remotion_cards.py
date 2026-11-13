@@ -234,6 +234,8 @@ def auto_select_style_for_scene(sc: Scene, preferred_style: str = "") -> str:
     
     if preferred_style in ("OverlayGraphicScene", "overlay_graphic", "overlay"):
         return "OverlayGraphicScene"
+    if preferred_style in ("CornerMetricOverlayScene", "corner_metric_overlay", "corner_metric"):
+        return "CornerMetricOverlayScene"
     if not preferred_style and (getattr(sc, "overlay_tag", None) or getattr(sc, "metric_callout", None)):
         return "OverlayGraphicScene"
 
@@ -326,6 +328,14 @@ REMOTION_STYLES = [
         "label": "玻璃標籤・動態數據卡",
         "description": "極簡半透明毛玻璃標籤 (GlassTag) 與即時跳動數據卡 (MetricCard) 疊加於背景畫面",
         "accentColor": "#38BDF8",
+        "type": "scene",
+    },
+    {
+        "id": "CornerMetricOverlayScene",
+        "name": "🔥 左上重點數據卡 (Corner Metric Overlay)",
+        "label": "左上角・大數字重點標籤",
+        "description": "黑色圓角資訊卡、橘色左側強調線、等比例大數字與白色說明文字，固定疊加於左上角",
+        "accentColor": "#FF5A1F",
         "type": "scene",
     },
     # Backward compatible aliases
@@ -532,6 +542,19 @@ def _normalize_props_for_composition(comp: str, raw: dict[str, Any]) -> dict[str
         p["source"] = source
         p["accentColor"] = p.get("accentColor") or "#38BDF8"
         p["dim"] = float(p.get("dim") or 0.25)
+
+    elif comp == "CornerMetricOverlayScene":
+        p["overlay_tag"] = ""
+        mc = p.get("metric_callout")
+        p["metric_callout"] = {
+            "value": str(mc.get("value", "")).strip(),
+            "unit": str(mc.get("unit", "")).strip(),
+            "label": str(mc.get("label", "")).strip(),
+        } if isinstance(mc, dict) and mc.get("value") else None
+        p["headline"] = title
+        p["subtext"] = subtext
+        p["accentColor"] = p.get("accentColor") or "#FF5A1F"
+        p["dim"] = float(p.get("dim") or 0.2)
 
     elif comp == "BranchPathwayScene":
         p["title"] = title
