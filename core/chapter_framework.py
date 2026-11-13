@@ -328,7 +328,8 @@ def build_chapter_timeline(
             sc_trans = default_t if is_drama else (sc.transition or default_t)
             if is_av and sc_trans == "fadeblack":
                 sc_trans = "crossfade"
-            timeline_items.append((sc.scene_id, adur, sc_trans, None, is_av))
+            sc_pause_ms = getattr(sc, "pause_after_ms", None)
+            timeline_items.append((sc.scene_id, adur, sc_trans, None, is_av, sc_pause_ms))
 
     slots = build_timeline(
         timeline_items,

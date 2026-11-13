@@ -19,7 +19,7 @@ hook:
   ban_clickbait: true            # 避免誇大標題
   include_in_total_duration: true # Hook 納入總片長，不得額外增加影片長度
 script:
-  speech_rate_wpm: 150
+  speech_rate_wpm: 250
   research_enabled: false
   single_pass_word_limit: 350
 scenes:
@@ -49,6 +49,7 @@ animation:
   oversample: 2
 voice:
   profile: mytsaovoice
+  speech_rate: 1.12
   pause_after_scene: 0.35
   lead_in: 0.25
   target_lufs: -16

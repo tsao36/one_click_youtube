@@ -422,6 +422,14 @@ def synthesize(text: str, profile: dict, out_wav: Path, settings: dict, provider
                 continue
 
             prof_copy = dict(profile)
+            configured_rate = vs.get("speech_rate") or vs.get("speed")
+            default_rate = float(configured_rate) if configured_rate else (1.12 if is_cjk else 1.0)
+            cur_prof_rate = prof_copy.get("speech_rate")
+            if cur_prof_rate is None or float(cur_prof_rate) == 1.0:
+                prof_copy["speech_rate"] = default_rate
+            else:
+                prof_copy["speech_rate"] = float(cur_prof_rate)
+
             # Ensure valid reference audio file for voice cloning providers
             if prov_name in ("cosyvoice", "cozyvoice"):
                 ref = prof_copy.get("reference_wav")

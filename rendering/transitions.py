@@ -38,7 +38,7 @@ class Slot:
 
 def build_timeline(items: list[tuple], lead_in: float, pause: float, tail: float,
                    trans_dur: float, fps: int) -> list[Slot]:
-    """items: (scene_id, audio_duration, transition, [optional_fixed_length], [optional_is_avatar])."""
+    """items: (scene_id, audio_duration, transition, [optional_fixed_length], [optional_is_avatar], [optional_pause_after_ms])."""
     slots: list[Slot] = []
     t = 0.0
     n = len(items)
@@ -46,6 +46,7 @@ def build_timeline(items: list[tuple], lead_in: float, pause: float, tail: float
         sid, adur, trans = it[0], float(it[1]), it[2]
         fixed_len = float(it[3]) if len(it) > 3 and it[3] is not None else None
         is_avatar = bool(it[4]) if len(it) > 4 and it[4] is not None else False
+        custom_pause_ms = float(it[5]) if len(it) > 5 and it[5] is not None else None
         if fixed_len is not None:
             length = fixed_len
             a_start = t
@@ -53,8 +54,13 @@ def build_timeline(items: list[tuple], lead_in: float, pause: float, tail: float
             td = 1.0 / fps if trans == "cut" else min(0.35, trans_dur)
         else:
             lead = lead_in if i == 0 else 0.0
-            # For talking avatar scenes: eliminate long frozen pauses after speech; start transition promptly
-            sc_pause = min(0.06, pause) if is_avatar else pause
+            # Respect scene's deliberate rhetorical pause (400-600ms), or fallback to default pause
+            if is_avatar:
+                sc_pause = min(0.06, pause)
+            elif custom_pause_ms is not None and custom_pause_ms > 0:
+                sc_pause = custom_pause_ms / 1000.0
+            else:
+                sc_pause = pause
             sc_trans = "crossfade" if (is_avatar and trans == "fadeblack") else trans
             trans = sc_trans
             length = lead + adur + sc_pause + (tail if i == n - 1 else 0.0)

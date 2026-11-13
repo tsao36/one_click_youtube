@@ -118,7 +118,9 @@ class EdgeTTS(TTSProvider):
                 voice = "zh-TW-HsiaoChenNeural"
             else:
                 voice = "en-US-AndrewNeural"
-        pct = round((float(profile.get("speech_rate", 1.0)) - 1.0) * 100)
+        is_cjk_text = any("\u4e00" <= ch <= "\u9fff" for ch in text)
+        rate_val = float(profile.get("speech_rate") or (1.12 if is_cjk_text else 1.0))
+        pct = round((rate_val - 1.0) * 100)
         rate = f"{'+' if pct >= 0 else ''}{pct}%"
         raw_pitch = profile.get("pitch")
         if isinstance(raw_pitch, str) and raw_pitch.strip().endswith("Hz"):
@@ -429,6 +431,7 @@ class BlueMagpieTTS(TTSProvider):
         data = {
             "text": clean_text,
             "speaker_id": speaker_id,
+            "speed": float(profile.get("speech_rate") or (1.12 if any("\u4e00" <= ch <= "\u9fff" for ch in clean_text) else 1.0)),
             "cfg_value": float(profile.get("cfg_value", default_cfg)),
             "inference_timesteps": int(profile.get("inference_timesteps", default_steps)),
             "chunk_sentences": "true" if profile.get("chunk_sentences", True) else "false",
@@ -570,7 +573,7 @@ class CosyVoiceTTS(TTSProvider):
             "text": tts_text,
             "reference_wav": ref_abs,
             "reference_text": tts_ref_text,
-            "speed": float(profile.get("speech_rate", 1.0)),
+            "speed": float(profile.get("speech_rate") or (1.12 if any("\u4e00" <= ch <= "\u9fff" for ch in text) else 1.0)),
             "mode": mode,
         }
         try:
@@ -863,13 +866,12 @@ class VoAITTS(TTSProvider):
         version = version or self.cfg.get("version", "Sota+")
         style_val = style_val or self.cfg.get("style", "預設")
 
-        speed = max(0.5, min(1.5, float(profile.get("speech_rate", 1.0) or 1.0)))
+        clean_text = text[:1000] if len(text) > 1000 else text
+        is_cjk_clean = any("\u4e00" <= ch <= "\u9fff" for ch in clean_text)
+        speed = max(0.5, min(1.5, float(profile.get("speech_rate") or (1.12 if is_cjk_clean else 1.0))))
         pitch_shift = int(max(-5, min(5, round(float(profile.get("pitch_shift", 0) or 0)))))
         style_weight = max(0.0, min(1.0, float(profile.get("style_weight", 0.5) or 0.5)))
         breath_pause = max(0.0, min(10.0, float(profile.get("breath_pause", 0) or 0)))
-
-        # VoAI single-request limit is 1000 characters
-        clean_text = text[:1000] if len(text) > 1000 else text
 
         headers = {
             "x-api-key": key,
