@@ -379,6 +379,24 @@ def build_audio_mix(project: Project, narration: Path, total: float, out: Path,
                         loaded_plan.append(seg)
                 if len(loaded_plan) == len(plan_data) and len(loaded_plan) > 0:
                     music_plan = loaded_plan
+                    # Stage 7 can run before presenter/audio conforming changes the
+                    # final timeline.  A continuous plan is still valid in that
+                    # case because the renderer loops each track; reconcile only
+                    # the terminal boundary instead of dropping the soundtrack.
+                    if (
+                        abs(float(music_plan[0].start_time)) <= 0.05
+                        and all(
+                            abs(float(music_plan[i - 1].end_time) - float(music_plan[i].start_time)) <= 0.05
+                            for i in range(1, len(music_plan))
+                        )
+                        and abs(float(music_plan[-1].end_time) - float(total)) > 0.10
+                    ):
+                        old_end = music_plan[-1].end_time
+                        music_plan[-1].end_time = float(total)
+                        log.info(
+                            "Reconciled music plan endpoint from %.3fs to final timeline %.3fs",
+                            old_end, total,
+                        )
                     from core.music_intelligence import validate_music_plan
                     loaded_qa = validate_music_plan(music_plan, total)
                     try:

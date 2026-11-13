@@ -428,6 +428,37 @@ def test_missing_track_auto_repair_in_render_audio_mix(sample_narration_audio, t
     assert Path(repaired_data[0]["track"]).exists()
 
 
+def test_render_audio_mix_reconciles_stale_plan_endpoint(sample_narration_audio, tmp_path):
+    """A continuous Stage 7 plan must survive a later final-duration change."""
+    from rendering.ffmpeg_renderer import build_audio_mix
+
+    proj_dir = tmp_path / "test_stale_plan_proj"
+    proj_dir.mkdir(parents=True, exist_ok=True)
+    music_dir = proj_dir / "music"
+    music_dir.mkdir(parents=True, exist_ok=True)
+    track = Path("data/music/ambient/Calm_Ambient_Pad.mp3").resolve()
+    plan = [{
+        "track": str(track), "start_time": 0.0, "end_time": 4.0,
+        "crossfade_in": 0.2, "crossfade_out": 0.2, "volume_db": -18.0,
+        "category": "explanation", "name": track.name, "start_offset": 0.0,
+    }]
+    (music_dir / "music_plan.json").write_text(json.dumps(plan), encoding="utf-8")
+
+    class MockProject:
+        id = "test_stale_plan_proj"
+        settings = {"music": {"enabled": True, "directory": "data/music"}, "rendering": {}}
+        data = SimpleNamespace(topic="Test Topic", settings=settings)
+        def path(self, *parts): return proj_dir.joinpath(*parts)
+
+    out_wav = tmp_path / "out_stale_plan_mix.wav"
+    info = build_audio_mix(MockProject(), sample_narration_audio, 6.0, out_wav, scenes=[], slots=[])
+
+    assert out_wav.exists() and out_wav.stat().st_size > 1000
+    assert info["music"] == track.name
+    qa = json.loads((music_dir / "music_plan_qa.json").read_text(encoding="utf-8"))
+    assert qa["status"] == "pass"
+
+
 def test_ambient_music_default_selection():
     """Verify that default background music planning defaults to the ambient library."""
     cat = load_catalog()
