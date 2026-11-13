@@ -60,6 +60,11 @@ class Scene(BaseModel):
     narrative_emphasis: float = 0.5
     callout_text: Optional[str] = None          # Kinetic on-screen badge / metric / key term
     callout_type: Optional[str] = None          # "metric" | "keyword" | "chapter"
+    overlay_tag: Optional[str] = None           # 2-6 character keyword pill (e.g. "整座都是垃圾")
+    metric_callout: Optional[dict[str, Any]] = None  # Structured data: {"value": str, "unit": str, "label": str}
+    pause_after_ms: Optional[int] = None        # Deliberate rhetorical pause in ms (400-600ms)
+    subtitle_chunks: list[str] = Field(default_factory=list)  # Single-line subtitle blocks (max 12-15 chars, no punctuation except ?)
+    visual_prompt: str = ""                     # Concrete scene description appended with style suffix
     phase_turn_text: Optional[str] = None       # Critical text on black screen foretelling next phase
     speaker: Optional[str] = None               # For drama mode: character speaking the line (e.g. "王經理", "沈總監")
     character_id: Optional[str] = None          # For drama mode: unique character slug ID (e.g. "manager_wang")

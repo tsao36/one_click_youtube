@@ -489,6 +489,7 @@ def generate_prompts(scenes: list[Scene], style: dict, bible: dict, client: LLMC
         s_ents = getattr(s, "entities", None) or []
         entity_desc = [ents[e] for e in s_ents if e in ents]
         s.prompt = compose(parts, style, entity_desc, s.visual_type, world_setting=world_setting, client=client)
+        s.visual_prompt = s.prompt
 
         # Harvest domain-specific negative prompts from technical jargon
         combined_text = f"{parts.get('subject', '')} {parts.get('environment', '')} {' '.join(entity_desc)}"
@@ -500,6 +501,6 @@ def generate_prompts(scenes: list[Scene], style: dict, bible: dict, client: LLMC
             negs = world_setting["negative_anachronisms"]
         s.negative_prompt = merge_negative_prompts(base_neg, UNIVERSAL_QUALITY_NEGATIVE, negs, domain_negs)
         s.seed = int(style["consistency_seed"]) + s.scene_id * 101
-        out.append({"scene_id": s.scene_id, "prompt": s.prompt, "negative": s.negative_prompt, "seed": s.seed,
+        out.append({"scene_id": s.scene_id, "prompt": s.prompt, "visual_prompt": s.prompt, "negative": s.negative_prompt, "seed": s.seed,
                     "parts": parts})
     return out

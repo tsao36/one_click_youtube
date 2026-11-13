@@ -24,12 +24,30 @@ def target_words(duration_minutes: float, wpm: float, language: str = "English")
     return max(30, int(round(duration_minutes * wpm)))
 
 
+def strip_filler_words(text: str) -> str:
+    """Strip common verbal crutches and empty filler words from CJK narration."""
+    if not text or not re.search(r"[\u4e00-\u9fff]", text):
+        return text
+    fillers = [
+        r"(?:^|(?<=[，。！？!?；;\n]))\s*(?:其實呢|我們可以看到|接下來我們看|值得一提的是|也就是說)\s*[，、]?",
+        r"(?:^|(?<=[，。！？!?；;\n]))\s*(?:然後|其實|可以看到|接下來|事實上)\s*[，、]",
+        r"[，、]\s*(?:其實呢|我們可以看到|接下來我們看|值得一提的是|也就是說)\s*[，、]?",
+    ]
+    cleaned = text
+    for pat in fillers:
+        cleaned = re.sub(pat, "", cleaned)
+    cleaned = re.sub(r"[，、]{2,}", "，", cleaned)
+    cleaned = re.sub(r"^[，、]+", "", cleaned)
+    return cleaned.strip()
+
+
 def _clean(text: str) -> str:
     text = re.sub(r"^\s*#+.*$", "", text, flags=re.M)            # markdown headings
     text = re.sub(r"\*\*|__|\*", "", text)
     text = re.sub(r"^\s*[-•]\s+", "", text, flags=re.M)
     text = re.sub(r"^\s*(narrator|voiceover|vo)\s*:\s*", "", text, flags=re.I | re.M)
     text = re.sub(r"\[[^\]]*\]|\([^)]*(music|pause|sfx)[^)]*\)", "", text, flags=re.I)
+    text = strip_filler_words(text)
     return re.sub(r"\n{3,}", "\n\n", text).strip()
 
 

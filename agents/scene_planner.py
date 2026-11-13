@@ -199,40 +199,225 @@ def balance_scene_quotes(scenes: list[dict]) -> list[dict]:
     return scenes
 
 
+def strip_filler_words(text: str) -> str:
+    """Strip common verbal crutches and empty filler words from CJK narration."""
+    if not text or not re.search(r"[\u4e00-\u9fff]", text):
+        return text
+    fillers = [
+        r"(?:^|(?<=[，。！？!?；;\n]))\s*(?:其實呢|我們可以看到|接下來我們看|值得一提的是|也就是說)\s*[，、]?",
+        r"(?:^|(?<=[，。！？!?；;\n]))\s*(?:然後|其實|可以看到|接下來|事實上)\s*[，、]",
+        r"[，、]\s*(?:其實呢|我們可以看到|接下來我們看|值得一提的是|也就是說)\s*[，、]?",
+    ]
+    cleaned = text
+    for pat in fillers:
+        cleaned = re.sub(pat, "", cleaned)
+    cleaned = re.sub(r"[，、]{2,}", "，", cleaned)
+    cleaned = re.sub(r"^[，、]+", "", cleaned)
+    return cleaned.strip()
+
+
+def is_data_heavy(text: str) -> bool:
+    """Detect if narration line contains dense metrics, percentages, comparisons or numbers."""
+    if not text:
+        return False
+    pattern = (
+        r"(\d+[\d,.]*\s*(?:%|倍|折|億|萬|千|百|元|公分|公尺|公里|毫米|公厘|微米|奈米|"
+        r"秒|毫秒|分|小時|年|片|顆|台|條|線道|尊|卡|晶片|GHz|MHz|Gbps|Mbps|TB|GB|MB|KW|MW|GW))"
+    )
+    return bool(re.search(pattern, text, flags=re.IGNORECASE))
+
+
+def split_subtitle_chunks(narration: str, max_chars: int = 15) -> list[str]:
+    """Split narration into single-line subtitle strings (max 12-15 chars), stripping all punctuation except '?'."""
+    if not narration:
+        return []
+    cleaned = re.sub(r"[，。、！!；;：“”\"''（）()《》【】…—–\-~`#*]", " ", narration)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    if not cleaned:
+        return []
+
+    if len(cleaned) <= max_chars:
+        return [cleaned]
+
+    tokens = cleaned.split(" ")
+    chunks = []
+    current = ""
+    for tok in tokens:
+        if not tok:
+            continue
+        if len(tok) > max_chars:
+            if current:
+                chunks.append(current.strip())
+                current = ""
+            for i in range(0, len(tok), max_chars):
+                sub = tok[i:i + max_chars].strip()
+                if sub:
+                    chunks.append(sub)
+        elif len(current) + len(tok) + (1 if current and not re.search(r"[\u4e00-\u9fff]", current + tok) else 0) <= max_chars:
+            sep = "" if re.search(r"[\u4e00-\u9fff]", current + tok) else " "
+            current = f"{current}{sep}{tok}" if current else tok
+        else:
+            if current:
+                chunks.append(current.strip())
+            current = tok
+    if current:
+        chunks.append(current.strip())
+    return [c for c in chunks if c]
+
+
+def extract_overlay_tag(narration: str) -> str | None:
+    """Extract an optional 2-6 character keyword pill badge from narration."""
+    if not narration:
+        return None
+    quoted = re.findall(r"[「『“]([^\s」』”]{2,6})[」』”]", narration)
+    if quoted:
+        return quoted[0]
+
+    patterns = [
+        r"(每年[沉降長超升降]\s*約?\s*\d+\s*[^\s，。！？、]{1,3})",
+        r"(整座[都是由很超][^\s，。！？、]{1,4})",
+        r"((?:高達|超過|僅有|歷時|耗時|沉約)\s*\d+[^\s，。！？、]{1,4})",
+        r"(\d+[\d,.]*\s*(?:%|倍|折|公分|公尺|公里|毫米|奈米|微米|秒|年|萬|億)[^\s，。！？、]{0,2})",
+    ]
+    for pat in patterns:
+        m = re.search(pat, narration)
+        if m:
+            candidate = re.sub(r"[^\u4e00-\u9fffA-Za-z0-9]", "", m.group(1)).strip()
+            if 2 <= len(candidate) <= 7:
+                return candidate
+
+    return None
+
+
+def extract_metric_callout(narration: str) -> dict[str, str] | None:
+    """Extract structured metric callout {value, unit, label} from narration."""
+    if not narration:
+        return None
+    metric_regex = (
+        r"(?<![A-Za-z0-9])(\d+[\d,.]*\s*[億萬千百]?)\s*(%|折|倍|層|片|顆|滴|尊|線道|卡|晶片|"
+        r"公分|公尺|公里|公釐|公厘|毫米|微米|奈米|度|秒|分鐘|小時|年|世紀|"
+        r"歐元|美元|美金|台幣|元|瓦|KW|MW|GW|GHz|MHz|Gbps|Mbps|ms|毫秒|TB|GB|PB)"
+    )
+    m = re.search(metric_regex, narration, flags=re.IGNORECASE)
+    if not m:
+        return None
+
+    val = m.group(1).strip()
+    unit = m.group(2).strip()
+
+    span_start, span_end = m.span()
+    pre_text = narration[max(0, span_start - 10):span_start].strip("，、。 ")
+    post_text = narration[span_end:min(len(narration), span_end + 10)].strip("，、。 ")
+
+    label = ""
+    for candidate in [pre_text, post_text]:
+        clean_cand = re.sub(r"[^\u4e00-\u9fffA-Za-z0-9]", "", candidate)
+        if 2 <= len(clean_cand) <= 6:
+            label = clean_cand
+            break
+    if not label:
+        label = "核心數據"
+
+    return {"value": val, "unit": unit, "label": label}
+
+
+def calculate_pause_after_ms(scene_idx: int, narration: str, next_narration: str = "") -> int | None:
+    """Calculate intentional pause in ms (400-600ms) before rhetorical turns or cadence beats."""
+    rhetorical_triggers = (
+        "但是", "可是", "然而", "不過", "結果", "那是不是", "沒想到", "問題是", "關鍵是",
+        "事實上卻", "真正的問題", "相反地", "反觀"
+    )
+    next_clean = (next_narration or "").strip()
+    for trig in rhetorical_triggers:
+        if next_clean.startswith(trig):
+            return 500
+
+    if narration.strip().endswith(("？", "?")):
+        return 500
+
+    if scene_idx > 0 and (scene_idx % 3 == 0 or scene_idx % 4 == 0):
+        return 450
+
+    return None
+
+
 def segment(sections: list[dict], wpm: float, avg: float, mn: float, mx: float, seed: int = 0) -> list[dict]:
-    """Group sentences into scenes with varied durations between mn and mx seconds (estimated from spoken units)."""
+    """Group sentences into scenes with tight micro-documentary pacing (3.0-5.0s, accelerating to 2.5-3.0s on data)."""
     rnd = random.Random(seed)
     scenes = []
     for sec in sections:
-        has_cjk = bool(re.search(r"[\u4e00-\u9fff]", sec.get("text", "")))
-        wps = 3.6 if has_cjk else (wpm / 60.0)
+        raw_text = sec.get("text", "")
+        has_cjk = bool(re.search(r"[\u4e00-\u9fff]", raw_text))
+        # Micro-documentary pacing: ~250-265 CJK chars/min corresponds to 4.2 chars/sec
+        wps = 4.2 if has_cjk else (wpm / 60.0)
+
         units = []
-        for s in split_sentences(sec["text"]):
-            units += _split_long(s, int(mx * wps))
+        for s in split_sentences(raw_text):
+            s_clean = strip_filler_words(s) if has_cjk else s
+            if not s_clean:
+                continue
+            if has_cjk:
+                dense = is_data_heavy(s_clean)
+                max_units = 14 if dense else 22
+            else:
+                max_units = int(mx * wps)
+            units += _split_long(s_clean, max_units)
+
         buf: list[str] = []
-        target = rnd.uniform(max(mn, avg - 2.0), min(mx, avg + 2.0))
         sep = "" if has_cjk else " "
         for u in units:
+            u_clean = strip_filler_words(u) if has_cjk else u
+            if not u_clean:
+                continue
+            dense = is_data_heavy(u_clean) or (buf and is_data_heavy("".join(buf)))
+            if has_cjk:
+                cur_mn = 2.5 if dense else 3.0
+                cur_mx = 3.0 if dense else 5.0
+                max_char_limit = 14 if dense else 22
+            else:
+                cur_mn = max(mn, avg - 2.0)
+                cur_mx = min(mx, avg + 2.0)
+                max_char_limit = 9999
+
+            target = rnd.uniform(cur_mn, cur_mx)
             cur = count_units(sep.join(buf)) / wps
-            add = count_units(u) / wps
-            if buf and (cur >= target or cur + add > mx):
-                scenes.append({"section": sec["name"], "narration": sep.join(buf).strip()})
+            add = count_units(u_clean) / wps
+            cur_chars = count_units(sep.join(buf))
+            add_chars = count_units(u_clean)
+
+            if buf and (cur >= target or cur + add > cur_mx or cur_chars + add_chars > max_char_limit):
+                nar_clean = sep.join(buf).strip()
+                if nar_clean:
+                    scenes.append({"section": sec["name"], "narration": nar_clean})
                 buf = []
-                target = rnd.uniform(max(mn, avg - 2.0), min(mx, avg + 2.0))
-            buf.append(u)
+            buf.append(u_clean)
+
         if buf:
             tail = sep.join(buf).strip()
-            if scenes and scenes[-1]["section"] == sec["name"] and count_units(tail) / wps < mn and \
-                    (count_units(scenes[-1]["narration"]) + count_units(tail)) / wps <= mx:
-                scenes[-1]["narration"] += (sep + tail)
-            else:
-                scenes.append({"section": sec["name"], "narration": tail})
+            if tail:
+                min_threshold = 2.0 if (has_cjk and is_data_heavy(tail)) else mn
+                max_threshold = 3.2 if (has_cjk and is_data_heavy(tail)) else (5.0 if has_cjk else mx)
+                if scenes and scenes[-1]["section"] == sec["name"] and count_units(tail) / wps < min_threshold and \
+                        (count_units(scenes[-1]["narration"]) + count_units(tail)) / wps <= max_threshold:
+                    scenes[-1]["narration"] += (sep + tail)
+                else:
+                    scenes.append({"section": sec["name"], "narration": tail})
+
     scenes = balance_scene_quotes(scenes)
     for i, s in enumerate(scenes):
         s["scene_id"] = i + 1
         has_cjk = bool(re.search(r"[\u4e00-\u9fff]", s["narration"]))
-        wps = 3.6 if has_cjk else (wpm / 60.0)
+        s["narration"] = strip_filler_words(s["narration"]) if has_cjk else s["narration"]
+        wps = 4.2 if has_cjk else (wpm / 60.0)
         s["estimated_duration"] = round(count_units(s["narration"]) / wps, 2)
+        s["subtitle_chunks"] = split_subtitle_chunks(s["narration"])
+        s["overlay_tag"] = extract_overlay_tag(s["narration"])
+        s["metric_callout"] = extract_metric_callout(s["narration"])
+
+    for i, s in enumerate(scenes):
+        next_n = scenes[i + 1]["narration"] if i + 1 < len(scenes) else ""
+        s["pause_after_ms"] = calculate_pause_after_ms(i, s["narration"], next_n)
+
     return scenes
 
 
@@ -661,6 +846,9 @@ def direct_scenes(topic: str, raw: list[dict], bible: dict, settings: dict, clie
                   '"narrative_emphasis": 0.0-1.0, "camera_motion": "one of ' + "|".join(CAMERA_MOTIONS) + '", '
                   '"entities": ["names from recurring entities used in this shot"], '
                   '"callout_text": "for scenes with a key metric, technical term, or core insight, a concise fOx Hsiao style kinetic callout card in Traditional Chinese formatted as TAG | KEY_TERM_OR_NUMBER | SHORT_CONTEXT (e.g. 📊 關鍵規模數據 | 八千尊陶俑 | 秦始皇陵地下軍團奇蹟), or empty string", '
+                  '"overlay_tag": "optional 2-6 character keyword pill badge in Traditional Chinese (e.g. 整座都是垃圾, 每年沉約2公分, 核心跑道), or empty string", '
+                  '"metric_callout": {"value": "numerical value e.g. 2, 8000, 99.9", "unit": "unit e.g. 公分, 尊, %", "label": "short label"} or null, '
+                  '"pause_after_ms": 400 to 600 if immediately before major rhetorical turns (但是, 結果, 那是不是) or major cadence breathing room, otherwise null, '
                   '"phase_turn_text": "for the opening scene of a new section/phase, a dramatic 8-18 character critical turning title or question in Traditional Chinese that foretells the next phase of the story (e.g. 關鍵真相：客廳 AI 革命), otherwise empty string"}]}\n'
                   "Vary shot sizes (wide, medium, close-up, macro, aerial). For any people, ensure strictly two arms and two hands, clear detailed facial features, and distinct non-identical faces for multiple people (strictly no duplicate faces or cloned lookalikes). Never request readable text or logos on images. "
                   "Use phase_turn_text at key section turns to foretell the dramatic direction of the next phase.")
@@ -714,6 +902,11 @@ def direct_scenes(topic: str, raw: list[dict], bible: dict, settings: dict, clie
         if search_kw and media_src not in ("youtube_snippet", "youtube_screenshot", "stock_portrait", "wikimedia", "stock"):
             media_src = "wikimedia" if auto_stock_mode == "wikimedia_only" else "youtube_snippet"
 
+        overlay = (d.get("overlay_tag") or "").strip() or s.get("overlay_tag") or extract_overlay_tag(s["narration"])
+        metric = d.get("metric_callout") if (isinstance(d.get("metric_callout"), dict) and d["metric_callout"].get("value")) else (s.get("metric_callout") or extract_metric_callout(s["narration"]))
+        pause_val = d.get("pause_after_ms") if (isinstance(d.get("pause_after_ms"), (int, float)) and d.get("pause_after_ms") > 0) else s.get("pause_after_ms")
+        sub_chunks = s.get("subtitle_chunks") or split_subtitle_chunks(s["narration"])
+
         scenes.append(Scene(
             scene_id=s["scene_id"], section=s["section"], narration=s["narration"],
             estimated_duration=s["estimated_duration"],
@@ -725,6 +918,11 @@ def direct_scenes(topic: str, raw: list[dict], bible: dict, settings: dict, clie
             entities=[e for e in d.get("entities", []) if e in ent_names] if isinstance(d.get("entities"), list) else [],
             callout_text=callout_txt or None,
             callout_type="fox_card" if callout_txt else None,
+            overlay_tag=overlay if overlay else None,
+            metric_callout=metric if (metric and isinstance(metric, dict)) else None,
+            pause_after_ms=int(pause_val) if pause_val else None,
+            subtitle_chunks=sub_chunks,
+            visual_prompt=(d.get("visual_description") or s["narration"])[:600],
             phase_turn_text=phase_turn or None,
             search_keyword=search_kw or None,
             media_source=media_src if search_kw else "ai",

@@ -23,9 +23,9 @@ script:
   research_enabled: false
   single_pass_word_limit: 350
 scenes:
-  average_duration: 8
-  minimum_duration: 4
-  maximum_duration: 14
+  average_duration: 4.0
+  minimum_duration: 3.0
+  maximum_duration: 5.0
   llm_batch_size: 8
 images:
   provider: nano-banana-2.1
