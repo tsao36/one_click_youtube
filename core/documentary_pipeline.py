@@ -526,6 +526,16 @@ class DocumentaryPipeline(BasePipeline):
         try:
             scenes = direct_scenes(self.p.data.topic, raw, bible, cfg, client, progress=on_prog, world_setting=world_setting)
 
+            # Scene planning rebuilds Scene objects. Preserve per-scene voice metadata
+            # so rerunning downstream stages can reuse unchanged TTS audio.
+            previous_scenes = {s.scene_id: s for s in self.p.scenes}
+            for scene in scenes:
+                previous = previous_scenes.get(scene.scene_id)
+                if previous and previous.narration.strip() == scene.narration.strip():
+                    scene.voice_profile = previous.voice_profile
+                    scene.audio = previous.audio.model_copy(deep=True)
+                    scene.audio_duration = previous.audio_duration
+
 
 
             placement = self.p.data.settings.get("presenter_placement")
