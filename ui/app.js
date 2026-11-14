@@ -8070,6 +8070,19 @@
         chipLabel: '📺 電視新聞',
         accent: '#facc15'
       },
+      corner_metric: {
+        key: 'corner_metric',
+        name: '左上重點數據卡',
+        en: 'Corner Metric',
+        badge: '左上角 · 橘色強調線大數字',
+        desc: '黑色圓角資訊卡、橘色左側強調線、大數字搭配白色說明文字，固定疊加於左上角，適合凸顯關鍵數據。',
+        tag: '關鍵數據',
+        title: '7800',
+        subtitle: '起火後3天 又產生的垃圾',
+        tags: ['數據重點', '左上角', '大數字'],
+        chipLabel: '🔥 左上數據卡',
+        accent: '#FF5A1F'
+      },
       none: {
         key: 'none',
         name: '停用場景訊息',
@@ -8176,6 +8189,19 @@
             <div style="background:linear-gradient(90deg, rgba(8, 24, 54, 0.95) 0%, rgba(15, 35, 75, 0.88) 100%); border-left:4px solid #38bdf8; border-top:1px solid rgba(56, 189, 248, 0.35); border-right:1px solid rgba(56, 189, 248, 0.35); border-bottom:1px solid rgba(56, 189, 248, 0.35); border-radius:4px; padding:${pad}; box-shadow:0 4px 18px rgba(0,0,0,0.8); display:flex; align-items:center; justify-content:center; gap:${isMini ? '4px' : '8px'};">
               <span style="color:#fde047; font-size:${tagSize}; font-weight:900; white-space:nowrap;">▶ ${info.tag}</span>
               <span style="color:#ffffff; font-size:${titleSize}; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${info.title}</span>
+            </div>
+          </div>
+        `;
+      } else if (styleKey === 'corner_metric') {
+        const pos = isMini ? '8px' : '14px';
+        const bigSize = isMini ? '20px' : '30px';
+        const lblSize = isMini ? '8px' : '12px';
+        overlayHtml = `
+          <div style="position:absolute; top:${pos}; left:${pos}; z-index:2; display:flex; overflow:hidden; border-radius:${isMini ? '5px' : '8px'}; background:rgba(3,8,14,0.94); box-shadow:0 6px 16px rgba(0,0,0,0.6); padding:${isMini ? '6px 10px 6px 0' : '10px 16px 10px 0'}; pointer-events:none;">
+            <div style="width:${isMini ? '4px' : '6px'}; background:#FF5A1F; margin-right:${isMini ? '8px' : '12px'};"></div>
+            <div>
+              <div style="color:#FF5A1F; font-size:${bigSize}; font-weight:850; line-height:1; white-space:nowrap;">${info.title}</div>
+              <div style="color:#f8fafc; font-size:${lblSize}; font-weight:700; margin-top:${isMini ? '3px' : '5px'}; white-space:nowrap;">${info.subtitle}</div>
             </div>
           </div>
         `;
@@ -10114,6 +10140,7 @@
                   <option value="historical_timeline" ${calloutStyle === 'historical_timeline' ? 'selected' : ''}>Historical timeline — top-left year badge & red underline</option>
                   <option value="minimal_clean" ${calloutStyle === 'minimal_clean' ? 'selected' : ''}>Minimal clean — top text</option>
                   <option value="broadcast_news" ${calloutStyle === 'broadcast_news' ? 'selected' : ''}>Broadcast news — top banner</option>
+                  <option value="corner_metric" ${calloutStyle === 'corner_metric' ? 'selected' : ''}>Corner metric — top-left big number card</option>
                   <option value="none" ${calloutStyle === 'none' ? 'selected' : ''}>None — disable message overlays</option>
                 </select>
                 <div style="font-size:11px; color:#64748b; margin-top:5px;">Applied when the subtitle stage is rerun.</div>
@@ -14080,6 +14107,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
                   <option value="historical_timeline" ${calloutStyle === 'historical_timeline' ? 'selected' : ''}>Historical timeline — top-left year badge & red underline</option>
                   <option value="minimal_clean" ${calloutStyle === 'minimal_clean' ? 'selected' : ''}>Minimal clean — top text</option>
                   <option value="broadcast_news" ${calloutStyle === 'broadcast_news' ? 'selected' : ''}>Broadcast news — top banner</option>
+                  <option value="corner_metric" ${calloutStyle === 'corner_metric' ? 'selected' : ''}>Corner metric — top-left big number card</option>
                   <option value="none" ${calloutStyle === 'none' ? 'selected' : ''}>None — disable message overlays</option>
                 </select>
                 <div style="font-size:11px; color:#64748b; margin-top:5px;">Save, then rerun subtitles to regenerate the overlay styling.</div>

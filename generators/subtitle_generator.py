@@ -334,7 +334,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                     subtitle = ""
                 if not title and co.get("text"):
                     title = str(co.get("text")).strip()
-                if not title or is_meta_section_label(title):
+                if not title or (is_meta_section_label(title) and b_style not in ("corner_metric", "corner_metric_overlay")):
                     continue
 
                 fs_tag = round(25 * scale)
@@ -457,6 +457,49 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                             f"Dialogue: 3,{_ts_ass(c_start)},{_ts_ass(c_end)},FoxCalloutCard,,0,0,0,,"
                             f"{{\\an7\\pos({text_x},{title_y})\\fs{round(44 * scale)}\\b1\\c&H00FFFFFF&\\3c&H00100C0A&\\bord2.0\\shad2{fade}}}{clean_title}",
                         ))
+                    continue
+
+                elif b_style in ("corner_metric", "corner_metric_overlay"):
+                    # Corner metric card: black rounded-look card, orange left bar, big number + white label (top-left)
+                    fade = r"\fad(220,260)"
+                    x1 = round(80 * scale * width / 1920)
+                    y1 = round(70 * scale * height / 1080)
+                    fs_big = round(72 * scale)
+                    fs_lbl = round(32 * scale)
+                    bar_w = round(12 * scale)
+                    pad_l = round(28 * scale)
+                    pad_r = round(34 * scale)
+                    pad_v = round(22 * scale)
+                    text_w = max(
+                        round(len(title) * fs_big * 0.95),
+                        round(len(subtitle) * fs_lbl * 1.0) if subtitle else 0,
+                        round(260 * scale),
+                    )
+                    card_w = bar_w + pad_l + text_w + pad_r
+                    x2 = min(width - round(40 * scale), x1 + card_w)
+                    card_h = pad_v * 2 + fs_big + (round(12 * scale) + fs_lbl if subtitle else 0)
+                    y2 = y1 + card_h
+                    card_box = f"m {x1} {y1} l {x2} {y1} l {x2} {y2} l {x1} {y2}"
+                    raw_events.append((
+                        c_start,
+                        f"Dialogue: 1,{_ts_ass(c_start)},{_ts_ass(c_end)},FoxCalloutBox,,0,0,0,,"
+                        f"{{\\an7\\pos(0,0)\\p1\\bord{round(6 * scale)}\\shad{round(4 * scale)}\\1c&H00080503&\\3c&H00080503&\\1a&H0A&\\3a&H0A&{fade}}}{card_box}",
+                    ))
+                    bar_box = f"m {x1} {y1} l {x1 + bar_w} {y1} l {x1 + bar_w} {y2} l {x1} {y2}"
+                    raw_events.append((
+                        c_start,
+                        f"Dialogue: 2,{_ts_ass(c_start)},{_ts_ass(c_end)},FoxCalloutBox,,0,0,0,,"
+                        f"{{\\an7\\pos(0,0)\\p1\\bord0\\shad0\\1c&H001F5AFF&\\1a&H00&{fade}}}{bar_box}",
+                    ))
+                    text_x = x1 + bar_w + pad_l
+                    lines = [f"{{\\fs{fs_big}\\b1\\c&H001F5AFF&\\3c&H00080503&\\bord0\\shad0}}{title}"]
+                    if subtitle:
+                        lines.append(f"{{\\fs{fs_lbl}\\b1\\c&H00FCFAF8&\\3c&H00080503&\\bord0\\shad0}}{subtitle}")
+                    raw_events.append((
+                        c_start,
+                        f"Dialogue: 3,{_ts_ass(c_start)},{_ts_ass(c_end)},FoxCalloutCard,,0,0,0,,"
+                        f"{{\\an7\\pos({text_x},{y1 + pad_v - round(6 * scale)}){fade}}}" + "\\N".join(lines),
+                    ))
                     continue
 
                 elif b_style == "archival_parchment":
