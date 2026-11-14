@@ -166,3 +166,61 @@ def test_build_project_settings_motion_graphics_callouts_toggle():
     enabled_settings = build_project_settings(enabled_req, VOICE_PROFILES)
     assert enabled_settings["subtitles"]["motion_graphics_callouts"] is True
     assert enabled_settings["subtitles"]["callouts_enabled"] is True
+
+
+def test_build_project_settings_pause_after_scenes():
+    settings_flag = build(pause_after_scenes=True)
+    assert settings_flag["pause_after_scenes"] is True
+
+    alias_flag = build(pause_after_stage3=True)
+    assert alias_flag["pause_after_scenes"] is True
+
+    default_settings = build()
+    assert not default_settings.get("pause_after_scenes")
+
+    response = TestClient(app).post("/api/projects", json={
+        "topic": "Test pause stage 3 endpoint",
+        "start_now": False,
+        "pause_after_scenes": True,
+    })
+    assert response.status_code == 200
+    project = Project(response.json()["project_id"])
+    assert project.settings["pause_after_scenes"] is True
+
+
+def test_pipeline_check_stop_pauses_after_scenes_and_clears_flag(tmp_path, monkeypatch):
+    import core.project_manager as pm
+    from core.base_pipeline import BasePipeline
+
+    monkeypatch.setattr(pm, "PROJECTS_DIR", tmp_path)
+    p = Project.create(
+        "Test pause at stage 3",
+        overrides={"pause_after_scenes": True, "pause_after_stage3": True},
+    )
+    try:
+        pipe = BasePipeline(p)
+        executed = []
+        for st_name in ("research", "script", "scenes", "prompts", "images", "voice", "music", "animation", "subtitles", "render"):
+            monkeypatch.setattr(pipe, f"_run_{st_name}", lambda name=st_name: executed.append(name))
+
+        # First run stops cleanly right after Stage 3 ("scenes")
+        pipe.run()
+        assert executed == ["research", "script", "scenes"]
+        assert p.data.state == "paused"
+        assert "Stage 3" in p.data.activity
+        assert p.data.settings["pause_after_scenes"] is False
+        assert "pause_after_stage3" not in p.data.settings
+
+        # Reloaded project reflects paused state and cleared one-shot pause flag
+        reloaded = Project(p.id)
+        assert reloaded.data.state == "paused"
+        assert reloaded.settings["pause_after_scenes"] is False
+
+        # Resuming runs remaining stages through render without pausing at scenes again
+        executed.clear()
+        pipe.run()
+        assert "prompts" in executed
+        assert "render" in executed
+        assert p.data.state == "completed"
+    finally:
+        Project._locks.pop(p.id, None)

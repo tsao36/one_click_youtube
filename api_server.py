@@ -153,6 +153,8 @@ class CreateProjectRequest(BaseModel):
     user_research: Optional[str] = None
     research_mode: Optional[str] = "auto"
     pause_after_research: bool = False
+    pause_after_scenes: bool = False
+    pause_after_stage3: bool = False
     auto_stock_mode: Optional[str] = "balanced"
     project_mode: Optional[str] = "documentary"
     aspect_ratio: Optional[str] = "16:9"
@@ -452,6 +454,8 @@ def build_project_settings(
         settings["research_mode"] = req.research_mode
     if req.pause_after_research:
         settings["pause_after_research"] = True
+    if req.pause_after_scenes or req.pause_after_stage3:
+        settings["pause_after_scenes"] = True
 
     project_mode = req.project_mode or "documentary"
     aspect_ratio = req.aspect_ratio or ("9:16" if project_mode == "short_drama" else "16:9")

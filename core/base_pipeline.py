@@ -1748,6 +1748,27 @@ class BasePipeline:
 
             return True
 
+        if current_stage == "scenes" and (
+            self.p.data.settings.get("pause_after_scenes")
+            or self.p.data.settings.get("pause_after_stage3")
+        ):
+
+            with self.p.lock:
+
+                self.p.data.state = "paused"
+
+                self.p.data.activity = (
+                    "Stage 3 scripts & storyboard complete. Paused so you can export and share the scripts for review before proceeding. Click Resume when ready."
+                )
+
+                self.p.data.settings["pause_after_scenes"] = False  # clear so clicking Resume continues to Stage 4+
+
+                self.p.data.settings.pop("pause_after_stage3", None)
+
+                self.p.save()
+
+            return True
+
         if self.stop_at == current_stage:
 
             with self.p.lock:

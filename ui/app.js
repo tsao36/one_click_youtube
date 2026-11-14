@@ -3669,7 +3669,35 @@
     }
     window.closeTopicBlankWarningModal = closeTopicBlankWarningModal;
 
-    function confirmAndProceedWithVideo() {
+    function syncPauseAfterStage3Checkboxes(checked) {
+      const ids = [
+        'creator-pause-after-stage3',
+        'creator-pause-after-stage3-adv',
+        'drama-pause-after-stage3',
+        'confirm-modal-pause-stage3'
+      ];
+      ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el && el.checked !== Boolean(checked)) {
+          el.checked = Boolean(checked);
+        }
+      });
+    }
+    window.syncPauseAfterStage3Checkboxes = syncPauseAfterStage3Checkboxes;
+
+    function isPauseAfterStage3Checked() {
+      return Boolean(
+        document.getElementById('confirm-modal-pause-stage3')?.checked ||
+        document.getElementById('creator-pause-after-stage3')?.checked ||
+        document.getElementById('creator-pause-after-stage3-adv')?.checked ||
+        document.getElementById('drama-pause-after-stage3')?.checked
+      );
+    }
+
+    function confirmAndProceedWithVideo(forcePauseAtStage3 = false) {
+      if (forcePauseAtStage3 === true) {
+        syncPauseAfterStage3Checkboxes(true);
+      }
       const action = pendingCreationAction;
       closeCreateVideoConfirmModal();
       if (typeof action === 'function') {
@@ -3786,6 +3814,8 @@
         sanitizedCharacters
       });
 
+      syncPauseAfterStage3Checkboxes(Boolean(document.getElementById('drama-pause-after-stage3')?.checked));
+
       const modal = document.getElementById('create-video-confirm-modal');
       if (modal) modal.style.display = 'flex';
     }
@@ -3797,6 +3827,7 @@
         showTopicBlankWarning('drama-topic');
         return;
       }
+      const pauseAfterStage3 = isPauseAfterStage3Checked();
       const btn = document.getElementById('btn-create-drama-video');
       const origText = btn ? btn.innerHTML : '🎬 CREATE AI SHORT DRAMA';
       if (btn) {
@@ -3817,6 +3848,7 @@
             drama_duration_seconds: durationSec,
             drama_characters: sanitizedCharacters,
             drama_script: scriptText,
+            pause_after_scenes: pauseAfterStage3,
             stage_models: {
               animation: animEngine,
               research: 'ollama',
@@ -3834,7 +3866,9 @@
         });
 
         projectStartTime = Date.now();
-        showToast(`🎬 微短劇專案已成功建立: ${data.project_id}！已啟動全自動生成。`);
+        showToast(pauseAfterStage3
+          ? `⏸️ 微短劇專案已建立: ${data.project_id}！將於 Stage 3 腳本完成後自動暫停供分享審閱。`
+          : `🎬 微短劇專案已成功建立: ${data.project_id}！已啟動全自動生成。`);
         await loadProjectsList();
         selectProject(data.project_id);
 
@@ -3842,6 +3876,7 @@
         if (dramaTopicEl) dramaTopicEl.value = '';
         const topicEl = document.getElementById('topic');
         if (topicEl) topicEl.value = '';
+        syncPauseAfterStage3Checkboxes(false);
       } catch (err) {
         alert("微短劇專案建立失敗: " + err.message);
       } finally {
@@ -3968,6 +4003,11 @@
 
       pendingCreationAction = () => executeCreation();
 
+      syncPauseAfterStage3Checkboxes(Boolean(
+        document.getElementById('creator-pause-after-stage3')?.checked ||
+        document.getElementById('creator-pause-after-stage3-adv')?.checked
+      ));
+
       const modal = document.getElementById('create-video-confirm-modal');
       if (modal) modal.style.display = 'flex';
     }
@@ -4023,6 +4063,7 @@
       const researchModeEl = document.querySelector('input[name="creator-research-mode"]:checked');
       const researchMode = researchModeEl ? researchModeEl.value : 'auto';
       const pauseAfterResearch = document.getElementById('creator-pause-after-research') ? document.getElementById('creator-pause-after-research').checked : false;
+      const pauseAfterStage3 = isPauseAfterStage3Checked();
 
       const btn = document.getElementById('btn-create-video');
       const btn2 = document.getElementById('btn-create-video-bottom');
@@ -4076,6 +4117,7 @@
             user_research: userResearch || null,
             research_mode: researchMode,
             pause_after_research: pauseAfterResearch,
+            pause_after_scenes: pauseAfterStage3,
             author_conclusion: (document.getElementById('creator-author-conclusion')?.value || '').trim() || null,
             include_author_take: document.getElementById('creator-include-author-take') ? document.getElementById('creator-include-author-take').checked : true,
             pause_for_conclusion: document.getElementById('creator-pause-for-conclusion') ? document.getElementById('creator-pause-for-conclusion').checked : false,
@@ -4090,18 +4132,21 @@
 
 
         projectStartTime = Date.now();
-        showToast(`🚀 Project created: ${data.project_id}`);
+        showToast(pauseAfterStage3
+          ? `⏸️ Project created: ${data.project_id} — will pause after Stage 3 scripts for review.`
+          : `🚀 Project created: ${data.project_id}`);
         await loadProjectsList();
         selectProject(data.project_id);
 
         // Automatically clear the loaded research JSON file / dossier so the next video generation starts clean
         clearCreatorResearch(true);
 
-        // Reset topic input field for the next video
+        // Reset topic input field and one-shot pause flag for the next video
         const topicEl = document.getElementById('topic');
         if (topicEl) topicEl.value = '';
         const dramaTopicEl = document.getElementById('drama-topic');
         if (dramaTopicEl) dramaTopicEl.value = '';
+        syncPauseAfterStage3Checkboxes(false);
       } catch (err) {
         console.error("Project creation failed:", err);
         alert(`Failed to create project: ${err.message}`);
@@ -4141,16 +4186,20 @@
         const d = await apiJson('/api/projects/' + projectId + '/status', { signal: controller.signal });
         if (generation !== pollGeneration || projectId !== currentProjectId) return false;
         const p = d.project;
+        currentProject = { ...(currentProject || {}), ...p };
 
         const isRunning = p.state === 'running';
+        const isPausedAtStage3 = (p.state === 'paused') && (p.stages?.scenes?.status === 'COMPLETED') && (p.stages?.prompts?.status !== 'COMPLETED');
         const banner = document.getElementById('global-hero-banner');
         banner.style.display = 'block';
+        const heroShareStage3Btn = document.getElementById('hero-btn-share-stage3-review');
         if (isRunning) {
           banner.classList.add('is-running');
           document.getElementById('hero-spinner').style.display = 'inline-block';
           document.getElementById('hero-pulse-dot').className = 'pulse-dot running';
           document.getElementById('hero-btn-stop').style.display = 'inline-block';
           document.getElementById('hero-btn-resume').style.display = 'none';
+          if (heroShareStage3Btn) heroShareStage3Btn.style.display = 'none';
         } else {
           banner.classList.remove('is-running');
           document.getElementById('hero-spinner').style.display = 'none';
@@ -4160,6 +4209,9 @@
             document.getElementById('hero-btn-resume').style.display = 'inline-block';
           } else {
             document.getElementById('hero-btn-resume').style.display = 'none';
+          }
+          if (heroShareStage3Btn) {
+            heroShareStage3Btn.style.display = isPausedAtStage3 ? 'inline-flex' : 'none';
           }
         }
 
@@ -15285,6 +15337,11 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
         const isDone = currentProject?.stages?.scenes?.status === 'COMPLETED';
         statEl.textContent = isDone ? '✓ Completed' : (totalScenes > 0 ? 'Ready' : 'Pending');
         statEl.className = isDone ? 'badge badge-green' : 'badge badge-blue';
+      }
+
+      const modalResumeBtn = document.getElementById('btn-stage3-modal-resume');
+      if (modalResumeBtn) {
+        modalResumeBtn.style.display = (currentProject && currentProject.state === 'paused') ? 'inline-flex' : 'none';
       }
 
       modal.style.display = 'flex';

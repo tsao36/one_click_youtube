@@ -45,6 +45,7 @@
         <span class="badge badge-ok" id="hero-state-badge">RUNNING</span>
         <button class="btn-sec btn-danger" id="hero-btn-stop" data-ui-click="static_007" style="padding: 6px 12px; font-size: 12px;">Stop</button>
         <button class="btn-sec" id="hero-btn-resume" data-ui-click="static_008" style="display: none; padding: 6px 12px; font-size: 12px;">Resume</button>
+        <button class="btn-sec" id="hero-btn-share-stage3-review" onclick="openStage3ExportModal()" style="display: none; padding: 6px 14px; font-size: 12px; font-weight: 700; color: #bae6fd; border-color: #38bdf8; background: linear-gradient(135deg, rgba(14, 116, 144, 0.45) 0%, rgba(30, 58, 138, 0.5) 100%);" title="匯出或分享 Stage 3 分鏡腳本供他人審閱">📤 匯出/分享 Stage 3 腳本審閱 (Share Script)</button>
         <button class="btn-primary" id="hero-btn-fast-rerender" data-ui-click="static_009" style="padding: 6px 14px; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; gap: 5px;" title="僅替換已修改的分鏡片段，其餘畫面直接套用快取，極速重新輸出完整 1080p 影片並取代舊影片">⚡ 僅替換已改分鏡並重新輸出 (Fast Re-render)</button>
         <button class="btn-sec" id="hero-btn-tools" data-ui-click="static_010" style="padding: 6px 12px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">🛠️ 快速工具 ▼</button>
         <button id="hero-btn-yt-upload" class="btn-primary" data-ui-click="static_011" style="display: none; padding: 6px 14px; font-size: 12px; font-weight: 700; background: linear-gradient(135deg, #dc2626, #b91c1c); border-color: #b91c1c; align-items: center; gap: 6px;" title="Upload finished video to YouTube channel @tsao36">
@@ -326,9 +327,15 @@
           </button>
         </div>
 
-        <button id="btn-create-video" class="btn-primary" data-ui-click="static_038" style="padding: 12px 34px; font-size: 15px; font-weight: 800; letter-spacing: 0.03em;">
-          🚀 CREATE VIDEO
-        </button>
+        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+          <label style="display: inline-flex; align-items: center; gap: 7px; cursor: pointer; background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.4); padding: 8px 12px; border-radius: 8px; font-size: 12.5px; color: #bae6fd; font-weight: 700; transition: all 0.2s;" title="於 Stage 3 分鏡與台詞腳本生成完成後自動暫停，讓您先匯出文稿與團隊或客戶分享審閱，確認無誤後再點擊 Resume 繼續生成後續圖片、配音與影片">
+            <input type="checkbox" id="creator-pause-after-stage3" onchange="syncPauseAfterStage3Checkboxes(this.checked)" style="width: 15px; height: 15px; cursor: pointer; accent-color: #38bdf8;">
+            <span>⏸️ Stage 3 腳本完成後先暫停供分享審閱 (Stop in Stage 3 for Script Review)</span>
+          </label>
+          <button id="btn-create-video" class="btn-primary" data-ui-click="static_038" style="padding: 12px 34px; font-size: 15px; font-weight: 800; letter-spacing: 0.03em;">
+            🚀 CREATE VIDEO
+          </button>
+        </div>
       </div>
 
       <!-- 4. Collapsible Advanced Options Container (Hidden by Default) -->
@@ -499,10 +506,14 @@
               <div id="creator-research-stats">
                 字數: <span id="creator-research-char-count" style="color: #cbd5e1; font-weight: 600;">0</span> 字 ｜ 詞數: <span id="creator-research-word-count" style="color: #cbd5e1; font-weight: 600;">0</span> 詞
               </div>
-              <div>
+              <div style="display: flex; flex-direction: column; gap: 5px; align-items: flex-end;">
                 <label style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer; color: #facc15; font-weight: 600;">
                   <input type="checkbox" id="creator-pause-after-research" style="width: 15px; height: 15px; cursor: pointer;">
                   <span>⏸️ Stage 1 研究完成後自動暫停 (供我檢閱確認後，再繼續生成腳本與影片)</span>
+                </label>
+                <label style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer; color: #38bdf8; font-weight: 600;">
+                  <input type="checkbox" id="creator-pause-after-stage3-adv" onchange="syncPauseAfterStage3Checkboxes(this.checked)" style="width: 15px; height: 15px; cursor: pointer; accent-color: #38bdf8;">
+                  <span>⏸️ Stage 3 分鏡腳本完成後自動暫停 (先分享給他人審閱，再繼續生成影片)</span>
                 </label>
               </div>
             </div>
@@ -1094,7 +1105,11 @@
         <div style="font-size: 12px; color: #94a3b8;">
           點擊下方按鈕啟動微短劇 9 階段全自動生成管線（分鏡 ➔ 劇本 ➔ 場景分配 ➔ 立繪影片 ➔ 專屬配音 ➔ Hedra 對嘴 ➔ 母帶渲染）。
         </div>
-        <div style="display: flex; gap: 10px; align-items: center;">
+        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+          <label style="display: inline-flex; align-items: center; gap: 7px; cursor: pointer; background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.4); padding: 8px 12px; border-radius: 8px; font-size: 12.5px; color: #bae6fd; font-weight: 700;" title="於 Stage 3 分鏡劇本完成後先暫停，方便匯出與他人分享審閱後再繼續生成">
+            <input type="checkbox" id="drama-pause-after-stage3" onchange="syncPauseAfterStage3Checkboxes(this.checked)" style="width: 15px; height: 15px; cursor: pointer; accent-color: #38bdf8;">
+            <span>⏸️ Stage 3 腳本完成後暫停審閱 (Stop in Stage 3 for Review)</span>
+          </label>
           <button type="button" class="btn-sec" data-ui-click="static_094" style="font-size: 13px; padding: 12px 18px; border-color: rgba(124, 58, 237, 0.5); color: #c4b5fd;">
             🎭 Drama Stage Studio
           </button>
@@ -3901,9 +3916,12 @@
       </div>
 
       <!-- Footer -->
-      <div style="padding:12px 20px; border-top:1px solid #1e293b; display:flex; justify-content:space-between; align-items:center; background:#050912;">
+      <div style="padding:12px 20px; border-top:1px solid #1e293b; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; background:#050912;">
         <span style="font-size:11px; color:#64748b;">提示：亦可於 Stage 3 分鏡頂部點選「📋 複製台詞」直接帶走純文字。</span>
-        <button class="btn-sec" onclick="closeStage3ExportModal()" style="font-size:12px; padding:6px 16px;">關閉 (Close)</button>
+        <div style="display:flex; gap:10px; align-items:center;">
+          <button class="btn-primary" id="btn-stage3-modal-resume" onclick="closeStage3ExportModal(); resumeCurrentProject();" style="display:none; font-size:12px; padding:6px 16px; font-weight:700; background:linear-gradient(135deg, #059669 0%, #047857 100%); border:none; color:#fff;">▶ 審閱完成，繼續生成影片 (Proceed / Resume)</button>
+          <button class="btn-sec" onclick="closeStage3ExportModal()" style="font-size:12px; padding:6px 16px;">關閉 (Close)</button>
+        </div>
       </div>
     </div>
   </div>
@@ -4278,7 +4296,7 @@
 
   <!-- FINAL CONFIRMATION MODAL BEFORE CREATING VIDEO -->
   <div id="create-video-confirm-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); backdrop-filter:blur(6px); z-index:10000; justify-content:center; align-items:center;">
-    <div style="background:var(--card, #0f172a); border:1.5px solid #38bdf8; border-radius:14px; max-width:540px; width:92%; max-height:90vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 12px 36px rgba(0,0,0,0.8), 0 0 24px rgba(56,189,248,0.25);">
+    <div style="background:var(--card, #0f172a); border:1.5px solid #38bdf8; border-radius:14px; max-width:600px; width:92%; max-height:90vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 12px 36px rgba(0,0,0,0.8), 0 0 24px rgba(56,189,248,0.25);">
       <div style="padding:16px 20px; border-bottom:1px solid rgba(124, 145, 182, 0.25); display:flex; justify-content:space-between; align-items:center; background:#080d16;">
         <div style="display:flex; align-items:center; gap:10px;">
           <span style="font-size:22px;">🎬</span>
@@ -4375,12 +4393,30 @@
           </div>
 
         </div>
+
+        <!-- Stage 3 Script Review Pause Option -->
+        <div style="background:rgba(14, 116, 144, 0.18); border:1px solid rgba(56, 189, 248, 0.45); border-radius:10px; padding:12px 14px;">
+          <label style="display:flex; align-items:flex-start; gap:10px; cursor:pointer; margin:0;">
+            <input type="checkbox" id="confirm-modal-pause-stage3" onchange="syncPauseAfterStage3Checkboxes(this.checked)" style="width:16px; height:16px; margin-top:2px; cursor:pointer; accent-color:#38bdf8; flex-shrink:0;">
+            <div style="font-size:12.5px; line-height:1.45;">
+              <div style="font-weight:800; color:#bae6fd;">
+                ⏸️ Stop in Stage 3 after scripts are made for review / 於 Stage 3 分鏡腳本完成後暫停審閱
+              </div>
+              <div style="font-size:11.5px; color:#94a3b8; margin-top:2px;">
+                Pause automatically after Stage 3 so you can export &amp; share the script with others to review first before proceeding to image, voice, and video generation.
+              </div>
+            </div>
+          </label>
+        </div>
       </div>
 
       <!-- Modal Footer -->
-      <div style="padding:14px 20px; border-top:1px solid rgba(124, 145, 182, 0.25); display:flex; justify-content:flex-end; gap:12px; align-items:center; background:#080d16;">
-        <button type="button" class="btn-sec" id="btn-cancel-create-confirm" data-ui-click="static_297" onclick="closeCreateVideoConfirmModal()" style="padding:9px 18px; font-size:13px; font-weight:600; cursor:pointer;">
+      <div style="padding:14px 20px; border-top:1px solid rgba(124, 145, 182, 0.25); display:flex; justify-content:flex-end; flex-wrap:wrap; gap:10px; align-items:center; background:#080d16;">
+        <button type="button" class="btn-sec" id="btn-cancel-create-confirm" data-ui-click="static_297" onclick="closeCreateVideoConfirmModal()" style="padding:9px 16px; font-size:13px; font-weight:600; cursor:pointer;">
           Cancel / 取消
+        </button>
+        <button type="button" class="btn-sec" id="btn-confirm-stop-stage3" onclick="confirmAndProceedWithVideo(true)" style="padding:10px 16px; font-size:13px; font-weight:700; background:rgba(14, 116, 144, 0.25); border:1px solid #38bdf8; color:#bae6fd; cursor:pointer;" title="建立專案並在 Stage 3 分鏡腳本完成後自動暫停，方便分享審閱">
+          ⏸️ Stop at Stage 3 for Review / 生成至 Stage 3 暫停審閱
         </button>
         <button type="button" class="btn-primary" id="btn-ok-create-confirm" data-ui-click="static_298" onclick="confirmAndProceedWithVideo()" style="padding:10px 24px; font-size:14px; font-weight:800; background:linear-gradient(135deg, #0284c7 0%, #0369a1 100%); box-shadow:0 0 16px rgba(2, 132, 199, 0.5); border:none; cursor:pointer; letter-spacing:0.02em;">
           🚀 OK, Proceed / 確認製作
