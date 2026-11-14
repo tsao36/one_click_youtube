@@ -328,10 +328,16 @@
         </div>
 
         <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-          <label style="display: inline-flex; align-items: center; gap: 7px; cursor: pointer; background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.4); padding: 8px 12px; border-radius: 8px; font-size: 12.5px; color: #bae6fd; font-weight: 700; transition: all 0.2s;" title="於 Stage 3 分鏡與台詞腳本生成完成後自動暫停，讓您先匯出文稿與團隊或客戶分享審閱，確認無誤後再點擊 Resume 繼續生成後續圖片、配音與影片">
-            <input type="checkbox" id="creator-pause-after-stage3" onchange="syncPauseAfterStage3Checkboxes(this.checked)" style="width: 15px; height: 15px; cursor: pointer; accent-color: #38bdf8;">
-            <span>⏸️ Stage 3 腳本完成後先暫停供分享審閱 (Stop in Stage 3 for Script Review)</span>
-          </label>
+          <div style="display: flex; flex-direction: column; gap: 5px; background: rgba(15, 23, 42, 0.65); border: 1px solid rgba(124, 145, 182, 0.35); padding: 7px 12px; border-radius: 8px;">
+            <label style="display: inline-flex; align-items: center; gap: 7px; cursor: pointer; font-size: 12px; color: #facc15; font-weight: 700;" title="於 Stage 1 深度研究完成後自動暫停，供您檢閱確認研究報告後再繼續生成腳本與影片">
+              <input type="checkbox" id="creator-pause-after-research-main" onchange="syncPauseAfterResearchCheckboxes(this.checked)" style="width: 15px; height: 15px; cursor: pointer; accent-color: #facc15;">
+              <span>⏸️ Stage 1 研究完成後自動暫停 (Stop after Stage 1 Research)</span>
+            </label>
+            <label style="display: inline-flex; align-items: center; gap: 7px; cursor: pointer; font-size: 12px; color: #38bdf8; font-weight: 700;" title="於 Stage 3 分鏡與台詞腳本生成完成後自動暫停，讓您先匯出文稿與團隊或客戶分享審閱，確認無誤後再點擊 Resume 繼續生成後續圖片、配音與影片">
+              <input type="checkbox" id="creator-pause-after-stage3" onchange="syncPauseAfterStage3Checkboxes(this.checked)" style="width: 15px; height: 15px; cursor: pointer; accent-color: #38bdf8;">
+              <span>⏸️ Stage 3 腳本完成後自動暫停供分享審閱 (Stop after Stage 3 Scripts)</span>
+            </label>
+          </div>
           <button id="btn-create-video" class="btn-primary" data-ui-click="static_038" style="padding: 12px 34px; font-size: 15px; font-weight: 800; letter-spacing: 0.03em;">
             🚀 CREATE VIDEO
           </button>
@@ -508,7 +514,7 @@
               </div>
               <div style="display: flex; flex-direction: column; gap: 5px; align-items: flex-end;">
                 <label style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer; color: #facc15; font-weight: 600;">
-                  <input type="checkbox" id="creator-pause-after-research" style="width: 15px; height: 15px; cursor: pointer;">
+                  <input type="checkbox" id="creator-pause-after-research" onchange="syncPauseAfterResearchCheckboxes(this.checked)" style="width: 15px; height: 15px; cursor: pointer; accent-color: #facc15;">
                   <span>⏸️ Stage 1 研究完成後自動暫停 (供我檢閱確認後，再繼續生成腳本與影片)</span>
                 </label>
                 <label style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer; color: #38bdf8; font-weight: 600;">
@@ -4394,19 +4400,35 @@
 
         </div>
 
-        <!-- Stage 3 Script Review Pause Option -->
-        <div style="background:rgba(14, 116, 144, 0.18); border:1px solid rgba(56, 189, 248, 0.45); border-radius:10px; padding:12px 14px;">
-          <label style="display:flex; align-items:flex-start; gap:10px; cursor:pointer; margin:0;">
-            <input type="checkbox" id="confirm-modal-pause-stage3" onchange="syncPauseAfterStage3Checkboxes(this.checked)" style="width:16px; height:16px; margin-top:2px; cursor:pointer; accent-color:#38bdf8; flex-shrink:0;">
-            <div style="font-size:12.5px; line-height:1.45;">
-              <div style="font-weight:800; color:#bae6fd;">
-                ⏸️ Stop in Stage 3 after scripts are made for review / 於 Stage 3 分鏡腳本完成後暫停審閱
+        <!-- Stage 1 & Stage 3 Auto-Pause Options -->
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div id="confirm-modal-pause-stage1-row" style="background:rgba(113, 63, 18, 0.22); border:1px solid rgba(250, 204, 21, 0.45); border-radius:10px; padding:10px 14px;">
+            <label style="display:flex; align-items:flex-start; gap:10px; cursor:pointer; margin:0;">
+              <input type="checkbox" id="confirm-modal-pause-stage1" onchange="syncPauseAfterResearchCheckboxes(this.checked)" style="width:16px; height:16px; margin-top:2px; cursor:pointer; accent-color:#facc15; flex-shrink:0;">
+              <div style="font-size:12.5px; line-height:1.4;">
+                <div style="font-weight:800; color:#fde047;">
+                  ⏸️ Stop after Stage 1 Research / Stage 1 研究完成後自動暫停
+                </div>
+                <div style="font-size:11.5px; color:#94a3b8; margin-top:2px;">
+                  供我檢閱確認研究報告後，再繼續生成腳本與影片 (Pause after Stage 1 research dossier is ready).
+                </div>
               </div>
-              <div style="font-size:11.5px; color:#94a3b8; margin-top:2px;">
-                Pause automatically after Stage 3 so you can export &amp; share the script with others to review first before proceeding to image, voice, and video generation.
+            </label>
+          </div>
+
+          <div id="confirm-modal-pause-stage3-row" style="background:rgba(14, 116, 144, 0.18); border:1px solid rgba(56, 189, 248, 0.45); border-radius:10px; padding:10px 14px;">
+            <label style="display:flex; align-items:flex-start; gap:10px; cursor:pointer; margin:0;">
+              <input type="checkbox" id="confirm-modal-pause-stage3" onchange="syncPauseAfterStage3Checkboxes(this.checked)" style="width:16px; height:16px; margin-top:2px; cursor:pointer; accent-color:#38bdf8; flex-shrink:0;">
+              <div style="font-size:12.5px; line-height:1.4;">
+                <div style="font-weight:800; color:#bae6fd;">
+                  ⏸️ Stop after Stage 3 Scripts / Stage 3 分鏡腳本完成後自動暫停
+                </div>
+                <div style="font-size:11.5px; color:#94a3b8; margin-top:2px;">
+                  先匯出並分享腳本給他人審閱，確認無誤後再點擊 Resume 繼續生成後續圖片、配音與影片 (Pause after Stage 3 so you can share the scripts for review first before proceeding).
+                </div>
               </div>
-            </div>
-          </label>
+            </label>
+          </div>
         </div>
       </div>
 
@@ -4414,9 +4436,6 @@
       <div style="padding:14px 20px; border-top:1px solid rgba(124, 145, 182, 0.25); display:flex; justify-content:flex-end; flex-wrap:wrap; gap:10px; align-items:center; background:#080d16;">
         <button type="button" class="btn-sec" id="btn-cancel-create-confirm" data-ui-click="static_297" onclick="closeCreateVideoConfirmModal()" style="padding:9px 16px; font-size:13px; font-weight:600; cursor:pointer;">
           Cancel / 取消
-        </button>
-        <button type="button" class="btn-sec" id="btn-confirm-stop-stage3" onclick="confirmAndProceedWithVideo(true)" style="padding:10px 16px; font-size:13px; font-weight:700; background:rgba(14, 116, 144, 0.25); border:1px solid #38bdf8; color:#bae6fd; cursor:pointer;" title="建立專案並在 Stage 3 分鏡腳本完成後自動暫停，方便分享審閱">
-          ⏸️ Stop at Stage 3 for Review / 生成至 Stage 3 暫停審閱
         </button>
         <button type="button" class="btn-primary" id="btn-ok-create-confirm" data-ui-click="static_298" onclick="confirmAndProceedWithVideo()" style="padding:10px 24px; font-size:14px; font-weight:800; background:linear-gradient(135deg, #0284c7 0%, #0369a1 100%); box-shadow:0 0 16px rgba(2, 132, 199, 0.5); border:none; cursor:pointer; letter-spacing:0.02em;">
           🚀 OK, Proceed / 確認製作
