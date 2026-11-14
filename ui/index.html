@@ -95,6 +95,7 @@
   <div class="nav-tabs">
     <button class="nav-tab active" data-tab="creator" data-ui-click="static_017">🎙️ Documentary Creator</button>
     <button class="nav-tab" data-tab="drama" data-ui-click="static_018">🎭 Short Drama Studio</button>
+    <button class="nav-tab" data-tab="remotion" data-ui-click="static_299">⚛️ Remotion Video</button>
     <button class="nav-tab" data-tab="studio" data-ui-click="static_019">🛠️ Documentary Stage Studio</button>
     <button class="nav-tab" data-tab="dramastudio" data-ui-click="static_020">🎭 Drama Stage Studio</button>
     <button class="nav-tab" data-tab="preview" data-ui-click="static_021">📺 Player & YouTube</button>
@@ -104,6 +105,45 @@
     <button class="nav-tab" data-tab="characters" data-ui-click="static_025">👥 Drama Cast</button>
     <button class="nav-tab" data-tab="settings" data-ui-click="static_026">Settings</button>
     <button class="nav-tab" data-tab="logs" data-ui-click="static_027">Logs</button>
+  </div>
+
+  <div id="tab-remotion" class="tab-content">
+    <div class="card">
+      <div class="card-title">⚛️ Remotion Video <span style="font-size:12px;color:#94a3b8;font-weight:400;">Remotion-first project builder</span></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;">
+        <label>主題 / Title<input id="remotion-project-topic" type="text" placeholder="輸入影片主題" style="width:100%;margin-top:5px;"></label>
+        <label>輸出比例<select id="remotion-project-ratio" style="width:100%;margin-top:5px;"><option>16:9</option><option>9:16</option><option>1:1</option></select></label>
+        <label>FPS<input id="remotion-project-fps" type="number" value="30" min="1" max="120" style="width:100%;margin-top:5px;"></label>
+        <label>Remotion 比例 <output id="remotion-ratio-value">100%</output><input id="remotion-render-ratio" type="range" min="0" max="100" value="100" oninput="document.getElementById('remotion-ratio-value').value=this.value+'%'" style="width:100%;"></label>
+      </div>
+      <label style="display:block;margin-top:12px;">完整 Script（必填）<textarea id="remotion-project-script" rows="6" placeholder="請貼上完整 script；Remotion Video 不會自動產生 script"></textarea></label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center;">
+        <select id="remotion-preset-select" style="min-width:220px;"><option value="">選擇 preset</option></select>
+        <button type="button" class="btn-sec" onclick="loadRemotionPresetIntoForm()">載入 preset</button>
+        <button type="button" class="btn-sec" onclick="saveRemotionPresetFromForm()">另存為 preset</button>
+        <button type="button" class="btn-sec" onclick="updateSelectedRemotionPreset()">更新 preset</button>
+        <button type="button" class="btn-sec btn-danger" onclick="deleteSelectedRemotionPreset()">刪除 preset</button>
+        <button type="button" class="btn-sec" onclick="exportSelectedRemotionPreset()">匯出 preset</button>
+        <label class="btn-sec" style="cursor:pointer;">匯入 preset<input type="file" accept=".remotion-preset,.zip" onchange="importRemotionPreset(this.files[0])" style="display:none;"></label>
+        <button type="button" class="btn-primary" onclick="createRemotionProject()">建立並 Render Remotion Video</button>
+      </div>
+      <details style="margin-top:14px;"><summary style="cursor:pointer;font-weight:700;color:#38bdf8;">進階 Remotion props</summary><textarea id="remotion-advanced-props" rows="7" style="font-family:monospace;margin-top:8px;">{
+  "accentColor": "#38BDF8",
+  "dim": 0.25
+}</textarea></details>
+      <details style="margin-top:10px;"><summary style="cursor:pointer;font-weight:700;color:#38bdf8;">建立階段外部 API 資料</summary><div style="display:flex;gap:8px;margin-top:8px;"><input id="remotion-api-url" type="url" placeholder="https://api.example.com/data" style="flex:1;"><input id="remotion-api-cache-key" value="default" placeholder="cache key" style="width:150px;"><button class="btn-sec" onclick="fetchRemotionApiData()">取得並快取</button></div><pre id="remotion-api-result" style="max-height:220px;overflow:auto;background:#060b16;padding:8px;border-radius:6px;color:#94a3b8;"></pre></details>
+      <div style="margin-top:16px;padding-top:12px;border-top:1px solid #1e293b;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;"><b>Scene list</b><div><button type="button" class="btn-sec" onclick="generateRemotionScenesFromScript()">從 Script 建立 scenes</button> <button type="button" class="btn-sec" onclick="addRemotionScene()">＋ Scene</button></div></div>
+        <div id="remotion-scene-list" style="display:grid;gap:9px;margin-top:10px;"><span style="color:#64748b;font-size:12px;">尚未建立 scene list</span></div>
+      </div>
+      <div style="margin-top:16px;padding-top:12px;border-top:1px solid #1e293b;">
+        <label>圖片類型 <select id="remotion-reference-kind"><option value="context">Context Reference</option><option value="template">Template Asset</option></select></label>
+        <label>上傳圖片<input id="remotion-reference-upload" type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple onchange="uploadRemotionReferences(this.files)" style="display:block;margin-top:6px;"></label>
+        <div id="remotion-reference-gallery" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-top:12px;"><span style="color:#64748b;font-size:12px;">尚未上傳圖片</span></div>
+      </div>
+      <div id="remotion-draft-status" style="margin-top:14px;color:#94a3b8;font-size:12px;"></div>
+      <div id="remotion-preview-result" style="margin-top:12px;"></div>
+    </div>
   </div>
 
   <!-- TAB: DOCUMENTARY CREATOR -->

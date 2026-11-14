@@ -117,6 +117,7 @@
     "static_102": function(event) { loadProjectsList() },
     "static_103": function(event) { copyCurrentProjectError(this) },
     "static_104": function(event) { switchTab('studio'); openStudioStage('render'); },
+    "static_299": function(event) { switchTab('remotion'); if (typeof loadRemotionWorkspace === 'function') loadRemotionWorkspace(); },
     "static_105": function(event) { stopRenderingVideo() },
     "static_106": function(event) { copyRealVideoPath() },
     "static_107": function(event) { openVideoFolder() },

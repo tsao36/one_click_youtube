@@ -43,6 +43,24 @@ def test_default_callout_style_is_neutral_centered():
     assert load_settings()["subtitles"]["callout_style"] == "neutral_centered"
 
 
+def test_build_remotion_first_settings():
+    settings = build(
+        project_mode="remotion",
+        aspect_ratio="9:16",
+        ai_video_percentage=0,
+        remotion={"fps": 60, "remotion_ratio": 100},
+    )
+
+    assert settings["project_mode"] == "remotion"
+    assert settings["aspect_ratio"] == "9:16"
+    assert settings["animation"]["provider"] == "remotion"
+    assert settings["animation"]["motion_graphics_density"] == "full"
+    assert settings["stage_models"]["animation"] == "remotion"
+    assert settings["remotion"]["density"] == "full"
+    assert settings["remotion"]["fps"] == 60
+    assert settings["auto_presenter"] is False
+
+
 def test_build_short_drama_settings_and_normalises_character_ids():
     settings = build(
         project_mode="short_drama",

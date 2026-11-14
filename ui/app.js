@@ -18613,3 +18613,186 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       }
     }
     window.rejectAndReplaceSceneMedia = rejectAndReplaceSceneMedia;
+
+    async function loadRemotionWorkspace() {
+      try {
+        if (!remotionStatusTimer) remotionStatusTimer = setInterval(() => { if (document.getElementById('tab-remotion')?.classList.contains('active') && currentProjectId) refreshRemotionProjectStatus(); }, 5000);
+        const [presets, styles] = await Promise.all([apiJson('/api/remotion/presets'), apiJson('/api/remotion/styles')]);
+        remotionStyles = styles;
+        const select = document.getElementById('remotion-preset-select');
+        if (select) select.innerHTML = '<option value="">選擇 preset</option>' + presets.map(p => `<option value="${escapeHtml(p.id)}" ${p.schema_valid === false ? 'disabled' : ''}>${escapeHtml(p.name)} · v${p.version || 1}${p.schema_valid === false ? ' · schema 不相容' : ''}</option>`).join('');
+        if (currentProjectId) {
+          const refs = await apiJson(`/api/projects/${currentProjectId}/remotion/references`);
+          remotionReferences = refs;
+          renderRemotionReferenceGallery(refs);
+          const draft = await apiJson(`/api/projects/${currentProjectId}/remotion/draft`);
+          if (draft && Object.keys(draft).length) {
+            if (draft.topic) document.getElementById('remotion-project-topic').value = draft.topic;
+            if (draft.script) document.getElementById('remotion-project-script').value = draft.script;
+            if (draft.parameters?.fps) document.getElementById('remotion-project-fps').value = draft.parameters.fps;
+            if (draft.parameters?.remotion_ratio != null) { document.getElementById('remotion-render-ratio').value = draft.parameters.remotion_ratio; document.getElementById('remotion-ratio-value').value = `${draft.parameters.remotion_ratio}%`; }
+            if (draft.parameters?.advanced_props) document.getElementById('remotion-advanced-props').value = JSON.stringify(draft.parameters.advanced_props, null, 2);
+            remotionDraftScenes = Array.isArray(draft.scenes) ? draft.scenes : [];
+            renderRemotionSceneList();
+          }
+          const projectState = await apiJson(`/api/projects/${currentProjectId}`);
+          const project = projectState.project || projectState;
+          const finalVideo = projectState.final_file?.exists ? `/api/projects/${currentProjectId}/video` : projectState.video_url;
+          document.getElementById('remotion-draft-status').textContent = `${project.state || 'draft'} · ${project.activity || '設定已保存'}`;
+          if (finalVideo) document.getElementById('remotion-preview-result').innerHTML = `<video src="${finalVideo}" controls style="width:100%;max-width:720px;border-radius:8px;"></video>`;
+        }
+      } catch (err) { console.warn('Remotion workspace load failed', err); }
+    }
+    async function refreshRemotionProjectStatus() {
+      try {
+        const state = await apiJson(`/api/projects/${currentProjectId}`); const project = state.project || state;
+        const status = document.getElementById('remotion-draft-status'); if (status) status.textContent = `${project.state || 'draft'} · ${project.activity || '設定已保存'}`;
+        const finalVideo = state.final_file?.exists ? `/api/projects/${currentProjectId}/video` : state.video_url;
+        if (finalVideo) document.getElementById('remotion-preview-result').innerHTML = `<video src="${finalVideo}" controls style="width:100%;max-width:720px;border-radius:8px;"></video>`;
+      } catch (_) {}
+    }
+    function renderRemotionReferenceGallery(refs) {
+      const gallery = document.getElementById('remotion-reference-gallery');
+      if (!gallery) return;
+      gallery.innerHTML = refs.length ? refs.map(ref => `<div style="background:#0f172a;border:1px solid #334155;border-radius:8px;padding:7px;"><img src="${ref.url}" alt="${escapeHtml(ref.filename)}" style="width:100%;height:80px;object-fit:cover;border-radius:4px;"><div style="font-size:11px;color:#cbd5e1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(ref.filename)}</div><div style="font-size:10px;color:#64748b;">${escapeHtml(ref.kind || 'context')} · ${ref.width || '?'}×${ref.height || '?'} · ${Math.round((ref.size_bytes || 0) / 1024)} KB</div><button class="btn-sec" onclick="deleteRemotionReference('${ref.id}')" style="font-size:10px;padding:2px 6px;margin-top:4px;">刪除</button></div>`).join('') : '<span style="color:#64748b;font-size:12px;">尚未上傳圖片</span>';
+    }
+    async function uploadRemotionReferences(files) {
+      if (!currentProjectId) return showToast('請先建立或選擇 project');
+      for (const file of Array.from(files || [])) {
+        const body = new FormData(); body.append('file', file);
+        const kind = document.getElementById('remotion-reference-kind')?.value || 'context';
+        await apiJson(`/api/projects/${currentProjectId}/remotion/references?kind=${encodeURIComponent(kind)}`, { method: 'POST', body });
+      }
+      await loadRemotionWorkspace();
+    }
+    async function deleteRemotionReference(id) { if (!currentProjectId) return; await apiRequest(`/api/projects/${currentProjectId}/remotion/references/${encodeURIComponent(id)}`, { method: 'DELETE' }); await loadRemotionWorkspace(); }
+    async function createRemotionProject() {
+      const topic = document.getElementById('remotion-project-topic')?.value.trim();
+      const script = document.getElementById('remotion-project-script')?.value.trim();
+      if (!topic || !script) return showToast('Remotion Video 需要主題與完整 Script');
+      if (!remotionDraftScenes.length) return showToast('請先從 Script 建立 scene list');
+      let advancedProps = {}; try { advancedProps = JSON.parse(document.getElementById('remotion-advanced-props')?.value || '{}'); } catch (_) { return showToast('進階 props JSON 格式錯誤'); }
+      const parameters = { density: 'full', fps: Number(document.getElementById('remotion-project-fps')?.value || 30), remotion_ratio: Number(document.getElementById('remotion-render-ratio')?.value || 100), advanced_props: advancedProps };
+      const payload = { topic, user_research: script, project_mode: 'remotion', start_now: false, aspect_ratio: document.getElementById('remotion-project-ratio')?.value || '16:9', ai_video_percentage: Math.max(0, 100 - parameters.remotion_ratio), remotion: parameters };
+      const result = await apiJson('/api/projects', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      currentProjectId = result.project_id;
+      document.getElementById('remotion-draft-status').textContent = `已建立 draft：${result.project_id}`;
+      const validation = await apiJson(`/api/projects/${currentProjectId}/remotion/validate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ script, parameters, scenes: remotionDraftScenes }) });
+      if (!validation.valid) { document.getElementById('remotion-draft-status').textContent = validation.errors.join('；'); return showToast('Render 驗證失敗'); }
+      await apiJson(`/api/projects/${currentProjectId}/remotion/draft`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ topic, script, parameters, scenes: remotionDraftScenes, preset_id: document.getElementById('remotion-preset-select')?.value || null, validation }) });
+      await apiRequest(`/api/projects/${currentProjectId}/remotion/start`, { method: 'POST' });
+      showToast('✓ Remotion Video draft 已保存，背景 Render 已開始');
+    }
+    async function saveRemotionPresetFromForm() {
+      const name = prompt('請輸入 preset 名稱'); if (!name) return;
+      const res = await apiJson('/api/remotion/presets', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, parameters: { aspect_ratio: document.getElementById('remotion-project-ratio')?.value, fps: Number(document.getElementById('remotion-project-fps')?.value || 30), remotion_ratio: Number(document.getElementById('remotion-render-ratio')?.value || 100), advanced_props: JSON.parse(document.getElementById('remotion-advanced-props')?.value || '{}') }, scenes: remotionDraftScenes, source_project_id: currentProjectId }) });
+      showToast(`✓ 已保存 preset：${res.name}`); await loadRemotionWorkspace();
+    }
+    function currentRemotionPresetPayload(name) {
+      return { name, parameters: { aspect_ratio: document.getElementById('remotion-project-ratio')?.value, fps: Number(document.getElementById('remotion-project-fps')?.value || 30), remotion_ratio: Number(document.getElementById('remotion-render-ratio')?.value || 100), advanced_props: JSON.parse(document.getElementById('remotion-advanced-props')?.value || '{}') }, scenes: remotionDraftScenes, source_project_id: currentProjectId };
+    }
+    async function updateSelectedRemotionPreset() {
+      const select = document.getElementById('remotion-preset-select'); const id = select?.value;
+      if (!id || id.startsWith('style:')) return showToast('請先選擇使用者 preset；既有 style 請使用另存為 preset');
+      const current = await apiJson(`/api/remotion/presets/${encodeURIComponent(id)}`);
+      const res = await apiJson('/api/remotion/presets', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(currentRemotionPresetPayload(current.name)) });
+      showToast(`✓ 已更新 preset：${res.name} v${res.version}`); await loadRemotionWorkspace(); if (select) select.value = res.id;
+    }
+    async function deleteSelectedRemotionPreset() {
+      const id = document.getElementById('remotion-preset-select')?.value;
+      if (!id || id.startsWith('style:')) return showToast('請選擇可刪除的使用者 preset');
+      if (!confirm('確定刪除此 preset 與其專屬圖片副本？')) return;
+      await apiRequest(`/api/remotion/presets/${encodeURIComponent(id)}`, { method: 'DELETE' });
+      showToast('✓ Preset 已刪除'); await loadRemotionWorkspace();
+    }
+    async function loadRemotionPresetIntoForm() {
+      const id = document.getElementById('remotion-preset-select')?.value; if (!id) return;
+      const p = await apiJson(`/api/remotion/presets/${id}`); const params = p.parameters || {};
+      if (params.aspect_ratio) document.getElementById('remotion-project-ratio').value = params.aspect_ratio;
+      if (params.fps) document.getElementById('remotion-project-fps').value = params.fps;
+      if (params.remotion_ratio != null) { document.getElementById('remotion-render-ratio').value = params.remotion_ratio; document.getElementById('remotion-ratio-value').value = `${params.remotion_ratio}%`; }
+      if (params.advanced_props) document.getElementById('remotion-advanced-props').value = JSON.stringify(params.advanced_props, null, 2);
+      remotionDraftScenes = Array.isArray(p.scenes) ? p.scenes : [];
+      renderRemotionSceneList();
+      showToast(`✓ 已載入 preset：${p.name}`);
+    }
+    let remotionDraftScenes = [];
+    let remotionReferences = [];
+    let remotionStyles = [];
+    let remotionStatusTimer = null;
+    function generateRemotionScenesFromScript() {
+      const script = document.getElementById('remotion-project-script')?.value.trim(); if (!script) return showToast('請先輸入完整 Script');
+      const parts = script.split(/\n\s*\n|(?<=[。！？!?])\s+/).map(x => x.trim()).filter(Boolean);
+      const middle = Math.floor(parts.length / 2);
+      const generated = parts.map((narration, i) => {
+        const lower = narration.toLowerCase();
+        const reference_ids = remotionReferences.filter(ref => {
+          const stem = String(ref.filename || '').replace(/\.[^.]+$/, '').toLowerCase();
+          return stem.length >= 2 && lower.includes(stem);
+        }).map(ref => ref.id);
+        return { scene_id: i + 1, narration, composition: 'FoxHeaderScene', renderer: 'remotion', renderer_confirmed: true, props: {}, reference_ids, presenter_slot: parts.length >= 3 && (i === 0 || i === middle || i === parts.length - 1) };
+      });
+      if (remotionDraftScenes.length) {
+        const action = prompt('Scene list 已有手動設定。輸入 replace 取代、merge 合併，或 cancel 取消。', 'merge');
+        if (!action || action.toLowerCase() === 'cancel') return;
+        if (action.toLowerCase() === 'merge') {
+          remotionDraftScenes = generated.map((scene, i) => ({ ...scene, ...(remotionDraftScenes[i] || {}), narration: scene.narration, scene_id: i + 1 }));
+        } else if (action.toLowerCase() === 'replace') remotionDraftScenes = generated;
+        else return showToast('請輸入 replace、merge 或 cancel');
+      } else remotionDraftScenes = generated;
+      renderRemotionSceneList();
+    }
+    async function fetchRemotionApiData() {
+      if (!currentProjectId) return showToast('請先建立或選擇 project');
+      const url = document.getElementById('remotion-api-url')?.value.trim(); if (!url) return showToast('請輸入 API URL');
+      const cache_key = document.getElementById('remotion-api-cache-key')?.value.trim() || 'default';
+      try {
+        const result = await apiJson(`/api/projects/${currentProjectId}/remotion/api-cache`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url, cache_key }) });
+        document.getElementById('remotion-api-result').textContent = JSON.stringify(result, null, 2);
+        showToast(result.cached ? '⚠ API 無法連線，已載入最近快取' : '✓ API 資料已保存至 project cache');
+      } catch (err) { showToast(`API 取得失敗：${err.message}`); }
+    }
+    function renderRemotionSceneList() {
+      const root = document.getElementById('remotion-scene-list'); if (!root) return;
+      root.innerHTML = remotionDraftScenes.map((scene, i) => `<div style="display:grid;grid-template-columns:40px minmax(220px,1fr) 180px 115px 150px 85px auto;gap:7px;align-items:center;background:#0f172a;border:1px solid #334155;padding:8px;border-radius:7px;"><b>#${i + 1}</b><input value="${escapeHtml(scene.narration || '')}" onchange="updateRemotionScene(${i},'narration',this.value)"><select onchange="updateRemotionScene(${i},'composition',this.value)">${remotionStyles.map(style => `<option value="${style.id}" ${scene.composition === style.id ? 'selected' : ''}>${escapeHtml(style.name)}</option>`).join('') || `<option>${scene.composition || 'FoxHeaderScene'}</option>`}</select><select onchange="updateRemotionScene(${i},'renderer',this.value)"><option value="remotion" ${scene.renderer === 'remotion' ? 'selected' : ''}>Remotion</option><option value="image" ${scene.renderer === 'image' ? 'selected' : ''}>Non-Remotion</option></select><select multiple title="場景參考圖" onchange="updateRemotionSceneReferences(${i},this)">${remotionReferences.map(ref => `<option value="${ref.id}" ${(scene.reference_ids || []).includes(ref.id) ? 'selected' : ''}>${escapeHtml(ref.filename)}</option>`).join('')}</select><label style="font-size:10px;"><input type="checkbox" ${scene.presenter_slot ? 'checked' : ''} onchange="updateRemotionScene(${i},'presenter_slot',this.checked)"> Presenter</label><span><button class="btn-sec" onclick="moveRemotionScene(${i},-1)" ${i === 0 ? 'disabled' : ''}>↑</button> <button class="btn-sec" onclick="moveRemotionScene(${i},1)" ${i === remotionDraftScenes.length - 1 ? 'disabled' : ''}>↓</button> <button class="btn-sec" onclick="editRemotionSceneProps(${i})">Props</button> <button class="btn-sec" onclick="previewRemotionScene(${i})">預覽</button> <button class="btn-sec" onclick="removeRemotionScene(${i})">×</button></span></div>`).join('') || '<span style="color:#64748b;font-size:12px;">尚未建立 scene list</span>';
+    }
+    function updateRemotionScene(index, key, value) { remotionDraftScenes[index][key] = value; if (key === 'renderer') remotionDraftScenes[index].renderer_confirmed = true; }
+    function updateRemotionSceneReferences(index, select) { remotionDraftScenes[index].reference_ids = Array.from(select.selectedOptions).map(option => option.value); }
+    function addRemotionScene() { remotionDraftScenes.push({ scene_id: remotionDraftScenes.length + 1, narration: '', composition: 'FoxHeaderScene', renderer: 'remotion', renderer_confirmed: true, props: {} }); renderRemotionSceneList(); }
+    function removeRemotionScene(index) { remotionDraftScenes.splice(index, 1); remotionDraftScenes.forEach((s, i) => s.scene_id = i + 1); renderRemotionSceneList(); }
+    function moveRemotionScene(index, delta) { const target = index + delta; if (target < 0 || target >= remotionDraftScenes.length) return; [remotionDraftScenes[index], remotionDraftScenes[target]] = [remotionDraftScenes[target], remotionDraftScenes[index]]; remotionDraftScenes.forEach((s, i) => s.scene_id = i + 1); renderRemotionSceneList(); }
+    function editRemotionSceneProps(index) {
+      const scene = remotionDraftScenes[index];
+      const raw = prompt(`Scene #${index + 1} props JSON`, JSON.stringify({ estimated_duration: scene.estimated_duration || 6, ...(scene.props || {}) }, null, 2));
+      if (raw == null) return;
+      try { const value = JSON.parse(raw); scene.estimated_duration = Number(value.estimated_duration || 6); delete value.estimated_duration; scene.props = value; renderRemotionSceneList(); } catch (_) { showToast('Scene props JSON 格式錯誤'); }
+    }
+    async function previewRemotionScene(index) {
+      const scene = remotionDraftScenes[index]; if (!scene || scene.renderer !== 'remotion') return showToast('只有 Remotion scene 可預覽');
+      let shared = {}; try { shared = JSON.parse(document.getElementById('remotion-advanced-props')?.value || '{}'); } catch (_) {}
+      const result = await apiJson('/api/remotion/render', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ composition: scene.composition, props: { headline: scene.narration, title: scene.narration, ...shared, ...(scene.props || {}) }, duration_frames: 90, fps: Number(document.getElementById('remotion-project-fps')?.value || 30) }) });
+      document.getElementById('remotion-preview-result').innerHTML = `<video src="${result.mp4_url}" controls style="width:100%;max-width:720px;border-radius:8px;"></video>`;
+    }
+    function exportSelectedRemotionPreset() { const id = document.getElementById('remotion-preset-select')?.value; if (!id || id.startsWith('style:')) return showToast('請選擇已保存的使用者 preset'); window.location.href = `/api/remotion/presets/${encodeURIComponent(id)}/export`; }
+    async function importRemotionPreset(file) { if (!file) return; const body = new FormData(); body.append('file', file); const p = await apiJson('/api/remotion/presets/import', { method: 'POST', body }); showToast(`✓ 已匯入 preset：${p.name}`); await loadRemotionWorkspace(); }
+    window.loadRemotionWorkspace = loadRemotionWorkspace;
+    window.renderRemotionReferenceGallery = renderRemotionReferenceGallery;
+    window.uploadRemotionReferences = uploadRemotionReferences;
+    window.deleteRemotionReference = deleteRemotionReference;
+    window.createRemotionProject = createRemotionProject;
+    window.saveRemotionPresetFromForm = saveRemotionPresetFromForm;
+    window.updateSelectedRemotionPreset = updateSelectedRemotionPreset;
+    window.deleteSelectedRemotionPreset = deleteSelectedRemotionPreset;
+    window.loadRemotionPresetIntoForm = loadRemotionPresetIntoForm;
+    window.generateRemotionScenesFromScript = generateRemotionScenesFromScript;
+    window.fetchRemotionApiData = fetchRemotionApiData;
+    window.renderRemotionSceneList = renderRemotionSceneList;
+    window.updateRemotionScene = updateRemotionScene;
+    window.updateRemotionSceneReferences = updateRemotionSceneReferences;
+    window.addRemotionScene = addRemotionScene;
+    window.removeRemotionScene = removeRemotionScene;
+    window.moveRemotionScene = moveRemotionScene;
+    window.editRemotionSceneProps = editRemotionSceneProps;
+    window.previewRemotionScene = previewRemotionScene;
+    window.exportSelectedRemotionPreset = exportSelectedRemotionPreset;
+    window.importRemotionPreset = importRemotionPreset;

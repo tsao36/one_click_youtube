@@ -63,6 +63,7 @@ from api_routes.media import (
     serve_voice_file_from,
 )
 from api_routes.remotion import router as remotion_router
+from api_routes.remotion_projects import router as remotion_projects_router
 from api_routes.rendering import router as rendering_router
 from api_routes.system import router as system_router
 from core.youtube_uploader import (
@@ -93,6 +94,7 @@ app.add_middleware(
 app.include_router(system_router)
 app.include_router(media_router)
 app.include_router(remotion_router)
+app.include_router(remotion_projects_router)
 app.include_router(rendering_router)
 
 
@@ -491,12 +493,20 @@ def build_project_settings(
             "callouts_enabled": False,
         })
 
+    if project_mode == "remotion":
+        settings["animation"].update({"ai_video_percentage": req.ai_video_percentage, "provider": "remotion", "motion_graphics_density": "full"})
+        settings.setdefault("stage_models", {})["animation"] = "remotion"
+        settings["remotion"] = {"density": "full", "style": req.remotion_style or "modern_tech_explainer", "theme": req.remotion_theme or "dark_obsidian", **dict(req.remotion or {})}
+        settings["presenter_placement"] = "none"
+        settings["auto_presenter"] = False
+        settings["video"]["aspect_ratio"] = aspect_ratio
+
     supplied_remotion = dict(req.remotion or {})
     remotion_density = req.remotion_density or supplied_remotion.get("density")
     remotion_style = req.remotion_style or supplied_remotion.get("style")
     remotion_theme = req.remotion_theme or supplied_remotion.get("theme")
     if remotion_density or remotion_style or remotion_theme or supplied_remotion:
-        remotion = {}
+        remotion = dict(settings.get("remotion") or {})
         if remotion_style:
             remotion["style"] = remotion_style
         if remotion_density:

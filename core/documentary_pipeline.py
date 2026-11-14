@@ -2479,6 +2479,52 @@ class DocumentaryPipeline(BasePipeline):
 
         anim_prov_name = stage_anim if stage_anim is not None else cfg.get("stage_models", {}).get("animation")
 
+        # Remotion-first projects use the user-approved draft scene list verbatim.
+        # Each configured Remotion scene is rendered with its selected composition;
+        # explicitly configured non-Remotion scenes remain available to the final
+        # renderer as image scenes. Any Remotion failure is fatal rather than a
+        # silent Ken Burns/image fallback.
+        if (self.p.data.settings or {}).get("project_mode") == "remotion":
+            draft = ((self.p.data.settings or {}).get("remotion") or {}).get("draft") or {}
+            configured = {int(item.get("scene_id", i + 1)): item for i, item in enumerate(draft.get("scenes") or [])}
+            from generators.remotion_cards import render_scene_card
+            fps = int((draft.get("parameters") or {}).get("fps") or 30)
+            completed = 0
+            for scene in scenes:
+                if self._cancel_flag:
+                    raise PipelineCancelled()
+                item = configured.get(scene.scene_id, {})
+                renderer = item.get("renderer", "remotion")
+                if renderer != "remotion":
+                    scene.ai_video = False
+                    continue
+                composition = item.get("composition") or "FoxHeaderScene"
+                props = {
+                    "headline": scene.narration,
+                    "title": scene.narration,
+                    **dict((draft.get("parameters") or {}).get("advanced_props") or {}),
+                    **dict(item.get("props") or {}),
+                }
+                try:
+                    render_scene_card(self.p, scene, props=props, fps=fps, composition=composition)
+                except Exception as exc:
+                    scene.animation.status = Status.FAILED
+                    scene.animation.error = str(exc)
+                    self.p.save_scenes()
+                    raise RuntimeError(
+                        f"Scene {scene.scene_id} Remotion render failed; unexpected fallback is disabled: {exc}"
+                    ) from exc
+                completed += 1
+                self.p.progress("animation", completed, max(1, len(scenes)))
+            self.p.save_scenes()
+            expected = sum(1 for item in configured.values() if item.get("renderer", "remotion") == "remotion")
+            if completed != expected:
+                raise RuntimeError(f"Remotion scene count mismatch: rendered {completed}, expected {expected}")
+            elapsed = round(max(0.1, time.perf_counter() - t0), 1)
+            self.p.set_stage("animation", Status.COMPLETED, done=completed, total=max(1, expected), duration_override=elapsed)
+            self.p.set_stage("presenter", Status.COMPLETED, done=0, total=1)
+            return
+
 
 
 
