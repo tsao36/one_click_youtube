@@ -1,4 +1,4 @@
-"""CLI: real-asset-first image sourcing for a project.
+﻿"""CLI: real-asset-first image sourcing for a project.
 
   python scripts/real_assets.py build  project_15     # discover + mine + caption
   python scripts/real_assets.py match  project_15     # dry-run matching report
@@ -32,12 +32,15 @@ def main() -> None:
     ap.add_argument("--min-height", type=int, default=rap.MIN_VIDEO_HEIGHT)
     ap.add_argument("--max-videos", type=int, default=6)
     ap.add_argument("--windows", type=int, default=rap.WINDOWS_PER_VIDEO)
+    ap.add_argument("--tier2", action="store_true", help="also mine 480p sources (shown 1:1 on black canvas)")
     ap.add_argument("--min-score", type=int, default=rap.MATCH_MIN_SCORE)
     a = ap.parse_args()
     p = Project(a.project)
     if a.cmd == "build":
+        if a.tier2:
+            a.min_height, a.windows, a.max_videos = 480, 6, 24
         pool = rap.build_pool(p, DEFAULTS["video_queries"], DEFAULTS["still_queries"], DEFAULTS["title_pattern"],
-                              min_height=a.min_height, windows=a.windows, max_videos=a.max_videos, topic_hint=DEFAULTS["topic"])
+                              min_height=a.min_height, windows=a.windows, max_videos=a.max_videos, topic_hint=DEFAULTS["topic"], skip_stills=a.tier2, retry_resolution_skips=a.tier2)
         usable = [x for x in pool["assets"] if x.get("usable", True)]
         print(json.dumps({"sources": [(s["title"], s.get("max_height"), s.get("frames_kept"), s.get("skipped")) for s in pool["sources"]],
                           "assets": len(pool["assets"]), "usable": len(usable)}, ensure_ascii=False, indent=1))
@@ -53,3 +56,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

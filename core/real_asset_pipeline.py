@@ -1,4 +1,4 @@
-"""Real-asset-first image sourcing.
+﻿"""Real-asset-first image sourcing.
 
 Pipeline (all steps cache to <project>/assets/real and research/real_assets.json):
 
@@ -308,7 +308,7 @@ def _admit_frames(frames: list[dict[str, Any]], src: dict[str, Any], out_dir: Pa
         im.convert("RGB").save(dest, "JPEG", quality=95)
         kept.append({"id": aid, "file": dest.name, "width": im.width, "height": im.height, "kind": "frame",
                      "source": src["kind"], "source_title": src["title"], "source_url": src["url"],
-                     "timestamp": fr["t"], "sharpness": round(sh, 1),
+                     "timestamp": fr["t"], "sharpness": round(sh, 1), "lowres": im.height < MIN_VIDEO_HEIGHT,
                      "license": "Copyrighted broadcast footage - fair-use / commentary", "author": src["title"][:60]})
     return kept
 
@@ -394,8 +394,11 @@ def caption_assets(project, topic_hint: str, batch: int = 8) -> None:
 # ---------------------------------------------------------------- orchestration
 def build_pool(project, queries_video: list[str], queries_still: list[str], title_pattern: str,
                min_height: int = MIN_VIDEO_HEIGHT, windows: int = WINDOWS_PER_VIDEO,
-               max_videos: int = 6, topic_hint: str = "") -> dict[str, Any]:
+               max_videos: int = 6, topic_hint: str = "", skip_stills: bool = False,
+               retry_resolution_skips: bool = False) -> dict[str, Any]:
     pool = load_pool(project)
+    if retry_resolution_skips:
+        pool["sources"] = [s for s in pool["sources"] if not str(s.get("skipped", "")).startswith("max height")]
     d = _asset_dir(project)
     seen = []
     for a in pool["assets"]:
@@ -407,7 +410,7 @@ def build_pool(project, queries_video: list[str], queries_still: list[str], titl
 
     # stills
     have_urls = {a.get("source_url") for a in pool["assets"]}
-    for it in search_still_sources(queries_still):
+    for it in ([] if skip_stills else search_still_sources(queries_still)):
         if it["url"] in have_urls:
             continue
         a = download_still(it, d, seen)
@@ -466,7 +469,8 @@ def match_assets_to_scenes(project, topic_hint: str, min_score: int = MATCH_MIN_
         for r in res:
             for p in r.get("picks", []):
                 proposals.append((int(p.get("score", 0)), int(r["scene_id"]), p.get("asset"), ""))
-    proposals.sort(key=lambda x: (-x[0], x[1]))
+    lowres = {a["id"]: bool(a.get("lowres")) for a in assets}
+    proposals.sort(key=lambda x: (-x[0], lowres.get(x[2], False), x[1]))   # prefer hi-res on equal score
     valid = {a["id"] for a in assets}
     use_count: dict[str, int] = {}
     last_scene: dict[str, list[int]] = {}
@@ -507,6 +511,18 @@ def _fit_16x9(src: Path, dest: Path, w: int = 1920, h: int = 1080) -> None:
         im.save(dest, "PNG")
 
 
+def _fit_native(src: Path, dest: Path, w: int = 1920, h: int = 1080) -> None:
+    """Low-res source: keep native pixels 1:1 (no upscaling) centred on a black 1080p canvas."""
+    with Image.open(src) as im:
+        im = im.convert("RGB")
+        if im.width > w or im.height > h:
+            im.thumbnail((w, h), Image.Resampling.LANCZOS)
+        canvas = Image.new("RGB", (w, h), (0, 0, 0))
+        canvas.paste(im, ((w - im.width) // 2, (h - im.height) // 2))
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        canvas.save(dest, "PNG")
+
+
 def apply_assignments(project, assign: dict[int, dict[str, Any]]) -> list[int]:
     pool = load_pool(project)
     by_id = {a["id"]: a for a in pool["assets"]}
@@ -523,7 +539,7 @@ def apply_assignments(project, assign: dict[int, dict[str, Any]]) -> list[int]:
         if out.exists() and not (backup / out.name).exists() and (s.image.meta or {}).get("provider") != "real_asset":
             backup.mkdir(parents=True, exist_ok=True)
             shutil.copy2(out, backup / out.name)
-        _fit_16x9(d / a["file"], out)
+        (_fit_native if a.get("lowres") else _fit_16x9)(d / a["file"], out)
         clip = project.path("animation", f"{s.tag}.mp4")
         if clip.exists():
             clip.unlink()
@@ -554,3 +570,4 @@ def real_first(project, topic_hint: str) -> dict[str, Any]:
     total = len(project.scenes)
     return {"applied": applied, "real_scenes": len(applied), "total_scenes": total,
             "ai_scenes": [s.scene_id for s in project.scenes if s.scene_id not in applied]}
+
