@@ -1005,6 +1005,12 @@ def get_project_costs(project_id: str):
     return calculate_and_update_project_costs(p)
 
 
+@app.get("/api/provider-balances")
+def get_provider_balances():
+    from core.provider_balance import get_provider_balances as lookup_balances
+    return {"providers": lookup_balances(get_secret)}
+
+
 # ---------------- Background Music Endpoints ----------------
 @app.get("/api/music/tracks")
 def get_music_tracks():

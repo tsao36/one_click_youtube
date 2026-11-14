@@ -4957,6 +4957,20 @@
           </div>
         `;
 
+        let balanceHtml = '<div style="color:#64748b;">Loading provider balances…</div>';
+        try {
+          const balanceData = await apiJson('/api/provider-balances');
+          balanceHtml = (balanceData.providers || []).map(b => {
+            if (b.status === 'ok') {
+              const value = b.remaining !== null && b.remaining !== undefined ? `${b.remaining.toLocaleString()} ${b.unit} remaining` : 'Connected';
+              return `<div style="margin-bottom:5px;"><b style="color:#cbd5e1;">${b.provider}</b>: <span style="color:#34d399;">${value}</span>${b.tier ? ` <span style="color:#64748b;">(${b.tier})</span>` : ''}</div>`;
+            }
+            return `<div style="margin-bottom:5px;"><b style="color:#cbd5e1;">${b.provider}</b>: <span style="color:#94a3b8;">${b.status === 'unsupported' ? 'Balance API unavailable' : 'Lookup failed'}</span></div>`;
+          }).join('') || '<div style="color:#64748b;">No cloud API keys configured.</div>';
+        } catch (err) {
+          balanceHtml = '<div style="color:#f59e0b;">Provider balance lookup unavailable.</div>';
+        }
+
         const usageEl = document.getElementById('project-usage-info');
         if (usageEl) {
             const rawMusic = (p.settings && p.settings.music && p.settings.music.track) || (d.outputs && d.outputs.music_track) || 'None';
@@ -4980,6 +4994,7 @@
             <div style="margin-bottom:6px;">LLM Requests: <b style="color:#fff;">${u.llm_requests}</b></div>
             ${(u.presenter_clips_cloud > 0 || (stageCosts.presenter && stageCosts.presenter > 0) || (stageDetails.presenter && stageDetails.presenter.cost > 0)) ? `<div style="margin-bottom:6px;">Virtual Presenter: <b style="color:#c4b5fd;">🎭 ${stageDetails.presenter ? stageDetails.presenter.units : 'Avatar Lipsync'}</b></div>` : ''}
             <div style="margin-bottom:6px;">Total Cloud Cost: <b style="color:#34d399; font-size: 14px;">${totalCostStr}</b></div>
+            <div style="margin:10px 0 6px; padding-top:8px; border-top:1px solid #1e293b;"><div style="font-size:11px; text-transform:uppercase; color:#93c5fd; font-weight:700; margin-bottom:6px;">☁️ API Balance / Quota</div>${balanceHtml}</div>
             ${costBreakdownHtml}
             ${stageBreakdownHtml}
           `;
