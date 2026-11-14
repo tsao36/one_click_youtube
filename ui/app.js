@@ -2874,14 +2874,6 @@
 
         renderDramaCharactersEditor();
 
-        // Update Assemble buttons text for Drama mode
-        const btnCreateAssemble1 = document.getElementById('btn-creator-assemble-stages');
-        if (btnCreateAssemble1) btnCreateAssemble1.textContent = '⚡ 組裝全流程並合成短劇 (Create Drama Video)';
-        const btnCreateAssemble2 = document.getElementById('btn-creator-assemble-stages-2');
-        if (btnCreateAssemble2) btnCreateAssemble2.textContent = '⚡ 組裝全流程並合成短劇 (Create Drama Video)';
-        const btnStudioAssemble1 = document.getElementById('btn-studio-assemble-stages');
-        if (btnStudioAssemble1) btnStudioAssemble1.textContent = '⚡ 組裝全流程並合成短劇 (Create Drama Video)';
-
         // Hide virtual presenter tools in hero dropdown
         const heroAvatarBtn = document.getElementById('hero-btn-rerender-avatar');
         if (heroAvatarBtn) heroAvatarBtn.style.display = 'none';
@@ -3006,14 +2998,6 @@
         if (btnCreate) {
           btnCreate.innerHTML = '🚀 CREATE VIDEO';
         }
-
-        // Restore Assemble buttons text for Documentary mode
-        const btnCreateAssemble1 = document.getElementById('btn-creator-assemble-stages');
-        if (btnCreateAssemble1) btnCreateAssemble1.textContent = '🔗 String All Stages Together & Create Video';
-        const btnCreateAssemble2 = document.getElementById('btn-creator-assemble-stages-2');
-        if (btnCreateAssemble2) btnCreateAssemble2.textContent = '🔗 String All Stages Together & Render';
-        const btnStudioAssemble1 = document.getElementById('btn-studio-assemble-stages');
-        if (btnStudioAssemble1) btnStudioAssemble1.textContent = '🔗 String All Stages Together & Create Video';
 
         // Restore virtual presenter tools in hero dropdown
         const heroAvatarBtn = document.getElementById('hero-btn-rerender-avatar');
@@ -4320,13 +4304,6 @@
           const heroAvatarBtn = document.getElementById('hero-btn-rerender-avatar');
           if (heroAvatarBtn) heroAvatarBtn.style.display = isProjDrama ? 'none' : 'inline-block';
 
-          // Align Assemble buttons with project mode
-          const btnCreateAssemble1 = document.getElementById('btn-creator-assemble-stages');
-          if (btnCreateAssemble1) btnCreateAssemble1.textContent = isProjDrama ? '⚡ 組裝全流程並合成短劇 (Create Drama Video)' : '🔗 String All Stages Together & Create Video';
-          const btnCreateAssemble2 = document.getElementById('btn-creator-assemble-stages-2');
-          if (btnCreateAssemble2) btnCreateAssemble2.textContent = isProjDrama ? '⚡ 組裝全流程並合成短劇 (Create Drama Video)' : '🔗 String All Stages Together & Render';
-          const btnStudioAssemble1 = document.getElementById('btn-studio-assemble-stages');
-          if (btnStudioAssemble1) btnStudioAssemble1.textContent = isProjDrama ? '⚡ 組裝全流程並合成短劇 (Create Drama Video)' : '🔗 String All Stages Together & Create Video';
           const dramaStageNames = {
             research: '1. 故事分鏡 (Storyboard)',
             script: '2. 角色劇本 (Script)',
@@ -12544,9 +12521,6 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
                 🎨 Re-generate Visuals & Video (重製畫面與成片)
               </button>
             ` : '')}
-            <button class="btn-primary" style="padding: 8px 16px; font-size: 12px; font-weight: 700; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);" onclick="assembleAllStagesNow()">
-              🔗 String All Stages Together
-            </button>
           </div>
         </div>
       `;
@@ -14088,18 +14062,14 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
               <div style="padding: 50px 20px; text-align: center; background: #080d16; border-radius: 8px; border: 1px dashed var(--card-border); color: var(--text-muted);">
                 <div style="font-size: 36px; margin-bottom: 12px;">🎥</div>
                 <div style="font-size: 15px; font-weight: 600; color: #fff; margin-bottom: 6px;">${isRunning ? '⏳ FFmpeg Video Rendering in Progress...' : 'No final video rendered yet'}</div>
-                <div style="font-size: 12px; max-width: 440px; margin: 0 auto 16px auto;">${isRunning ? 'FFmpeg is compiling scene clips, transitions, narration, and subtitles into MP4.' : 'When you\'re ready, click "String All Stages Together & Create Video" or "▶ Render 1080p Video" to assemble all tuned assets.'}</div>
-                <div style="display: flex; gap: 10px; justify-content: center; align-items: center; flex-wrap: wrap;">
-                  ${isRunning ? `
+                <div style="font-size: 12px; max-width: 440px; margin: 0 auto 16px auto;">${isRunning ? 'FFmpeg is compiling scene clips, transitions, narration, and subtitles into MP4.' : 'When you\'re ready, click "▶ Render 1080p Video" above to assemble all tuned assets.'}</div>
+                ${isRunning ? `
+                  <div style="display: flex; gap: 10px; justify-content: center; align-items: center; flex-wrap: wrap;">
                     <button class="btn-sec btn-danger" style="padding: 10px 24px; font-size: 13px; font-weight: 700;" onclick="stopRenderingVideo()">
                       🛑 Stop Rendering Video
                     </button>
-                  ` : `
-                    <button class="btn-primary" style="padding: 10px 24px; font-size: 13px; font-weight: 700; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);" onclick="assembleAllStagesNow()">
-                      ${isDrama ? "⚡ 組裝全流程並合成短劇 (Create Drama Video)" : "🔗 String All Stages Together & Create Video"}
-                    </button>
-                  `}
-                </div>
+                  </div>
+                ` : ''}
               </div>
             `}
           </div>
@@ -14123,9 +14093,6 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
               </button>
             ` : '<div style="width: 120px;"></div>'}
           </div>
-          <button class="btn-primary" style="padding: 9px 20px; font-size: 13px; font-weight: 700; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);" onclick="assembleAllStagesNow()">
-            ${isDrama ? "⚡ 組裝全流程並合成短劇 (Create Drama Video)" : "🔗 String All Stages Together & Create Video"}
-          </button>
           <div>
             ${nextKey ? `
               <button class="btn-sec" style="font-size: 12px; padding: 7px 14px;" onclick="switchStudioStage('${nextKey}')">
@@ -16233,25 +16200,6 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
           : "🎨 Visual re-generation started! The pipeline is now re-generating Storyboard -> Prompts -> Images -> Video.");
       } catch (e) {
         alert("Failed to start cascade: " + e.message);
-      }
-    }
-
-    async function assembleAllStagesNow() {
-      if (!currentProjectId) return alert("Please select or create a project first.");
-      if (!confirm("String all completed & tuned stages together to create your new 1080p video?\n\nThis will take all tuned research, script, scenes, images, and cloned voiceovers, re-align subtitles, and render the final MP4 video.")) {
-        return;
-      }
-      try {
-        const d = await apiJson(`/api/projects/${currentProjectId}/assemble`, { method: 'POST' });
-
-        if (d.status === 'already_running') {
-          return alert("Pipeline is already executing. Please wait or pause first.");
-        }
-        alert("Pipeline assembly started! The system is now stringing all completed stages together and rendering your new video.");
-        switchTab('creator');
-        startPolling();
-      } catch (e) {
-        alert("Error starting assembly: " + e.message);
       }
     }
 

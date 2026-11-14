@@ -112,7 +112,6 @@
     "static_097": function(event) { deleteCurrentProject() },
     "static_098": function(event) { clearProjectVideoCache() },
     "static_099": function(event) { openRerenderVoiceModal() },
-    "static_100": function(event) { assembleAllStagesNow() },
     "static_101": function(event) { onSwitchProject(this.value) },
     "static_102": function(event) { loadProjectsList() },
     "static_103": function(event) { copyCurrentProjectError(this) },
