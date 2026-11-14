@@ -18562,10 +18562,63 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
     }
     window.rejectAndReplaceSceneMedia = rejectAndReplaceSceneMedia;
 
+    function _populateRemotionVoiceAndAvatarSelectors(preferredVoice, preferredAvatar) {
+      const voiceSel = document.getElementById('remotion-voice-select');
+      if (voiceSel) {
+        const prevVal = preferredVoice || voiceSel.value;
+        const voices = Array.isArray(cachedVoiceList) ? cachedVoiceList : [];
+        voiceSel.innerHTML = '';
+        if (!voices.length) {
+          voiceSel.innerHTML = '<option value="">(預設音色)</option>';
+        } else {
+          voices.forEach(v => {
+            const opt = document.createElement('option');
+            opt.value = v.name;
+            const pLabel = typeof getVoiceProviderLabel === 'function' ? getVoiceProviderLabel(v.provider) : (v.provider || 'TTS');
+            opt.textContent = `${v.display_name || v.name} [${pLabel}]` + (v.name === 'mytsaovoice' || v.is_default ? ' (Default)' : '');
+            if ((prevVal && v.name === prevVal) || (!prevVal && (v.name === 'mytsaovoice' || v.is_default))) {
+              opt.selected = true;
+            }
+            voiceSel.appendChild(opt);
+          });
+          if (prevVal && voices.some(v => v.name === prevVal)) voiceSel.value = prevVal;
+        }
+      }
+      const avatarSel = document.getElementById('remotion-avatar-select');
+      if (avatarSel) {
+        const prevAv = preferredAvatar !== undefined ? preferredAvatar : avatarSel.value;
+        const avatars = Array.isArray(cachedAvatarsList) ? cachedAvatarsList : [];
+        avatarSel.innerHTML = '<option value="">(不使用虛擬講者)</option>';
+        avatars.forEach(av => {
+          const opt = document.createElement('option');
+          opt.value = av.name;
+          const isM = Boolean(av.is_masked) || av.provider === 'masked_speaker';
+          const maskTag = isM ? ' [😷 口罩]' : ' [👄 對嘴]';
+          opt.textContent = `${av.display_name || av.name}${av.is_default ? ' ★' : ''}${maskTag}`;
+          if (prevAv && av.name === prevAv) opt.selected = true;
+          else if (!prevAv && av.is_default) opt.selected = true;
+          avatarSel.appendChild(opt);
+        });
+      }
+    }
     async function loadRemotionWorkspace() {
       try {
         if (!remotionStatusTimer) remotionStatusTimer = setInterval(() => { if (document.getElementById('tab-remotion')?.classList.contains('active') && currentProjectId) refreshRemotionProjectStatus(); }, 5000);
-        const [presets, styles] = await Promise.all([apiJson('/api/remotion/presets'), apiJson('/api/remotion/styles')]);
+        const needVoices = !Array.isArray(cachedVoiceList) || !cachedVoiceList.length;
+        const needAvatars = !Array.isArray(cachedAvatarsList) || !cachedAvatarsList.length;
+        const [presets, styles, voicesResp, avatarsResp] = await Promise.all([
+          apiJson('/api/remotion/presets'),
+          apiJson('/api/remotion/styles'),
+          needVoices ? apiJson('/api/voices').catch(() => []) : Promise.resolve(null),
+          needAvatars ? apiJson('/api/avatars').catch(() => ({ avatars: [] })) : Promise.resolve(null),
+        ]);
+        if (voicesResp) {
+          cachedVoiceList = typeof sortVoicesByGenderAndAgeDesc === 'function' ? sortVoicesByGenderAndAgeDesc(voicesResp) : voicesResp;
+        }
+        if (avatarsResp) {
+          cachedAvatarsList = avatarsResp.avatars || [];
+        }
+        _populateRemotionVoiceAndAvatarSelectors();
         remotionStyles = styles;
         const select = document.getElementById('remotion-preset-select');
         if (select) select.innerHTML = '<option value="">選擇 preset</option>' + presets.map(p => `<option value="${escapeHtml(p.id)}" ${p.schema_valid === false ? 'disabled' : ''}>${escapeHtml(p.name)} · v${p.version || 1}${p.schema_valid === false ? ' · schema 不相容' : ''}</option>`).join('');
@@ -18575,11 +18628,18 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
           renderRemotionReferenceGallery(refs);
           const draft = await apiJson(`/api/projects/${currentProjectId}/remotion/draft`);
           if (draft && Object.keys(draft).length) {
+            const p = draft.parameters || {};
             if (draft.topic) document.getElementById('remotion-project-topic').value = draft.topic;
             if (draft.script) document.getElementById('remotion-project-script').value = draft.script;
-            if (draft.parameters?.fps) document.getElementById('remotion-project-fps').value = draft.parameters.fps;
-            if (draft.parameters?.remotion_ratio != null) { document.getElementById('remotion-render-ratio').value = draft.parameters.remotion_ratio; document.getElementById('remotion-ratio-value').value = `${draft.parameters.remotion_ratio}%`; }
-            if (draft.parameters?.advanced_props) document.getElementById('remotion-advanced-props').value = JSON.stringify(draft.parameters.advanced_props, null, 2);
+            if (p.duration_minutes != null) document.getElementById('remotion-project-duration').value = String(p.duration_minutes);
+            if (p.language) document.getElementById('remotion-project-language').value = p.language;
+            if (p.style_pack) document.getElementById('remotion-style-pack').value = p.style_pack;
+            if (p.aspect_ratio) document.getElementById('remotion-project-ratio').value = p.aspect_ratio;
+            if (p.fps) document.getElementById('remotion-project-fps').value = p.fps;
+            if (p.presenter_placement) document.getElementById('remotion-presenter-placement').value = p.presenter_placement;
+            if (p.voice_profile || p.default_avatar) _populateRemotionVoiceAndAvatarSelectors(p.voice_profile, p.default_avatar);
+            if (p.remotion_ratio != null) { document.getElementById('remotion-render-ratio').value = p.remotion_ratio; document.getElementById('remotion-ratio-value').value = `${p.remotion_ratio}%`; }
+            if (p.advanced_props) document.getElementById('remotion-advanced-props').value = JSON.stringify(p.advanced_props, null, 2);
             remotionDraftScenes = Array.isArray(draft.scenes) ? draft.scenes : [];
             renderRemotionSceneList();
           }
@@ -18614,14 +18674,79 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       await loadRemotionWorkspace();
     }
     async function deleteRemotionReference(id) { if (!currentProjectId) return; await apiRequest(`/api/projects/${currentProjectId}/remotion/references/${encodeURIComponent(id)}`, { method: 'DELETE' }); await loadRemotionWorkspace(); }
+    function _collectRemotionFormParameters() {
+      let advancedProps = {};
+      try { advancedProps = JSON.parse(document.getElementById('remotion-advanced-props')?.value || '{}'); } catch (_) { throw new Error('進階 props JSON 格式錯誤'); }
+      return {
+        density: 'full',
+        aspect_ratio: document.getElementById('remotion-project-ratio')?.value || '16:9',
+        duration_minutes: Number(document.getElementById('remotion-project-duration')?.value || 0.5),
+        language: document.getElementById('remotion-project-language')?.value || 'Traditional Chinese',
+        style_pack: document.getElementById('remotion-style-pack')?.value || 'auto_all',
+        voice_profile: document.getElementById('remotion-voice-select')?.value || null,
+        default_avatar: document.getElementById('remotion-avatar-select')?.value || null,
+        presenter_placement: document.getElementById('remotion-presenter-placement')?.value || 'none',
+        fps: Number(document.getElementById('remotion-project-fps')?.value || 30),
+        remotion_ratio: Number(document.getElementById('remotion-render-ratio')?.value || 100),
+        advanced_props: advancedProps,
+      };
+    }
+    async function generateRemotionScriptWithGemini() {
+      const topic = document.getElementById('remotion-project-topic')?.value.trim();
+      if (!topic) { showToast('請先輸入影片主題'); return null; }
+      const duration_minutes = Number(document.getElementById('remotion-project-duration')?.value || 0.5);
+      const language = document.getElementById('remotion-project-language')?.value || 'Traditional Chinese';
+      const btn = document.getElementById('btn-remotion-gen-script');
+      const statusEl = document.getElementById('remotion-draft-status');
+      if (btn) btn.disabled = true;
+      if (statusEl) statusEl.textContent = '🤖 正在使用 Gemini 檢索資料並生成腳本...';
+      try {
+        const res = await apiJson('/api/remotion/generate-script', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ topic, duration_minutes, language, llm_provider: 'gemini' }),
+        });
+        const scriptEl = document.getElementById('remotion-project-script');
+        if (scriptEl && res.script) scriptEl.value = res.script;
+        if (statusEl) statusEl.textContent = `✓ Gemini 已生成腳本（約 ${duration_minutes} 分鐘）`;
+        showToast('✓ Gemini 已生成腳本');
+        return res.script || '';
+      } catch (err) {
+        if (statusEl) statusEl.textContent = `❌ Gemini 生成腳本失敗：${err.message}`;
+        showToast(`Gemini 生成腳本失敗：${err.message}`);
+        return null;
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
     async function createRemotionProject() {
       const topic = document.getElementById('remotion-project-topic')?.value.trim();
-      const script = document.getElementById('remotion-project-script')?.value.trim();
-      if (!topic || !script) return showToast('Remotion Video 需要主題與完整 Script');
-      if (!remotionDraftScenes.length) return showToast('請先從 Script 建立 scene list');
-      let advancedProps = {}; try { advancedProps = JSON.parse(document.getElementById('remotion-advanced-props')?.value || '{}'); } catch (_) { return showToast('進階 props JSON 格式錯誤'); }
-      const parameters = { density: 'full', fps: Number(document.getElementById('remotion-project-fps')?.value || 30), remotion_ratio: Number(document.getElementById('remotion-render-ratio')?.value || 100), advanced_props: advancedProps };
-      const payload = { topic, user_research: script, project_mode: 'remotion', start_now: false, aspect_ratio: document.getElementById('remotion-project-ratio')?.value || '16:9', ai_video_percentage: Math.max(0, 100 - parameters.remotion_ratio), remotion: parameters };
+      if (!topic) return showToast('請先輸入影片主題');
+      let parameters;
+      try { parameters = _collectRemotionFormParameters(); } catch (err) { return showToast(err.message); }
+      let script = document.getElementById('remotion-project-script')?.value.trim();
+      if (!script) {
+        script = await generateRemotionScriptWithGemini();
+        if (!script) return;
+      }
+      if (!remotionDraftScenes.length) {
+        await generateRemotionScenesFromScript({ forceReplace: true });
+        if (!remotionDraftScenes.length) return;
+      }
+      const payload = {
+        topic,
+        user_research: script,
+        project_mode: 'remotion',
+        start_now: false,
+        duration_minutes: parameters.duration_minutes,
+        language: parameters.language,
+        voice_profile: parameters.voice_profile,
+        default_avatar: parameters.default_avatar,
+        presenter_placement: parameters.presenter_placement,
+        aspect_ratio: parameters.aspect_ratio,
+        ai_video_percentage: Math.max(0, 100 - parameters.remotion_ratio),
+        remotion: parameters,
+      };
       const result = await apiJson('/api/projects', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       currentProjectId = result.project_id;
       document.getElementById('remotion-draft-status').textContent = `已建立 draft：${result.project_id}`;
@@ -18629,15 +18754,17 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       if (!validation.valid) { document.getElementById('remotion-draft-status').textContent = validation.errors.join('；'); return showToast('Render 驗證失敗'); }
       await apiJson(`/api/projects/${currentProjectId}/remotion/draft`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ topic, script, parameters, scenes: remotionDraftScenes, preset_id: document.getElementById('remotion-preset-select')?.value || null, validation }) });
       await apiRequest(`/api/projects/${currentProjectId}/remotion/start`, { method: 'POST' });
-      showToast('✓ Remotion Video draft 已保存，背景 Render 已開始');
+      showToast('✓ Remotion Video 已排程：TTS → 講者/Remotion → 字幕 → Render');
     }
     async function saveRemotionPresetFromForm() {
       const name = prompt('請輸入 preset 名稱'); if (!name) return;
-      const res = await apiJson('/api/remotion/presets', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, parameters: { aspect_ratio: document.getElementById('remotion-project-ratio')?.value, fps: Number(document.getElementById('remotion-project-fps')?.value || 30), remotion_ratio: Number(document.getElementById('remotion-render-ratio')?.value || 100), advanced_props: JSON.parse(document.getElementById('remotion-advanced-props')?.value || '{}') }, scenes: remotionDraftScenes, source_project_id: currentProjectId }) });
+      let parameters;
+      try { parameters = _collectRemotionFormParameters(); } catch (err) { return showToast(err.message); }
+      const res = await apiJson('/api/remotion/presets', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, parameters, scenes: remotionDraftScenes, source_project_id: currentProjectId }) });
       showToast(`✓ 已保存 preset：${res.name}`); await loadRemotionWorkspace();
     }
     function currentRemotionPresetPayload(name) {
-      return { name, parameters: { aspect_ratio: document.getElementById('remotion-project-ratio')?.value, fps: Number(document.getElementById('remotion-project-fps')?.value || 30), remotion_ratio: Number(document.getElementById('remotion-render-ratio')?.value || 100), advanced_props: JSON.parse(document.getElementById('remotion-advanced-props')?.value || '{}') }, scenes: remotionDraftScenes, source_project_id: currentProjectId };
+      return { name, parameters: _collectRemotionFormParameters(), scenes: remotionDraftScenes, source_project_id: currentProjectId };
     }
     async function updateSelectedRemotionPreset() {
       const select = document.getElementById('remotion-preset-select'); const id = select?.value;
@@ -18657,6 +18784,11 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       const id = document.getElementById('remotion-preset-select')?.value; if (!id) return;
       const p = await apiJson(`/api/remotion/presets/${id}`); const params = p.parameters || {};
       if (params.aspect_ratio) document.getElementById('remotion-project-ratio').value = params.aspect_ratio;
+      if (params.duration_minutes != null) document.getElementById('remotion-project-duration').value = String(params.duration_minutes);
+      if (params.language) document.getElementById('remotion-project-language').value = params.language;
+      if (params.style_pack) document.getElementById('remotion-style-pack').value = params.style_pack;
+      if (params.presenter_placement) document.getElementById('remotion-presenter-placement').value = params.presenter_placement;
+      if (params.voice_profile || params.default_avatar) _populateRemotionVoiceAndAvatarSelectors(params.voice_profile, params.default_avatar);
       if (params.fps) document.getElementById('remotion-project-fps').value = params.fps;
       if (params.remotion_ratio != null) { document.getElementById('remotion-render-ratio').value = params.remotion_ratio; document.getElementById('remotion-ratio-value').value = `${params.remotion_ratio}%`; }
       if (params.advanced_props) document.getElementById('remotion-advanced-props').value = JSON.stringify(params.advanced_props, null, 2);
@@ -18668,9 +18800,39 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
     let remotionReferences = [];
     let remotionStyles = [];
     let remotionStatusTimer = null;
+    function _computeRemotionPresenterIndices(scenes, placement) {
+      const n = scenes.length;
+      if (!n || !placement || placement === 'none') return new Set();
+      if (placement === 'intro') return new Set([0]);
+      if (placement === 'intro_outro') return n > 1 ? new Set([0, n - 1]) : new Set([0]);
+      if (placement === 'intro_middle_outro') {
+        const s = new Set([0]);
+        if (n >= 3) s.add(Math.floor(n / 2));
+        if (n > 1) s.add(n - 1);
+        return s;
+      }
+      if (placement === 'chapters') {
+        const s = new Set();
+        const seen = new Set();
+        scenes.forEach((sc, idx) => {
+          const sec = String(sc.section || '').trim();
+          if (sec && !seen.has(sec)) { seen.add(sec); s.add(idx); }
+        });
+        return s.size ? s : new Set([0]);
+      }
+      if (placement === 'all') return new Set(scenes.map((_, i) => i));
+      return new Set();
+    }
+    function onRemotionPresenterPlacementChange() {
+      const placement = document.getElementById('remotion-presenter-placement')?.value || 'none';
+      if (!remotionDraftScenes.length) return;
+      const idxs = _computeRemotionPresenterIndices(remotionDraftScenes, placement);
+      remotionDraftScenes.forEach((sc, i) => { sc.presenter_slot = idxs.has(i); });
+      renderRemotionSceneList();
+    }
     function _buildLocalRemotionSceneFallback(script) {
       const parts = script.split(/\n\s*\n|(?<=[。！？!?])\s+|\n+/).map(x => x.trim()).filter(Boolean);
-      const middle = Math.floor(parts.length / 2);
+      const placement = document.getElementById('remotion-presenter-placement')?.value || 'none';
       const fallbackPool = [
         'RveChapterTitleScene',
         'RveCardFlipScene',
@@ -18680,7 +18842,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
         'RveTrendLineScene',
         'RveDonutChartScene',
       ];
-      return parts.map((narration, i) => {
+      const base = parts.map((narration, i) => {
         const lower = narration.toLowerCase();
         const reference_ids = remotionReferences.filter(ref => {
           const stem = String(ref.filename || '').replace(/\.[^.]+$/, '').toLowerCase();
@@ -18695,26 +18857,46 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
           renderer_confirmed: true,
           props: {},
           reference_ids,
-          presenter_slot: parts.length >= 3 && (i === 0 || i === middle || i === parts.length - 1),
+          presenter_slot: false,
         };
       });
+      const idxs = _computeRemotionPresenterIndices(base, placement);
+      base.forEach((sc, i) => { sc.presenter_slot = idxs.has(i); });
+      return base;
     }
-    async function generateRemotionScenesFromScript() {
-      const script = document.getElementById('remotion-project-script')?.value.trim(); if (!script) return showToast('請先輸入完整 Script');
+    async function generateRemotionScenesFromScript(options = {}) {
+      const script = document.getElementById('remotion-project-script')?.value.trim(); if (!script) return showToast('請先輸入完整 Script 或使用 Gemini 生成');
+      const style_pack = document.getElementById('remotion-style-pack')?.value || 'auto_all';
+      const duration_minutes = Number(document.getElementById('remotion-project-duration')?.value || 0.5);
+      const presenter_placement = document.getElementById('remotion-presenter-placement')?.value || 'none';
+      const btn = document.getElementById('btn-remotion-plan-scenes');
+      const statusEl = document.getElementById('remotion-draft-status');
+      if (btn) btn.disabled = true;
+      if (statusEl) statusEl.textContent = '🎬 正在使用 Gemini 挑選 Remotion 組件並生成圖表數據...';
       let generated = [];
       try {
         const res = await apiJson('/api/remotion/auto-plan-script', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ script, references: remotionReferences }),
+          body: JSON.stringify({
+            script,
+            references: remotionReferences,
+            style_pack,
+            use_llm: true,
+            llm_provider: 'gemini',
+            duration_minutes,
+            presenter_placement,
+          }),
         });
         generated = Array.isArray(res?.scenes) && res.scenes.length ? res.scenes : _buildLocalRemotionSceneFallback(script);
       } catch (_err) {
         generated = _buildLocalRemotionSceneFallback(script);
+      } finally {
+        if (btn) btn.disabled = false;
       }
       if (!generated.length) return showToast('無法從腳本切分有效場景');
-      if (remotionDraftScenes.length) {
-        const action = prompt('Scene list 已有手動設定。輸入 replace 取代、merge 合併，或 cancel 取消。', 'merge');
+      if (remotionDraftScenes.length && !options.forceReplace) {
+        const action = prompt('Scene list 已有手動設定。輸入 replace 取代、merge 合併，或 cancel 取消。', 'replace');
         if (!action || action.toLowerCase() === 'cancel') return;
         if (action.toLowerCase() === 'merge') {
           remotionDraftScenes = generated.map((scene, i) => ({ ...scene, ...(remotionDraftScenes[i] || {}), narration: scene.narration, scene_id: i + 1 }));
@@ -18722,7 +18904,8 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
         else return showToast('請輸入 replace、merge 或 cancel');
       } else remotionDraftScenes = generated;
       renderRemotionSceneList();
-      showToast(`✓ 已自動規劃 ${generated.length} 個 100% Remotion 場景`);
+      if (statusEl) statusEl.textContent = `✓ 已由 Gemini 規劃 ${remotionDraftScenes.length} 個 Remotion 場景與圖表數據`;
+      showToast(`✓ 已自動規劃 ${remotionDraftScenes.length} 個 Remotion 場景`);
     }
     async function fetchRemotionApiData() {
       if (!currentProjectId) return showToast('請先建立或選擇 project');
@@ -18734,9 +18917,27 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
         showToast(result.cached ? '⚠ API 無法連線，已載入最近快取' : '✓ API 資料已保存至 project cache');
       } catch (err) { showToast(`API 取得失敗：${err.message}`); }
     }
+    function _summarizeRemotionProps(props) {
+      if (!props || typeof props !== 'object') return '';
+      const parts = [];
+      if (props.title || props.headline) parts.push(String(props.title || props.headline).slice(0, 18));
+      if (Array.isArray(props.bars)) parts.push(`bars:${props.bars.length}`);
+      if (Array.isArray(props.points)) parts.push(`points:${props.points.length}`);
+      if (Array.isArray(props.segments)) parts.push(`segments:${props.segments.length}`);
+      if (Array.isArray(props.steps)) parts.push(`steps:${props.steps.length}`);
+      if (Array.isArray(props.pillars)) parts.push(`pillars:${props.pillars.length}`);
+      if (Array.isArray(props.events)) parts.push(`events:${props.events.length}`);
+      if (Array.isArray(props.items)) parts.push(`items:${props.items.length}`);
+      if (props.mainStat || props.metric || props.value) parts.push(String(props.mainStat || props.metric || props.value));
+      if (props.beforeDisplay && props.afterDisplay) parts.push(`${props.beforeDisplay}→${props.afterDisplay}`);
+      return parts.join(' · ');
+    }
     function renderRemotionSceneList() {
       const root = document.getElementById('remotion-scene-list'); if (!root) return;
-      root.innerHTML = remotionDraftScenes.map((scene, i) => `<div style="display:grid;grid-template-columns:40px minmax(220px,1fr) 180px 115px 150px 85px auto;gap:7px;align-items:center;background:#0f172a;border:1px solid #334155;padding:8px;border-radius:7px;"><b>#${i + 1}</b><input value="${escapeHtml(scene.narration || '')}" onchange="updateRemotionScene(${i},'narration',this.value)"><select onchange="updateRemotionScene(${i},'composition',this.value)">${remotionStyles.map(style => `<option value="${style.id}" ${scene.composition === style.id ? 'selected' : ''}>${escapeHtml(style.name)}</option>`).join('') || `<option>${scene.composition || 'FoxHeaderScene'}</option>`}</select><select onchange="updateRemotionScene(${i},'renderer',this.value)"><option value="remotion" ${scene.renderer === 'remotion' ? 'selected' : ''}>Remotion</option><option value="image" ${scene.renderer === 'image' ? 'selected' : ''}>Non-Remotion</option></select><select multiple title="場景參考圖" onchange="updateRemotionSceneReferences(${i},this)">${remotionReferences.map(ref => `<option value="${ref.id}" ${(scene.reference_ids || []).includes(ref.id) ? 'selected' : ''}>${escapeHtml(ref.filename)}</option>`).join('')}</select><label style="font-size:10px;"><input type="checkbox" ${scene.presenter_slot ? 'checked' : ''} onchange="updateRemotionScene(${i},'presenter_slot',this.checked)"> Presenter</label><span><button class="btn-sec" onclick="moveRemotionScene(${i},-1)" ${i === 0 ? 'disabled' : ''}>↑</button> <button class="btn-sec" onclick="moveRemotionScene(${i},1)" ${i === remotionDraftScenes.length - 1 ? 'disabled' : ''}>↓</button> <button class="btn-sec" onclick="editRemotionSceneProps(${i})">Props</button> <button class="btn-sec" onclick="previewRemotionScene(${i})">預覽</button> <button class="btn-sec" onclick="removeRemotionScene(${i})">×</button></span></div>`).join('') || '<span style="color:#64748b;font-size:12px;">尚未建立 scene list</span>';
+      root.innerHTML = remotionDraftScenes.map((scene, i) => {
+        const propSummary = _summarizeRemotionProps(scene.props);
+        return `<div style="display:grid;grid-template-columns:40px minmax(220px,1fr) 210px 115px 140px 85px auto;gap:7px;align-items:center;background:#0f172a;border:1px solid #334155;padding:8px;border-radius:7px;"><b>#${i + 1}</b><div><input style="width:100%;box-sizing:border-box;" value="${escapeHtml(scene.narration || '')}" onchange="updateRemotionScene(${i},'narration',this.value)">${propSummary ? `<div style="font-size:10px;color:#38bdf8;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(propSummary)}">${escapeHtml(propSummary)}</div>` : ''}</div><select onchange="updateRemotionScene(${i},'composition',this.value)">${remotionStyles.map(style => `<option value="${style.id}" ${scene.composition === style.id ? 'selected' : ''}>${escapeHtml(style.name)}</option>`).join('') || `<option>${scene.composition || 'FoxHeaderScene'}</option>`}</select><select onchange="updateRemotionScene(${i},'renderer',this.value)"><option value="remotion" ${scene.renderer === 'remotion' ? 'selected' : ''}>Remotion</option><option value="image" ${scene.renderer === 'image' ? 'selected' : ''}>Non-Remotion</option></select><select multiple title="場景參考圖" onchange="updateRemotionSceneReferences(${i},this)">${remotionReferences.map(ref => `<option value="${ref.id}" ${(scene.reference_ids || []).includes(ref.id) ? 'selected' : ''}>${escapeHtml(ref.filename)}</option>`).join('')}</select><label style="font-size:10px;"><input type="checkbox" ${scene.presenter_slot ? 'checked' : ''} onchange="updateRemotionScene(${i},'presenter_slot',this.checked)"> Presenter</label><span><button class="btn-sec" onclick="moveRemotionScene(${i},-1)" ${i === 0 ? 'disabled' : ''}>↑</button> <button class="btn-sec" onclick="moveRemotionScene(${i},1)" ${i === remotionDraftScenes.length - 1 ? 'disabled' : ''}>↓</button> <button class="btn-sec" onclick="editRemotionSceneProps(${i})">Props</button> <button class="btn-sec" onclick="previewRemotionScene(${i})">預覽</button> <button class="btn-sec" onclick="removeRemotionScene(${i})">×</button></span></div>`;
+      }).join('') || '<span style="color:#64748b;font-size:12px;">尚未建立 scene list</span>';
     }
     function updateRemotionScene(index, key, value) { remotionDraftScenes[index][key] = value; if (key === 'renderer') remotionDraftScenes[index].renderer_confirmed = true; }
     function updateRemotionSceneReferences(index, select) { remotionDraftScenes[index].reference_ids = Array.from(select.selectedOptions).map(option => option.value); }
@@ -18752,7 +18953,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
     async function previewRemotionScene(index) {
       const scene = remotionDraftScenes[index]; if (!scene || scene.renderer !== 'remotion') return showToast('只有 Remotion scene 可預覽');
       let shared = {}; try { shared = JSON.parse(document.getElementById('remotion-advanced-props')?.value || '{}'); } catch (_) {}
-      const result = await apiJson('/api/remotion/render', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ composition: scene.composition, props: { headline: scene.narration, title: scene.narration, ...shared, ...(scene.props || {}) }, duration_frames: 90, fps: Number(document.getElementById('remotion-project-fps')?.value || 30) }) });
+      const result = await apiJson('/api/remotion/render', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ composition: scene.composition, props: { headline: scene.props?.title || scene.narration, title: scene.props?.title || scene.narration, ...shared, ...(scene.props || {}) }, duration_frames: 90, fps: Number(document.getElementById('remotion-project-fps')?.value || 30) }) });
       document.getElementById('remotion-preview-result').innerHTML = `<video src="${result.mp4_url}" controls style="width:100%;max-width:720px;border-radius:8px;"></video>`;
     }
     function exportSelectedRemotionPreset() { const id = document.getElementById('remotion-preset-select')?.value; if (!id || id.startsWith('style:')) return showToast('請選擇已保存的使用者 preset'); window.location.href = `/api/remotion/presets/${encodeURIComponent(id)}/export`; }
@@ -18761,6 +18962,8 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
     window.renderRemotionReferenceGallery = renderRemotionReferenceGallery;
     window.uploadRemotionReferences = uploadRemotionReferences;
     window.deleteRemotionReference = deleteRemotionReference;
+    window.generateRemotionScriptWithGemini = generateRemotionScriptWithGemini;
+    window.onRemotionPresenterPlacementChange = onRemotionPresenterPlacementChange;
     window.createRemotionProject = createRemotionProject;
     window.saveRemotionPresetFromForm = saveRemotionPresetFromForm;
     window.updateSelectedRemotionPreset = updateSelectedRemotionPreset;

@@ -2487,7 +2487,7 @@ class DocumentaryPipeline(BasePipeline):
         if (self.p.data.settings or {}).get("project_mode") == "remotion":
             draft = ((self.p.data.settings or {}).get("remotion") or {}).get("draft") or {}
             configured = {int(item.get("scene_id", i + 1)): item for i, item in enumerate(draft.get("scenes") or [])}
-            from generators.remotion_cards import render_scene_card
+            from generators.remotion_cards import extract_card_props, render_scene_card
             fps = int((draft.get("parameters") or {}).get("fps") or 30)
             completed = 0
             for scene in scenes:
@@ -2495,13 +2495,25 @@ class DocumentaryPipeline(BasePipeline):
                     raise PipelineCancelled()
                 item = configured.get(scene.scene_id, {})
                 renderer = item.get("renderer", "remotion")
+                is_completed_avatar = (
+                    avatar_allowed
+                    and (getattr(scene, "is_presenter", False) or scene.visual_type == "talking_head")
+                    and scene.animation.status == Status.COMPLETED
+                    and self.p.abs(scene.animation.path)
+                    and self.p.abs(scene.animation.path).exists()
+                    and (scene.animation.meta or {}).get("provider") != "remotion"
+                )
+                if is_completed_avatar:
+                    if renderer == "remotion":
+                        completed += 1
+                    self.p.progress("animation", completed, max(1, len(scenes)))
+                    continue
                 if renderer != "remotion":
                     scene.ai_video = False
                     continue
                 composition = item.get("composition") or "FoxHeaderScene"
                 props = {
-                    "headline": scene.narration,
-                    "title": scene.narration,
+                    **extract_card_props(scene),
                     **dict((draft.get("parameters") or {}).get("advanced_props") or {}),
                     **dict(item.get("props") or {}),
                 }
@@ -2522,7 +2534,7 @@ class DocumentaryPipeline(BasePipeline):
                 raise RuntimeError(f"Remotion scene count mismatch: rendered {completed}, expected {expected}")
             elapsed = round(max(0.1, time.perf_counter() - t0), 1)
             self.p.set_stage("animation", Status.COMPLETED, done=completed, total=max(1, expected), duration_override=elapsed)
-            self.p.set_stage("presenter", Status.COMPLETED, done=0, total=1)
+            self.p.set_stage("presenter", Status.COMPLETED, done=len(presenter_scenes), total=max(1, len(presenter_scenes)))
             return
 
 

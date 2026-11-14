@@ -53,16 +53,134 @@ def get_remotion_styles():
     return REMOTION_STYLES
 
 
+class RemotionGenerateScriptRequest(BaseModel):
+    topic: str
+    duration_minutes: float = 0.5
+    language: str = "Traditional Chinese"
+    user_research: str = ""
+    llm_provider: str = "gemini"
+
+
+def generate_remotion_script_data(
+    topic: str,
+    duration_minutes: float = 0.5,
+    language: str = "Traditional Chinese",
+    user_research: str = "",
+    llm_provider: str = "gemini",
+) -> dict[str, Any]:
+    """Generate a duration-calibrated script using Stage 1 research and Stage 2 script writer."""
+    clean_topic = (topic or "").strip()
+    if not clean_topic:
+        raise HTTPException(status_code=400, detail="請輸入影片主題")
+
+    duration_val = float(duration_minutes or 0.5)
+    provider = (llm_provider or "gemini").strip() or "gemini"
+
+    from agents.researcher import research as run_research
+    from agents.scene_planner import segment
+    from agents.script_writer import write_script
+
+    try:
+        res_data = run_research(
+            clean_topic,
+            language,
+            True,
+            lambda _p: None,
+            duration_minutes=duration_val,
+            provider_override=provider,
+            user_research=user_research.strip() or None,
+        )
+    except Exception as exc:
+        log.warning("Remotion script research failed (%s); using minimal structure fallback", exc)
+        res_data = {
+            "main_question": clean_topic,
+            "narrative_structure": [
+                {"section": "開場鉤子 (Hook)"},
+                {"section": "核心解析"},
+                {"section": "總結啟發"},
+            ],
+            "user_research": user_research.strip(),
+        }
+
+    settings = {
+        "video": {"duration_minutes": duration_val, "language": language},
+        "script": {"speech_rate_wpm": 150},
+    }
+    try:
+        scr = write_script(
+            clean_topic,
+            res_data,
+            settings,
+            lambda _p: None,
+            provider_override=provider,
+        )
+    except Exception as exc:
+        log.error("Remotion script generation failed: %s", exc)
+        raise HTTPException(status_code=502, detail=f"Gemini 生成腳本失敗：{exc}") from exc
+
+    sections = scr.get("sections") or []
+    try:
+        segmented = segment(sections, 150.0, 6.0, 4.0, 10.0, seed=len(clean_topic))
+        beats = [item["narration"].strip() for item in segmented if (item.get("narration") or "").strip()]
+    except Exception:
+        beats = []
+    if not beats:
+        beats = [str(sec.get("text") or "").strip() for sec in sections if str(sec.get("text") or "").strip()]
+    formatted_script = "\n\n".join(beats)
+
+    return {
+        "title": scr.get("title") or clean_topic,
+        "script": formatted_script,
+        "sections": sections,
+        "research": res_data,
+        "duration_minutes": duration_val,
+    }
+
+
+@router.post("/api/remotion/generate-script")
+def generate_remotion_script(req: RemotionGenerateScriptRequest):
+    return generate_remotion_script_data(
+        topic=req.topic,
+        duration_minutes=req.duration_minutes,
+        language=req.language,
+        user_research=req.user_research,
+        llm_provider=req.llm_provider,
+    )
+
+
 class RemotionAutoPlanRequest(BaseModel):
     script: str
     references: list[dict[str, Any]] = []
+    style_pack: str = "auto_all"
+    use_llm: bool = False
+    llm_provider: str = "gemini"
+    duration_minutes: Optional[float] = None
+    presenter_placement: Optional[str] = None
 
 
 @router.post("/api/remotion/auto-plan-script")
 def auto_plan_remotion_script(req: RemotionAutoPlanRequest):
-    from generators.remotion_cards import plan_100_percent_remotion_scenes
+    from generators.remotion_cards import (
+        plan_100_percent_remotion_scenes,
+        plan_llm_remotion_scenes,
+    )
 
-    scenes = plan_100_percent_remotion_scenes(req.script, req.references)
+    if req.use_llm:
+        scenes = plan_llm_remotion_scenes(
+            req.script,
+            req.references,
+            style_pack=req.style_pack,
+            llm_provider=req.llm_provider,
+            duration_minutes=req.duration_minutes,
+            presenter_placement=req.presenter_placement or "intro_middle_outro",
+        )
+    else:
+        scenes = plan_100_percent_remotion_scenes(
+            req.script,
+            req.references,
+            style_pack=req.style_pack,
+            presenter_placement=req.presenter_placement,
+        )
     return {"scenes": scenes}
 
 

@@ -349,10 +349,13 @@ def validate_remotion_project(project_id: str, req: RemotionValidationRequest):
     remotion_count = 0
     for index, scene in enumerate(req.scenes, 1):
         renderer = scene.get("renderer", "remotion")
+        is_presenter = bool(scene.get("presenter_slot") or scene.get("is_presenter"))
         if renderer == "remotion":
             remotion_count += 1
             if not scene.get("composition"):
                 errors.append(f"Scene {index} 缺少 Remotion composition")
+        elif is_presenter:
+            remotion_count += 1
         elif not scene.get("renderer_confirmed", False):
             errors.append(f"Scene {index} 的非 Remotion renderer 尚未確認")
     actual_ratio = round(remotion_count / len(req.scenes) * 100, 2) if req.scenes else 0
@@ -370,30 +373,120 @@ def validate_remotion_project(project_id: str, req: RemotionValidationRequest):
 @router.post("/api/projects/{project_id}/remotion/start")
 def start_remotion_project(project_id: str, background_tasks: BackgroundTasks):
     project = get_project(project_id)
-    remotion = project.data.settings.get("remotion") or {}
-    draft = remotion.get("draft") or {}
-    scenes_data = draft.get("scenes") or []
+    remotion = project.data.settings.setdefault("remotion", {})
+    draft = dict(remotion.get("draft") or {})
+    parameters = dict(draft.get("parameters") or {})
+    topic = str(draft.get("topic") or project.data.topic or "").strip()
     script = str(draft.get("script") or "").strip()
+    scenes_data = list(draft.get("scenes") or [])
+
+    duration_minutes = float(
+        parameters.get("duration_minutes")
+        or (project.data.settings.get("video") or {}).get("duration_minutes")
+        or 0.5
+    )
+    language = str(
+        parameters.get("language")
+        or (project.data.settings.get("video") or {}).get("language")
+        or "Traditional Chinese"
+    )
+    style_pack = str(parameters.get("style_pack") or remotion.get("style_pack") or "auto_all")
+    presenter_placement = str(
+        parameters.get("presenter_placement")
+        or project.data.settings.get("presenter_placement")
+        or "none"
+    )
+
+    if not script and topic:
+        from api_routes.remotion import generate_remotion_script_data
+
+        script_res = generate_remotion_script_data(
+            topic=topic,
+            duration_minutes=duration_minutes,
+            language=language,
+            llm_provider="gemini",
+        )
+        script = script_res["script"]
+        draft["script"] = script
+        if script_res.get("title") and not project.data.title:
+            project.data.title = script_res["title"]
+        if hasattr(project, "write_json"):
+            project.write_json("research/research.json", script_res.get("research") or {})
+            project.write_json(
+                "script/script.json",
+                {"title": script_res.get("title") or topic, "sections": script_res.get("sections") or []},
+            )
+
+    if not scenes_data and script:
+        from generators.remotion_cards import plan_llm_remotion_scenes
+
+        scenes_data = plan_llm_remotion_scenes(
+            script,
+            references=remotion.get("reference_images", []),
+            style_pack=style_pack,
+            llm_provider="gemini",
+            duration_minutes=duration_minutes,
+            presenter_placement=presenter_placement,
+        )
+        draft["scenes"] = scenes_data
+
+    remotion["draft"] = draft
     validation = validate_remotion_project(
         project_id,
         RemotionValidationRequest(
             script=script,
-            parameters=draft.get("parameters") or {},
+            parameters=parameters,
             scenes=scenes_data,
         ),
     )
     if not validation["valid"]:
         raise HTTPException(status_code=400, detail="；".join(validation["errors"]))
 
+    voice_profile = parameters.get("voice_profile") or project.data.settings.get("voice_profile")
+    default_avatar = parameters.get("default_avatar") or project.data.settings.get("default_avatar")
+    aspect_ratio = str(
+        parameters.get("aspect_ratio")
+        or project.data.settings.get("aspect_ratio")
+        or (project.data.settings.get("video") or {}).get("aspect_ratio")
+        or "16:9"
+    )
+    fps = int(parameters.get("fps") or (project.data.settings.get("video") or {}).get("fps") or 30)
+    if aspect_ratio == "9:16":
+        width, height = 1080, 1920
+    elif aspect_ratio == "1:1":
+        width, height = 1080, 1080
+    else:
+        width, height = 1920, 1080
+
+    video_settings = project.data.settings.setdefault("video", {})
+    video_settings.update(
+        {
+            "duration_minutes": duration_minutes,
+            "language": language,
+            "aspect_ratio": aspect_ratio,
+            "width": width,
+            "height": height,
+            "fps": fps,
+        }
+    )
+    project.data.settings["aspect_ratio"] = aspect_ratio
+    if voice_profile:
+        project.data.settings["voice_profile"] = voice_profile
+    if default_avatar:
+        project.data.settings["default_avatar"] = default_avatar
+
     scenes: list[Scene] = []
     reference_map = {
         ref.get("id"): ref
-        for ref in (project.data.settings.get("remotion") or {}).get("reference_images", [])
+        for ref in remotion.get("reference_images", [])
         if ref.get("id")
     }
     for index, item in enumerate(scenes_data, 1):
         renderer = item.get("renderer", "remotion")
         composition = item.get("composition") or "FoxHeaderScene"
+        is_pres = bool(item.get("presenter_slot") or item.get("is_presenter")) and (
+            presenter_placement != "none" or bool(default_avatar)
+        )
         scene_props = dict(item.get("props") or {})
         scene_props.setdefault("headline", item.get("narration", ""))
         meta = {
@@ -415,20 +508,32 @@ def start_remotion_project(project_id: str, background_tasks: BackgroundTasks):
             section=str(item.get("section") or f"Scene {index}"),
             narration=str(item.get("narration") or ""),
             estimated_duration=float(item.get("estimated_duration") or 6.0),
-            visual_type="diagram" if renderer == "remotion" else "image",
-            is_presenter=False,
+            visual_type="talking_head" if is_pres else ("diagram" if renderer == "remotion" else "image"),
+            is_presenter=is_pres,
+            avatar_profile=(item.get("avatar_profile") or default_avatar) if is_pres else None,
             ai_video=False,
             image=image_asset,
             animation=Asset(status=Status.PENDING, meta=meta),
         ))
-    project.set_scenes(scenes)
+
+    any_presenter = any(s.is_presenter for s in scenes)
+    project.data.settings["presenter_placement"] = (
+        presenter_placement if (presenter_placement != "none" and any_presenter) else ("intro" if any_presenter else "none")
+    )
+    project.data.settings["auto_presenter"] = any_presenter
+    project.data.settings["avatar_enabled"] = any_presenter
     project.data.settings["project_mode"] = "remotion"
     project.data.settings.setdefault("stage_models", {})["animation"] = "remotion"
     project.data.settings.setdefault("animation", {})["provider"] = "remotion"
-    project.data.settings["remotion"]["draft"]["validation"] = validation
+    remotion["style_pack"] = style_pack
+    remotion["draft"]["validation"] = validation
+    project.set_scenes(scenes)
     project.save()
 
-    needs_images = any(item.get("renderer", "remotion") != "remotion" for item in scenes_data)
+    needs_images = any(
+        item.get("renderer", "remotion") != "remotion" and not (item.get("presenter_slot") or item.get("is_presenter"))
+        for item in scenes_data
+    )
     stages = (["prompts", "images"] if needs_images else []) + ["voice", "music", "animation", "subtitles", "render"]
 
     def prepare(target):

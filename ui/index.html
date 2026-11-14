@@ -109,14 +109,26 @@
 
   <div id="tab-remotion" class="tab-content">
     <div class="card">
-      <div class="card-title">⚛️ Remotion Video <span style="font-size:12px;color:#94a3b8;font-weight:400;">Remotion-first project builder</span></div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;">
-        <label>主題 / Title<input id="remotion-project-topic" type="text" placeholder="輸入影片主題" style="width:100%;margin-top:5px;"></label>
+      <div class="card-title">⚛️ Remotion Video <span style="font-size:12px;color:#94a3b8;font-weight:400;">Gemini Script + LLM Remotion Director + TTS / Avatar / Subtitles / Render</span></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;">
+        <label>主題 / Topic<input id="remotion-project-topic" type="text" placeholder="輸入影片主題（可直接一鍵生成並渲染）" style="width:100%;box-sizing:border-box;margin-top:5px;"></label>
+        <label>目標時長 / Length<select id="remotion-project-duration" style="width:100%;margin-top:5px;"><option value="0.5" selected>30 秒 · 0.5 min</option><option value="1">1 分鐘 · 1 min</option><option value="5">5 分鐘 · 5 min</option><option value="10">10 分鐘 · 10 min</option></select></label>
+        <label>旁白語言 / Language<select id="remotion-project-language" style="width:100%;margin-top:5px;"><option value="Traditional Chinese" selected>Traditional Chinese (台灣繁體中文)</option><option value="English">English</option><option value="Japanese">Japanese</option><option value="Spanish">Spanish</option></select></label>
+        <label>Remotion 風格套件 / Style Pack<select id="remotion-style-pack" style="width:100%;margin-top:5px;"><option value="auto_all" selected>🤖 Auto All 全庫智能匹配</option><option value="rve">📊 RVE 動態圖表套件</option><option value="modern_tech_explainer">✨ Gary Chen 現代科技解說</option><option value="coordinate_zero">🧭 座標零 桌面實驗室</option><option value="finance_market">📈 金融市場與財報</option><option value="archival_history">📜 歷史檔案與編年</option><option value="vox_journalism">🗞️ Vox 深度調查</option><option value="fox_documentary">📌 fOx 紀錄片資訊卡</option></select></label>
+        <label>聲音形象 / Voice Profile<select id="remotion-voice-select" style="width:100%;margin-top:5px;"><option value="">載入音色中...</option></select></label>
+        <label>虛擬講者 / Avatar Presenter<select id="remotion-avatar-select" style="width:100%;margin-top:5px;"><option value="">(不使用虛擬講者)</option></select></label>
+        <label>講者出鏡位置 / Placement<select id="remotion-presenter-placement" onchange="onRemotionPresenterPlacementChange()" style="width:100%;margin-top:5px;"><option value="none" selected>🚫 不出鏡 Pure Remotion</option><option value="intro">🎬 僅開頭 Scene 1</option><option value="intro_outro">🎯 開頭 + 結尾</option><option value="intro_middle_outro">⭐ 開頭 + 中間 + 結尾</option><option value="chapters">📑 各章節開頭</option><option value="all">🎙️ 全片講者</option></select></label>
         <label>輸出比例<select id="remotion-project-ratio" style="width:100%;margin-top:5px;"><option>16:9</option><option>9:16</option><option>1:1</option></select></label>
-        <label>FPS<input id="remotion-project-fps" type="number" value="30" min="1" max="120" style="width:100%;margin-top:5px;"></label>
-        <label>Remotion 比例 <output id="remotion-ratio-value">100%</output><input id="remotion-render-ratio" type="range" min="0" max="100" value="100" oninput="document.getElementById('remotion-ratio-value').value=this.value+'%'" style="width:100%;"></label>
+        <label>FPS<input id="remotion-project-fps" type="number" value="30" min="1" max="120" style="width:100%;box-sizing:border-box;margin-top:5px;"></label>
+        <label>Remotion 比例 <output id="remotion-ratio-value">100%</output><input id="remotion-render-ratio" type="range" min="0" max="100" value="100" oninput="document.getElementById('remotion-ratio-value').value=this.value+'%'" style="width:100%;margin-top:8px;"></label>
       </div>
-      <label style="display:block;margin-top:12px;">完整 Script（必填）<textarea id="remotion-project-script" rows="6" placeholder="請貼上完整 script；Remotion Video 不會自動產生 script"></textarea></label>
+      <div style="margin-top:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+          <label for="remotion-project-script" style="font-weight:600;">完整 Script <span style="font-size:11px;color:#94a3b8;font-weight:400;">（可手動貼上，或由 Gemini 依主題與時長自動研究生成）</span></label>
+          <button type="button" id="btn-remotion-gen-script" class="btn-sec" onclick="generateRemotionScriptWithGemini()">🤖 用 Gemini 生成 Script</button>
+        </div>
+        <textarea id="remotion-project-script" rows="6" placeholder="輸入上方主題與時長後，點擊「🤖 用 Gemini 生成 Script」或直接點擊「建立並 Render Remotion Video」一鍵自動生成；也可手動貼上完整腳本" style="width:100%;box-sizing:border-box;margin-top:6px;"></textarea>
+      </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center;">
         <select id="remotion-preset-select" style="min-width:220px;"><option value="">選擇 preset</option></select>
         <button type="button" class="btn-sec" onclick="loadRemotionPresetIntoForm()">載入 preset</button>
@@ -127,13 +139,13 @@
         <label class="btn-sec" style="cursor:pointer;">匯入 preset<input type="file" accept=".remotion-preset,.zip" onchange="importRemotionPreset(this.files[0])" style="display:none;"></label>
         <button type="button" class="btn-primary" onclick="createRemotionProject()">建立並 Render Remotion Video</button>
       </div>
-      <details style="margin-top:14px;"><summary style="cursor:pointer;font-weight:700;color:#38bdf8;">進階 Remotion props</summary><textarea id="remotion-advanced-props" rows="7" style="font-family:monospace;margin-top:8px;">{
+      <details style="margin-top:14px;"><summary style="cursor:pointer;font-weight:700;color:#38bdf8;">進階 Remotion props</summary><textarea id="remotion-advanced-props" rows="7" style="width:100%;box-sizing:border-box;font-family:monospace;margin-top:8px;">{
   "accentColor": "#38BDF8",
   "dim": 0.25
 }</textarea></details>
       <details style="margin-top:10px;"><summary style="cursor:pointer;font-weight:700;color:#38bdf8;">建立階段外部 API 資料</summary><div style="display:flex;gap:8px;margin-top:8px;"><input id="remotion-api-url" type="url" placeholder="https://api.example.com/data" style="flex:1;"><input id="remotion-api-cache-key" value="default" placeholder="cache key" style="width:150px;"><button class="btn-sec" onclick="fetchRemotionApiData()">取得並快取</button></div><pre id="remotion-api-result" style="max-height:220px;overflow:auto;background:#060b16;padding:8px;border-radius:6px;color:#94a3b8;"></pre></details>
       <div style="margin-top:16px;padding-top:12px;border-top:1px solid #1e293b;">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;"><b>Scene list</b><div><button type="button" class="btn-sec" onclick="generateRemotionScenesFromScript()">從 Script 建立 scenes</button> <button type="button" class="btn-sec" onclick="addRemotionScene()">＋ Scene</button></div></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;"><b>Scene list</b><div><button type="button" id="btn-remotion-plan-scenes" class="btn-sec" onclick="generateRemotionScenesFromScript()">🎬 用 Gemini 規劃 Remotion 場景與數據</button> <button type="button" class="btn-sec" onclick="addRemotionScene()">＋ Scene</button></div></div>
         <div id="remotion-scene-list" style="display:grid;gap:9px;margin-top:10px;"><span style="color:#64748b;font-size:12px;">尚未建立 scene list</span></div>
       </div>
       <div style="margin-top:16px;padding-top:12px;border-top:1px solid #1e293b;">

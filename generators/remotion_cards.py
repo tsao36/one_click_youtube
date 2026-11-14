@@ -8,9 +8,10 @@ Adopts the documentary motion graphics style inspired by fOx Hsiao:
 from __future__ import annotations
 from core.text_distiller import distill_to_punchline, is_meta_section_label, sanitize_props_against_caption
 
+import json
 import re
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, Dict, List, Optional
 
 from core.config import ROOT
 from core.logging_setup import log
@@ -1433,9 +1434,240 @@ def _normalize_extended_composition_props(
         handler(p, title, subtext, category)
 
 
+REMOTION_STYLE_PACKS: dict[str, list[str]] = {
+    "auto_all": [
+        "RveChapterTitleScene",
+        "RveBarChartScene",
+        "RveTrendLineScene",
+        "RveDonutChartScene",
+        "RveComparisonBarScene",
+        "RveProgressStepsScene",
+        "RveCardFlipScene",
+        "RveImageComparisonScene",
+        "FrameworkMatrixScene",
+        "PromptComparisonScene",
+        "WorkflowStepScene",
+        "ChatSimulationScene",
+        "KineticQuoteScene",
+        "KineticTypographyScene",
+        "EditorialExplainerScene",
+        "CoordinateZeroScaleScene",
+        "CoordinateZeroExperimentScene",
+        "CoordinateZeroSplitScene",
+        "FinanceCandlestickScene",
+        "FinanceMetricCompareScene",
+        "ArchivalDocumentScene",
+        "HistoryChronologyScene",
+        "VoxSplitScreenScene",
+        "VoxKeyStatScene",
+        "FoxHeaderScene",
+        "FoxMetricScene",
+        "FoxDataListScene",
+        "FoxTimelineScene",
+        "BranchPathwayScene",
+        "LeaderCalloutScene",
+        "ScaleCompareScene",
+        "EvidenceHighlightScene",
+    ],
+    "rve": [
+        "RveChapterTitleScene",
+        "RveBarChartScene",
+        "RveTrendLineScene",
+        "RveDonutChartScene",
+        "RveComparisonBarScene",
+        "RveProgressStepsScene",
+        "RveCardFlipScene",
+        "RveImageComparisonScene",
+    ],
+    "modern_tech_explainer": [
+        "FrameworkMatrixScene",
+        "PromptComparisonScene",
+        "WorkflowStepScene",
+        "ChatSimulationScene",
+        "KineticQuoteScene",
+        "KineticTypographyScene",
+        "EditorialExplainerScene",
+        "RveBarChartScene",
+        "RveTrendLineScene",
+        "RveDonutChartScene",
+        "RveComparisonBarScene",
+        "RveProgressStepsScene",
+        "RveCardFlipScene",
+    ],
+    "coordinate_zero": [
+        "CoordinateZeroScaleScene",
+        "CoordinateZeroExperimentScene",
+        "CoordinateZeroSplitScene",
+        "ScaleCompareScene",
+    ],
+    "finance_market": [
+        "FinanceCandlestickScene",
+        "FinanceMetricCompareScene",
+        "RveBarChartScene",
+        "RveTrendLineScene",
+        "RveDonutChartScene",
+        "RveComparisonBarScene",
+    ],
+    "archival_history": [
+        "ArchivalDocumentScene",
+        "HistoryChronologyScene",
+        "EvidenceHighlightScene",
+        "FoxTimelineScene",
+    ],
+    "vox_journalism": [
+        "VoxSplitScreenScene",
+        "VoxKeyStatScene",
+        "EditorialExplainerScene",
+        "RveBarChartScene",
+        "RveComparisonBarScene",
+    ],
+    "fox_documentary": [
+        "FoxHeaderScene",
+        "FoxMetricScene",
+        "FoxDataListScene",
+        "FoxTimelineScene",
+        "BranchPathwayScene",
+        "LeaderCalloutScene",
+        "ScaleCompareScene",
+        "EvidenceHighlightScene",
+    ],
+}
+
+_COMPOSITION_PROP_HINTS: dict[str, str] = {
+    "RveBarChartScene": "badge, title, subtitle, bars: [{label, value (number), displayValue}], source",
+    "RveTrendLineScene": "badge, title, subtitle, points: [{label, value (number), note}], highlightStat, highlightLabel, source",
+    "RveDonutChartScene": "badge, title, subtitle, centerValue, centerLabel, segments: [{label, value (number), displayValue}], source",
+    "RveComparisonBarScene": "badge, title, subtitle, beforeLabel, beforeValue (number), beforeDisplay, afterLabel, afterValue (number), afterDisplay, takeaway, source",
+    "RveProgressStepsScene": "badge, title, subtitle, steps: [{label, detail, tag}]",
+    "RveCardFlipScene": "badge, title, frontTag, frontTitle, frontBody, backTag, backTitle, backBody, flipAtRatio (0.42)",
+    "RveImageComparisonScene": "badge, title, subtitle, beforeLabel, beforeCaption, afterLabel, afterCaption",
+    "RveChapterTitleScene": "chapterLabel, chapterNumber, title, subtitle",
+    "FrameworkMatrixScene": "badge, title, subtitle, pillars: [{id, title, subtitle, icon, metric, points: [str], isHighlighted}], activePillarId",
+    "PromptComparisonScene": "badge, title, subtitle, leftBadge, leftTitle, leftContent, leftTags: [str], rightBadge, rightTitle, rightContent, rightTags: [str], takeaway",
+    "WorkflowStepScene": "badge, title, subtitle, steps: [{stepNumber, label, detail, tag}], activeStepIndex",
+    "ChatSimulationScene": "badge, title, systemTag, promptText, responseTitle, responseItems: [{title, detail, tag}]",
+    "KineticQuoteScene": "badge, quote, author, authorTitle, highlightPhrase",
+    "KineticTypographyScene": "badge, text, highlightPhrase, subtext",
+    "EditorialExplainerScene": "sceneRole (hook|identity|process|metric|comparison|constraint|timeline|evidence|synthesis), kicker, title, statement, metric, metricLabel, items: [{label, value, note, status}], source",
+    "CoordinateZeroScaleScene": "badge, initialTitle, calibratedTitle, anchorLabel, items: [{id, name, initialMultiplier, actualMultiplier, initialLabel, actualLabel}]",
+    "CoordinateZeroExperimentScene": "experimentNo, experimentBadge, title, subtitle, gaugeLabel, currentMagnification, measurementHeader, measurementTag, measurementFormula, measurementSubtext",
+    "CoordinateZeroSplitScene": "verdictBadge, leftCard: {tag, title, caption}, rightCard: {tag, title, caption}, summary",
+    "FinanceCandlestickScene": "headline, ticker, price, changePercent, isBullish (bool), candlesticks: [{date, open, high, low, close}], keyLevels: [{label, price}], insightBadge, insightText",
+    "FinanceMetricCompareScene": "headline, subtitle, legendA, legendB, metrics: [{label, valueA, valueB, diff, isAdvantageA}]",
+    "ArchivalDocumentScene": "documentTitle, date, archiveReference, classification, excerpt, highlightPhrase, stampText",
+    "HistoryChronologyScene": "headline, subtitle, activeYear, events: [{year, title, description, tag}]",
+    "VoxSplitScreenScene": "headline, subhead, leftTitle, leftDetail, leftStat, rightTitle, rightDetail, rightStat, source",
+    "VoxKeyStatScene": "headline, tag, mainStat, statLabel, supportingPoints: [{label, value, trend}], source",
+    "FoxHeaderScene": "category, title, subtitle, source",
+    "FoxMetricScene": "badge, value, unit, conversion, description, subtext, source",
+    "FoxDataListScene": "chapter, title, items: [{label, value, note}], totalLabel, totalValue, source",
+    "FoxTimelineScene": "chapter, title, startYear, startLabel, middleYear, middleLabel, endYear, endLabel, subtext, source",
+    "BranchPathwayScene": "title, subtitle, paths: [{id, name, category, detail, status (eliminated|selected|neutral), eliminationReason, highlightTag}], selectedId",
+    "LeaderCalloutScene": "title, subtitle, callouts: [{id, label, sublabel, metric, status}]",
+    "ScaleCompareScene": "title, subtitle, macroLabel, macroValue, macroDesc, microLabel, microValue, microDesc, ratioMultiplier, ratioLabel, magnificationFactor",
+    "EvidenceHighlightScene": "title, docHeader, docDate, documentExcerpt, highlightPhrase, telemetryStats: [{label, value, badge}]",
+}
+
+
+def _allowed_compositions_for_pack(style_pack: str = "auto_all") -> list[str]:
+    key = (style_pack or "auto_all").strip().lower()
+    if key in REMOTION_STYLE_PACKS:
+        return list(REMOTION_STYLE_PACKS[key])
+    return list(REMOTION_STYLE_PACKS["auto_all"])
+
+
+def _compute_presenter_indices(
+    total_scenes: int,
+    placement: Optional[str] = None,
+    sections: Optional[List[str]] = None,
+) -> set[int]:
+    if total_scenes <= 0:
+        return set()
+    if placement is None or placement == "default_legacy":
+        middle = total_scenes // 2
+        return {0, middle, total_scenes - 1} if total_scenes >= 3 else set()
+
+    strat = (placement or "none").strip().lower()
+    if strat in ("none", "false", "", "off", "disabled"):
+        return set()
+    if strat in ("intro", "beginning", "hook", "scene_1", "true", "start"):
+        return {0}
+    if strat in ("intro_outro", "beginning_end", "start_end", "intro_end"):
+        return {0, total_scenes - 1} if total_scenes > 1 else {0}
+    if strat in ("intro_middle_outro", "beginning_middle_end", "start_middle_end", "middle_and_end", "three_point"):
+        idxs = {0}
+        if total_scenes >= 3:
+            idxs.add(total_scenes // 2)
+        if total_scenes > 1:
+            idxs.add(total_scenes - 1)
+        return idxs
+    if strat in ("chapters", "sections", "chapter_intros"):
+        idxs: set[int] = set()
+        seen: set[str] = set()
+        for idx, sec in enumerate(sections or []):
+            clean_sec = (sec or "").strip()
+            if clean_sec and clean_sec not in seen:
+                seen.add(clean_sec)
+                idxs.add(idx)
+        return idxs or {0}
+    if strat in ("all", "all_scenes", "full"):
+        return set(range(total_scenes))
+    if strat in ("every_3", "every_third", "thirds"):
+        return set(range(0, total_scenes, 3))
+    return {0}
+
+
+def _estimate_narration_duration(text: str) -> float:
+    cjk = len(re.findall(r"[\u4e00-\u9fff\u3040-\u30ff\uac00-\ud7af]", text or ""))
+    if cjk > 0:
+        latin = len(re.findall(r"[a-zA-Z0-9'-]+", re.sub(r"[\u4e00-\u9fff\u3040-\u30ff\uac00-\ud7af]", " ", text or "")))
+        units = cjk + latin
+        return round(max(3.5, min(14.0, units / 4.2)), 2)
+    words_cnt = len(re.findall(r"\b[\w'-]+\b", text or ""))
+    return round(max(3.5, min(14.0, words_cnt / 2.5)), 2)
+
+
+def _split_script_into_beats(script: str, duration_minutes: Optional[float] = None) -> list[str]:
+    """Split a script into scene-level narration beats, grouping or subdividing overly long blocks."""
+    raw_parts = [
+        part.strip()
+        for part in re.split(r"\n\s*\n|(?<=[。！？!?])\s+|\n+", (script or "").strip())
+        if part and part.strip()
+    ]
+    if not raw_parts:
+        return []
+
+    from agents.scene_planner import count_units, split_sentences
+
+    target_beat_units = 28 if (duration_minutes is not None and float(duration_minutes) <= 1.0) else 38
+    beats: list[str] = []
+    for part in raw_parts:
+        if count_units(part) <= max(60, target_beat_units * 2):
+            beats.append(part)
+            continue
+        sentences = split_sentences(part) or [part]
+        buf = ""
+        for sent in sentences:
+            candidate = f"{buf} {sent}".strip() if buf and not re.search(r"[\u4e00-\u9fff]$", buf) else f"{buf}{sent}".strip()
+            if buf and count_units(candidate) > target_beat_units + 12:
+                beats.append(buf)
+                buf = sent
+            else:
+                buf = candidate
+                if count_units(buf) >= target_beat_units:
+                    beats.append(buf)
+                    buf = ""
+        if buf:
+            beats.append(buf)
+    return beats
+
+
 def plan_100_percent_remotion_scenes(
     script: str,
     references: Optional[List[Dict[str, Any]]] = None,
+    *,
+    style_pack: str = "auto_all",
+    presenter_placement: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
     """Auto-plan a full script into varied 100% Remotion compositions with normalized props."""
     parts = [
@@ -1447,7 +1679,11 @@ def plan_100_percent_remotion_scenes(
         return []
 
     refs = references or []
-    middle = len(parts) // 2
+    allowed = _allowed_compositions_for_pack(style_pack)
+    allowed_set = set(allowed)
+    rotation_pool = [c for c in _RVE_ROTATION_POOL if c in allowed_set] or allowed
+    presenter_idxs = _compute_presenter_indices(len(parts), presenter_placement)
+
     planned: List[Dict[str, Any]] = []
     prev_composition = ""
     chapter_counter = 0
@@ -1457,9 +1693,11 @@ def plan_100_percent_remotion_scenes(
         composition = _select_rve_composition(
             narration, scene_index=idx, total_scenes=len(parts)
         )
-        if composition == prev_composition:
-            for offset in range(1, len(_RVE_ROTATION_POOL) + 1):
-                candidate = _RVE_ROTATION_POOL[(idx + offset) % len(_RVE_ROTATION_POOL)]
+        if composition not in allowed_set:
+            composition = rotation_pool[idx % len(rotation_pool)]
+        if composition == prev_composition and len(rotation_pool) > 1:
+            for offset in range(1, len(rotation_pool) + 1):
+                candidate = rotation_pool[(idx + offset) % len(rotation_pool)]
                 if candidate != prev_composition:
                     composition = candidate
                     break
@@ -1492,13 +1730,167 @@ def plan_100_percent_remotion_scenes(
                 "composition": composition,
                 "renderer": "remotion",
                 "renderer_confirmed": True,
+                "estimated_duration": _estimate_narration_duration(narration),
                 "props": normalized,
                 "reference_ids": reference_ids,
-                "presenter_slot": len(parts) >= 3 and idx in (0, middle, len(parts) - 1),
+                "presenter_slot": idx in presenter_idxs,
             }
         )
 
     return planned
+
+
+def plan_llm_remotion_scenes(
+    script: str,
+    references: Optional[List[Dict[str, Any]]] = None,
+    *,
+    style_pack: str = "auto_all",
+    llm_provider: str = "gemini",
+    duration_minutes: Optional[float] = None,
+    presenter_placement: str = "intro_middle_outro",
+) -> List[Dict[str, Any]]:
+    """Use an LLM (Gemini by default) to select Remotion compositions and populate numbers/content props."""
+    beats = _split_script_into_beats(script, duration_minutes=duration_minutes)
+    if not beats:
+        return []
+
+    segmented_script = "\n\n".join(beats)
+    base_scenes = plan_100_percent_remotion_scenes(
+        segmented_script,
+        references,
+        style_pack=style_pack,
+        presenter_placement=presenter_placement,
+    )
+
+    allowed = _allowed_compositions_for_pack(style_pack)
+    allowed_set = set(allowed)
+    style_catalog = [
+        {
+            "composition": s["id"],
+            "name": s.get("name", s["id"]),
+            "purpose": s.get("description", s.get("label", "")),
+            "props_fields": _COMPOSITION_PROP_HINTS.get(s["id"], "title, subtitle"),
+        }
+        for s in REMOTION_STYLES
+        if s["id"] in allowed_set
+    ]
+
+    try:
+        from providers.llm import LLMClient
+
+        client = LLMClient("scene_planning", provider_override=llm_provider or "gemini")
+    except Exception as exc:
+        log.warning("LLMClient init failed for Remotion planning (%s); returning deterministic plan", exc)
+        return base_scenes
+
+    system_prompt = (
+        "You are an expert Remotion Motion Graphics Director. Given narration scenes and a catalog of Remotion compositions, "
+        "select the best Remotion composition for each scene and populate its structured props (numbers, metrics, chart arrays, "
+        "comparisons, steps, timelines, pillars, concise headlines/subtitles) grounded strictly in the narration.\n"
+        "RULES:\n"
+        "1. Every scene MUST choose a `composition` strictly from the provided `allowed_compositions` list.\n"
+        "2. Do NOT repeat the exact same `composition` in two consecutive scenes whenever more than 1 composition is allowed.\n"
+        "3. Populate real numbers and structured items from the narration into the composition's props (e.g., `bars`, `points`, "
+        "`segments`, `steps`, `pillars`, `beforeValue`/`afterValue`, `events`, `metric`, `mainStat`). Never invent wildly unrelated numbers.\n"
+        "4. On-screen `title`, `subtitle`, `quote`, and `text` MUST be concise visual summaries (<= 16 CJK chars or <= 8 English words for titles), NOT verbatim copies of the narration.\n"
+        "5. Output ONLY valid JSON: {\"scenes\": [{\"scene_id\": 1, \"section\": \"...\", \"composition\": \"...\", \"props\": {...}}]}."
+    )
+
+    llm_decisions: dict[int, dict[str, Any]] = {}
+    batch_size = 18
+    for start in range(0, len(base_scenes), batch_size):
+        chunk = base_scenes[start : start + batch_size]
+        scene_briefs = [
+            {"scene_id": sc["scene_id"], "narration": sc["narration"]}
+            for sc in chunk
+        ]
+        user_prompt = (
+            f"Allowed Remotion Compositions Catalog (style_pack={style_pack}):\n"
+            f"{json.dumps(style_catalog, ensure_ascii=False, indent=2)}\n\n"
+            f"Narration Scenes to Plan:\n"
+            f"{json.dumps(scene_briefs, ensure_ascii=False, indent=2)}\n\n"
+            "Return JSON with a `scenes` array covering every scene_id above."
+        )
+        try:
+            def _validate(payload: Any) -> dict[str, Any]:
+                if not isinstance(payload, dict) or not isinstance(payload.get("scenes"), list):
+                    raise ValueError("Missing scenes list in LLM response")
+                return payload
+
+            resp = client.json(
+                user_prompt,
+                system=system_prompt,
+                temperature=0.3,
+                max_tokens=8192,
+                validate=_validate,
+            )
+            for item in resp.get("scenes", []):
+                if isinstance(item, dict) and item.get("scene_id") is not None:
+                    try:
+                        sid = int(item["scene_id"])
+                        llm_decisions[sid] = item
+                    except (TypeError, ValueError):
+                        continue
+        except Exception as exc:
+            log.warning("LLM Remotion planning chunk %d-%d failed (%s); keeping deterministic fallback for chunk", start + 1, start + len(chunk), exc)
+
+    if not llm_decisions:
+        return base_scenes
+
+    prev_composition = ""
+    chapter_counter = 0
+    sections_collected: list[str] = []
+    merged_scenes: list[dict[str, Any]] = []
+
+    for idx, base_sc in enumerate(base_scenes):
+        sid = base_sc["scene_id"]
+        narration = base_sc["narration"]
+        decision = llm_decisions.get(sid) or {}
+
+        chosen_comp = str(decision.get("composition") or "").strip()
+        if chosen_comp not in allowed_set:
+            chosen_comp = base_sc["composition"]
+        if chosen_comp == prev_composition and len(allowed) > 1:
+            rotation_pool = [c for c in _RVE_ROTATION_POOL if c in allowed_set] or allowed
+            for offset in range(1, len(rotation_pool) + 1):
+                cand = rotation_pool[(idx + offset) % len(rotation_pool)]
+                if cand != prev_composition:
+                    chosen_comp = cand
+                    break
+        prev_composition = chosen_comp
+
+        sc_model = Scene(scene_id=sid, narration=narration, section=str(decision.get("section") or ""))
+        auto_props = extract_card_props(sc_model)
+        llm_props = decision.get("props") if isinstance(decision.get("props"), dict) else {}
+        combined_props = {
+            **auto_props,
+            "bgVariant": _VALID_BG_VARIANTS[idx % len(_VALID_BG_VARIANTS)],
+            **llm_props,
+        }
+        if chosen_comp == "RveChapterTitleScene":
+            chapter_counter += 1
+            combined_props.setdefault("chapterNumber", f"{chapter_counter:02d}")
+
+        normalized = _normalize_props_for_composition(chosen_comp, combined_props)
+        sanitized = sanitize_props_against_caption(normalized, narration)
+        section_label = str(decision.get("section") or base_sc.get("section") or f"Scene {sid}").strip()
+        sections_collected.append(section_label)
+
+        merged_scenes.append(
+            {
+                **base_sc,
+                "section": section_label,
+                "composition": chosen_comp,
+                "props": sanitized,
+                "estimated_duration": float(decision.get("estimated_duration") or base_sc.get("estimated_duration") or _estimate_narration_duration(narration)),
+            }
+        )
+
+    presenter_idxs = _compute_presenter_indices(len(merged_scenes), presenter_placement, sections=sections_collected)
+    for idx, item in enumerate(merged_scenes):
+        item["presenter_slot"] = idx in presenter_idxs
+
+    return merged_scenes
 
 
 # ---------------------------------------------------------------- rendering
