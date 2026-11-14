@@ -18668,18 +18668,51 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
     let remotionReferences = [];
     let remotionStyles = [];
     let remotionStatusTimer = null;
-    function generateRemotionScenesFromScript() {
-      const script = document.getElementById('remotion-project-script')?.value.trim(); if (!script) return showToast('請先輸入完整 Script');
-      const parts = script.split(/\n\s*\n|(?<=[。！？!?])\s+/).map(x => x.trim()).filter(Boolean);
+    function _buildLocalRemotionSceneFallback(script) {
+      const parts = script.split(/\n\s*\n|(?<=[。！？!?])\s+|\n+/).map(x => x.trim()).filter(Boolean);
       const middle = Math.floor(parts.length / 2);
-      const generated = parts.map((narration, i) => {
+      const fallbackPool = [
+        'RveChapterTitleScene',
+        'RveCardFlipScene',
+        'RveProgressStepsScene',
+        'RveComparisonBarScene',
+        'RveBarChartScene',
+        'RveTrendLineScene',
+        'RveDonutChartScene',
+      ];
+      return parts.map((narration, i) => {
         const lower = narration.toLowerCase();
         const reference_ids = remotionReferences.filter(ref => {
           const stem = String(ref.filename || '').replace(/\.[^.]+$/, '').toLowerCase();
           return stem.length >= 2 && lower.includes(stem);
         }).map(ref => ref.id);
-        return { scene_id: i + 1, narration, composition: 'FoxHeaderScene', renderer: 'remotion', renderer_confirmed: true, props: {}, reference_ids, presenter_slot: parts.length >= 3 && (i === 0 || i === middle || i === parts.length - 1) };
+        const composition = parts.length >= 3 && i === 0 ? 'RveChapterTitleScene' : fallbackPool[(i + 1) % fallbackPool.length];
+        return {
+          scene_id: i + 1,
+          narration,
+          composition,
+          renderer: 'remotion',
+          renderer_confirmed: true,
+          props: {},
+          reference_ids,
+          presenter_slot: parts.length >= 3 && (i === 0 || i === middle || i === parts.length - 1),
+        };
       });
+    }
+    async function generateRemotionScenesFromScript() {
+      const script = document.getElementById('remotion-project-script')?.value.trim(); if (!script) return showToast('請先輸入完整 Script');
+      let generated = [];
+      try {
+        const res = await apiJson('/api/remotion/auto-plan-script', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ script, references: remotionReferences }),
+        });
+        generated = Array.isArray(res?.scenes) && res.scenes.length ? res.scenes : _buildLocalRemotionSceneFallback(script);
+      } catch (_err) {
+        generated = _buildLocalRemotionSceneFallback(script);
+      }
+      if (!generated.length) return showToast('無法從腳本切分有效場景');
       if (remotionDraftScenes.length) {
         const action = prompt('Scene list 已有手動設定。輸入 replace 取代、merge 合併，或 cancel 取消。', 'merge');
         if (!action || action.toLowerCase() === 'cancel') return;
@@ -18689,6 +18722,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
         else return showToast('請輸入 replace、merge 或 cancel');
       } else remotionDraftScenes = generated;
       renderRemotionSceneList();
+      showToast(`✓ 已自動規劃 ${generated.length} 個 100% Remotion 場景`);
     }
     async function fetchRemotionApiData() {
       if (!currentProjectId) return showToast('請先建立或選擇 project');

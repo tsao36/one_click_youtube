@@ -53,6 +53,19 @@ def get_remotion_styles():
     return REMOTION_STYLES
 
 
+class RemotionAutoPlanRequest(BaseModel):
+    script: str
+    references: list[dict[str, Any]] = []
+
+
+@router.post("/api/remotion/auto-plan-script")
+def auto_plan_remotion_script(req: RemotionAutoPlanRequest):
+    from generators.remotion_cards import plan_100_percent_remotion_scenes
+
+    scenes = plan_100_percent_remotion_scenes(req.script, req.references)
+    return {"scenes": scenes}
+
+
 @router.post("/api/projects/{project_id}/remotion/apply")
 def apply_remotion_to_scene(project_id: str, req: RemotionRenderRequest):
     from generators.remotion_cards import extract_card_props, render_scene_card

@@ -60,6 +60,15 @@ DIRECTOR_SYSTEM_PROMPT = """你是一位專門為深度科技科普、AI 工作�
    當場景的主要任務可明確歸類為破題、人物/來源定位、機制流程、核心數據、雙向比較、瓶頸依賴、時間演進、證據展示或結論整合時使用。
    包含: sceneRole（僅可為 hook, identity, process, metric, comparison, constraint, timeline, evidence, synthesis 其中之一）、kicker、title、statement、metric、metricLabel、items（最多 6 項，每項含 label, value, note, status）、source、accentColor。
    每個場景只能選一個 sceneRole；先判斷該段旁白在整體論證中的功能，再填入已查證資料，不可按題材名稱硬套版型。
+12. RVE 100% 全 Remotion 動畫套件（支援 bgVariant: "grid-pulse" | "bokeh" | "geometric" | "liquid" | "gradient-shift"）：
+   - RveBarChartScene: 動態 SVG 長條圖（bars: [{label, value, displayValue}]），適合定量比較與排名。
+   - RveTrendLineScene: 趨勢折線圖（points: [{label, value, note}], highlightStat, highlightLabel），適合歷年變化與成長曲線。
+   - RveDonutChartScene: 結構甜甜圈圖（centerValue, centerLabel, segments: [{label, value, displayValue, color}]），適合市佔率與比例分配。
+   - RveComparisonBarScene: 前後水平對比條（beforeLabel, beforeValue, beforeDisplay, afterLabel, afterValue, afterDisplay, takeaway），適合改善前後對比。
+   - RveProgressStepsScene: 多階段推進路線圖（steps: [{label, detail, tag}]），適合 SOP 步驟與策略階段。
+   - RveCardFlipScene: 3D 表象vs真相翻轉卡（frontTag, frontTitle, frontBody, backTag, backTitle, backBody, flipAtRatio），適合打破迷思與視角反轉。
+   - RveImageComparisonScene: 前後視角掃描滑桿對照（beforeLabel, beforeCaption, beforeImgSrc, afterLabel, afterCaption, afterImgSrc）。
+   - RveChapterTitleScene: 大字章節開場卡（chapterLabel, chapterNumber, title, subtitle），適合段落破題轉場。
 
 核心守則：
 1. 寧缺勿濫：動態圖卡只在「能大幅提升理解」時使用。不是每一句都要配圖表。
@@ -598,6 +607,46 @@ class MotionGraphicsDirector:
                             {"id": "c2", "label": "訊號隔離基底", "sublabel": "超低噪聲實體屏蔽層", "anchorX": 0.38, "anchorY": 0.65, "boxX": 0.72, "boxY": 0.65, "status": "normal"},
                         ],
                     },
+                )
+                out_scenes.append(mg_scene)
+                chosen_ids.add(sid)
+                continue
+
+            # 5. Check explicit RVE chart / flip triggers -> Rve*Scene
+            narration_text = s.narration or ""
+            rve_match = next(
+                (
+                    (rve_type, prefix, reason)
+                    for keywords, rve_type, prefix, reason in (
+                        (("圓餅圖", "甜甜圈圖", "市佔率", "比例分配", "佔比結構"), SceneType.RVE_DONUT_CHART, "rve-donut", "自動識別結構佔比與甜甜圈圖表"),
+                        (("折線圖", "成長曲線", "歷年變化"), SceneType.RVE_TREND_LINE, "rve-trend", "自動識別趨勢變化與折線圖表"),
+                        (("長條圖", "排名對比"), SceneType.RVE_BAR_CHART, "rve-bar", "自動識別定量排名與長條圖表"),
+                        (("迷思", "刻板印象", "翻轉認知"), SceneType.RVE_CARD_FLIP, "rve-flip", "自動識別迷思與真相翻轉卡片"),
+                    )
+                    if any(k in narration_text for k in keywords)
+                ),
+                None,
+            )
+            if rve_match:
+                from generators.remotion_cards import (
+                    extract_card_props,
+                    _normalize_props_for_composition,
+                )
+
+                rve_type, id_prefix, rve_reason = rve_match
+                raw_props = extract_card_props(s)
+                if s.section:
+                    raw_props["title"] = _safe_section_text(s.section, raw_props.get("headline") or "")
+                normalized_props = _normalize_props_for_composition(rve_type.value, raw_props)
+                mg_scene = MotionGraphicScene(
+                    id=f"{id_prefix}-{sid:03d}",
+                    scene_id=sid,
+                    sceneType=rve_type,
+                    layout=LayoutType.FULL_SCREEN,
+                    startFrame=scene_start_frames[sid],
+                    durationInFrames=scene_duration_frames[sid],
+                    reason=rve_reason,
+                    props=normalized_props,
                 )
                 out_scenes.append(mg_scene)
                 chosen_ids.add(sid)

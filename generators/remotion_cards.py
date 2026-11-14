@@ -239,6 +239,12 @@ def auto_select_style_for_scene(sc: Scene, preferred_style: str = "") -> str:
     if not preferred_style and (getattr(sc, "overlay_tag", None) or getattr(sc, "metric_callout", None)):
         return "OverlayGraphicScene"
 
+    if preferred_style in _DIRECT_COMPOSITION_IDS:
+        return preferred_style
+
+    if preferred_style in ("rve_templates", "remotion_100", "full_remotion"):
+        return _select_rve_composition(text, scene_index=max(0, int(getattr(sc, "scene_id", 1)) - 1))
+
     if preferred_style == "coordinate_zero":
         if any(k in text for k in ("對決", "各對一半", "爭端", "爭議", "兩派", "視角")):
             return "CoordinateZeroSplitScene"
@@ -447,7 +453,204 @@ REMOTION_STYLES = [
         "accentColor": "#FACC15",
         "type": "scene",
     },
+    # RVE 100% Remotion Template Suite (MIT reactvideoeditor/remotion-templates adapted)
+    {
+        "id": "RveBarChartScene",
+        "name": "📊 動態長條圖 (RVE Bar Chart)",
+        "label": "多維指標・SVG長條",
+        "description": "彈跳進場 SVG 柱狀圖、數據標籤漸顯與程序化背景，適合多項目定量比較",
+        "accentColor": "#38BDF8",
+        "type": "scene",
+    },
+    {
+        "id": "RveTrendLineScene",
+        "name": "📈 趨勢折線圖 (RVE Trend Line)",
+        "label": "成長軌跡・折線繪製",
+        "description": "動態路徑繪製折線圖與峰值節點標註，適合歷年成長、暴漲暴跌與時間序列變化",
+        "accentColor": "#14B8A6",
+        "type": "scene",
+    },
+    {
+        "id": "RveDonutChartScene",
+        "name": "🍩 結構甜甜圈圖 (RVE Donut Chart)",
+        "label": "比例拆解・環形圖表",
+        "description": "逐段旋轉繪製甜甜圈圖與中心核心數值，適合市佔率、預算配置與比例結構",
+        "accentColor": "#8B5CF6",
+        "type": "scene",
+    },
+    {
+        "id": "RveComparisonBarScene",
+        "name": "⚖️ 效能前後對比條 (RVE Comparison Bar)",
+        "label": "改善前後・強對比條",
+        "description": "雙欄橫向對比條、差異摘要膠囊與關鍵結語，適合前後成效與兩方案落差",
+        "accentColor": "#F59E0B",
+        "type": "scene",
+    },
+    {
+        "id": "RveProgressStepsScene",
+        "name": "🧭 階段進度步驟 (RVE Progress Steps)",
+        "label": "步驟推進・路線圖譜",
+        "description": "多階段卡片依序點亮與連結進度條，適合SOP流程、策略階段與步驟說明",
+        "accentColor": "#06B6D4",
+        "type": "scene",
+    },
+    {
+        "id": "RveCardFlipScene",
+        "name": "🔄 迷思真相翻轉卡 (RVE Card Flip)",
+        "label": "3D翻牌・觀點反轉",
+        "description": "3D 透視翻卡呈現「表面認知 vs 底層真相」，適合打破迷思與因果反轉",
+        "accentColor": "#A855F7",
+        "type": "scene",
+    },
+    {
+        "id": "RveImageComparisonScene",
+        "name": "🖼️ 前後視角對照 (RVE Image Comparison)",
+        "label": "滑桿分屏・視覺驗證",
+        "description": "自動掃描對照滑桿呈現前後雙視角，適合版本迭代、架構演進與前後案例",
+        "accentColor": "#22D3EE",
+        "type": "scene",
+    },
+    {
+        "id": "RveChapterTitleScene",
+        "name": "🎬 章節開場標題 (RVE Chapter Title)",
+        "label": "轉場起點・大字章節",
+        "description": "大型章節編號、主副標題視差排版與動態光束背景，適合段落破題與篇章切換",
+        "accentColor": "#38BDF8",
+        "type": "scene",
+    },
+    # Existing Full-Screen Modern / Editorial Explainer Archetypes
+    {
+        "id": "EditorialExplainerScene",
+        "name": "🗞️ 編輯解說主模板 (Editorial Explainer)",
+        "label": "跨題材・論證版型",
+        "description": "支援 hook/process/metric/comparison 等 9 種論證角色的雜誌級排版模板",
+        "accentColor": "#F59E0B",
+        "type": "scene",
+    },
+    {
+        "id": "FrameworkMatrixScene",
+        "name": "🧩 架構矩陣 (Framework Matrix)",
+        "label": "多支柱・心智模型",
+        "description": "2至4個核心支柱矩陣對齊，適合拆解系統架構、核心原則與評分維度",
+        "accentColor": "#00D2FF",
+        "type": "scene",
+    },
+    {
+        "id": "PromptComparisonScene",
+        "name": "🆚 雙欄正反對照 (Prompt Comparison)",
+        "label": "A/B對比・誤區正解",
+        "description": "左右雙欄深度對照卡片，適合錯誤做法 vs 正確範式或新舊概念對照",
+        "accentColor": "#10B981",
+        "type": "scene",
+    },
+    {
+        "id": "ChatSimulationScene",
+        "name": "💬 對話推演卡 (Chat Simulation)",
+        "label": "問答實證・互動拆解",
+        "description": "模擬提問與結構化回答清單，適合常見疑問拆解與實戰回應展示",
+        "accentColor": "#38BDF8",
+        "type": "scene",
+    },
+    {
+        "id": "KineticQuoteScene",
+        "name": "✒️ 動態引言卡 (Kinetic Quote)",
+        "label": "權威金句・重點標記",
+        "description": "逐行浮現引述語錄並反白關鍵句，適合專家觀點、歷史名言與重要結論",
+        "accentColor": "#F43F5E",
+        "type": "scene",
+    },
+    {
+        "id": "WorkflowStepScene",
+        "name": "⚙️ 工作流步驟節點 (Workflow Step)",
+        "label": "順序執行・節點推進",
+        "description": "清楚標示 STEP 編號與節點標籤的循序漸進教學視圖",
+        "accentColor": "#22D3EE",
+        "type": "scene",
+    },
+    {
+        "id": "KineticTypographyScene",
+        "name": "🔤 動態節奏字卡 (Kinetic Typography)",
+        "label": "大字重拍・關鍵核心",
+        "description": "高衝擊逐詞節奏排印與螢光聚焦，適合簡潔震撼主張與收尾金句",
+        "accentColor": "#F59E0B",
+        "type": "scene",
+    },
 ]
+
+_DIRECT_COMPOSITION_IDS: set[str] = {s["id"] for s in REMOTION_STYLES}
+_EXTENDED_STYLE_ACCENTS: dict[str, str] = {
+    s["id"]: str(s.get("accentColor") or "#38BDF8") for s in REMOTION_STYLES
+}
+_VALID_BG_VARIANTS: tuple[str, ...] = (
+    "grid-pulse",
+    "bokeh",
+    "geometric",
+    "liquid",
+    "gradient-shift",
+)
+_RVE_ROTATION_POOL: tuple[str, ...] = (
+    "RveCardFlipScene",
+    "RveProgressStepsScene",
+    "RveComparisonBarScene",
+    "RveBarChartScene",
+    "FrameworkMatrixScene",
+    "RveTrendLineScene",
+    "RveDonutChartScene",
+    "EditorialExplainerScene",
+    "KineticQuoteScene",
+    "WorkflowStepScene",
+)
+
+
+def _select_rve_composition(
+    text: str, scene_index: int = 0, total_scenes: int = 0
+) -> str:
+    """Classify a narration beat into an RVE / Full-Remotion composition archetype."""
+    clean = (text or "").strip()
+    years = _YEAR_RE.findall(clean)
+
+    if scene_index == 0 and total_scenes >= 3:
+        return "RveChapterTitleScene"
+    if any(
+        k in clean
+        for k in ("第一章", "第二章", "第三章", "第四章", "序章", "章節", "轉折點", "進入下一個")
+    ):
+        return "RveChapterTitleScene"
+    if any(
+        k in clean
+        for k in ("圓餅圖", "甜甜圈圖", "市佔率", "市占率", "佔比", "比例", "分佈", "組成結構", "權重")
+    ):
+        return "RveDonutChartScene"
+    if (
+        len(years) >= 2
+        or any(k in clean for k in ("折線圖", "成長曲線", "趨勢", "逐年", "歷年", "暴漲", "暴跌", "演進"))
+    ):
+        return "RveTrendLineScene"
+    if any(k in clean for k in ("前後畫面", "對照圖", "視覺對比", "介面變化", "外觀對比")):
+        return "RveImageComparisonScene"
+    if any(k in clean for k in ("迷思", "誤區", "刻板印象", "以為", "事實上", "真相", "翻轉", "反轉", "其實")):
+        return "RveCardFlipScene"
+    if (
+        re.search(r"(從|由)\s*\d+.*?(提升|降|跳|變|增|成長).*?\d+", clean)
+        or any(k in clean for k in ("前後對比", "改善前", "改善後", "相較於", "對比", "差距"))
+    ):
+        return "RveComparisonBarScene"
+    if any(
+        k in clean
+        for k in ("第一步", "第二步", "階段", "步驟", "流程", "路線圖", "首先", "接著", "最後")
+    ):
+        return "RveProgressStepsScene"
+    if any(k in clean for k in ("長條圖", "排名", "排行", "前三大", "前四大")) or (
+        _METRIC_RE.search(clean) and len(re.findall(r"\d+(?:\.\d+)?", clean)) >= 2
+    ):
+        return "RveBarChartScene"
+    if any(k in clean for k in ("引言", "名言", "曾說", "強調：", "指出：")) or (
+        "「" in clean and "」" in clean and len(clean) <= 120
+    ):
+        return "KineticQuoteScene"
+    if any(k in clean for k in ("支柱", "維度", "矩陣", "三大關鍵", "四大核心", "架構")):
+        return "FrameworkMatrixScene"
+    return _RVE_ROTATION_POOL[scene_index % len(_RVE_ROTATION_POOL)]
 
 
 def _default_accent_for_style(comp: str) -> str:
@@ -736,6 +939,10 @@ def _normalize_props_for_composition(comp: str, raw: dict[str, Any]) -> dict[str
         p["source"] = str(p.get("source") or source or "INVESTIGATIVE DATA ARCHIVE").strip()
         p["accentColor"] = p.get("accentColor") or "#FACC15"
 
+    elif comp in _EXTENDED_COMPOSITION_NORMALIZERS:
+        _normalize_extended_composition_props(
+            comp, p, title=title, subtext=subtext, category=category
+        )
     else:  # EvidenceHighlightScene or fallback
         p["title"] = title
         p["docHeader"] = str(p.get("docHeader") or category or "ARCHIVAL RECORD / CLINICAL PROTOCOL").strip()
@@ -753,6 +960,545 @@ def _normalize_props_for_composition(comp: str, raw: dict[str, Any]) -> dict[str
         p["accentColor"] = p.get("accentColor") or "#00F5FF"
 
     return p
+
+
+_CHART_PALETTE: tuple[str, ...] = (
+    "#38BDF8",
+    "#8B5CF6",
+    "#14B8A6",
+    "#F59E0B",
+    "#EC4899",
+    "#6366F1",
+)
+
+
+def _coerce_number(raw: Any, default: float) -> float:
+    """Parse ints, floats, percentages, or comma-formatted numbers safely."""
+    if isinstance(raw, (int, float)) and not isinstance(raw, bool):
+        return float(raw)
+    text = str(raw or "").replace(",", "")
+    m = re.search(r"-?\d+(?:\.\d+)?", text)
+    if m:
+        try:
+            return float(m.group(0))
+        except ValueError:
+            pass
+    return float(default)
+
+
+def _parse_labeled_items(
+    raw_items: Any,
+    subtext: str = "",
+    fallback_items: tuple[tuple[str, float, str], ...] = (
+        ("核心維度 A", 42.0, "42"),
+        ("核心維度 B", 68.0, "68"),
+        ("核心維度 C", 88.0, "88"),
+    ),
+) -> list[dict[str, Any]]:
+    """Coerce raw item dicts/strings or delimited text into structured chart items."""
+    out: list[dict[str, Any]] = []
+    if isinstance(raw_items, list):
+        for idx, item in enumerate(raw_items):
+            if isinstance(item, dict):
+                label = str(
+                    item.get("label")
+                    or item.get("title")
+                    or item.get("name")
+                    or f"項目 {idx + 1}"
+                ).strip()[:60]
+                raw_val = item.get("value")
+                if raw_val is None or raw_val == "":
+                    raw_val = item.get("metric") or item.get("displayValue")
+                num = _coerce_number(raw_val, float(40 + idx * 15))
+                disp = str(
+                    item.get("displayValue")
+                    or (raw_val if raw_val not in (None, "") else str(int(num) if num.is_integer() else round(num, 1)))
+                ).strip()[:40]
+                out.append(
+                    {
+                        "label": label or f"項目 {idx + 1}",
+                        "value": num,
+                        "displayValue": disp,
+                        "color": str(item.get("color") or _CHART_PALETTE[idx % len(_CHART_PALETTE)]),
+                        "note": str(item.get("note") or item.get("detail") or "")[:80],
+                    }
+                )
+            elif isinstance(item, str) and item.strip():
+                text = item.strip()
+                num = _coerce_number(text, float(40 + idx * 15))
+                label = re.split(r"[:：|（(]", text)[0].strip()[:60] or f"項目 {idx + 1}"
+                out.append(
+                    {
+                        "label": label,
+                        "value": num,
+                        "displayValue": text[:40] if any(c.isdigit() for c in text) else str(int(num)),
+                        "color": _CHART_PALETTE[idx % len(_CHART_PALETTE)],
+                        "note": "",
+                    }
+                )
+
+    if not out and subtext:
+        clauses = [
+            c.strip()
+            for c in re.split(r"[、；;\n]+|(?<=\d[%％倍億萬]),\s*", subtext)
+            if c and c.strip()
+        ]
+        if len(clauses) >= 2:
+            for idx, clause in enumerate(clauses[:6]):
+                num = _coerce_number(clause, float(35 + idx * 18))
+                m_disp = re.search(r"-?\d+(?:,\d{3})*(?:\.\d+)?[%％倍億萬元名家]?", clause)
+                disp = m_disp.group(0) if m_disp else str(int(num))
+                label = re.sub(r"[:：].*$", "", clause).strip()[:32] or f"指標 {idx + 1}"
+                out.append(
+                    {
+                        "label": label,
+                        "value": num,
+                        "displayValue": disp[:40],
+                        "color": _CHART_PALETTE[idx % len(_CHART_PALETTE)],
+                        "note": "",
+                    }
+                )
+
+    if not out:
+        for idx, (label, val, disp) in enumerate(fallback_items):
+            out.append(
+                {
+                    "label": label,
+                    "value": val,
+                    "displayValue": disp,
+                    "color": _CHART_PALETTE[idx % len(_CHART_PALETTE)],
+                    "note": "",
+                }
+            )
+    return out
+
+
+def _apply_rve_base_fields(
+    p: dict[str, Any],
+    composition: str,
+    title: str,
+    subtext: str,
+    category: str,
+    default_badge: str,
+) -> None:
+    p["title"] = (title or "核心視覺化分析")[:120]
+    p["subtitle"] = str(p.get("subtitle") or subtext or "")[:200]
+    p["source"] = str(p.get("source") or "")[:180]
+    p["accentColor"] = str(
+        p.get("accentColor") or _EXTENDED_STYLE_ACCENTS.get(composition) or "#38BDF8"
+    )
+    bg_var = str(p.get("bgVariant") or "grid-pulse")
+    p["bgVariant"] = bg_var if bg_var in _VALID_BG_VARIANTS else "grid-pulse"
+    if p.get("dim") is None:
+        p["dim"] = 0.5
+    if composition != "RveChapterTitleScene":
+        p["badge"] = str(p.get("badge") or category or default_badge)[:80]
+
+
+def _normalize_rve_bar_chart(p: dict[str, Any], title: str, subtext: str, category: str) -> None:
+    _apply_rve_base_fields(p, "RveBarChartScene", title, subtext, category, "DATA BREAKDOWN")
+    raw_bars = p.get("bars") or p.get("items")
+    parsed = _parse_labeled_items(raw_bars, subtext)
+    p["bars"] = [
+        {
+            "label": b["label"],
+            "value": b["value"],
+            "displayValue": b["displayValue"],
+            "color": b["color"],
+        }
+        for b in parsed[:10]
+    ]
+
+
+def _normalize_rve_trend_line(p: dict[str, Any], title: str, subtext: str, category: str) -> None:
+    _apply_rve_base_fields(p, "RveTrendLineScene", title, subtext, category, "GROWTH TRAJECTORY")
+    raw_pts = p.get("points")
+    points: list[dict[str, Any]] = []
+    if isinstance(raw_pts, list) and len(raw_pts) >= 2:
+        for idx, pt in enumerate(raw_pts[:12]):
+            if isinstance(pt, dict):
+                points.append(
+                    {
+                        "label": str(pt.get("label") or f"T{idx + 1}")[:30],
+                        "value": _coerce_number(pt.get("value"), float(25 + idx * 15)),
+                        "note": str(pt.get("note") or "")[:80],
+                    }
+                )
+    if len(points) < 2:
+        years = _YEAR_RE.findall(f"{title} {subtext}")
+        parsed = _parse_labeled_items(
+            p.get("items"),
+            subtext,
+            fallback_items=(
+                (years[0] if len(years) >= 1 else "階段一", 25.0, "25"),
+                (years[1] if len(years) >= 2 else "階段二", 46.0, "46"),
+                (years[2] if len(years) >= 3 else "階段三", 71.0, "71"),
+                (years[3] if len(years) >= 4 else "階段四", 92.0, "92"),
+            ),
+        )
+        points = [
+            {
+                "label": (years[i] if i < len(years) else item["label"])[:30],
+                "value": item["value"],
+                "note": item["note"],
+            }
+            for i, item in enumerate(parsed[:12])
+        ]
+    if len(points) < 2:
+        points.append({"label": "趨勢延續", "value": round(points[0]["value"] * 1.4, 1), "note": ""})
+    p["points"] = points
+    metric_val = str(p.get("highlightStat") or p.get("metric") or p.get("value") or "").strip()
+    p["highlightStat"] = metric_val[:40]
+    p["highlightLabel"] = str(p.get("highlightLabel") or ("關鍵變化" if metric_val else ""))[:60]
+
+
+def _normalize_rve_donut_chart(p: dict[str, Any], title: str, subtext: str, category: str) -> None:
+    _apply_rve_base_fields(p, "RveDonutChartScene", title, subtext, category, "COMPOSITION SHARE")
+    parsed = _parse_labeled_items(
+        p.get("segments") or p.get("items"),
+        subtext,
+        fallback_items=(
+            ("核心主體", 48.0, "48%"),
+            ("系統整合", 28.0, "28%"),
+            ("關鍵增量", 14.0, "14%"),
+            ("長尾配置", 10.0, "10%"),
+        ),
+    )
+    if len(parsed) < 2:
+        first_val = max(10.0, min(90.0, parsed[0]["value"]))
+        rem = round(100.0 - first_val, 1)
+        parsed.append(
+            {
+                "label": "其餘佔比",
+                "value": rem,
+                "displayValue": f"{int(rem) if rem.is_integer() else rem}%",
+                "color": _CHART_PALETTE[1],
+            }
+        )
+    segments = [
+        {
+            "label": s["label"][:60],
+            "value": max(1.0, float(s["value"])),
+            "displayValue": s["displayValue"][:40],
+            "color": s["color"] or _CHART_PALETTE[i % len(_CHART_PALETTE)],
+        }
+        for i, s in enumerate(parsed[:6])
+    ]
+    p["segments"] = segments
+    center_val = str(p.get("centerValue") or p.get("metric") or segments[0]["displayValue"] or "78%").strip()
+    p["centerValue"] = center_val[:30]
+    p["centerLabel"] = str(p.get("centerLabel") or segments[0]["label"] or "核心佔比")[:60]
+
+
+def _normalize_rve_comparison_bar(p: dict[str, Any], title: str, subtext: str, category: str) -> None:
+    _apply_rve_base_fields(p, "RveComparisonBarScene", title, subtext, category, "BEFORE VS AFTER")
+    nums = re.findall(r"-?\d+(?:\.\d+)?[%％倍]?", f"{title} {subtext}")
+    b_val = _coerce_number(p.get("beforeValue") if p.get("beforeValue") is not None else (nums[0] if len(nums) >= 1 else None), 34.0)
+    a_val = _coerce_number(p.get("afterValue") if p.get("afterValue") is not None else (nums[1] if len(nums) >= 2 else None), 89.0)
+    p["beforeLabel"] = str(p.get("beforeLabel") or "既有基準 (Before)")[:60]
+    p["beforeValue"] = b_val
+    p["beforeDisplay"] = str(p.get("beforeDisplay") or (nums[0] if len(nums) >= 1 else f"{int(b_val)}%"))[:40]
+    p["beforeColor"] = str(p.get("beforeColor") or "#EF4444")
+    p["afterLabel"] = str(p.get("afterLabel") or "關鍵躍升 (After)")[:60]
+    p["afterValue"] = a_val
+    p["afterDisplay"] = str(p.get("afterDisplay") or (nums[1] if len(nums) >= 2 else f"{int(a_val)}%"))[:40]
+    p["afterColor"] = str(p.get("afterColor") or p["accentColor"])
+    p["takeaway"] = str(p.get("takeaway") or subtext or "結構調整帶動效能明顯放大")[:180]
+
+
+def _normalize_rve_progress_steps(p: dict[str, Any], title: str, subtext: str, category: str) -> None:
+    _apply_rve_base_fields(p, "RveProgressStepsScene", title, subtext, category, "EXECUTION ROADMAP")
+    raw_steps = p.get("steps") or p.get("items")
+    steps: list[dict[str, str]] = []
+    if isinstance(raw_steps, list):
+        for idx, item in enumerate(raw_steps[:6]):
+            if isinstance(item, dict):
+                steps.append(
+                    {
+                        "label": str(item.get("label") or item.get("title") or f"階段 {idx + 1}")[:60],
+                        "detail": str(item.get("detail") or item.get("note") or "")[:160],
+                        "tag": str(item.get("tag") or f"STEP 0{idx + 1}")[:40],
+                    }
+                )
+            elif isinstance(item, str) and item.strip():
+                steps.append({"label": item.strip()[:60], "detail": "", "tag": f"STEP 0{idx + 1}"})
+    if len(steps) < 2 and subtext:
+        chunks = [c.strip() for c in re.split(r"[、；;\n]|(?:\s*[，,]\s*)", subtext) if c and c.strip()]
+        if len(chunks) >= 2:
+            steps = [
+                {"label": ch[:48], "detail": ch[:160], "tag": f"STEP 0{idx + 1}"}
+                for idx, ch in enumerate(chunks[:5])
+            ]
+    if len(steps) < 2:
+        steps = [
+            {"label": "階段一：盤點現況", "detail": (subtext or title)[:160], "tag": "STEP 01"},
+            {"label": "階段二：結構拆解", "detail": "定位系統瓶頸與關鍵變數", "tag": "STEP 02"},
+            {"label": "階段三：驗證落地", "detail": "量化輸出效益並持續迭代", "tag": "STEP 03"},
+        ]
+    p["steps"] = steps[:6]
+
+
+def _normalize_rve_card_flip(p: dict[str, Any], title: str, subtext: str, category: str) -> None:
+    _apply_rve_base_fields(p, "RveCardFlipScene", title, subtext, category, "PERSPECTIVE SHIFT")
+    split_m = re.search(r"(事實上|真相是|其實|然而|但底層)", subtext or "")
+    front_default = subtext[: split_m.start()].strip() if split_m and split_m.start() > 4 else (subtext or title)
+    back_default = subtext[split_m.start() :].strip() if split_m else "決定系統表現上限的，往往是被忽略的底層結構依賴。"
+    p["frontTag"] = str(p.get("frontTag") or "表面認知 · MYTH")[:60]
+    p["frontTitle"] = str(p.get("frontTitle") or "直覺誤區")[:100]
+    p["frontBody"] = str(p.get("frontBody") or front_default)[:300]
+    p["backTag"] = str(p.get("backTag") or "底層真相 · REALITY")[:60]
+    p["backTitle"] = str(p.get("backTitle") or "關鍵本質")[:100]
+    p["backBody"] = str(p.get("backBody") or back_default)[:300]
+    ratio = _coerce_number(p.get("flipAtRatio"), 0.42)
+    p["flipAtRatio"] = max(0.1, min(0.9, ratio))
+
+
+def _normalize_rve_image_comparison(p: dict[str, Any], title: str, subtext: str, category: str) -> None:
+    _apply_rve_base_fields(p, "RveImageComparisonScene", title, subtext, category, "VISUAL COMPARISON")
+    p["beforeLabel"] = str(p.get("beforeLabel") or "BEFORE")[:60]
+    p["beforeCaption"] = str(p.get("beforeCaption") or subtext or "原有架構與基準視角")[:160]
+    p["beforeImgSrc"] = str(p.get("beforeImgSrc") or "")
+    p["afterLabel"] = str(p.get("afterLabel") or "AFTER")[:60]
+    p["afterCaption"] = str(p.get("afterCaption") or "演進後架構與實證結果")[:160]
+    p["afterImgSrc"] = str(p.get("afterImgSrc") or "")
+
+
+def _normalize_rve_chapter_title(p: dict[str, Any], title: str, subtext: str, category: str) -> None:
+    _apply_rve_base_fields(p, "RveChapterTitleScene", title, subtext, category, "")
+    p["chapterLabel"] = str(p.get("chapterLabel") or category or "CHAPTER")[:40]
+    p["chapterNumber"] = str(p.get("chapterNumber") or "01")[:20]
+
+
+def _normalize_editorial_explainer(p: dict[str, Any], title: str, subtext: str, category: str) -> None:
+    valid_roles = {"hook", "identity", "process", "metric", "comparison", "constraint", "timeline", "evidence", "synthesis"}
+    role = str(p.get("sceneRole") or "process")
+    p["sceneRole"] = role if role in valid_roles else "process"
+    p["kicker"] = str(p.get("kicker") or category or "EXPLAINER")[:60]
+    p["title"] = (title or "核心解說視圖")[:120]
+    p["statement"] = str(p.get("statement") or subtext or "")[:280]
+    p["metric"] = str(p.get("metric") or p.get("value") or "")[:40]
+    p["metricLabel"] = str(p.get("metricLabel") or "")[:80]
+    raw_items = p.get("items")
+    items: list[dict[str, str]] = []
+    if isinstance(raw_items, list):
+        for item in raw_items[:6]:
+            if isinstance(item, dict):
+                status = str(item.get("status") or "neutral")
+                items.append(
+                    {
+                        "label": str(item.get("label") or item.get("title") or "關鍵項目")[:80],
+                        "value": str(item.get("value") or item.get("metric") or "")[:50],
+                        "note": str(item.get("note") or item.get("detail") or "")[:180],
+                        "status": status if status in ("neutral", "positive", "negative", "active") else "neutral",
+                    }
+                )
+            elif isinstance(item, str) and item.strip():
+                items.append({"label": item.strip()[:80], "value": "", "note": "", "status": "neutral"})
+    p["items"] = items
+    p["source"] = str(p.get("source") or "")[:160]
+    p["accentColor"] = str(p.get("accentColor") or _EXTENDED_STYLE_ACCENTS["EditorialExplainerScene"])
+
+
+def _normalize_framework_matrix(p: dict[str, Any], title: str, subtext: str, category: str) -> None:
+    p["badge"] = str(p.get("badge") or category or "ARCHITECTURE MATRIX")[:80]
+    p["title"] = (title or "核心架構支柱")[:120]
+    p["subtitle"] = str(p.get("subtitle") or subtext or "")[:200]
+    raw_pillars = p.get("pillars") or p.get("items")
+    pillars: list[dict[str, Any]] = []
+    if isinstance(raw_pillars, list):
+        for idx, item in enumerate(raw_pillars[:4]):
+            if isinstance(item, dict):
+                pillars.append(
+                    {
+                        "id": str(item.get("id") or f"p{idx + 1}"),
+                        "title": str(item.get("title") or item.get("label") or f"支柱 {idx + 1}")[:60],
+                        "subtitle": str(item.get("subtitle") or item.get("note") or "")[:120],
+                        "icon": str(item.get("icon") or "0" + str(idx + 1)),
+                        "metric": str(item.get("metric") or item.get("value") or ""),
+                        "points": [str(x) for x in (item.get("points") or [])][:4],
+                        "isHighlighted": bool(item.get("isHighlighted", idx == 0)),
+                    }
+                )
+    if len(pillars) < 2:
+        pillars = [
+            {"id": "p1", "title": "核心機制", "subtitle": (subtext or title)[:80], "icon": "01", "metric": "", "points": [], "isHighlighted": True},
+            {"id": "p2", "title": "結構關鍵", "subtitle": "決定輸出表現的底層條件", "icon": "02", "metric": "", "points": [], "isHighlighted": False},
+        ]
+    p["pillars"] = pillars
+    p["activePillarId"] = str(p.get("activePillarId") or "")
+    p["accentColor"] = str(p.get("accentColor") or _EXTENDED_STYLE_ACCENTS["FrameworkMatrixScene"])
+
+
+def _normalize_prompt_comparison(p: dict[str, Any], title: str, subtext: str, category: str) -> None:
+    p["badge"] = str(p.get("badge") or category or "COMPARISON")[:80]
+    p["title"] = (title or "方案正反對照")[:120]
+    p["subtitle"] = str(p.get("subtitle") or "")[:200]
+    p["leftBadge"] = str(p.get("leftBadge") or "BEFORE / MYTH")
+    p["leftTitle"] = str(p.get("leftTitle") or "傳統直覺做法")
+    p["leftContent"] = str(p.get("leftContent") or subtext or title)
+    p["leftTags"] = list(p.get("leftTags") or [])
+    p["rightBadge"] = str(p.get("rightBadge") or "AFTER / VERIFIED")
+    p["rightTitle"] = str(p.get("rightTitle") or "結構化最佳實踐")
+    p["rightContent"] = str(p.get("rightContent") or "聚焦關鍵制約條件並建立可驗證指標")
+    p["rightTags"] = list(p.get("rightTags") or [])
+    p["takeaway"] = str(p.get("takeaway") or "")
+    p["accentColor"] = str(p.get("accentColor") or _EXTENDED_STYLE_ACCENTS["PromptComparisonScene"])
+
+
+def _normalize_chat_simulation(p: dict[str, Any], title: str, subtext: str, category: str) -> None:
+    p["badge"] = str(p.get("badge") or category or "QUERY BREAKDOWN")[:80]
+    p["title"] = (title or "核心提問與拆解")[:120]
+    p["systemTag"] = str(p.get("systemTag") or "SYSTEM ANALYSIS")
+    p["promptText"] = str(p.get("promptText") or title)
+    p["responseTitle"] = str(p.get("responseTitle") or "關鍵解析要點")
+    items = p.get("responseItems")
+    if not isinstance(items, list) or not items:
+        items = [{"title": "核心洞察", "detail": subtext or title, "tag": "VERIFIED"}]
+    p["responseItems"] = items[:5]
+    p["accentColor"] = str(p.get("accentColor") or _EXTENDED_STYLE_ACCENTS["ChatSimulationScene"])
+
+
+def _normalize_kinetic_quote(p: dict[str, Any], title: str, subtext: str, category: str) -> None:
+    p["badge"] = str(p.get("badge") or category or "KEY INSIGHT")[:80]
+    quote = str(p.get("quote") or subtext or title).strip()
+    p["quote"] = quote
+    p["author"] = str(p.get("author") or "EDITORIAL NOTE")
+    p["authorTitle"] = str(p.get("authorTitle") or "")
+    p["authorAvatarUrl"] = str(p.get("authorAvatarUrl") or "")
+    p["highlightPhrase"] = str(p.get("highlightPhrase") or quote[: min(len(quote), 18)])
+    p["accentColor"] = str(p.get("accentColor") or _EXTENDED_STYLE_ACCENTS["KineticQuoteScene"])
+
+
+def _normalize_workflow_step(p: dict[str, Any], title: str, subtext: str, category: str) -> None:
+    p["badge"] = str(p.get("badge") or category or "WORKFLOW")[:80]
+    p["title"] = (title or "工作流推進步驟")[:120]
+    p["subtitle"] = str(p.get("subtitle") or subtext or "")[:200]
+    raw_steps = p.get("steps") or p.get("items")
+    steps: list[dict[str, str]] = []
+    if isinstance(raw_steps, list):
+        for idx, item in enumerate(raw_steps[:5]):
+            if isinstance(item, dict):
+                steps.append(
+                    {
+                        "stepNumber": str(item.get("stepNumber") or f"STEP 0{idx + 1}"),
+                        "label": str(item.get("label") or item.get("title") or f"步驟 {idx + 1}"),
+                        "detail": str(item.get("detail") or item.get("note") or ""),
+                        "tag": str(item.get("tag") or "ACTION"),
+                    }
+                )
+    if not steps:
+        steps = [
+            {"stepNumber": "STEP 01", "label": title[:40], "detail": subtext or "", "tag": "START"},
+            {"stepNumber": "STEP 02", "label": "關鍵驗證", "detail": "確認輸出一致與可重現", "tag": "CHECK"},
+        ]
+    p["steps"] = steps
+    p["activeStepIndex"] = int(p.get("activeStepIndex") or 0)
+    p["accentColor"] = str(p.get("accentColor") or _EXTENDED_STYLE_ACCENTS["WorkflowStepScene"])
+
+
+def _normalize_kinetic_typography(p: dict[str, Any], title: str, subtext: str, category: str) -> None:
+    p["badge"] = str(p.get("badge") or category or "KEY BEAT")[:80]
+    text = str(p.get("text") or title).strip()
+    p["text"] = text
+    p["highlightPhrase"] = str(p.get("highlightPhrase") or text[: min(len(text), 14)])
+    p["words"] = list(p.get("words") or [])
+    p["subtext"] = str(p.get("subtext") or subtext or "")
+    p["accentColor"] = str(p.get("accentColor") or _EXTENDED_STYLE_ACCENTS["KineticTypographyScene"])
+
+
+_EXTENDED_COMPOSITION_NORMALIZERS = {
+    "RveBarChartScene": _normalize_rve_bar_chart,
+    "RveTrendLineScene": _normalize_rve_trend_line,
+    "RveDonutChartScene": _normalize_rve_donut_chart,
+    "RveComparisonBarScene": _normalize_rve_comparison_bar,
+    "RveProgressStepsScene": _normalize_rve_progress_steps,
+    "RveCardFlipScene": _normalize_rve_card_flip,
+    "RveImageComparisonScene": _normalize_rve_image_comparison,
+    "RveChapterTitleScene": _normalize_rve_chapter_title,
+    "EditorialExplainerScene": _normalize_editorial_explainer,
+    "FrameworkMatrixScene": _normalize_framework_matrix,
+    "PromptComparisonScene": _normalize_prompt_comparison,
+    "ChatSimulationScene": _normalize_chat_simulation,
+    "KineticQuoteScene": _normalize_kinetic_quote,
+    "WorkflowStepScene": _normalize_workflow_step,
+    "KineticTypographyScene": _normalize_kinetic_typography,
+}
+
+
+def _normalize_extended_composition_props(
+    composition: str, p: dict[str, Any], title: str, subtext: str, category: str
+) -> None:
+    handler = _EXTENDED_COMPOSITION_NORMALIZERS.get(composition)
+    if handler:
+        handler(p, title, subtext, category)
+
+
+def plan_100_percent_remotion_scenes(
+    script: str,
+    references: Optional[List[Dict[str, Any]]] = None,
+) -> List[Dict[str, Any]]:
+    """Auto-plan a full script into varied 100% Remotion compositions with normalized props."""
+    parts = [
+        part.strip()
+        for part in re.split(r"\n\s*\n|(?<=[。！？!?])\s+|\n+", (script or "").strip())
+        if part and part.strip()
+    ]
+    if not parts:
+        return []
+
+    refs = references or []
+    middle = len(parts) // 2
+    planned: List[Dict[str, Any]] = []
+    prev_composition = ""
+    chapter_counter = 0
+
+    for idx, narration in enumerate(parts):
+        sc = Scene(scene_id=idx + 1, narration=narration)
+        composition = _select_rve_composition(
+            narration, scene_index=idx, total_scenes=len(parts)
+        )
+        if composition == prev_composition:
+            for offset in range(1, len(_RVE_ROTATION_POOL) + 1):
+                candidate = _RVE_ROTATION_POOL[(idx + offset) % len(_RVE_ROTATION_POOL)]
+                if candidate != prev_composition:
+                    composition = candidate
+                    break
+        prev_composition = composition
+
+        raw_props = extract_card_props(sc)
+        raw_props["bgVariant"] = _VALID_BG_VARIANTS[idx % len(_VALID_BG_VARIANTS)]
+        if composition == "RveChapterTitleScene":
+            chapter_counter += 1
+            raw_props["chapterNumber"] = f"{chapter_counter:02d}"
+
+        normalized = _normalize_props_for_composition(composition, raw_props)
+
+        lower = narration.lower()
+        reference_ids = [
+            ref.get("id")
+            for ref in refs
+            if ref.get("id") is not None
+            and (
+                stem := re.sub(r"\.[^.]+$", "", str(ref.get("filename") or "")).lower()
+            )
+            and len(stem) >= 2
+            and stem in lower
+        ]
+
+        planned.append(
+            {
+                "scene_id": idx + 1,
+                "narration": narration,
+                "composition": composition,
+                "renderer": "remotion",
+                "renderer_confirmed": True,
+                "props": normalized,
+                "reference_ids": reference_ids,
+                "presenter_slot": len(parts) >= 3 and idx in (0, middle, len(parts) - 1),
+            }
+        )
+
+    return planned
 
 
 # ---------------------------------------------------------------- rendering

@@ -556,3 +556,185 @@ export * from "./wireless/wirelessTypes";
 
 // AI Agent Simulation Archetype Schemas
 export * from "./simulation/simulationTypes";
+
+// ============================================================================
+// 11. RVE 100% Remotion Template Suite Schemas
+// ============================================================================
+export const ProceduralBgVariantSchema = z
+  .enum(["grid-pulse", "bokeh", "geometric", "liquid", "gradient-shift"])
+  .optional()
+  .default("grid-pulse");
+
+export const RveBaseScenePropsSchema = z.object({
+  bgSrc: z.string().optional().default(""),
+  dim: z.number().min(0).max(1).optional().default(0.5),
+  accentColor: z.string().optional().default("#38BDF8"),
+  bgVariant: ProceduralBgVariantSchema,
+  source: z.string().max(180).optional().default(""),
+});
+
+export const RveBarItemSchema = z.object({
+  label: z.string().min(1).max(60),
+  value: z.number(),
+  displayValue: z.string().max(40).optional().default(""),
+  color: z.string().optional().default(""),
+});
+export type RveBarItem = z.input<typeof RveBarItemSchema>;
+
+export const RveBarChartSceneSchema = RveBaseScenePropsSchema.extend({
+  badge: z.string().max(80).optional().default("DATA BREAKDOWN"),
+  title: z.string().max(120).optional().default("關鍵數據對比分佈"),
+  subtitle: z.string().max(200).optional().default(""),
+  bars: z
+    .array(RveBarItemSchema)
+    .min(1)
+    .max(10)
+    .optional()
+    .default([
+      { label: "項目 A", value: 45, displayValue: "45", color: "" },
+      { label: "項目 B", value: 78, displayValue: "78", color: "" },
+      { label: "項目 C", value: 62, displayValue: "62", color: "" },
+      { label: "項目 D", value: 92, displayValue: "92", color: "" },
+    ]),
+});
+export type RveBarChartSceneProps = z.input<typeof RveBarChartSceneSchema>;
+
+export const RveTrendPointSchema = z.object({
+  label: z.string().min(1).max(30),
+  value: z.number(),
+  note: z.string().max(80).optional().default(""),
+});
+export type RveTrendPoint = z.input<typeof RveTrendPointSchema>;
+
+export const RveTrendLineSceneSchema = RveBaseScenePropsSchema.extend({
+  badge: z.string().max(80).optional().default("GROWTH TRAJECTORY"),
+  title: z.string().max(120).optional().default("長期趨勢演進曲線"),
+  subtitle: z.string().max(200).optional().default(""),
+  highlightStat: z.string().max(40).optional().default(""),
+  highlightLabel: z.string().max(60).optional().default(""),
+  points: z
+    .array(RveTrendPointSchema)
+    .min(2)
+    .max(12)
+    .optional()
+    .default([
+      { label: "2020", value: 25, note: "" },
+      { label: "2021", value: 42, note: "" },
+      { label: "2022", value: 58, note: "" },
+      { label: "2023", value: 74, note: "" },
+      { label: "2024", value: 92, note: "關鍵突破" },
+    ]),
+});
+export type RveTrendLineSceneProps = z.input<typeof RveTrendLineSceneSchema>;
+
+export const RveDonutSegmentSchema = z.object({
+  label: z.string().min(1).max(60),
+  value: z.number(),
+  displayValue: z.string().max(40).optional().default(""),
+  color: z.string().optional().default(""),
+});
+export type RveDonutSegment = z.input<typeof RveDonutSegmentSchema>;
+
+export const RveDonutChartSceneSchema = RveBaseScenePropsSchema.extend({
+  badge: z.string().max(80).optional().default("COMPOSITION SHARE"),
+  title: z.string().max(120).optional().default("核心結構佔比解析"),
+  subtitle: z.string().max(200).optional().default(""),
+  centerValue: z.string().max(30).optional().default("78%"),
+  centerLabel: z.string().max(60).optional().default("核心佔比"),
+  segments: z
+    .array(RveDonutSegmentSchema)
+    .min(2)
+    .max(6)
+    .optional()
+    .default([
+      { label: "核心模組", value: 45, displayValue: "45%", color: "#38BDF8" },
+      { label: "系統整合", value: 28, displayValue: "28%", color: "#8B5CF6" },
+      { label: "基礎架構", value: 17, displayValue: "17%", color: "#14B8A6" },
+      { label: "其他支出", value: 10, displayValue: "10%", color: "#F59E0B" },
+    ]),
+});
+export type RveDonutChartSceneProps = z.input<typeof RveDonutChartSceneSchema>;
+
+export const RveComparisonBarSceneSchema = RveBaseScenePropsSchema.extend({
+  badge: z.string().max(80).optional().default("BEFORE VS AFTER"),
+  title: z.string().max(120).optional().default("關鍵效能前後對比"),
+  subtitle: z.string().max(200).optional().default(""),
+  beforeLabel: z.string().max(60).optional().default("改善前 (Before)"),
+  beforeValue: z.number().optional().default(34),
+  beforeDisplay: z.string().max(40).optional().default("34%"),
+  beforeColor: z.string().optional().default("#EF4444"),
+  afterLabel: z.string().max(60).optional().default("改善後 (After)"),
+  afterValue: z.number().optional().default(89),
+  afterDisplay: z.string().max(40).optional().default("89%"),
+  afterColor: z.string().optional().default("#38BDF8"),
+  takeaway: z.string().max(180).optional().default("核心效能指標獲得顯著躍升"),
+});
+export type RveComparisonBarSceneProps = z.input<typeof RveComparisonBarSceneSchema>;
+
+export const RveProgressStepSchema = z.object({
+  label: z.string().min(1).max(60),
+  detail: z.string().max(160).optional().default(""),
+  tag: z.string().max(40).optional().default(""),
+});
+export type RveProgressStep = z.input<typeof RveProgressStepSchema>;
+
+export const RveProgressStepsSceneSchema = RveBaseScenePropsSchema.extend({
+  badge: z.string().max(80).optional().default("EXECUTION ROADMAP"),
+  title: z.string().max(120).optional().default("多階段推進核心流程"),
+  subtitle: z.string().max(200).optional().default(""),
+  steps: z
+    .array(RveProgressStepSchema)
+    .min(2)
+    .max(6)
+    .optional()
+    .default([
+      { label: "階段一：定義問題", detail: "釐清核心邊界條件與基準數據", tag: "STEP 01" },
+      { label: "階段二：結構拆解", detail: "識別關鍵依賴與系統瓶頸", tag: "STEP 02" },
+      { label: "階段三：方案驗證", detail: "小規模測試並量化實際效益", tag: "STEP 03" },
+      { label: "階段四：全面落地", detail: "穩定擴展並持續監控指標", tag: "STEP 04" },
+    ]),
+});
+export type RveProgressStepsSceneProps = z.input<typeof RveProgressStepsSceneSchema>;
+
+export const RveCardFlipSceneSchema = RveBaseScenePropsSchema.extend({
+  badge: z.string().max(80).optional().default("PERSPECTIVE SHIFT"),
+  title: z.string().max(120).optional().default("表象與底層真相翻轉"),
+  subtitle: z.string().max(200).optional().default(""),
+  frontTag: z.string().max(60).optional().default("表面認知 · MYTH"),
+  frontTitle: z.string().max(100).optional().default("傳統直覺認知"),
+  frontBody: z
+    .string()
+    .max(300)
+    .optional()
+    .default("只看單一表層指標，容易忽略結構性的系統瓶頸。"),
+  backTag: z.string().max(60).optional().default("底層真相 · REALITY"),
+  backTitle: z.string().max(100).optional().default("真實運作機制"),
+  backBody: z
+    .string()
+    .max(300)
+    .optional()
+    .default("真正決定結果上限的，往往是最稀缺的關鍵依賴節點。"),
+  flipAtRatio: z.number().min(0.1).max(0.9).optional().default(0.42),
+});
+export type RveCardFlipSceneProps = z.input<typeof RveCardFlipSceneSchema>;
+
+export const RveImageComparisonSceneSchema = RveBaseScenePropsSchema.extend({
+  badge: z.string().max(80).optional().default("VISUAL COMPARISON"),
+  title: z.string().max(120).optional().default("前後視角對照驗證"),
+  subtitle: z.string().max(200).optional().default(""),
+  beforeLabel: z.string().max(60).optional().default("BEFORE"),
+  beforeCaption: z.string().max(160).optional().default("既有狀態與基準對照"),
+  beforeImgSrc: z.string().optional().default(""),
+  afterLabel: z.string().max(60).optional().default("AFTER"),
+  afterCaption: z.string().max(160).optional().default("新階段架構與成果對照"),
+  afterImgSrc: z.string().optional().default(""),
+});
+export type RveImageComparisonSceneProps = z.input<typeof RveImageComparisonSceneSchema>;
+
+export const RveChapterTitleSceneSchema = RveBaseScenePropsSchema.extend({
+  chapterLabel: z.string().max(40).optional().default("CHAPTER"),
+  chapterNumber: z.string().max(20).optional().default("01"),
+  title: z.string().max(120).optional().default("關鍵轉折起點"),
+  subtitle: z.string().max(200).optional().default("從歷史脈絡解析核心機制"),
+});
+export type RveChapterTitleSceneProps = z.input<typeof RveChapterTitleSceneSchema>;

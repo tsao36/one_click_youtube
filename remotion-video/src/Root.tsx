@@ -68,7 +68,23 @@ import {
   HistoryChronologySceneSchema,
   VoxSplitScreenSceneSchema,
   VoxKeyStatSceneSchema,
+  RveBarChartSceneSchema,
+  RveTrendLineSceneSchema,
+  RveDonutChartSceneSchema,
+  RveComparisonBarSceneSchema,
+  RveProgressStepsSceneSchema,
+  RveCardFlipSceneSchema,
+  RveImageComparisonSceneSchema,
+  RveChapterTitleSceneSchema,
 } from "./types";
+import { RveBarChartScene } from "./RveBarChartScene";
+import { RveTrendLineScene } from "./RveTrendLineScene";
+import { RveDonutChartScene } from "./RveDonutChartScene";
+import { RveComparisonBarScene } from "./RveComparisonBarScene";
+import { RveProgressStepsScene } from "./RveProgressStepsScene";
+import { RveCardFlipScene } from "./RveCardFlipScene";
+import { RveImageComparisonScene } from "./RveImageComparisonScene";
+import { RveChapterTitleScene } from "./RveChapterTitleScene";
 
 
 const videoDimensions = { fps: 30, width: 1920, height: 1080 };
@@ -863,6 +879,197 @@ export const RemotionRoot: React.FC = () => {
           durationInFrames={900}
           {...videoDimensions}
           defaultProps={createWirelessCoexistenceMasterPreset()}
+        />
+      </Folder>
+
+      <Folder name="RVE-100-Percent-Remotion-Templates">
+        <Composition
+          id="RveBarChartScene"
+          component={RveBarChartScene}
+          schema={RveBarChartSceneSchema}
+          durationInFrames={150}
+          {...videoDimensions}
+          defaultProps={{
+            bgSrc: "",
+            dim: 0.5,
+            accentColor: "#38BDF8",
+            bgVariant: "grid-pulse",
+            badge: "DATA BREAKDOWN",
+            title: "關鍵數據對比分佈",
+            subtitle: "跨年度核心指標橫向對照",
+            source: "SYSTEM TELEMETRY",
+            bars: [
+              { label: "項目 A", value: 45, displayValue: "45", color: "" },
+              { label: "項目 B", value: 78, displayValue: "78", color: "" },
+              { label: "項目 C", value: 62, displayValue: "62", color: "" },
+              { label: "項目 D", value: 92, displayValue: "92", color: "" },
+            ],
+          }}
+        />
+        <Composition
+          id="RveTrendLineScene"
+          component={RveTrendLineScene}
+          schema={RveTrendLineSceneSchema}
+          durationInFrames={150}
+          {...videoDimensions}
+          defaultProps={{
+            bgSrc: "",
+            dim: 0.5,
+            accentColor: "#14B8A6",
+            bgVariant: "grid-pulse",
+            badge: "GROWTH TRAJECTORY",
+            title: "長期趨勢演進曲線",
+            subtitle: "結構性增長軌跡與拐點",
+            highlightStat: "+268%",
+            highlightLabel: "區間累積成長",
+            source: "LONGITUDINAL DATA",
+            points: [
+              { label: "2020", value: 25, note: "" },
+              { label: "2021", value: 42, note: "" },
+              { label: "2022", value: 58, note: "" },
+              { label: "2023", value: 74, note: "" },
+              { label: "2024", value: 92, note: "關鍵突破" },
+            ],
+          }}
+        />
+        <Composition
+          id="RveDonutChartScene"
+          component={RveDonutChartScene}
+          schema={RveDonutChartSceneSchema}
+          durationInFrames={150}
+          {...videoDimensions}
+          defaultProps={{
+            bgSrc: "",
+            dim: 0.5,
+            accentColor: "#8B5CF6",
+            bgVariant: "bokeh",
+            badge: "COMPOSITION SHARE",
+            title: "核心結構佔比解析",
+            subtitle: "資源配置與關鍵權重分佈",
+            centerValue: "78%",
+            centerLabel: "核心佔比",
+            source: "SHARE ANALYSIS",
+            segments: [
+              { label: "核心模組", value: 45, displayValue: "45%", color: "#38BDF8" },
+              { label: "系統整合", value: 28, displayValue: "28%", color: "#8B5CF6" },
+              { label: "基礎架構", value: 17, displayValue: "17%", color: "#14B8A6" },
+              { label: "其他支出", value: 10, displayValue: "10%", color: "#F59E0B" },
+            ],
+          }}
+        />
+        <Composition
+          id="RveComparisonBarScene"
+          component={RveComparisonBarScene}
+          schema={RveComparisonBarSceneSchema}
+          durationInFrames={150}
+          {...videoDimensions}
+          defaultProps={{
+            bgSrc: "",
+            dim: 0.5,
+            accentColor: "#F59E0B",
+            bgVariant: "geometric",
+            badge: "BEFORE VS AFTER",
+            title: "關鍵效能前後對比",
+            subtitle: "導入新機制前後的核心差距",
+            beforeLabel: "改善前 (Before)",
+            beforeValue: 34,
+            beforeDisplay: "34%",
+            beforeColor: "#EF4444",
+            afterLabel: "改善後 (After)",
+            afterValue: 89,
+            afterDisplay: "89%",
+            afterColor: "#38BDF8",
+            takeaway: "核心效能指標獲得顯著躍升",
+            source: "BENCHMARK REPORT",
+          }}
+        />
+        <Composition
+          id="RveProgressStepsScene"
+          component={RveProgressStepsScene}
+          schema={RveProgressStepsSceneSchema}
+          durationInFrames={150}
+          {...videoDimensions}
+          defaultProps={{
+            bgSrc: "",
+            dim: 0.5,
+            accentColor: "#06B6D4",
+            bgVariant: "grid-pulse",
+            badge: "EXECUTION ROADMAP",
+            title: "多階段推進核心流程",
+            subtitle: "四步驟循序落地的實戰路線",
+            source: "PROCESS ARCHITECTURE",
+            steps: [
+              { label: "階段一：定義問題", detail: "釐清核心邊界條件與基準數據", tag: "STEP 01" },
+              { label: "階段二：結構拆解", detail: "識別關鍵依賴與系統瓶頸", tag: "STEP 02" },
+              { label: "階段三：方案驗證", detail: "小規模測試並量化實際效益", tag: "STEP 03" },
+              { label: "階段四：全面落地", detail: "穩定擴展並持續監控指標", tag: "STEP 04" },
+            ],
+          }}
+        />
+        <Composition
+          id="RveCardFlipScene"
+          component={RveCardFlipScene}
+          schema={RveCardFlipSceneSchema}
+          durationInFrames={150}
+          {...videoDimensions}
+          defaultProps={{
+            bgSrc: "",
+            dim: 0.5,
+            accentColor: "#A855F7",
+            bgVariant: "gradient-shift",
+            badge: "PERSPECTIVE SHIFT",
+            title: "表象與底層真相翻轉",
+            subtitle: "跳脫直覺誤區的關鍵視角",
+            frontTag: "表面認知 · MYTH",
+            frontTitle: "傳統直覺認知",
+            frontBody: "只看單一表層指標，容易忽略結構性的系統瓶頸。",
+            backTag: "底層真相 · REALITY",
+            backTitle: "真實運作機制",
+            backBody: "真正決定結果上限的，往往是最稀缺的關鍵依賴節點。",
+            flipAtRatio: 0.42,
+            source: "CRITICAL ANALYSIS",
+          }}
+        />
+        <Composition
+          id="RveImageComparisonScene"
+          component={RveImageComparisonScene}
+          schema={RveImageComparisonSceneSchema}
+          durationInFrames={150}
+          {...videoDimensions}
+          defaultProps={{
+            bgSrc: "",
+            dim: 0.5,
+            accentColor: "#22D3EE",
+            bgVariant: "liquid",
+            badge: "VISUAL COMPARISON",
+            title: "前後視角對照驗證",
+            subtitle: "實證影像與結構演化對照",
+            beforeLabel: "BEFORE",
+            beforeCaption: "既有狀態與基準對照",
+            beforeImgSrc: "",
+            afterLabel: "AFTER",
+            afterCaption: "新階段架構與成果對照",
+            afterImgSrc: "",
+            source: "VISUAL AUDIT",
+          }}
+        />
+        <Composition
+          id="RveChapterTitleScene"
+          component={RveChapterTitleScene}
+          schema={RveChapterTitleSceneSchema}
+          durationInFrames={150}
+          {...videoDimensions}
+          defaultProps={{
+            bgSrc: "",
+            dim: 0.55,
+            accentColor: "#38BDF8",
+            bgVariant: "bokeh",
+            chapterLabel: "CHAPTER",
+            chapterNumber: "01",
+            title: "關鍵轉折起點",
+            subtitle: "從歷史脈絡解析核心機制",
+            source: "",
+          }}
         />
       </Folder>
 

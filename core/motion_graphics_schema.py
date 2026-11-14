@@ -27,6 +27,15 @@ class SceneType(str, Enum):
     WIFI7_MLO_EMLSR = "Wifi7MloeMlsrScene"
     BLE_LIFECYCLE = "BleLifecycleScene"
     WIRELESS_COEXISTENCE = "WirelessCoexistenceScene"
+    # RVE 100% Remotion Template Suite
+    RVE_BAR_CHART = "RveBarChartScene"
+    RVE_TREND_LINE = "RveTrendLineScene"
+    RVE_DONUT_CHART = "RveDonutChartScene"
+    RVE_COMPARISON_BAR = "RveComparisonBarScene"
+    RVE_PROGRESS_STEPS = "RveProgressStepsScene"
+    RVE_CARD_FLIP = "RveCardFlipScene"
+    RVE_IMAGE_COMPARISON = "RveImageComparisonScene"
+    RVE_CHAPTER_TITLE = "RveChapterTitleScene"
 
 
 class LayoutType(str, Enum):
@@ -403,6 +412,196 @@ class WirelessSceneProps(BaseSceneProps):
     model_config = {"populate_by_name": True}
 
 
+# ============================================================================
+# RVE 100% Remotion Template Suite Props
+# ============================================================================
+class RveBaseSceneProps(BaseModel):
+    """Shared base props for RVE 100% Remotion compositions."""
+
+    bg_src: Optional[str] = Field(default="", alias="bgSrc")
+    dim: Optional[float] = Field(default=0.5, ge=0.0, le=1.0)
+    accent_color: Optional[str] = Field(default="#38BDF8", alias="accentColor")
+    bg_variant: Literal["grid-pulse", "bokeh", "geometric", "liquid", "gradient-shift"] = Field(
+        default="grid-pulse", alias="bgVariant"
+    )
+    source: str = Field(default="", max_length=180)
+    model_config = {"populate_by_name": True}
+
+
+class _RveLabeledValueItem(BaseModel):
+    label: str = Field(..., min_length=1, max_length=60)
+    value: float = Field(...)
+    display_value: str = Field(default="", max_length=40, alias="displayValue")
+    color: str = Field(default="")
+    model_config = {"populate_by_name": True}
+
+
+class RveBarItem(_RveLabeledValueItem):
+    """Single bar entry for RveBarChartScene."""
+
+
+class RveDonutSegment(_RveLabeledValueItem):
+    """Single segment entry for RveDonutChartScene."""
+
+
+class RveBarChartSceneProps(RveBaseSceneProps):
+    """Props for animated bar chart breakdown scene."""
+
+    badge: str = Field(default="DATA BREAKDOWN", max_length=80)
+    title: str = Field(default="關鍵數據對比分佈", max_length=120)
+    subtitle: str = Field(default="", max_length=200)
+    bars: List[RveBarItem] = Field(
+        default_factory=lambda: [
+            RveBarItem(label="項目 A", value=45, display_value="45"),
+            RveBarItem(label="項目 B", value=78, display_value="78"),
+            RveBarItem(label="項目 C", value=62, display_value="62"),
+            RveBarItem(label="項目 D", value=92, display_value="92"),
+        ],
+        min_length=1,
+        max_length=10,
+    )
+
+
+class RveTrendPoint(BaseModel):
+    """Single data point on RveTrendLineScene trajectory."""
+
+    label: str = Field(..., min_length=1, max_length=30)
+    value: float = Field(...)
+    note: str = Field(default="", max_length=80)
+    model_config = {"populate_by_name": True}
+
+
+class RveTrendLineSceneProps(RveBaseSceneProps):
+    """Props for animated SVG trend line curve scene."""
+
+    badge: str = Field(default="GROWTH TRAJECTORY", max_length=80)
+    title: str = Field(default="長期趨勢演進曲線", max_length=120)
+    subtitle: str = Field(default="", max_length=200)
+    highlight_stat: str = Field(default="", max_length=40, alias="highlightStat")
+    highlight_label: str = Field(default="", max_length=60, alias="highlightLabel")
+    points: List[RveTrendPoint] = Field(
+        default_factory=lambda: [
+            RveTrendPoint(label="2020", value=25),
+            RveTrendPoint(label="2021", value=42),
+            RveTrendPoint(label="2022", value=58),
+            RveTrendPoint(label="2023", value=74),
+            RveTrendPoint(label="2024", value=92, note="關鍵突破"),
+        ],
+        min_length=2,
+        max_length=12,
+    )
+
+
+class RveDonutChartSceneProps(RveBaseSceneProps):
+    """Props for animated SVG donut chart share scene."""
+
+    badge: str = Field(default="COMPOSITION SHARE", max_length=80)
+    title: str = Field(default="核心結構佔比解析", max_length=120)
+    subtitle: str = Field(default="", max_length=200)
+    center_value: str = Field(default="78%", max_length=30, alias="centerValue")
+    center_label: str = Field(default="核心佔比", max_length=60, alias="centerLabel")
+    segments: List[RveDonutSegment] = Field(
+        default_factory=lambda: [
+            RveDonutSegment(label="核心模組", value=45, display_value="45%", color="#38BDF8"),
+            RveDonutSegment(label="系統整合", value=28, display_value="28%", color="#8B5CF6"),
+            RveDonutSegment(label="基礎架構", value=17, display_value="17%", color="#14B8A6"),
+            RveDonutSegment(label="其他支出", value=10, display_value="10%", color="#F59E0B"),
+        ],
+        min_length=2,
+        max_length=6,
+    )
+
+
+class RveComparisonBarSceneProps(RveBaseSceneProps):
+    """Props for dual before/after horizontal comparison bar scene."""
+
+    badge: str = Field(default="BEFORE VS AFTER", max_length=80)
+    title: str = Field(default="關鍵效能前後對比", max_length=120)
+    subtitle: str = Field(default="", max_length=200)
+    before_label: str = Field(default="改善前 (Before)", max_length=60, alias="beforeLabel")
+    before_value: float = Field(default=34.0, alias="beforeValue")
+    before_display: str = Field(default="34%", max_length=40, alias="beforeDisplay")
+    before_color: str = Field(default="#EF4444", alias="beforeColor")
+    after_label: str = Field(default="改善後 (After)", max_length=60, alias="afterLabel")
+    after_value: float = Field(default=89.0, alias="afterValue")
+    after_display: str = Field(default="89%", max_length=40, alias="afterDisplay")
+    after_color: str = Field(default="#38BDF8", alias="afterColor")
+    takeaway: str = Field(default="核心效能指標獲得顯著躍升", max_length=180)
+
+
+class RveProgressStep(BaseModel):
+    """Single step item for RveProgressStepsScene."""
+
+    label: str = Field(..., min_length=1, max_length=60)
+    detail: str = Field(default="", max_length=160)
+    tag: str = Field(default="", max_length=40)
+    model_config = {"populate_by_name": True}
+
+
+class RveProgressStepsSceneProps(RveBaseSceneProps):
+    """Props for sequential milestone progression scene."""
+
+    badge: str = Field(default="EXECUTION ROADMAP", max_length=80)
+    title: str = Field(default="多階段推進核心流程", max_length=120)
+    subtitle: str = Field(default="", max_length=200)
+    steps: List[RveProgressStep] = Field(
+        default_factory=lambda: [
+            RveProgressStep(label="階段一：定義問題", detail="釐清核心邊界條件與基準數據", tag="STEP 01"),
+            RveProgressStep(label="階段二：結構拆解", detail="識別關鍵依賴與系統瓶頸", tag="STEP 02"),
+            RveProgressStep(label="階段三：方案驗證", detail="小規模測試並量化實際效益", tag="STEP 03"),
+            RveProgressStep(label="階段四：全面落地", detail="穩定擴展並持續監控指標", tag="STEP 04"),
+        ],
+        min_length=2,
+        max_length=6,
+    )
+
+
+class RveCardFlipSceneProps(RveBaseSceneProps):
+    """Props for 3D perspective card-flip myth vs reality scene."""
+
+    badge: str = Field(default="PERSPECTIVE SHIFT", max_length=80)
+    title: str = Field(default="表象與底層真相翻轉", max_length=120)
+    subtitle: str = Field(default="", max_length=200)
+    front_tag: str = Field(default="表面認知 · MYTH", max_length=60, alias="frontTag")
+    front_title: str = Field(default="傳統直覺認知", max_length=100, alias="frontTitle")
+    front_body: str = Field(
+        default="只看單一表層指標，容易忽略結構性的系統瓶頸。",
+        max_length=300,
+        alias="frontBody",
+    )
+    back_tag: str = Field(default="底層真相 · REALITY", max_length=60, alias="backTag")
+    back_title: str = Field(default="真實運作機制", max_length=100, alias="backTitle")
+    back_body: str = Field(
+        default="真正決定結果上限的，往往是最稀缺的關鍵依賴節點。",
+        max_length=300,
+        alias="backBody",
+    )
+    flip_at_ratio: float = Field(default=0.42, ge=0.1, le=0.9, alias="flipAtRatio")
+
+
+class RveImageComparisonSceneProps(RveBaseSceneProps):
+    """Props for split before/after visual comparison slider scene."""
+
+    badge: str = Field(default="VISUAL COMPARISON", max_length=80)
+    title: str = Field(default="前後視角對照驗證", max_length=120)
+    subtitle: str = Field(default="", max_length=200)
+    before_label: str = Field(default="BEFORE", max_length=60, alias="beforeLabel")
+    before_caption: str = Field(default="既有狀態與基準對照", max_length=160, alias="beforeCaption")
+    before_img_src: str = Field(default="", alias="beforeImgSrc")
+    after_label: str = Field(default="AFTER", max_length=60, alias="afterLabel")
+    after_caption: str = Field(default="新階段架構與成果對照", max_length=160, alias="afterCaption")
+    after_img_src: str = Field(default="", alias="afterImgSrc")
+
+
+class RveChapterTitleSceneProps(RveBaseSceneProps):
+    """Props for editorial chapter opener scene."""
+
+    chapter_label: str = Field(default="CHAPTER", max_length=40, alias="chapterLabel")
+    chapter_number: str = Field(default="01", max_length=20, alias="chapterNumber")
+    title: str = Field(default="關鍵轉折起點", max_length=120)
+    subtitle: str = Field(default="從歷史脈絡解析核心機制", max_length=200)
+
+
 PROPS_SCHEMA_MAP = {
     SceneType.EDITORIAL_EXPLAINER: EditorialExplainerSceneProps,
     SceneType.AGENT_SIMULATION: AgentSimulationSceneProps,
@@ -422,6 +621,14 @@ PROPS_SCHEMA_MAP = {
     SceneType.KINETIC_QUOTE: KineticQuoteSceneProps,
     SceneType.WORKFLOW_STEP: WorkflowStepSceneProps,
     SceneType.KINETIC_TYPOGRAPHY: KineticTypographySceneProps,
+    SceneType.RVE_BAR_CHART: RveBarChartSceneProps,
+    SceneType.RVE_TREND_LINE: RveTrendLineSceneProps,
+    SceneType.RVE_DONUT_CHART: RveDonutChartSceneProps,
+    SceneType.RVE_COMPARISON_BAR: RveComparisonBarSceneProps,
+    SceneType.RVE_PROGRESS_STEPS: RveProgressStepsSceneProps,
+    SceneType.RVE_CARD_FLIP: RveCardFlipSceneProps,
+    SceneType.RVE_IMAGE_COMPARISON: RveImageComparisonSceneProps,
+    SceneType.RVE_CHAPTER_TITLE: RveChapterTitleSceneProps,
 }
 
 
