@@ -5126,7 +5126,11 @@
             <td>${s.scene_id}</td>
             <td>
               ${imgUrl ? `<img src="${imgUrl}?t=${Date.now()}" class="thumb" onclick="window.open('${imgUrl}')">` : '<div style="font-size: 12px;color:gray;">Pending</div>'}
-              <button class="btn-sec" style="padding:4px 8px;font-size: 12px;margin-top:4px;" onclick="regenImage(${s.scene_id})">Regen</button>
+              <div style="display: flex; gap: 4px; margin-top: 4px;">
+                <button class="btn-sec" style="padding:4px 8px;font-size: 12px;" onclick="regenImage(${s.scene_id})">Regen</button>
+                <button class="btn-sec" style="padding:4px 8px;font-size: 12px; background: rgba(147, 51, 234, 0.2); border-color: #a855f7; color: #d8b4fe;" onclick="triggerSceneImageUpload(${s.scene_id})" title="Upload custom image">Upload</button>
+              </div>
+              <input type="file" id="editor-scene-upload-file-${s.scene_id}" accept="image/png,image/jpeg,image/webp,image/bmp,image/gif" style="display:none;" onchange="uploadManualSceneImage(${s.scene_id}, this.files[0])">
             </td>
             <td>
               <div style="font-weight:600; font-size:13px; margin-bottom:4px;">
@@ -9245,8 +9249,15 @@
                   <span style="font-size: 9px; background: #b45309; color: #fff; padding: 1px 5px; border-radius: 3px; font-weight: 700;">9:16 直式立繪</span>
                 </div>
               ` : `
-                <!-- Real-world Quick Stock Status Pill -->
-                ${s.is_stock_active ? `
+                <!-- Real-world Quick Stock / Manual Upload Status Pill -->
+                ${(s.is_manual_upload || (s.image && s.image.meta && (s.image.meta.is_manual_upload || s.image.meta.provider === 'manual_upload' || s.image.meta.source === 'manual_upload' || s.media_source === 'upload'))) ? `
+                  <div style="font-size: 11px; padding: 4px 8px; background: rgba(168, 85, 247, 0.25); border: 1px solid #a855f7; border-radius: 4px; color: #d8b4fe; font-weight: 600; display: flex; align-items: center; justify-content: space-between; gap: 4px;">
+                    <span style="display: flex; align-items: center; gap: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                      <span>📤 已套用手動上傳圖片:</span> <b style="color: #fff;">${escapeHtml(s.manual_upload_filename || (s.image && s.image.meta && (s.image.meta.filename || s.image.meta.title)) || '自訂圖片')}</b>
+                    </span>
+                    <span style="font-size: 9px; background: #7e22ce; color: #f3e8ff; padding: 1px 5px; border-radius: 3px; font-weight: 700;">MANUAL</span>
+                  </div>
+                ` : (s.is_stock_active ? `
                   <div style="font-size: 11px; padding: 4px 8px; background: rgba(5, 150, 105, 0.25); border: 1px solid #059669; border-radius: 4px; color: #6ee7b7; font-weight: 600; display: flex; align-items: center; justify-content: space-between; gap: 4px;">
                     <span style="display: flex; align-items: center; gap: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                       <span>📸 已套用線上圖庫:</span> <b style="color: #fff;">${s.active_stock_source || (s.image && s.image.meta && s.image.meta.source) || 'Stock'}</b>
@@ -9267,21 +9278,34 @@
                   <div style="font-size: 11px; padding: 3px 6px; background: rgba(148, 163, 184, 0.08); border: 1px solid #334155; border-radius: 4px; color: #94a3b8; display: flex; align-items: center; gap: 4px;">
                     🎨 <span>AI 生成畫面 (無特定真實實體標籤)</span>
                   </div>
-                `)}
+                `))}
               ` }
 
               <!-- Side-by-Side: Image and Scene Script Line -->
               <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; align-items: stretch;">
                 <!-- Left: Scene Image Preview -->
                 <div style="display: flex; flex-direction: column; gap: 6px;">
-                  <div style="width:100%; height:150px; background:#000; border-radius:6px; overflow:hidden; display:flex; align-items:center; justify-content:center; position:relative; border: 1px solid #1e293b;">
+                  <div style="width:100%; height:150px; background:#000; border-radius:6px; overflow:hidden; display:flex; align-items:center; justify-content:center; position:relative; border: 1px solid #1e293b; transition: border-color 0.2s ease;"
+                       ondragover="event.preventDefault(); this.style.borderColor='#a855f7';"
+                       ondragleave="this.style.borderColor='#1e293b';"
+                       ondrop="event.preventDefault(); this.style.borderColor='#1e293b'; if (event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files.length) uploadManualSceneImage(${s.scene_id}, event.dataTransfer.files[0]);">
                     ${imgUrl ? `
                       <img id="insp-scene-img-${s.scene_id}" src="${imgUrlBusted}" style="width:100%; height:100%; object-fit:cover; cursor:pointer;" onclick="window.open('${imgUrl}')" title="Click to view full image">
                       <div style="position: absolute; bottom: 4px; left: 4px; background: rgba(0,0,0,0.7); font-size: 10px; color: #cbd5e1; padding: 2px 5px; border-radius: 3px; pointer-events: none;">🔍 Click to Zoom</div>
-                      <button onclick="event.stopPropagation(); deleteSceneActiveImage(${s.scene_id})" style="position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.75); border: 1px solid #ef4444; color: #fca5a5; border-radius: 3px; padding: 2px 6px; font-size: 11px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 3px; z-index: 2;" title="Delete current image">
-                        🗑️ Delete
-                      </button>
-                    ` : `<span id="insp-no-img-${s.scene_id}" style="font-size:12px; color:gray;">No Image Generated</span>`}
+                      <div style="position: absolute; top: 4px; right: 4px; display: flex; gap: 4px; z-index: 2;">
+                        <button onclick="event.stopPropagation(); triggerSceneImageUpload(${s.scene_id})" style="background: rgba(147, 51, 234, 0.85); border: 1px solid #c084fc; color: #fff; border-radius: 3px; padding: 2px 6px; font-size: 11px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 3px;" title="Replace with manually uploaded image">
+                          📤 Replace
+                        </button>
+                        <button onclick="event.stopPropagation(); deleteSceneActiveImage(${s.scene_id})" style="position: absolute; top: 0px; right: 0px; background: rgba(0,0,0,0.75); border: 1px solid #ef4444; color: #fca5a5; border-radius: 3px; padding: 2px 6px; font-size: 11px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 3px; position: static;" title="Delete current image">
+                          🗑️ Delete
+                        </button>
+                      </div>
+                    ` : `
+                      <div style="text-align: center; cursor: pointer; padding: 12px; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;" onclick="triggerSceneImageUpload(${s.scene_id})" title="Click or drag an image file here to upload">
+                        <span id="insp-no-img-${s.scene_id}" style="font-size:12px; color:gray; margin-bottom: 4px;">No Image Generated</span>
+                        <span style="font-size: 11px; color: #c084fc; font-weight: 600; background: rgba(147, 51, 234, 0.15); border: 1px dashed #a855f7; padding: 3px 8px; border-radius: 4px;">📤 Click / Drag to Upload</span>
+                      </div>
+                    `}
                   </div>
                 </div>
 
@@ -9409,14 +9433,16 @@
                   </button>
                   <button class="btn-sec" style="font-size: 12px; padding: 5px 8px; background: rgba(16, 185, 129, 0.2); border-color: #059669; color: #6ee7b7; font-weight: 600;" onclick="openStockMediaModal(${s.scene_id}, \`${(s.visual_description || s.prompt || '').replace(/[`\\$]/g, ' ')}\`)" title="Search online stock videos & photos for Scene #${s.scene_id}">🔍 Stock Library</button>
                 `}
-                ${imgUrl ? `<button class="btn-sec" style="padding: 5px 8px; font-size: 12px; background: rgba(239, 68, 68, 0.15); border-color: #b91c1c; color: #fca5a5; font-weight: 600;" onclick="deleteSceneActiveImage(${s.scene_id})" 
+                <button class="btn-sec" id="insp-btn-upload-${s.scene_id}" style="font-size: 12px; padding: 5px 8px; background: rgba(147, 51, 234, 0.25); border-color: #a855f7; color: #d8b4fe; font-weight: 600;" onclick="triggerSceneImageUpload(${s.scene_id})" title="Manually upload an image for Scene #${s.scene_id}">📤 Upload</button>
+                <input type="file" id="insp-scene-upload-file-${s.scene_id}" accept="image/png,image/jpeg,image/webp,image/bmp,image/gif" style="display:none;" onchange="uploadManualSceneImage(${s.scene_id}, this.files[0])">
                 ${(s.is_stock_active || s.quick_stock_available || imgUrl) ? `
                   <button class="btn-sec" style="font-size: 12px; padding: 5px 8px; background: rgba(220, 38, 38, 0.2); border-color: #ef4444; color: #fca5a5; font-weight: 600;" onclick="rejectAndReplaceSceneMedia(${s.scene_id})" title="標記目前素材與本場景不符，加入黑名單並替換為其他相符真實素材或 AI 畫面">
-                    🚫 排除並重挑 (Reject)
+                    🚫 Reject
                   </button>
                 ` : ''}
-                title="Delete image for Scene #${s.scene_id}">🗑️ Delete</button>` : ''}
+                ${imgUrl ? `<button class="btn-sec" style="padding: 5px 8px; font-size: 12px; background: rgba(239, 68, 68, 0.15); border-color: #b91c1c; color: #fca5a5; font-weight: 600;" onclick="deleteSceneActiveImage(${s.scene_id})" title="Delete image for Scene #${s.scene_id}">🗑️ Delete</button>` : ''}
               </div>
+              <div id="insp-scene-toast-${s.scene_id}" style="font-size: 11px; color: #34d399; font-weight: 600; display: none; margin-top: 2px;"></div>
             </div>
           `;
         });
@@ -13024,8 +13050,15 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
                   <span style="font-size: 9px; background: #b45309; color: #fff; padding: 1px 5px; border-radius: 3px; font-weight: 700;">9:16 直式立繪</span>
                 </div>
               ` : `
-                <!-- Real-world Quick Stock Status Pill -->
-                ${s.is_stock_active ? `
+                <!-- Real-world Quick Stock / Manual Upload Status Pill -->
+                ${(s.is_manual_upload || (s.image && s.image.meta && (s.image.meta.is_manual_upload || s.image.meta.provider === 'manual_upload' || s.image.meta.source === 'manual_upload' || s.media_source === 'upload'))) ? `
+                  <div style="font-size: 11px; padding: 4px 8px; background: rgba(168, 85, 247, 0.25); border: 1px solid #a855f7; border-radius: 4px; color: #d8b4fe; font-weight: 600; display: flex; align-items: center; justify-content: space-between; gap: 4px;">
+                    <span style="display: flex; align-items: center; gap: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                      <span>📤 已套用手動上傳圖片:</span> <b style="color: #fff;">${escapeHtml(s.manual_upload_filename || (s.image && s.image.meta && (s.image.meta.filename || s.image.meta.title)) || '自訂圖片')}</b>
+                    </span>
+                    <span style="font-size: 9px; background: #7e22ce; color: #f3e8ff; padding: 1px 5px; border-radius: 3px; font-weight: 700;">MANUAL</span>
+                  </div>
+                ` : (s.is_stock_active ? `
                   <div style="font-size: 11px; padding: 4px 8px; background: rgba(5, 150, 105, 0.25); border: 1px solid #059669; border-radius: 4px; color: #6ee7b7; font-weight: 600; display: flex; align-items: center; justify-content: space-between; gap: 4px;">
                     <span style="display: flex; align-items: center; gap: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                       <span>📸 已套用線上圖庫:</span> <b style="color: #fff;">${s.active_stock_source || (s.image && s.image.meta && s.image.meta.source) || 'Stock'}</b>
@@ -13046,7 +13079,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
                   <div style="font-size: 11px; padding: 3px 6px; background: rgba(148, 163, 184, 0.08); border: 1px solid #334155; border-radius: 4px; color: #94a3b8; display: flex; align-items: center; gap: 4px;">
                     🎨 <span>AI 生成畫面 (無特定真實實體標籤)</span>
                   </div>
-                `)}
+                `))}
               ` }
 
               <!-- Side-by-Side: Image and Scene Script Line -->
@@ -13060,14 +13093,27 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
                     </span>
                     ${totalTakes > 1 ? `<span id="studio-scene-active-take-badge-${s.scene_id}" style="background: rgba(5,150,105,0.25); border: 1px solid #059669; color: #34d399; font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 3px;">Take #${activeTake || 1} / ${totalTakes}</span>` : ''}
                   </div>
-                  <div style="width: 100%; height: 165px; background: #000; border-radius: 6px; overflow: hidden; display: flex; align-items: center; justify-content: center; position: relative; border: 1px solid #1e293b;">
+                  <div style="width: 100%; height: 165px; background: #000; border-radius: 6px; overflow: hidden; display: flex; align-items: center; justify-content: center; position: relative; border: 1px solid #1e293b; transition: border-color 0.2s ease;"
+                       ondragover="event.preventDefault(); this.style.borderColor='#a855f7';"
+                       ondragleave="this.style.borderColor='#1e293b';"
+                       ondrop="event.preventDefault(); this.style.borderColor='#1e293b'; if (event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files.length) uploadManualSceneImage(${s.scene_id}, event.dataTransfer.files[0]);">
                     ${imgUrl ? `
                       <img id="studio-scene-img-${s.scene_id}" src="${imgUrlBusted}" style="width: 100%; height: 100%; object-fit: cover; cursor: pointer;" onclick="window.open('${imgUrl}')" title="Click to view full image in new tab">
                       <div style="position: absolute; bottom: 4px; left: 4px; background: rgba(0,0,0,0.7); font-size: 10px; color: #cbd5e1; padding: 2px 5px; border-radius: 3px; pointer-events: none;">🔍 Click to Zoom</div>
-                      <button onclick="event.stopPropagation(); deleteSceneActiveImage(${s.scene_id})" style="position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.75); border: 1px solid #ef4444; color: #fca5a5; border-radius: 3px; padding: 2px 6px; font-size: 11px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 3px; z-index: 2;" title="Delete current image">
-                        🗑️ Delete
-                      </button>
-                    ` : `<span id="studio-no-img-${s.scene_id}" style="font-size: 12px; color: gray;">No Image Generated</span>`}
+                      <div style="position: absolute; top: 4px; right: 4px; display: flex; gap: 4px; z-index: 2;">
+                        <button onclick="event.stopPropagation(); triggerSceneImageUpload(${s.scene_id})" style="background: rgba(147, 51, 234, 0.85); border: 1px solid #c084fc; color: #fff; border-radius: 3px; padding: 2px 6px; font-size: 11px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 3px;" title="Replace with manually uploaded image">
+                          📤 Replace
+                        </button>
+                        <button onclick="event.stopPropagation(); deleteSceneActiveImage(${s.scene_id})" style="background: rgba(0,0,0,0.75); border: 1px solid #ef4444; color: #fca5a5; border-radius: 3px; padding: 2px 6px; font-size: 11px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 3px;" title="Delete current image">
+                          🗑️ Delete
+                        </button>
+                      </div>
+                    ` : `
+                      <div style="text-align: center; cursor: pointer; padding: 12px; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;" onclick="triggerSceneImageUpload(${s.scene_id})" title="Click or drag an image file here to upload">
+                        <span id="studio-no-img-${s.scene_id}" style="font-size: 12px; color: gray; margin-bottom: 4px;">No Image Generated</span>
+                        <span style="font-size: 11px; color: #c084fc; font-weight: 600; background: rgba(147, 51, 234, 0.15); border: 1px dashed #a855f7; padding: 4px 10px; border-radius: 4px;">📤 Click / Drag to Upload</span>
+                      </div>
+                    `}
                   </div>
 
                   <!-- Quick Takes Navigator Row under image -->
@@ -13182,8 +13228,11 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
                 <button class="btn-sec" style="flex: 1; font-size: 12px; padding: 6px 12px; background: #1e3a8a; border-color: #3b82f6; color: #fff; font-weight: 600;" onclick="regenStudioImage(${s.scene_id})" id="studio-btn-regen-${s.scene_id}">🔄 Regenerate Scene Image</button>
                 <button class="btn-sec" style="font-size: 12px; padding: 6px 10px; background: rgba(5, 150, 105, 0.25); border-color: #059669; color: #6ee7b7; font-weight: 600;" onclick="quickStockPhotoForScene(${s.scene_id}, false)" title="Immediately fetch online stock photo for Scene #${s.scene_id}">🌐 Quick Stock</button>
                 <button class="btn-sec" style="font-size: 12px; padding: 6px 10px; background: rgba(16, 185, 129, 0.2); border-color: #059669; color: #6ee7b7; font-weight: 600;" onclick="openStockMediaModal(${s.scene_id}, \`${(s.visual_description || s.prompt || '').replace(/[`\\$]/g, ' ')}\`)" title="Search online stock footage & photos for Scene #${s.scene_id}">🔍 Stock Library</button>
+                <button class="btn-sec" id="studio-btn-upload-${s.scene_id}" style="font-size: 12px; padding: 6px 10px; background: rgba(147, 51, 234, 0.25); border-color: #a855f7; color: #d8b4fe; font-weight: 600;" onclick="triggerSceneImageUpload(${s.scene_id})" title="Manually upload an image from your computer to Scene #${s.scene_id}">📤 Upload Image</button>
+                <input type="file" id="studio-scene-upload-file-${s.scene_id}" accept="image/png,image/jpeg,image/webp,image/bmp,image/gif" style="display:none;" onchange="uploadManualSceneImage(${s.scene_id}, this.files[0])">
                 ${imgUrl ? `<button class="btn-sec" style="padding: 6px 10px; font-size: 12px; background: rgba(239, 68, 68, 0.15); border-color: #b91c1c; color: #fca5a5; font-weight: 600;" onclick="deleteSceneActiveImage(${s.scene_id})" title="Delete image for Scene #${s.scene_id}">🗑️ Delete</button>` : ''}
               </div>
+              <div id="studio-scene-toast-${s.scene_id}" style="font-size: 11px; color: #34d399; font-weight: 600; display: none; margin-top: 2px;"></div>
             </div>
           `;
         });
@@ -14499,11 +14548,22 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
               ${escapeHtml(s.narration || '（無旁白）')}
             </div>
           </div>
+          <div style="margin-top: 8px; display: flex; gap: 8px; align-items: center;">
+            <button class="btn-sec" id="takes-modal-btn-upload-${sceneId}" style="font-size: 12px; padding: 5px 12px; background: rgba(147, 51, 234, 0.25); border-color: #a855f7; color: #d8b4fe; font-weight: 600;" onclick="triggerSceneImageUpload(${sceneId})" title="Upload a custom image file from your computer as a new take">
+              📤 Upload Image as New Take
+            </button>
+            <input type="file" id="takes-modal-upload-file-${sceneId}" accept="image/png,image/jpeg,image/webp,image/bmp,image/gif" style="display:none;" onchange="uploadManualSceneImage(${sceneId}, this.files[0])">
+          </div>
         `;
       }
 
       if (!takes.length) {
-        bodyEl.innerHTML = `<div style="text-align:center; padding:40px; color:var(--text-muted);">No saved takes found for Scene #${sceneId}. Click "Regenerate" to create variations.</div>`;
+        bodyEl.innerHTML = `
+          <div style="text-align:center; padding:40px; color:var(--text-muted);">
+            <div style="margin-bottom:12px;">No saved takes found for Scene #${sceneId}. Click "Regenerate" to create AI variations or manually upload an image.</div>
+            <button class="btn-sec" style="font-size: 12px; padding: 6px 14px; background: rgba(147, 51, 234, 0.25); border-color: #a855f7; color: #d8b4fe; font-weight: 600;" onclick="triggerSceneImageUpload(${sceneId})">📤 Upload Image</button>
+          </div>
+        `;
         document.getElementById('takes-gallery-modal').style.display = 'flex';
         return;
       }
@@ -14652,6 +14712,77 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
 
     async function deleteTakeFromModal(sceneId, takeNum) {
       return deleteSceneMediaTake(sceneId, takeNum, 'image', { fromModal: true });
+    }
+
+    function triggerSceneImageUpload(sceneId) {
+      const inp = document.getElementById(`studio-scene-upload-file-${sceneId}`) ||
+                  document.getElementById(`insp-scene-upload-file-${sceneId}`) ||
+                  document.getElementById(`takes-modal-upload-file-${sceneId}`) ||
+                  document.getElementById(`editor-scene-upload-file-${sceneId}`);
+      if (inp) {
+        inp.value = '';
+        inp.click();
+      }
+    }
+
+    async function uploadManualSceneImage(sceneId, file) {
+      if (!currentProjectId || !file) return;
+
+      if (!file.type || !file.type.startsWith('image/')) {
+        alert("Please select a valid image file (PNG, JPG, WEBP, etc.)");
+        return;
+      }
+
+      const btnStudio = document.getElementById(`studio-btn-upload-${sceneId}`);
+      const btnInsp = document.getElementById(`insp-btn-upload-${sceneId}`);
+      const btnTakesModal = document.getElementById(`takes-modal-btn-upload-${sceneId}`);
+      const origStudioText = btnStudio ? btnStudio.innerHTML : '';
+      const origInspText = btnInsp ? btnInsp.innerHTML : '';
+      const origTakesText = btnTakesModal ? btnTakesModal.innerHTML : '';
+
+      if (btnStudio) { btnStudio.disabled = true; btnStudio.innerHTML = '⏳ Uploading...'; }
+      if (btnInsp) { btnInsp.disabled = true; btnInsp.innerHTML = '⏳ Uploading...'; }
+      if (btnTakesModal) { btnTakesModal.disabled = true; btnTakesModal.innerHTML = '⏳ Uploading...'; }
+
+      const fd = new FormData();
+      fd.append('file', file);
+
+      try {
+        const data = await apiJson(`/api/projects/${currentProjectId}/scenes/${sceneId}/upload_image`, {
+          method: 'POST',
+          body: fd,
+        });
+
+        // Refresh studio stage and/or inspector views
+        if (typeof loadStageStudio === 'function' && activeStudioStage === 'images') {
+          await loadStageStudio('images');
+        }
+        if (typeof inspectStage === 'function' && currentInspectedStage === 'images') {
+          await inspectStage('images');
+        }
+        if (typeof loadScenesForEditor === 'function') {
+          loadScenesForEditor();
+        }
+
+        // If takes comparison modal is open for this scene, re-render it
+        const takesModal = document.getElementById('takes-gallery-modal');
+        if (takesModal && takesModal.style.display !== 'none') {
+          openTakesGalleryModal(sceneId);
+        }
+
+        const toast = document.getElementById(`studio-scene-toast-${sceneId}`) || document.getElementById(`insp-scene-toast-${sceneId}`);
+        if (toast) {
+          toast.textContent = `✓ Scene #${sceneId} Image "${file.name}" Uploaded!`;
+          toast.style.display = 'block';
+          setTimeout(() => { if (toast) toast.style.display = 'none'; }, 4000);
+        }
+      } catch (err) {
+        alert("Image upload failed: " + err.message);
+      } finally {
+        if (btnStudio) { btnStudio.disabled = false; btnStudio.innerHTML = origStudioText; }
+        if (btnInsp) { btnInsp.disabled = false; btnInsp.innerHTML = origInspText; }
+        if (btnTakesModal) { btnTakesModal.disabled = false; btnTakesModal.innerHTML = origTakesText; }
+      }
     }
 
     function renderStudioVoiceTakesStripCards(sceneId, vTakes, activeVTake, buster) {

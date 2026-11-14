@@ -1616,12 +1616,15 @@ def get_stage_data_endpoint(project_id: str, stage_name: str):
                     target_kw = auto_kw
                     target_src = auto_src
             is_stock = bool(sc.image and sc.image.meta and (sc.image.meta.get("is_stock") or sc.image.meta.get("provider") == "stock"))
+            is_manual_upload = bool(sc.image and sc.image.meta and (sc.image.meta.get("is_manual_upload") or sc.image.meta.get("provider") == "manual_upload" or sc.image.meta.get("source") == "manual_upload" or getattr(sc, "media_source", None) == "upload"))
             sd["quick_stock_available"] = bool(target_kw)
             sd["quick_stock_target"] = target_kw
             sd["quick_stock_source"] = target_src if target_kw else None
             sd["is_stock_active"] = is_stock
             sd["active_stock_source"] = sc.image.meta.get("source") if is_stock else None
             sd["active_stock_title"] = sc.image.meta.get("title") if is_stock else None
+            sd["is_manual_upload"] = is_manual_upload
+            sd["manual_upload_filename"] = (sc.image.meta.get("filename") or sc.image.meta.get("title")) if (is_manual_upload and sc.image and sc.image.meta) else None
 
             if stage_name in ("animation", "presenter"):
                 anim_rel = f"animation/{sc.tag}.mp4"
@@ -3674,6 +3677,121 @@ def regenerate_scene_image(project_id: str, scene_id: int, req_body: Optional[Re
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         live_image_status["active"] = False
+
+
+@app.post("/api/projects/{project_id}/scenes/{scene_id}/upload_image")
+async def upload_scene_image_endpoint(
+    project_id: str,
+    scene_id: int,
+    file: UploadFile = File(...),
+):
+    """Manually upload an image file to replace a scene's visual asset in Stage 5."""
+    p = get_project(project_id)
+    s = p.scene(scene_id)
+    if not s:
+        raise HTTPException(status_code=404, detail="Scene not found")
+
+    from providers.stock_client import format_stock_image
+
+    suffix = Path(file.filename or "").suffix.lower()
+    if not suffix or suffix not in (".png", ".jpg", ".jpeg", ".webp", ".bmp", ".gif", ".avif"):
+        suffix = ".png"
+
+    tmp_upload = p.path("temp", f"upload_img_{s.tag}_{int(time.time())}{suffix}")
+    tmp_upload.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        content_bytes = await file.read()
+        with open(tmp_upload, "wb") as f:
+            f.write(content_bytes)
+
+        # Determine target resolution based on project mode / aspect ratio
+        cfg = p.settings or {}
+        img_cfg = cfg.get("images", {})
+        video_cfg = cfg.get("video", {})
+        aspect_ratio = video_cfg.get("aspect_ratio") or cfg.get("aspect_ratio")
+        is_portrait = (aspect_ratio == "9:16") or (p.data.settings.get("mode") == "short_drama")
+
+        if is_portrait:
+            target_w = int(img_cfg.get("width") or 1080)
+            target_h = int(img_cfg.get("height") or 1920)
+        else:
+            target_w = int(img_cfg.get("width") or 1920)
+            target_h = int(img_cfg.get("height") or 1080)
+
+        img_path = p.path("images", f"{s.tag}.png")
+
+        # Archive pre-existing image into takes history before replacing
+        try:
+            ensure_initial_image_take(p, scene_id)
+        except Exception as ex:
+            log.debug("ensure_initial_image_take note: %s", ex)
+
+        # Format and center-crop uploaded image to fit standard video aspect ratio
+        format_stock_image(tmp_upload, img_path, target_w=target_w, target_h=target_h)
+
+        existing_img_meta = dict(s.image.meta or {})
+        prev_img_takes = list(existing_img_meta.get("takes", []))
+
+        upload_title = file.filename or f"Uploaded Image for Scene #{scene_id}"
+        merged_meta = dict(existing_img_meta)
+        merged_meta.update({
+            "provider": "manual_upload",
+            "source": "manual_upload",
+            "title": upload_title,
+            "filename": file.filename or "",
+            "model": "Manual Upload",
+            "visual_style": "manual_upload",
+            "is_stock": False,
+            "is_manual_upload": True,
+            "takes": prev_img_takes,
+        })
+
+        s.image.status = Status.COMPLETED
+        s.image.path = p.rel(img_path)
+        s.image.error = None
+        s.image.meta = merged_meta
+        s.media_source = "upload"
+
+        # Invalidate old animation if it depended on old image
+        if s.animation and s.animation.status == Status.COMPLETED:
+            old_anim = p.path(s.animation.path)
+            if old_anim.exists():
+                try:
+                    old_anim.unlink()
+                except Exception:
+                    pass
+            s.animation.status = Status.PENDING
+
+        p.save_scenes()
+
+        try:
+            record_scene_image_take(
+                p,
+                scene_id,
+                p.rel(img_path),
+                model_used="Manual Upload",
+                prompt=upload_title,
+                style_used="manual_upload",
+            )
+        except Exception as ex:
+            log.warning("Could not record scene image take for manual upload: %s", ex)
+
+        p.set_stage("render", Status.PENDING)
+        return {
+            "status": "uploaded",
+            "image_url": f"/media/{project_id}/{s.image.path}",
+            "filename": file.filename,
+            "scene": s.model_dump(mode="json"),
+        }
+    except Exception as e:
+        log.error("Failed to upload manual image for scene %d: %s", scene_id, e)
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if tmp_upload.exists():
+            try:
+                tmp_upload.unlink()
+            except Exception:
+                pass
 
 
 @app.post("/api/projects/{project_id}/scenes/{scene_id}/regenerate_voice")
