@@ -119,15 +119,21 @@
     let cachedRaVoices = [];
 
     function resolveActiveProjectId() {
-      if (currentProjectId) return currentProjectId;
+      if (currentProjectId && currentProjectId !== 'undefined' && currentProjectId !== 'null' && String(currentProjectId).trim()) {
+        return String(currentProjectId).trim();
+      }
       const prevSel = document.getElementById('preview-project-select');
       const globSel = document.getElementById('global-project-select');
       const stored = localStorage.getItem('active_project_id');
-      const pid = (prevSel && prevSel.value) || (globSel && globSel.value) || stored || (typeof allProjectsCache !== 'undefined' && allProjectsCache.length ? allProjectsCache[0].id : null);
-      if (pid) {
-        currentProjectId = pid;
+      const candidate = (prevSel && prevSel.value && prevSel.value.trim()) ||
+                        (globSel && globSel.value && globSel.value.trim()) ||
+                        (stored && stored !== 'undefined' && stored !== 'null' && stored.trim()) ||
+                        (typeof allProjectsCache !== 'undefined' && allProjectsCache.length ? allProjectsCache[0].id : null);
+      if (candidate && candidate !== 'undefined' && candidate !== 'null' && String(candidate).trim()) {
+        currentProjectId = String(candidate).trim();
+        return currentProjectId;
       }
-      return currentProjectId;
+      return null;
     }
 
     function closeRerenderAvatarModal() {
@@ -819,8 +825,14 @@
     }
 
     async function executeRerenderOverlayAndVideo() {
-      const pid = resolveActiveProjectId();
-      if (!pid) return alert("Please select a project first.");
+      let pid = resolveActiveProjectId();
+      if (!pid) {
+        const pSel = document.getElementById('preview-project-select');
+        if (pSel && pSel.value && pSel.value.trim()) pid = pSel.value.trim();
+      }
+      if (!pid) {
+        return alert("尚未選取任何專案，請先在上方播放器「🎬 選擇播放專案」中選取專案 (Please select a project first).");
+      }
       const calloutStyle = document.getElementById('ro-callout-style')?.value || 'neutral_centered';
       const motionEnabled = document.getElementById('ro-motion-callouts') ? document.getElementById('ro-motion-callouts').checked : true;
       const subStyle = document.getElementById('ro-sub-style')?.value || null;

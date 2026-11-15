@@ -3906,6 +3906,7 @@ class RerenderOverlayAndVideoRequest(BaseModel):
 
 
 @app.post("/api/projects/{project_id}/rerender_overlay_and_video")
+@app.post("/api/projects/{project_id}/rerender_overlay_and_video/")
 def rerender_overlay_and_video_endpoint(
     project_id: str,
     req: RerenderOverlayAndVideoRequest,

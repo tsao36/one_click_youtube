@@ -127,3 +127,11 @@ def test_api_rerender_overlay_endpoint(tmp_path):
         assert data["callout_style"] == "archival_parchment"
         assert data["motion_graphics_callouts"] is True
         assert mock_queue.called
+
+        # Also verify trailing-slash endpoint variant
+        resp_slash = client.post(
+            "/api/projects/proj_test_overlay/rerender_overlay_and_video/",
+            json={"callout_style": "minimal_clean"}
+        )
+        assert resp_slash.status_code == 200
+        assert resp_slash.json()["callout_style"] == "minimal_clean"
