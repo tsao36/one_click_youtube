@@ -915,6 +915,19 @@ def get_project_details(project_id: str):
             if p.data.outputs.get("final") != str(ext_candidate.resolve()):
                 p.data.outputs["final"] = str(ext_candidate.resolve())
                 p.save()
+    if not final_abs.exists() or not final_abs.is_file():
+        default_candidate = p.path(f"final/{project_id}.mp4")
+        if default_candidate.exists() and default_candidate.is_file():
+            final_abs = default_candidate
+        else:
+            final_folder = p.path("final")
+            if final_folder.exists() and final_folder.is_dir():
+                mp4s = sorted(final_folder.glob("*.mp4"), key=lambda f: f.stat().st_mtime, reverse=True)
+                if mp4s:
+                    final_abs = mp4s[0]
+
+    final_dir = final_abs.parent if final_abs.exists() else p.path("final").resolve()
+
     if final_abs.exists() and final_abs.is_file():
         try:
             st = final_abs.stat()
@@ -930,6 +943,7 @@ def get_project_details(project_id: str):
                 "filename": final_abs.name,
                 "rel_path": rel_display,
                 "abs_path": str(final_abs.resolve()),
+                "dir_path": str(final_dir.resolve()),
                 "size_bytes": st.st_size,
                 "size_mb": round(st.st_size / (1024 * 1024), 2),
                 "mtime": datetime.fromtimestamp(st.st_mtime).strftime("%Y-%m-%d %H:%M:%S"),
@@ -938,6 +952,16 @@ def get_project_details(project_id: str):
             }
         except Exception:
             pass
+    else:
+        final_file = {
+            "exists": False,
+            "filename": f"{project_id}.mp4",
+            "rel_path": f"projects/{project_id}/final/{project_id}.mp4",
+            "abs_path": str(p.path("final", f"{project_id}.mp4").resolve()),
+            "dir_path": str(final_dir.resolve()),
+            "is_external": False,
+            "external_path": None,
+        }
 
     from core.base_pipeline import is_avatar_overlapping_scene
     scenes_res = []
@@ -990,7 +1014,7 @@ def get_project_video(project_id: str):
 
 
 @app.post("/api/projects/{project_id}/open_folder")
-def open_project_video_folder(project_id: str):
+def open_project_video_folder(project_id: str, select_file: bool = False):
     if not (PROJECTS_DIR / project_id).exists():
         raise HTTPException(status_code=404, detail="Project not found")
     p = get_project(project_id)
@@ -1003,18 +1027,49 @@ def open_project_video_folder(project_id: str):
             if p.data.outputs.get("final") != str(ext_candidate.resolve()):
                 p.data.outputs["final"] = str(ext_candidate.resolve())
                 p.save()
+    if not final_abs.exists() or not final_abs.is_file():
+        default_candidate = p.path(f"final/{project_id}.mp4").resolve()
+        if default_candidate.exists() and default_candidate.is_file():
+            final_abs = default_candidate
+        else:
+            final_folder = p.path("final")
+            if final_folder.exists() and final_folder.is_dir():
+                mp4s = sorted(final_folder.glob("*.mp4"), key=lambda f: f.stat().st_mtime, reverse=True)
+                if mp4s:
+                    final_abs = mp4s[0].resolve()
+
     final_dir = final_abs.parent if final_abs.exists() else p.path("final").resolve()
     if not final_dir.exists():
-        final_dir = p.dir.resolve()
+        try:
+            final_dir.mkdir(parents=True, exist_ok=True)
+        except Exception:
+            final_dir = p.dir.resolve()
 
     try:
         if sys.platform == "win32":
-            if final_abs.exists():
-                subprocess.Popen(["explorer.exe", f"/select,{str(final_abs)}"])
-            else:
-                subprocess.Popen(["explorer.exe", str(final_dir)])
+            opened = False
+            # When select_file is explicitly requested and the target video exists,
+            # launch explorer with an unquoted /select flag and quoted path so Windows flag parsing works:
+            # (Note: passing list ['explorer.exe', f'/select,{path}'] causes Python to quote '/select,C:\...'
+            # which breaks explorer's command-line switch parsing and causes Windows to fall back to Documents).
+            if select_file and final_abs.exists() and final_abs.is_file():
+                try:
+                    subprocess.Popen(f'explorer.exe /select,"{final_abs}"')
+                    opened = True
+                except Exception:
+                    opened = False
+
+            if not opened:
+                # Open the exact auto-detected directory directly in Windows File Explorer
+                try:
+                    if hasattr(os, "startfile") and final_dir.exists():
+                        os.startfile(str(final_dir))
+                    else:
+                        subprocess.Popen(f'explorer.exe "{final_dir}"')
+                except Exception:
+                    subprocess.Popen(["explorer.exe", str(final_dir)])
         elif sys.platform == "darwin":
-            if final_abs.exists():
+            if select_file and final_abs.exists() and final_abs.is_file():
                 subprocess.Popen(["open", "-R", str(final_abs)])
             else:
                 subprocess.Popen(["open", str(final_dir)])
@@ -1022,7 +1077,7 @@ def open_project_video_folder(project_id: str):
             subprocess.Popen(["xdg-open", str(final_dir)])
         return {"status": "ok", "folder_path": str(final_dir), "file_path": str(final_abs)}
     except Exception as e:
-        return {"status": "error", "detail": str(e), "folder_path": str(final_dir)}
+        return {"status": "error", "detail": str(e), "folder_path": str(final_dir), "file_path": str(final_abs)}
 
 
 @app.get("/api/projects/{project_id}/costs")

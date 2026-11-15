@@ -5122,6 +5122,8 @@
       const fullRelPath = (isExternal && externalPath)
         ? externalPath
         : (finalRel ? (finalRel.startsWith('projects/') ? finalRel : `projects/${currentProjectId}/${finalRel}`) : `projects/${currentProjectId}/final/${currentProjectId}.mp4`);
+      const realExactFilePath = (d && d.final_file && d.final_file.abs_path) ? d.final_file.abs_path : fullRelPath;
+      const realExactDirPath = (d && d.final_file && d.final_file.dir_path) ? d.final_file.dir_path : '';
 
       // Update external drive note banner on player page
       if (extNoteEl) {
@@ -5149,12 +5151,15 @@
           const locBadge = isExternal ? ' <span style="color:#38bdf8; font-weight:700;">(💾 外接硬碟 External Drive)</span>' : '';
           subTitleEl.innerHTML = `
             <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:4px;">
-              <span>📁 Real File: <code style="color:#7dd3fc; background:#020617; padding:2px 8px; border-radius:4px; font-family:'Consolas',monospace; font-size:12px; border:1px solid #1e293b; font-weight:700;">${escapeHtml(fullRelPath)}</code>${locBadge}</span>
-              <button type="button" class="btn-sec" onclick="openVideoFolder()" data-ui-click="static_107" style="padding: 2px 9px; font-size: 11.5px; display: inline-flex; align-items: center; gap: 4px; background: rgba(16, 185, 129, 0.18); border-color: #10b981; color: #6ee7b7; font-weight: 700; cursor: pointer; border-radius: 4px; box-shadow: 0 1px 4px rgba(16, 185, 129, 0.15);" title="Open video directory in Windows File Explorer and highlight the MP4 video">
+              <span>📁 Real File: <code style="color:#7dd3fc; background:#020617; padding:2px 8px; border-radius:4px; font-family:'Consolas',monospace; font-size:12px; border:1px solid #1e293b; font-weight:700;" title="Auto-detected location: ${escapeHtml(realExactFilePath)}">${escapeHtml(realExactFilePath)}</code>${locBadge}</span>
+              <button type="button" class="btn-sec" onclick="openVideoFolder()" data-ui-click="static_107" style="padding: 2px 9px; font-size: 11.5px; display: inline-flex; align-items: center; gap: 4px; background: rgba(16, 185, 129, 0.18); border-color: #10b981; color: #6ee7b7; font-weight: 700; cursor: pointer; border-radius: 4px; box-shadow: 0 1px 4px rgba(16, 185, 129, 0.15);" title="Open auto-detected video directory in Windows File Explorer">
                 📂 Open Directory
               </button>
-              <button type="button" class="btn-sec" onclick="copyRealVideoPath()" data-ui-click="static_108" style="padding: 2px 8px; font-size: 11.5px; display: inline-flex; align-items: center; gap: 4px; background: rgba(56, 189, 248, 0.12); border-color: rgba(56, 189, 248, 0.4); color: #bae6fd; font-weight: 600; cursor: pointer; border-radius: 4px;" title="Copy file path to clipboard">
+              <button type="button" class="btn-sec" onclick="copyRealVideoPath()" data-ui-click="static_108" style="padding: 2px 8px; font-size: 11.5px; display: inline-flex; align-items: center; gap: 4px; background: rgba(56, 189, 248, 0.12); border-color: rgba(56, 189, 248, 0.4); color: #bae6fd; font-weight: 600; cursor: pointer; border-radius: 4px;" title="Copy auto-detected file path to clipboard">
                 📋 Copy Path
+              </button>
+              <button type="button" class="btn-sec" onclick="copyRealDirPath()" style="padding: 2px 8px; font-size: 11.5px; display: inline-flex; align-items: center; gap: 4px; background: rgba(168, 85, 247, 0.15); border-color: rgba(168, 85, 247, 0.45); color: #d8b4fe; font-weight: 600; cursor: pointer; border-radius: 4px;" title="Copy auto-detected directory path to clipboard">
+                📁 Copy Directory
               </button>
               <span style="color:#94a3b8; font-size:12px;">${fileStatText}${mtimeText}</span>
             </div>
@@ -5164,7 +5169,12 @@
         }
       }
 
-      if (realPathCode) realPathCode.textContent = fullRelPath;
+      if (realPathCode) {
+        realPathCode.textContent = realExactFilePath;
+        realPathCode.setAttribute('data-abs-path', realExactFilePath);
+        realPathCode.setAttribute('data-dir-path', realExactDirPath);
+        realPathCode.title = `Auto-detected file location: ${realExactFilePath}\nClick to copy`;
+      }
       if (fileMetaBadge) {
         if (d && d.final_file && d.final_file.exists) {
           fileMetaBadge.textContent = isExternal
@@ -5228,7 +5238,7 @@
           tabBtn.href = vsrc;
         }
         if (pathEl) {
-          pathEl.innerHTML = `<span style="display:inline-flex; align-items:center; gap:6px;">${isExternal ? 'External: ' : 'File: '}<code style="color:#7dd3fc; background:#020617; padding:2px 6px; border-radius:3px; font-family:'Consolas',monospace;">${escapeHtml(fullRelPath)}</code> <button type="button" class="btn-sec" onclick="openVideoFolder()" data-ui-click="static_107" style="padding:2px 7px; font-size:11px; display:inline-flex; align-items:center; gap:3px; background:rgba(16,185,129,0.18); border-color:#10b981; color:#6ee7b7; font-weight:600; cursor:pointer; border-radius:3px;" title="Open video directory in File Explorer">📂 Open Directory</button></span>`;
+          pathEl.innerHTML = `<span style="display:inline-flex; align-items:center; gap:6px;">${isExternal ? 'External: ' : 'File: '}<code style="color:#7dd3fc; background:#020617; padding:2px 6px; border-radius:3px; font-family:'Consolas',monospace;" title="Auto-detected location: ${escapeHtml(realExactFilePath)}">${escapeHtml(realExactFilePath)}</code> <button type="button" class="btn-sec" onclick="openVideoFolder()" data-ui-click="static_107" style="padding:2px 7px; font-size:11px; display:inline-flex; align-items:center; gap:3px; background:rgba(16,185,129,0.18); border-color:#10b981; color:#6ee7b7; font-weight:600; cursor:pointer; border-radius:3px;" title="Open auto-detected video directory in File Explorer">📂 Open Directory</button></span>`;
         }
 
         const ytBtn = document.getElementById('btn-yt-upload');
@@ -5469,15 +5479,16 @@
       }
     }
 
-    async function openVideoFolder() {
+    async function openVideoFolder(selectFile = false) {
       if (!currentProjectId) return;
       try {
-        const d = await apiJson(`/api/projects/${currentProjectId}/open_folder`, { method: 'POST' });
+        const url = `/api/projects/${currentProjectId}/open_folder` + (selectFile ? '?select_file=true' : '');
+        const d = await apiJson(url, { method: 'POST' });
 
         if (d.status === 'ok') {
-          showToast("📂 Opened folder in Windows File Explorer: " + (d.folder_path || ''));
+          showToast("📂 Opened directory in File Explorer: " + (d.folder_path || ''));
         } else {
-          showToast("Folder: " + (d.folder_path || `projects/${currentProjectId}/final/`));
+          showToast("Directory: " + (d.folder_path || ''));
         }
       } catch (err) {
         console.error("Failed to open video folder:", err);
@@ -5487,15 +5498,26 @@
 
     function copyRealVideoPath() {
       const codeEl = document.getElementById('preview-real-filepath');
-      const pathText = (codeEl && codeEl.textContent.trim()) || `projects/${currentProjectId}/final/${currentProjectId}.mp4`;
+      const pathText = (codeEl && (codeEl.getAttribute('data-abs-path') || codeEl.textContent.trim())) || `projects/${currentProjectId}/final/${currentProjectId}.mp4`;
       navigator.clipboard.writeText(pathText).then(() => {
-        showToast("Copied video file path: " + pathText);
+        showToast("✓ Copied video file path: " + pathText);
       }).catch(() => {
         prompt("Video file path:", pathText);
       });
     }
+
+    function copyRealDirPath() {
+      const codeEl = document.getElementById('preview-real-filepath');
+      const dirText = (codeEl && codeEl.getAttribute('data-dir-path')) || (codeEl && (codeEl.getAttribute('data-abs-path') || codeEl.textContent.trim())) || '';
+      navigator.clipboard.writeText(dirText).then(() => {
+        showToast("✓ Copied video directory path: " + dirText);
+      }).catch(() => {
+        prompt("Video directory path:", dirText);
+      });
+    }
     window.openVideoFolder = openVideoFolder;
     window.copyRealVideoPath = copyRealVideoPath;
+    window.copyRealDirPath = copyRealDirPath;
 
     function forceReloadVideoPlayer() {
       const vplayer = document.getElementById('final-video-player');

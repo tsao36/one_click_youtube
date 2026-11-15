@@ -1260,16 +1260,19 @@
               <code id="preview-real-filepath" data-ui-click="static_106" style="cursor: pointer; background: #020617; border: 1px solid #1e293b; color: #7dd3fc; padding: 4px 10px; border-radius: 5px; font-family: 'Consolas', monospace; font-size: 13px; font-weight: 700;" title="Click to copy file path">
                 Loading file path...
               </code>
-              <button type="button" class="btn-sec" data-ui-click="static_107" onclick="openVideoFolder()" style="padding: 4px 11px; font-size: 12px; display: inline-flex; align-items: center; gap: 5px; background: rgba(16, 185, 129, 0.18); border-color: #10b981; color: #6ee7b7; font-weight: 700; box-shadow: 0 2px 6px rgba(16, 185, 129, 0.15); cursor: pointer;" title="Open this directory in Windows File Explorer and highlight the MP4 video">
+              <button type="button" class="btn-sec" data-ui-click="static_107" onclick="openVideoFolder()" style="padding: 4px 11px; font-size: 12px; display: inline-flex; align-items: center; gap: 5px; background: rgba(16, 185, 129, 0.18); border-color: #10b981; color: #6ee7b7; font-weight: 700; box-shadow: 0 2px 6px rgba(16, 185, 129, 0.15); cursor: pointer;" title="Open this directory in Windows File Explorer">
                 📂 Open Directory
               </button>
               <button type="button" class="btn-sec" data-ui-click="static_108" onclick="copyRealVideoPath()" style="padding: 4px 10px; font-size: 12px; display: inline-flex; align-items: center; gap: 5px; background: rgba(56, 189, 248, 0.12); border-color: rgba(56, 189, 248, 0.4); color: #bae6fd; font-weight: 600; cursor: pointer;" title="Copy file path to clipboard">
                 📋 Copy Path
               </button>
+              <button type="button" class="btn-sec" data-ui-click="copy_real_dir_path" onclick="copyRealDirPath()" style="padding: 4px 10px; font-size: 12px; display: inline-flex; align-items: center; gap: 5px; background: rgba(168, 85, 247, 0.14); border-color: rgba(168, 85, 247, 0.45); color: #d8b4fe; font-weight: 600; cursor: pointer;" title="Copy directory path to clipboard">
+                📁 Copy Directory
+              </button>
               <span id="preview-file-meta-badge" style="font-size: 12px; color: #94a3b8; background: rgba(255,255,255,0.06); padding: 3px 8px; border-radius: 4px;"></span>
             </div>
             <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-              <button type="button" class="btn-sec" data-ui-click="static_107" onclick="openVideoFolder()" style="padding: 5px 13px; font-size: 12px; display: inline-flex; align-items: center; gap: 5px; background: rgba(16, 185, 129, 0.18); border-color: #10b981; color: #6ee7b7; font-weight: 700; box-shadow: 0 2px 6px rgba(16, 185, 129, 0.15); cursor: pointer;" title="Open this folder in Windows File Explorer and highlight the MP4 video">
+              <button type="button" class="btn-sec" data-ui-click="static_107" onclick="openVideoFolder()" style="padding: 5px 13px; font-size: 12px; display: inline-flex; align-items: center; gap: 5px; background: rgba(16, 185, 129, 0.18); border-color: #10b981; color: #6ee7b7; font-weight: 700; box-shadow: 0 2px 6px rgba(16, 185, 129, 0.15); cursor: pointer;" title="Open this folder in Windows File Explorer">
                 📂 Open Folder in Explorer
               </button>
               <button type="button" class="btn-sec" data-ui-click="static_108" onclick="copyRealVideoPath()" style="padding: 5px 12px; font-size: 12px; display: inline-flex; align-items: center; gap: 5px; background: rgba(56, 189, 248, 0.12); border-color: rgba(56, 189, 248, 0.4); color: #bae6fd; font-weight: 600; cursor: pointer;" title="Copy file path to clipboard">
@@ -4466,8 +4469,8 @@
   </div>
 
   <script src="/api.js"></script>
-  <script src="/events.js?v=20261115_aspect_detect_v1"></script>
-  <script src="/app.js?v=20261115_aspect_detect_v1"></script>
+  <script src="/events.js?v=20261115_openfolder_autodetect_v2"></script>
+  <script src="/app.js?v=20261115_openfolder_autodetect_v2"></script>
 
   <!-- Formula Manager Modal -->
   <div id="formula-manager-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 99999; align-items: center; justify-content: center; backdrop-filter: blur(4px);">
