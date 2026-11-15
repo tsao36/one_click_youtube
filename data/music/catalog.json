@@ -1455,6 +1455,41 @@
         ],
         "terms_url": "https://creativecommons.org/publicdomain/zero/1.0/"
       }
+    },
+    {
+      "id": "calm_focus/電人查勃卡主題曲.mp3",
+      "name": "電人查勃卡主題曲",
+      "title": "電人查勃卡主題曲",
+      "category": "calm_focus",
+      "category_label": "Calm & Focus (平靜沉思)",
+      "filename": "calm_focus/電人查勃卡主題曲.mp3",
+      "basename": "電人查勃卡主題曲.mp3",
+      "size_mb": 1.67,
+      "duration": 62.3,
+      "duration_sec": 62.3,
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "mood": "Ambient (YouTube)",
+      "description": "Imported from YouTube: https://youtu.be/CPoPIezuI_s?si=3pM9LO_xm9Llqr5I",
+      "source": "youtube",
+      "source_url": "https://youtu.be/CPoPIezuI_s?si=3pM9LO_xm9Llqr5I",
+      "tags": [
+        "calm_focus",
+        "youtube",
+        "ambient",
+        "custom"
+      ],
+      "url": "/api/music/audio/calm_focus/電人查勃卡主題曲.mp3",
+      "license": {
+        "license_type": "YouTube Audio Content",
+        "name": "YouTube Ambient Ingestion",
+        "attribution_required": false,
+        "source": "YouTube",
+        "source_url": "https://youtu.be/CPoPIezuI_s?si=3pM9LO_xm9Llqr5I",
+        "commercial_use_allowed": true
+      }
     }
   ]
 }
