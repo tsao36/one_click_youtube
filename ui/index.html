@@ -647,16 +647,16 @@
             <div class="form-group" id="creator-callout-style-group">
               <label style="display: flex; justify-content: space-between; align-items: center;">
                 <span>🎬 場景重點訊息風格 (Scene Message Overlay)</span>
-                <span id="callout-style-hint" style="font-size: 11px; color: #38bdf8; font-weight: 600;">置中大字 · 輕度壓暗背景</span>
+                <span id="callout-style-hint" style="font-size: 11px; color: #FF5A1F; font-weight: 600;">左上角 · 橘色強調線大數字</span>
               </label>
               <select id="creator-callout-style">
-                <option value="neutral_centered" selected>中性置中大字 (Neutral Centered · 輕度壓暗背景)</option>
+                <option value="neutral_centered">中性置中大字 (Neutral Centered · 輕度壓暗背景)</option>
                 <option value="modern_pill">極簡深色毛玻璃膠囊橫幅 (Modern Glass Pill · 現代俐落質感)</option>
                 <option value="archival_parchment">歷史檔案古籍牛皮紙印章 (Archival Parchment · 歷史紀錄片推薦)</option>
                 <option value="historical_timeline">歷史紀年文獻卡 (Historical Timeline · 巨型年份/數字 + 硃紅底線)</option>
                 <option value="minimal_clean">極簡無框俐落字體 (Minimal Clean · 清透極簡風格)</option>
                 <option value="broadcast_news">專題電視新聞橫條 (Broadcast News Bar · 新聞專題風格)</option>
-                <option value="corner_metric">左上重點數據卡 (Corner Metric · 左上角大數字)</option>
+                <option value="corner_metric" selected>🔥 左上數據卡 (Corner Metric · 左上角大數字)</option>
                 <option value="none">停用場景訊息 · 純淨圖像 (No Message Overlay · 僅 Ken Burns/AI 圖像)</option>
               </select>
               <div id="creator-callout-preview-container" style="margin-top: 10px;"></div>
@@ -2320,13 +2320,13 @@
         <div class="form-group">
           <label>🎬 場景重點訊息風格 (Scene Message Overlay Style)</label>
           <select id="set-callout-banner-style">
-            <option value="neutral_centered" selected>中性置中大字 (Neutral Centered · 輕度壓暗背景)</option>
+            <option value="neutral_centered">中性置中大字 (Neutral Centered · 輕度壓暗背景)</option>
             <option value="modern_pill">極簡深色毛玻璃膠囊橫幅 (Modern Glass Pill · 現代俐落質感)</option>
             <option value="archival_parchment">歷史檔案古籍牛皮紙印章 (Archival Parchment · 歷史紀錄片推薦)</option>
             <option value="historical_timeline">歷史紀年文獻卡 (Historical Timeline · 巨型年份/數字 + 硃紅底線)</option>
             <option value="minimal_clean">極簡無框俐落字體 (Minimal Clean · 清透極簡風格)</option>
             <option value="broadcast_news">專題電視新聞橫條 (Broadcast News Bar · 新聞專題風格)</option>
-            <option value="corner_metric">左上重點數據卡 (Corner Metric · 左上角大數字)</option>
+            <option value="corner_metric" selected>🔥 左上數據卡 (Corner Metric · 左上角大數字)</option>
             <option value="none">停用場景訊息 · 純淨圖像 (No Message Overlay · 僅 Ken Burns/AI 圖像)</option>
           </select>
           <div style="font-size: 11px; color: #94a3b8; margin-top: 3px;">
@@ -4441,16 +4441,16 @@
         <div>
           <label style="font-size:13px; font-weight:700; color:#e2e8f0; display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
             <span>🎬 1. Select Message Overlay Style:</span>
-            <span id="ro-callout-style-badge" style="font-size:11px; color:#38bdf8; font-weight:600;">置中大字 · 輕度壓暗背景</span>
+            <span id="ro-callout-style-badge" style="font-size:11px; color:#FF5A1F; font-weight:600;">左上角 · 橘色強調線大數字</span>
           </label>
           <select id="ro-callout-style" onchange="onRoCalloutStyleChange()" data-ui-change="on_ro_callout_style_change" style="width:100%; padding:9px 12px; font-size:13px; font-weight:600; background:#070d18; border:1px solid #0284c7; color:#fff; border-radius:6px; cursor:pointer;">
-            <option value="neutral_centered" selected>中性置中大字 (Neutral Centered · 輕度壓暗背景)</option>
+            <option value="neutral_centered">中性置中大字 (Neutral Centered · 輕度壓暗背景)</option>
             <option value="modern_pill">極簡深色毛玻璃膠囊橫幅 (Modern Glass Pill · 現代俐落霓虹)</option>
             <option value="archival_parchment">歷史檔案古籍牛皮紙印章 (Archival Parchment · 歷史紀錄片推薦)</option>
             <option value="historical_timeline">歷史紀年文獻卡 (Historical Timeline · 巨型年份/數字 + 硃紅底線)</option>
             <option value="minimal_clean">極簡無框俐落字體 (Minimal Clean · 清透極簡風格)</option>
             <option value="broadcast_news">專題電視新聞橫條 (Broadcast News Bar · 新聞專題風格)</option>
-            <option value="corner_metric">左上重點數據卡 (Corner Metric · 左上角大數字)</option>
+            <option value="corner_metric" selected>🔥 左上數據卡 (Corner Metric · 左上角大數字)</option>
             <option value="none">停用場景訊息 · 純淨圖像 (No Message Overlay · 僅 Ken Burns/AI 圖像)</option>
           </select>
           <div id="ro-callout-preview-container" style="margin-top:10px;"></div>
@@ -4699,7 +4699,7 @@
           </div>
 
           <!-- 5. Remotion Style (only displayed when Remotion is selected) -->
-          <div id="confirm-modal-remotion-row" style="display:none; justify-content:space-between; align-items:center; padding-top:2px; gap:10px;">
+          <div id="confirm-modal-remotion-row" style="display:none; justify-content:space-between; align-items:center; padding-top:2px; border-bottom:1px solid rgba(255,255,255,0.06); padding-bottom:10px; gap:10px;">
             <div style="display:flex; align-items:center; gap:8px;">
               <span style="font-size:16px;">⚛️</span>
               <span style="font-size:13px; color:#cbd5e1; font-weight:600;">Remotion Style / 動態藍圖風格</span>
@@ -4707,6 +4707,29 @@
             <span id="confirm-modal-remotion-style" style="font-size:13px; font-weight:700; color:#00F5FF; text-align:right; max-width:60%; word-break:break-word;">
               --
             </span>
+          </div>
+
+          <!-- 6. Select Message Overlay Style -->
+          <div id="confirm-modal-overlay-row" style="display:flex; justify-content:space-between; align-items:center; padding-top:2px; gap:10px;">
+            <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
+              <span style="font-size:16px;">🎬</span>
+              <div>
+                <span style="font-size:13px; color:#cbd5e1; font-weight:600;">Select Message Overlay Style:</span>
+                <div id="confirm-modal-callout-badge" style="font-size:11px; color:#FF5A1F; font-weight:600; margin-top:2px;">左上角 · 橘色強調線大數字</div>
+              </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:6px; max-width:62%; justify-content:flex-end;">
+              <select id="confirm-modal-callout-style" onchange="onConfirmCalloutStyleChange()" data-ui-change="on_confirm_callout_style_change" style="background:#070d18; border:1.5px solid #FF5A1F; color:#fed7aa; font-size:12.5px; font-weight:700; padding:6px 10px; border-radius:6px; cursor:pointer; max-width:100%; text-overflow:ellipsis;">
+                <option value="corner_metric" selected>🔥 左上數據卡 (Corner Metric · 左上角大數字)</option>
+                <option value="neutral_centered">🎬 中性置中大字 (Neutral Centered · 輕度壓暗背景)</option>
+                <option value="modern_pill">💎 極簡深色毛玻璃膠囊橫幅 (Modern Glass Pill)</option>
+                <option value="archival_parchment">📜 歷史檔案古籍牛皮紙印章 (Archival Parchment)</option>
+                <option value="historical_timeline">🏛️ 歷史紀年文獻卡 (Historical Timeline)</option>
+                <option value="minimal_clean">✨ 極簡無框俐落字體 (Minimal Clean)</option>
+                <option value="broadcast_news">📺 專題電視新聞橫條 (Broadcast News Bar)</option>
+                <option value="none">🚫 停用場景訊息 · 純淨圖像 (No Message Overlay)</option>
+              </select>
+            </div>
           </div>
 
         </div>

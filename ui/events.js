@@ -313,6 +313,7 @@
     "static_296": function(event) { closeCreateVideoConfirmModal() },
     "static_297": function(event) { closeCreateVideoConfirmModal() },
     "static_298": function(event) { confirmAndProceedWithVideo() },
+    "on_confirm_callout_style_change": function(event) { onConfirmCalloutStyleChange() },
     "open_rerender_overlay_modal": function(event) { openRerenderOverlayModal() },
     "hero_rerender_overlay": function(event) { openRerenderOverlayModal() },
     "close_rerender_overlay_modal": function(event) { closeRerenderOverlayModal() },

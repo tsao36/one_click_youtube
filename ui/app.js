@@ -4281,6 +4281,36 @@
     }
     window.confirmAndProceedWithVideo = confirmAndProceedWithVideo;
 
+    function onConfirmCalloutStyleChange() {
+      const sel = document.getElementById('confirm-modal-callout-style');
+      if (!sel) return;
+      const val = sel.value;
+      const badgeEl = document.getElementById('confirm-modal-callout-badge');
+      const info = (window.CALLOUT_STYLES_INFO && window.CALLOUT_STYLES_INFO[val]) || (typeof CALLOUT_STYLES_INFO !== 'undefined' && CALLOUT_STYLES_INFO[val]);
+      if (badgeEl && info) {
+        badgeEl.textContent = info.badge || '';
+        badgeEl.style.color = info.accent || '#38bdf8';
+      }
+      sel.style.borderColor = (info?.accent || '#0284c7');
+      sel.style.color = (val === 'corner_metric' ? '#fed7aa' : '#38bdf8');
+
+      const creatorSel = document.getElementById('creator-callout-style');
+      if (creatorSel && creatorSel.value !== val) {
+        creatorSel.value = val;
+        if (typeof updateCalloutStyleWidget === 'function') {
+          updateCalloutStyleWidget('creator-callout-style', 'creator-callout-preview-container');
+        }
+      }
+      const setSel = document.getElementById('set-callout-banner-style');
+      if (setSel && setSel.value !== val) {
+        setSel.value = val;
+        if (typeof updateCalloutStyleWidget === 'function') {
+          updateCalloutStyleWidget('set-callout-banner-style', 'settings-callout-preview-container');
+        }
+      }
+    }
+    window.onConfirmCalloutStyleChange = onConfirmCalloutStyleChange;
+
     function getActiveRemotionStyleInfo(stageModels, ai_pct) {
       const animModel = stageModels?.animation || document.getElementById('model-stage-animation')?.value || 'kenburns';
       const preset = window.activeRemotionPreset;
@@ -4379,6 +4409,16 @@
       const modalAvatarMaskRow = document.getElementById('confirm-modal-avatar-mask-row');
       if (modalAvatarMaskRow) modalAvatarMaskRow.style.display = 'none';
 
+      // Message Overlay Style decision in confirmation modal
+      const creatorCalloutStyle = document.getElementById('creator-callout-style')?.value
+        || document.getElementById('set-callout-banner-style')?.value
+        || 'corner_metric';
+      const modalCalloutEl = document.getElementById('confirm-modal-callout-style');
+      if (modalCalloutEl) {
+        modalCalloutEl.value = creatorCalloutStyle;
+        if (typeof onConfirmCalloutStyleChange === 'function') onConfirmCalloutStyleChange();
+      }
+
       pendingCreationAction = () => executeDramaCreation({
         topic,
         durationSec,
@@ -4425,6 +4465,7 @@
             drama_duration_seconds: durationSec,
             drama_characters: sanitizedCharacters,
             drama_script: scriptText,
+            callout_style: (document.getElementById('confirm-modal-callout-style')?.value || document.getElementById('creator-callout-style')?.value || 'corner_metric'),
             pause_after_scenes: pauseAfterStage3,
             stage_models: {
               animation: animEngine,
@@ -4577,6 +4618,16 @@
         if (modalAvatarMaskRow) modalAvatarMaskRow.style.display = 'none';
       }
 
+      // Message Overlay Style decision in confirmation modal
+      const creatorCalloutStyle = document.getElementById('creator-callout-style')?.value
+        || document.getElementById('set-callout-banner-style')?.value
+        || 'corner_metric';
+      const modalCalloutEl = document.getElementById('confirm-modal-callout-style');
+      if (modalCalloutEl) {
+        modalCalloutEl.value = creatorCalloutStyle;
+        if (typeof onConfirmCalloutStyleChange === 'function') onConfirmCalloutStyleChange();
+      }
+
       pendingCreationAction = () => executeCreation();
 
       const pauseStage1Row = document.getElementById('confirm-modal-pause-stage1-row');
@@ -4668,7 +4719,7 @@
             ai_video_percentage: ai_pct,
             cloud_enabled: cloud,
             stage_models: stageModels,
-            callout_style: (document.getElementById('creator-callout-style')?.value || document.getElementById('set-callout-banner-style')?.value || 'neutral_centered'),
+            callout_style: (document.getElementById('confirm-modal-callout-style')?.value || document.getElementById('creator-callout-style')?.value || document.getElementById('set-callout-banner-style')?.value || 'corner_metric'),
             motion_graphics_callouts: document.getElementById('creator-motion-callouts') ? document.getElementById('creator-motion-callouts').checked : true,
             music_track: musicTrack,
             music_category: musicCategory,
@@ -8680,7 +8731,13 @@
           const scs = document.getElementById('set-callout-banner-style');
           if (scs && sub.callout_style) scs.value = sub.callout_style;
           const ccs = document.getElementById('creator-callout-style');
-          if (ccs && sub.callout_style) ccs.value = sub.callout_style;
+          if (ccs) {
+            if (sub.callout_style && sub.callout_style !== 'neutral_centered') {
+              ccs.value = sub.callout_style;
+            } else if (!ccs.value || ccs.value === 'neutral_centered') {
+              ccs.value = 'corner_metric';
+            }
+          }
         }
 
         if (data.settings && data.settings.rendering && data.settings.rendering.phase_turn_duration) {
@@ -8771,7 +8828,7 @@
       const font = document.getElementById('set-sub-font') ? document.getElementById('set-sub-font').value : 'Microsoft JhengHei UI';
       const style = document.getElementById('set-sub-style') ? document.getElementById('set-sub-style').value : 'youtube_standard';
       const phaseTurnDur = document.getElementById('set-phase-turn-dur') ? parseFloat(document.getElementById('set-phase-turn-dur').value) || 3.0 : 3.0;
-      const calloutBannerStyle = document.getElementById('set-callout-banner-style') ? document.getElementById('set-callout-banner-style').value : 'neutral_centered';
+      const calloutBannerStyle = document.getElementById('set-callout-banner-style') ? document.getElementById('set-callout-banner-style').value : 'corner_metric';
       const ccs = document.getElementById('creator-callout-style');
       if (ccs) ccs.value = calloutBannerStyle;
       updateMotionCalloutsSwitchUI('creator-motion-callouts', motion);
@@ -8807,11 +8864,11 @@
         name: '中性置中大字',
         en: 'Neutral Centered',
         badge: '置中大字 · 輕度壓暗背景',
-        desc: '全片推薦預設：於畫面中央浮現清晰大字，並輕度壓暗全景背景（保留下方字幕原位），視覺聚焦力強、最具電影感與史詩張力。',
+        desc: '於畫面中央浮現清晰大字，並輕度壓暗全景背景（保留下方字幕原位），視覺聚焦力強、具備張力。',
         tag: '重點解析',
         title: '歷史的關鍵轉折點',
         subtitle: '權力博弈與時代變革的深刻分水嶺',
-        tags: ['⭐ 推薦預設', '高張力轉折', '歷史與政治'],
+        tags: ['高張力轉折', '歷史與政治', '置中大字'],
         chipLabel: '🎬 置中大字',
         accent: '#38bdf8'
       },
@@ -8885,11 +8942,11 @@
         name: '左上重點數據卡',
         en: 'Corner Metric',
         badge: '左上角 · 橘色強調線大數字',
-        desc: '黑色圓角資訊卡、橘色左側強調線、大數字搭配白色說明文字，固定疊加於左上角，適合凸顯關鍵數據。',
+        desc: '全片推薦預設：黑色圓角資訊卡、橘色左側強調線、大數字搭配白色說明文字，固定疊加於左上角，視覺焦點清晰明確。',
         tag: '關鍵數據',
         title: '7800',
         subtitle: '起火後3天 又產生的垃圾',
-        tags: ['數據重點', '左上角', '大數字'],
+        tags: ['🔥 推薦預設', '數據重點', '左上角', '大數字'],
         chipLabel: '🔥 左上數據卡',
         accent: '#FF5A1F'
       },
@@ -19419,6 +19476,11 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
             setCallout.value = calloutCreator.value;
             updateCalloutStyleWidget('set-callout-banner-style', 'settings-callout-preview-container');
           }
+          const modalCallout = document.getElementById('confirm-modal-callout-style');
+          if (modalCallout && modalCallout.value !== calloutCreator.value) {
+            modalCallout.value = calloutCreator.value;
+            if (typeof onConfirmCalloutStyleChange === 'function') onConfirmCalloutStyleChange();
+          }
         });
       }
 
@@ -19430,6 +19492,18 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
             setCreator.value = calloutSettings.value;
             updateCalloutStyleWidget('creator-callout-style', 'creator-callout-preview-container');
           }
+          const modalCallout = document.getElementById('confirm-modal-callout-style');
+          if (modalCallout && modalCallout.value !== calloutSettings.value) {
+            modalCallout.value = calloutSettings.value;
+            if (typeof onConfirmCalloutStyleChange === 'function') onConfirmCalloutStyleChange();
+          }
+        });
+      }
+
+      const calloutConfirm = document.getElementById('confirm-modal-callout-style');
+      if (calloutConfirm) {
+        calloutConfirm.addEventListener('change', () => {
+          if (typeof onConfirmCalloutStyleChange === 'function') onConfirmCalloutStyleChange();
         });
       }
 
