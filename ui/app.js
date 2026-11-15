@@ -13252,6 +13252,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
         `;
       } else if (stKey === 'scenes') {
         const scenes = data.scenes || [];
+        const diffScenesCount = scenes.filter(s => s.has_diff || (s.meta && s.meta.import_diff) || s.import_diff).length;
         bodyHtml += `
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
             <div style="font-size: 13px; color: var(--text-muted); display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
@@ -13259,6 +13260,9 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
               <span style="font-size: 11px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.35); padding: 2px 8px; border-radius: 10px; font-weight: 600;">🎬 Stage 3 Actual Script</span>
             </div>
             <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+              <button class="btn-sec" style="font-size: 12px; padding: 6px 14px; background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.25) 100%); border-color: #10b981; color: #a7f3d0; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;" onclick="openStage3ImportModal()" title="匯入由他人審閱修改後的 Stage 3 腳本（支援 .txt/.csv/.md/.json 或貼上文字），以程式演算法逐行比對差異並自動標記">
+                📥 匯入腳本 (Import Script)
+              </button>
               <button class="btn-sec" style="font-size: 12px; padding: 6px 14px; background: linear-gradient(135deg, rgba(56, 189, 248, 0.2) 0%, rgba(37, 99, 235, 0.25) 100%); border-color: #38bdf8; color: #bae6fd; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;" onclick="openStage3ExportModal()" title="匯出 Stage 3 分鏡審閱腳本（支援 .txt 校對文稿、.csv 試算表、.md 結構文檔與純對白朗讀稿）">
                 📤 匯出分鏡腳本 (Export Script) ▼
               </button>
@@ -13268,18 +13272,64 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
               <button class="btn-sec" style="font-size: 12px; padding: 6px 12px;" onclick="saveStudioStage('scenes')">💾 Save Scenes</button>
             </div>
           </div>
-          <div style="display: flex; flex-direction: column; gap: 14px;">
+
+          ${diffScenesCount > 0 ? `
+            <div style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(15, 23, 42, 0.9) 100%); border: 1.5px solid #f59e0b; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; box-shadow: 0 4px 16px rgba(245, 158, 11, 0.12);">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 22px;">⚡</span>
+                <div>
+                  <div style="font-size: 13.5px; font-weight: 800; color: #fde68a; display: flex; align-items: center; gap: 8px;">
+                    <span>腳本差異標記中：共 ${diffScenesCount} 幕分鏡台詞已自匯入腳本更新並標記異動</span>
+                  </div>
+                  <div style="font-size: 11.5px; color: #cbd5e1; margin-top: 2px;">
+                    下方各分鏡卡已以程式逐行比對標示差異（紅字刪除、綠字新增）。確認無誤後請點選「💾 Save Scenes」儲存。
+                  </div>
+                </div>
+              </div>
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <button class="btn-sec" onclick="toggleStage3DiffFilterOnly(this)" id="btn-toggle-diff-only" style="font-size: 11.5px; padding: 5px 12px; background: rgba(245, 158, 11, 0.2); border-color: #f59e0b; color: #fef3c7; font-weight: 700;">
+                  🔍 僅顯示有差異分鏡 (${diffScenesCount})
+                </button>
+                <button class="btn-sec" onclick="clearStage3DiffMarkers()" style="font-size: 11.5px; padding: 5px 12px; color: #94a3b8;" title="清除所有分鏡上的差異標籤與比對框">
+                  🧹 清除差異標記
+                </button>
+              </div>
+            </div>
+          ` : ''}
+
+          <div style="display: flex; flex-direction: column; gap: 14px;" id="studio-scenes-list">
         `;
         scenes.forEach((s, idx) => {
+          const diffObj = s.import_diff || (s.meta && s.meta.import_diff);
+          const hasDiff = Boolean(diffObj);
           bodyHtml += `
-            <div style="background: #080d16; border: 1px solid var(--card-border); border-radius: 8px; padding: 14px;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                <span style="font-weight: 700; color: #93c5fd; font-size: 14px;">Scene #${s.scene_id}</span>
+            <div class="stage3-scene-card ${hasDiff ? 'has-stage3-diff' : ''}" style="background: #080d16; border: ${hasDiff ? '1.5px solid #f59e0b' : '1px solid var(--card-border)'}; ${hasDiff ? 'box-shadow: 0 0 16px rgba(245, 158, 11, 0.15);' : ''} border-radius: 8px; padding: 14px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 6px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="font-weight: 700; color: #93c5fd; font-size: 14px;">Scene #${s.scene_id}</span>
+                  ${hasDiff ? '<span style="font-size: 11px; background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid #f59e0b; padding: 2px 7px; border-radius: 4px; font-weight: 700;">✏️ 腳本匯入修改 (Modified)</span>' : ''}
+                  ${s.speaker ? `<span style="font-size: 11px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; padding: 2px 6px; border-radius: 4px;">👤 ${escapeHtml(s.speaker)}</span>` : ''}
+                </div>
                 <span style="font-size: 12px; color: var(--text-muted);">Est: ${s.estimated_duration || 5}s</span>
               </div>
               <div style="margin-bottom: 10px;">
                 <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Narration Text:</label>
-                <textarea rows="2" style="width: 100%; font-size: 13px; background: #04070e; border: 1px solid #1e293b; color: #fff; padding: 8px; border-radius: 4px;" onchange="studioStageData.scenes[${idx}].narration=this.value">${s.narration}</textarea>
+                <textarea rows="2" style="width: 100%; font-size: 13px; background: #04070e; border: 1px solid ${hasDiff ? 'rgba(245, 158, 11, 0.5)' : '#1e293b'}; color: #fff; padding: 8px; border-radius: 4px;" onchange="studioStageData.scenes[${idx}].narration=this.value">${s.narration}</textarea>
+                ${hasDiff ? `
+                  <div style="background: #020617; border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 6px; padding: 10px 12px; margin-top: 8px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                      <span style="font-size: 11px; font-weight: 700; color: #fbbf24; display: flex; align-items: center; gap: 4px;">
+                        <span>🔍 程式逐行差異比對 (Line Diff)</span>
+                      </span>
+                      <span style="font-size: 10.5px; color: #94a3b8;">${diffObj.imported_at || '0 Token Coded Diff'}</span>
+                    </div>
+                    <div style="font-family: monospace; font-size: 12px; line-height: 1.6; display: flex; flex-direction: column; gap: 2px;">
+                      ${renderLineDiffHtml(diffObj.line_diff || [])}
+                    </div>
+                    ${renderFieldChangesSummaryHtml(diffObj.field_changes || [])}
+                    ${diffObj.review_feedback ? `<div style="margin-top:6px; font-size:11.5px; color:#38bdf8; background:rgba(56,189,248,0.1); padding:4px 8px; border-radius:4px;"><b>💬 審核意見:</b> ${escapeHtml(diffObj.review_feedback)}</div>` : ''}
+                  </div>
+                ` : ''}
               </div>
               <div style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap;">
                 <div style="flex: 1; min-width: 200px;">
@@ -16087,6 +16137,331 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
     window.printStage3Script = printStage3Script;
     window.shareStage3Script = shareStage3Script;
     window.emailStage3Script = emailStage3Script;
+
+    // ---------------- Stage 3 Script Import & Coded Diff ----------------
+    let currentStage3DiffData = null;
+    let currentStage3ImportFilename = '';
+    let stage3DiffOnlyFilterActive = false;
+
+    function renderLineDiffHtml(lineDiffs) {
+      if (!lineDiffs || lineDiffs.length === 0) return '<span style="color:#94a3b8; font-size:11px;">無行級差異</span>';
+      return lineDiffs.map(ld => {
+        if (ld.op === '-') {
+          return `<div style="color: #fca5a5; background: rgba(239, 68, 68, 0.15); border-left: 3px solid #ef4444; padding: 2px 6px; border-radius: 2px; word-break: break-word;"><span style="user-select:none; opacity:0.7; font-weight:700; margin-right:4px;">-</span>${escapeHtml(ld.text)}</div>`;
+        } else if (ld.op === '+') {
+          return `<div style="color: #86efac; background: rgba(16, 185, 129, 0.15); border-left: 3px solid #10b981; padding: 2px 6px; border-radius: 2px; word-break: break-word; font-weight: 600;"><span style="user-select:none; opacity:0.7; font-weight:700; margin-right:4px;">+</span>${escapeHtml(ld.text)}</div>`;
+        } else {
+          return `<div style="color: #94a3b8; padding: 2px 6px; word-break: break-word;"><span style="user-select:none; opacity:0.4; margin-right:4px;"> </span>${escapeHtml(ld.text)}</div>`;
+        }
+      }).join('');
+    }
+
+    function renderFieldChangesSummaryHtml(fieldChanges) {
+      if (!fieldChanges || fieldChanges.length === 0) return '';
+      const nonNarr = fieldChanges.filter(fc => fc.field !== 'narration');
+      if (nonNarr.length === 0) return '';
+      return `
+        <div style="margin-top: 6px; font-size: 11.5px; color: #cbd5e1; display: flex; flex-direction: column; gap: 3px; background: rgba(0,0,0,0.3); padding: 5px 8px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.06);">
+          ${nonNarr.map(fc => `
+            <div>
+              <b style="color: #93c5fd;">${escapeHtml(fc.label || fc.field)}:</b>
+              <span style="color: #fca5a5; text-decoration: line-through; margin: 0 4px;">${escapeHtml(String(fc.old || ''))}</span>
+              ➔
+              <span style="color: #86efac; font-weight: 700; margin-left: 4px;">${escapeHtml(String(fc.new || ''))}</span>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    function openStage3ImportModal() {
+      if (!currentProjectId) return alert("Please select a project first.");
+      const modal = document.getElementById('stage3-import-modal');
+      if (!modal) return;
+      modal.style.display = 'flex';
+    }
+
+    function closeStage3ImportModal() {
+      const modal = document.getElementById('stage3-import-modal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    function handleStage3ImportFileSelected(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+      currentStage3ImportFilename = file.name;
+      const fnLabel = document.getElementById('stage3-import-filename');
+      if (fnLabel) fnLabel.textContent = file.name;
+
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const content = e.target.result;
+          const ta = document.getElementById('stage3-import-textarea');
+          if (ta) ta.value = content;
+          await runStage3ScriptDiff();
+        } catch (err) {
+          alert("讀取檔案失敗: " + err.message);
+        }
+      };
+      reader.readAsText(file, "UTF-8");
+    }
+
+    async function pasteStage3ScriptFromClipboard() {
+      try {
+        const text = await navigator.clipboard.readText();
+        if (!text || !text.trim()) return alert("剪貼簿內無文字內容。");
+        const ta = document.getElementById('stage3-import-textarea');
+        if (ta) {
+          ta.value = text;
+          currentStage3ImportFilename = 'clipboard.txt';
+          const fnLabel = document.getElementById('stage3-import-filename');
+          if (fnLabel) fnLabel.textContent = '來自剪貼簿 (Clipboard)';
+          await runStage3ScriptDiff();
+        }
+      } catch (err) {
+        alert("無法讀取剪貼簿，請直接在文字框內按 Ctrl+V 貼上。");
+      }
+    }
+
+    function clearStage3ImportInput() {
+      const ta = document.getElementById('stage3-import-textarea');
+      if (ta) ta.value = '';
+      currentStage3ImportFilename = '';
+      const fnLabel = document.getElementById('stage3-import-filename');
+      if (fnLabel) fnLabel.textContent = '未選擇檔案';
+      currentStage3DiffData = null;
+      const resSec = document.getElementById('stage3-diff-result-section');
+      if (resSec) resSec.style.display = 'none';
+      const applyBtn = document.getElementById('btn-apply-stage3-import');
+      if (applyBtn) {
+        applyBtn.disabled = true;
+        applyBtn.style.cursor = 'not-allowed';
+        applyBtn.style.opacity = '0.6';
+        applyBtn.innerHTML = '✅ 確認套用並更新 Stage 3 分鏡 (Apply Import)';
+      }
+      const stLabel = document.getElementById('stage3-import-status-text');
+      if (stLabel) stLabel.textContent = '程式即時逐行比對 · 0 LLM Token · 100% 確定性比對';
+    }
+
+    function onStage3ImportTextInput() {
+      const ta = document.getElementById('stage3-import-textarea');
+      if (ta && ta.value.trim() && !currentStage3ImportFilename) {
+        currentStage3ImportFilename = 'pasted_script.txt';
+        const fnLabel = document.getElementById('stage3-import-filename');
+        if (fnLabel) fnLabel.textContent = '直接貼上 (Pasted Script)';
+      }
+    }
+
+    async function runStage3ScriptDiff() {
+      if (!currentProjectId) return alert("Please select a project first.");
+      const ta = document.getElementById('stage3-import-textarea');
+      const text = ta ? ta.value.trim() : '';
+      if (!text) return alert("請先輸入或選擇欲比對之腳本內容。");
+
+      const btn = document.getElementById('btn-run-stage3-diff');
+      const statusText = document.getElementById('stage3-import-status-text');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<span class="spinner-inline" style="width:12px; height:12px; margin-right:6px;"></span> 正在逐行比對差異...`;
+      }
+      if (statusText) statusText.textContent = "⏳ 程式演算法逐行比對中 (0 Token)...";
+
+      try {
+        const data = await apiJson(`/api/projects/${currentProjectId}/stage3/diff_script`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content: text, filename: currentStage3ImportFilename || 'script.txt' })
+        });
+
+        currentStage3DiffData = data;
+        renderStage3DiffSummaryBar(data.summary || {});
+        renderStage3DiffSceneCards();
+
+        const resSec = document.getElementById('stage3-diff-result-section');
+        if (resSec) resSec.style.display = 'flex';
+
+        const applyBtn = document.getElementById('btn-apply-stage3-import');
+        if (applyBtn) {
+          applyBtn.disabled = false;
+          applyBtn.style.cursor = 'pointer';
+          applyBtn.style.opacity = '1';
+          const modCount = data.summary ? data.summary.modified_count : 0;
+          applyBtn.innerHTML = `✅ 確認套用並更新 Stage 3 分鏡 (${modCount} 處變更)`;
+        }
+        if (statusText) statusText.textContent = `✓ 比對完成：共 ${data.summary.modified_count} 幕已修改、${data.summary.unchanged_count} 幕無變更 (0 Token / Python difflib)`;
+      } catch (err) {
+        alert("比對腳本失敗: " + err.message);
+        if (statusText) statusText.textContent = "比對失敗: " + err.message;
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = `🔍 執行逐行差異比對 (Run Coded Diff)`;
+        }
+      }
+    }
+
+    function renderStage3DiffSummaryBar(summary) {
+      const bar = document.getElementById('stage3-diff-summary-bar');
+      if (!bar) return;
+      bar.innerHTML = `
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <span style="font-weight:700; color:#fff; font-size:13px;">比對摘要 (Diff Summary):</span>
+          <span style="background:rgba(56,189,248,0.15); border:1px solid #0284c7; color:#38bdf8; font-size:11px; padding:2px 8px; border-radius:12px; font-weight:700;">
+            專案分鏡: ${summary.total_current || 0} 幕
+          </span>
+          <span style="background:rgba(245,158,11,0.2); border:1px solid #f59e0b; color:#fbbf24; font-size:11px; padding:2px 8px; border-radius:12px; font-weight:700;">
+            ✏️ 檢測到修改: ${summary.modified_count || 0} 幕
+          </span>
+          <span style="background:rgba(16,185,129,0.15); border:1px solid #10b981; color:#6ee7b7; font-size:11px; padding:2px 8px; border-radius:12px; font-weight:600;">
+            ⏸️ 內容相同: ${summary.unchanged_count || 0} 幕
+          </span>
+          ${summary.added_count ? `<span style="background:rgba(59,130,246,0.2); border:1px solid #3b82f6; color:#93c5fd; font-size:11px; padding:2px 8px; border-radius:12px; font-weight:700;">➕ 新增: ${summary.added_count} 幕</span>` : ''}
+          ${summary.removed_count ? `<span style="background:rgba(239,68,68,0.2); border:1px solid #ef4444; color:#fca5a5; font-size:11px; padding:2px 8px; border-radius:12px; font-weight:700;">➖ 刪除: ${summary.removed_count} 幕</span>` : ''}
+        </div>
+        <div style="font-size:11px; color:#38bdf8; font-family:monospace; background:rgba(2,132,199,0.1); border:1px solid rgba(2,132,199,0.3); padding:3px 8px; border-radius:4px;">
+          ⚡ ${summary.algorithm || 'Coded Line Diff (0 Tokens)'}
+        </div>
+      `;
+    }
+
+    function renderStage3DiffSceneCards() {
+      const container = document.getElementById('stage3-diff-scenes-container');
+      if (!container || !currentStage3DiffData) return;
+      const filterChangesOnly = document.getElementById('stage3-diff-filter-changes')?.checked ?? true;
+      const diffs = currentStage3DiffData.diffs || [];
+
+      const filtered = filterChangesOnly ? diffs.filter(d => d.has_changes || d.status !== 'unchanged') : diffs;
+
+      const countLabel = document.getElementById('stage3-diff-scenes-count-label');
+      if (countLabel) {
+        countLabel.textContent = `分鏡差異明細 (顯示 ${filtered.length} / 共 ${diffs.length} 幕):`;
+      }
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div style="text-align:center; padding:30px 20px; color:#94a3b8; font-size:12.5px; background:#04070e; border:1px solid #1e293b; border-radius:8px;">
+            ${filterChangesOnly ? '✨ 所有分鏡內容完全相同，無任何修改！可取消勾選上方「僅顯示有差異的分鏡」檢視全文。' : '無分鏡資料。'}
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = filtered.map(d => {
+        const isMod = d.status === 'modified';
+        const isAdd = d.status === 'added';
+        const isDel = d.status === 'removed';
+        const borderColor = isMod ? '#f59e0b' : (isAdd ? '#10b981' : (isDel ? '#ef4444' : '#1e293b'));
+        const statusBadge = isMod
+          ? '<span style="background:rgba(245,158,11,0.2); border:1px solid #f59e0b; color:#fbbf24; font-size:11px; padding:1px 6px; border-radius:4px; font-weight:700;">✏️ 已修改</span>'
+          : (isAdd
+            ? '<span style="background:rgba(16,185,129,0.2); border:1px solid #10b981; color:#6ee7b7; font-size:11px; padding:1px 6px; border-radius:4px; font-weight:700;">➕ 新增</span>'
+            : (isDel
+              ? '<span style="background:rgba(239,68,68,0.2); border:1px solid #ef4444; color:#fca5a5; font-size:11px; padding:1px 6px; border-radius:4px; font-weight:700;">➖ 刪除</span>'
+              : '<span style="background:rgba(255,255,255,0.06); color:#94a3b8; font-size:11px; padding:1px 6px; border-radius:4px;">⏸️ 無變更</span>'));
+
+        return `
+          <div style="background:#04070e; border:1px solid ${borderColor}; border-radius:8px; padding:12px; display:flex; flex-direction:column; gap:8px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="font-weight:700; color:#93c5fd; font-size:13px;">Scene #${d.scene_id}</span>
+                ${statusBadge}
+              </div>
+              ${d.review_feedback ? `<span style="font-size:11px; color:#38bdf8; background:rgba(56,189,248,0.1); padding:2px 6px; border-radius:4px;">💬 反饋: ${escapeHtml(d.review_feedback)}</span>` : ''}
+            </div>
+
+            <div style="background:#020408; border:1px solid #1e293b; border-radius:6px; padding:8px 10px; font-family:monospace; font-size:12px; line-height:1.5; display:flex; flex-direction:column; gap:2px;">
+              ${renderLineDiffHtml(d.line_diff || [])}
+            </div>
+            ${renderFieldChangesSummaryHtml(d.field_changes || [])}
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function applyStage3ImportScript() {
+      if (!currentProjectId) return alert("Please select a project first.");
+      if (!currentStage3DiffData || !currentStage3DiffData.imported_scenes) {
+        return alert("請先點選「執行逐行差異比對」取得比對結果。");
+      }
+
+      const modCount = currentStage3DiffData.summary ? currentStage3DiffData.summary.modified_count : 0;
+      if (!confirm(`確定要將此腳本套用至專案？\n\n系統將自動更新 Stage 3 分鏡（共 ${modCount} 幕有變更），並在畫面上清晰標記差異。`)) {
+        return;
+      }
+
+      const btn = document.getElementById('btn-apply-stage3-import');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<span class="spinner-inline" style="width:12px; height:12px; margin-right:6px;"></span> 正在套用並更新分鏡...`;
+      }
+
+      try {
+        const res = await apiJson(`/api/projects/${currentProjectId}/stage3/import_script`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ scenes: currentStage3DiffData.imported_scenes })
+        });
+
+        closeStage3ImportModal();
+        showToast(`✅ 已成功匯入腳本！共更新 ${res.modified_count || 0} 幕分鏡，差異處已在分鏡卡上清晰標記。`);
+        await loadStageStudio('scenes');
+      } catch (err) {
+        alert("套用匯入失敗: " + err.message);
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = `✅ 確認套用並更新 Stage 3 分鏡`;
+        }
+      }
+    }
+
+    async function clearStage3DiffMarkers() {
+      if (!currentProjectId) return alert("Please select a project first.");
+      if (!confirm("確定要清除當前 Stage 3 畫面上所有分鏡的差異標籤與比對框？")) return;
+      try {
+        const res = await apiJson(`/api/projects/${currentProjectId}/stage3/clear_diff_markers`, { method: 'POST' });
+        showToast(`🧹 已清除共 ${res.cleared_count || 0} 處差異標記！`);
+        await loadStageStudio('scenes');
+      } catch (err) {
+        alert("清除標記失敗: " + err.message);
+      }
+    }
+
+    function toggleStage3DiffFilterOnly(btn) {
+      const cards = document.querySelectorAll('.stage3-scene-card');
+      stage3DiffOnlyFilterActive = !stage3DiffOnlyFilterActive;
+      cards.forEach(card => {
+        if (stage3DiffOnlyFilterActive) {
+          if (!card.classList.contains('has-stage3-diff')) {
+            card.style.display = 'none';
+          } else {
+            card.style.display = 'block';
+          }
+        } else {
+          card.style.display = 'block';
+        }
+      });
+
+      if (btn) {
+        const diffCount = document.querySelectorAll('.stage3-scene-card.has-stage3-diff').length;
+        btn.textContent = stage3DiffOnlyFilterActive ? '📋 顯示全部分鏡 (Show All)' : `🔍 僅顯示有差異分鏡 (${diffCount})`;
+        btn.style.background = stage3DiffOnlyFilterActive ? '#1e3a8a' : 'rgba(245, 158, 11, 0.2)';
+        btn.style.color = stage3DiffOnlyFilterActive ? '#fff' : '#fef3c7';
+      }
+    }
+
+    window.openStage3ImportModal = openStage3ImportModal;
+    window.closeStage3ImportModal = closeStage3ImportModal;
+    window.handleStage3ImportFileSelected = handleStage3ImportFileSelected;
+    window.pasteStage3ScriptFromClipboard = pasteStage3ScriptFromClipboard;
+    window.clearStage3ImportInput = clearStage3ImportInput;
+    window.onStage3ImportTextInput = onStage3ImportTextInput;
+    window.runStage3ScriptDiff = runStage3ScriptDiff;
+    window.renderStage3DiffSceneCards = renderStage3DiffSceneCards;
+    window.applyStage3ImportScript = applyStage3ImportScript;
+    window.clearStage3DiffMarkers = clearStage3DiffMarkers;
+    window.toggleStage3DiffFilterOnly = toggleStage3DiffFilterOnly;
 
     function triggerScriptFileUpload() {
       const inp = document.getElementById('studio-script-file-input');

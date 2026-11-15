@@ -13,7 +13,7 @@ import time
 from pathlib import Path
 from typing import Any, Optional, Union
 
-from fastapi import BackgroundTasks, FastAPI, File, Form, HTTPException, Query, UploadFile
+from fastapi import BackgroundTasks, FastAPI, File, Form, HTTPException, Query, Request, UploadFile
 from typing import List
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response
@@ -1634,6 +1634,10 @@ def get_stage_data_endpoint(project_id: str, stage_name: str):
             sd["is_manual_upload"] = is_manual_upload
             sd["manual_upload_filename"] = (sc.image.meta.get("filename") or sc.image.meta.get("title")) if (is_manual_upload and sc.image and sc.image.meta) else None
 
+            imp_diff = (sc.meta or {}).get("import_diff")
+            sd["import_diff"] = imp_diff
+            sd["has_diff"] = bool(imp_diff)
+
             if stage_name in ("animation", "presenter"):
                 anim_rel = f"animation/{sc.tag}.mp4"
                 has_anim = p.path(anim_rel).exists()
@@ -1659,12 +1663,15 @@ def get_stage_data_endpoint(project_id: str, stage_name: str):
         total_sc = len(scenes_data)
         stock_avail = sum(1 for sc in scenes_data if sc.get("quick_stock_available"))
         stock_active = sum(1 for sc in scenes_data if sc.get("is_stock_active"))
+        diff_count = sum(1 for sc in scenes_data if sc.get("has_diff"))
 
         ret = {
             "scenes": scenes_data,
             "total_scenes": total_sc,
             "stock_available_count": stock_avail,
             "stock_active_count": stock_active,
+            "has_diff_markers": (diff_count > 0),
+            "diff_scenes_count": diff_count,
             "prompts": p.read_json("prompts/image_prompts.json", []),
             "voice_profile": prof,
             "voice_name": voice_prof_name,
@@ -2898,6 +2905,135 @@ def get_stage3_script_preview_endpoint(project_id: str, format: str = "txt"):
         "total_scenes": len(scenes),
         "total_duration_display": total_dur_str
     }
+
+
+@app.post("/api/projects/{project_id}/stage3/diff_script")
+async def diff_stage3_script_endpoint(
+    project_id: str,
+    request: Request
+):
+    """Compare an edited Stage 3 script against current project scenes using coded line-by-line diff.
+    Zero LLM tokens consumed.
+    """
+    p = get_project(project_id)
+    cur_scenes = p.scenes
+    if not cur_scenes:
+        raw_scenes = p.read_json("scenes/scenes.json", [])
+        if raw_scenes:
+            cur_scenes = [Scene(**s) for s in raw_scenes]
+    if not cur_scenes:
+        raise HTTPException(
+            status_code=400,
+            detail="此專案尚未生成 Stage 3 分鏡與台詞切分 (No Stage 3 scenes found)."
+        )
+
+    from core.stage3_importer import parse_stage3_script, compare_stage3_scenes
+
+    content_type = request.headers.get("content-type", "")
+    raw_text = ""
+    filename = ""
+    if "application/json" in content_type:
+        body = await request.json()
+        raw_text = body.get("content", "")
+        filename = body.get("filename", "")
+    else:
+        form = await request.form()
+        if "file" in form and form["file"]:
+            f = form["file"]
+            filename = getattr(f, "filename", "")
+            bytes_data = await f.read()
+            try:
+                raw_text = bytes_data.decode("utf-8")
+            except UnicodeDecodeError:
+                raw_text = bytes_data.decode("utf-8-sig", errors="replace")
+        elif "content" in form:
+            raw_text = str(form["content"])
+        if "filename" in form and not filename:
+            filename = str(form["filename"])
+
+    if not raw_text.strip():
+        raise HTTPException(status_code=400, detail="未提供欲比對之腳本內容 (No script content provided)")
+
+    imported_scenes = parse_stage3_script(raw_text, filename=filename)
+    if not imported_scenes:
+        raise HTTPException(status_code=400, detail="無法解析腳本內容，請確認格式是否為 .txt, .csv, .md, .json 或編號台詞。")
+
+    cur_dict = [s.model_dump(mode="json") for s in cur_scenes]
+    diff_result = compare_stage3_scenes(cur_dict, imported_scenes)
+    diff_result["status"] = "ok"
+    diff_result["filename"] = filename
+    diff_result["imported_scenes"] = imported_scenes
+    return diff_result
+
+
+@app.post("/api/projects/{project_id}/stage3/import_script")
+async def import_stage3_script_endpoint(
+    project_id: str,
+    request: Request
+):
+    """Import edited Stage 3 script, auto-detect differences with coded line diff,
+    mark differences, and apply to project scenes.
+    """
+    p = get_project(project_id)
+    cur_scenes = p.scenes
+    if not cur_scenes:
+        raw_scenes = p.read_json("scenes/scenes.json", [])
+        if raw_scenes:
+            cur_scenes = [Scene(**s) for s in raw_scenes]
+    if not cur_scenes:
+        raise HTTPException(
+            status_code=400,
+            detail="此專案尚未生成 Stage 3 分鏡與台詞切分 (No Stage 3 scenes found)."
+        )
+
+    from core.stage3_importer import parse_stage3_script, compare_stage3_scenes, apply_stage3_import
+
+    content_type = request.headers.get("content-type", "")
+    raw_text = ""
+    filename = ""
+    scenes_payload = None
+
+    if "application/json" in content_type:
+        body = await request.json()
+        raw_text = body.get("content", "")
+        filename = body.get("filename", "")
+        scenes_payload = body.get("scenes")
+    else:
+        form = await request.form()
+        if "file" in form and form["file"]:
+            f = form["file"]
+            filename = getattr(f, "filename", "")
+            bytes_data = await f.read()
+            try:
+                raw_text = bytes_data.decode("utf-8")
+            except UnicodeDecodeError:
+                raw_text = bytes_data.decode("utf-8-sig", errors="replace")
+        elif "content" in form:
+            raw_text = str(form["content"])
+        if "filename" in form and not filename:
+            filename = str(form["filename"])
+
+    if scenes_payload and isinstance(scenes_payload, list):
+        imported_scenes = scenes_payload
+    elif raw_text.strip():
+        imported_scenes = parse_stage3_script(raw_text, filename=filename)
+    else:
+        raise HTTPException(status_code=400, detail="未提供欲匯入之腳本內容 (No script content provided)")
+
+    if not imported_scenes:
+        raise HTTPException(status_code=400, detail="無法解析腳本內容，請確認格式是否為 .txt, .csv, .md, .json 或編號台詞。")
+
+    res = apply_stage3_import(p, imported_scenes)
+    return res
+
+
+@app.post("/api/projects/{project_id}/stage3/clear_diff_markers")
+def clear_stage3_diff_markers_endpoint(project_id: str):
+    """Clear all diff markers from Stage 3 scenes."""
+    p = get_project(project_id)
+    from core.stage3_importer import clear_stage3_diff_markers
+    cleared = clear_stage3_diff_markers(p)
+    return {"status": "ok", "cleared_count": cleared}
 
 
 @app.post("/api/projects/{project_id}/import_script")

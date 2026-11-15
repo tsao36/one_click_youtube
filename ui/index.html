@@ -3940,8 +3940,99 @@
       <div style="padding:12px 20px; border-top:1px solid #1e293b; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; background:#050912;">
         <span style="font-size:11px; color:#64748b;">提示：亦可於 Stage 3 分鏡頂部點選「📋 複製台詞」直接帶走純文字。</span>
         <div style="display:flex; gap:10px; align-items:center;">
+          <button class="btn-sec" onclick="closeStage3ExportModal(); openStage3ImportModal();" style="font-size:12px; padding:6px 14px; background: rgba(16, 185, 129, 0.15); border-color: #10b981; color: #6ee7b7; font-weight: 700; display: inline-flex; align-items: center; gap: 5px;" title="匯入他人已審閱或修改之腳本檔案，以程式自動逐行比對差異並標記">
+            📥 匯入已修改腳本 (Import Updated Script)
+          </button>
           <button class="btn-primary" id="btn-stage3-modal-resume" onclick="closeStage3ExportModal(); resumeCurrentProject();" style="display:none; font-size:12px; padding:6px 16px; font-weight:700; background:linear-gradient(135deg, #059669 0%, #047857 100%); border:none; color:#fff;">▶ 審閱完成，繼續生成影片 (Proceed / Resume)</button>
           <button class="btn-sec" onclick="closeStage3ExportModal()" style="font-size:12px; padding:6px 16px;">關閉 (Close)</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: STAGE 3 SCRIPT IMPORT & CODED DIFF -->
+  <div id="stage3-import-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:10066; justify-content:center; align-items:center; padding:20px; backdrop-filter:blur(4px);">
+    <div style="background:#09111e; border:1px solid #10b981; border-radius:12px; width:100%; max-width:880px; max-height:92vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 24px 64px rgba(0,0,0,0.9);">
+      <!-- Header -->
+      <div style="padding:16px 20px; border-bottom:1px solid #1e293b; display:flex; justify-content:space-between; align-items:center; background:linear-gradient(135deg, rgba(6, 78, 59, 0.45) 0%, #060a12 100%);">
+        <div>
+          <div style="font-size:16px; font-weight:800; color:#fff; display:flex; align-items:center; gap:8px;">
+            <span>📥 匯入 Stage 3 分鏡腳本與自動差異比對 (Import Script & Coded Diff)</span>
+          </div>
+          <div style="font-size:12px; color:#a7f3d0; margin-top:2px;">
+            支援 .txt 校對文稿、.csv Excel 評審表、.md Markdown、.json 或純文字。以程式演算法逐行比對差異（0 Token、免 LLM）。
+          </div>
+        </div>
+        <button class="btn-sec" onclick="closeStage3ImportModal()" style="padding:4px 10px; font-size:13px;">✕</button>
+      </div>
+
+      <!-- Body -->
+      <div style="padding:20px; overflow-y:auto; display:flex; flex-direction:column; gap:16px;">
+        <!-- Input Selector & Dropzone -->
+        <div style="background:#04070e; border:1px dashed #334155; border-radius:8px; padding:16px; display:flex; flex-direction:column; gap:12px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <button class="btn-primary" onclick="document.getElementById('stage3-import-file-input').click()" style="font-size:12px; padding:6px 14px; background:linear-gradient(135deg, #059669 0%, #047857 100%); border:none; color:#fff; font-weight:700; display:inline-flex; align-items:center; gap:6px;">
+                📁 選擇腳本檔案 (.txt / .csv / .md / .json)
+              </button>
+              <input type="file" id="stage3-import-file-input" accept=".txt,.csv,.md,.json" style="display:none;" onchange="handleStage3ImportFileSelected(event)">
+              <span id="stage3-import-filename" style="font-size:12px; color:#94a3b8; font-family:monospace;">未選擇檔案</span>
+            </div>
+            <div style="display:flex; gap:8px; align-items:center;">
+              <button class="btn-sec" onclick="pasteStage3ScriptFromClipboard()" style="font-size:11.5px; padding:6px 12px; display:inline-flex; align-items:center; gap:5px;" title="自剪貼簿貼上文字內容">
+                📋 貼上剪貼簿
+              </button>
+              <button class="btn-sec" onclick="clearStage3ImportInput()" style="font-size:11.5px; padding:6px 12px;">
+                🧹 清空
+              </button>
+            </div>
+          </div>
+
+          <textarea id="stage3-import-textarea" placeholder="在此貼上他人修改後的審閱腳本（支援從 Stage 3 匯出的 .txt 校對文稿、.csv 表格、.md 結構或純台詞），或直接從上方點選檔案匯入..." style="width:100%; height:130px; font-family:monospace; font-size:12px; line-height:1.5; background:#020408; color:#cbd5e1; border:1px solid #1e293b; border-radius:6px; padding:10px; resize:vertical;" oninput="onStage3ImportTextInput()"></textarea>
+
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+            <div style="font-size:11.5px; color:#64748b;">
+              💡 提示：無論審閱者是修改了 .txt 上的台詞、在 Excel .csv 中增刪文字、還是調整了 Markdown，程式都能精確定位到具體分鏡與行數。
+            </div>
+            <button class="btn-primary" id="btn-run-stage3-diff" onclick="runStage3ScriptDiff()" style="font-size:12px; padding:7px 18px; font-weight:800; background:linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); border:1px solid #3b82f6; display:inline-flex; align-items:center; gap:6px;">
+              🔍 執行逐行差異比對 (Run Coded Diff)
+            </button>
+          </div>
+        </div>
+
+        <!-- Diff Results Area (Initially hidden until diff is run) -->
+        <div id="stage3-diff-result-section" style="display:none; flex-direction:column; gap:12px;">
+          <!-- Diff Summary Header -->
+          <div id="stage3-diff-summary-bar" style="background:#070d18; border:1px solid #1e3a5f; border-radius:8px; padding:12px 16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+            <!-- Rendered stats badges -->
+          </div>
+
+          <!-- Filter toggle & scene count -->
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+            <div style="font-size:12px; font-weight:700; color:#cbd5e1;" id="stage3-diff-scenes-count-label">
+              分鏡差異明細:
+            </div>
+            <label style="display:inline-flex; align-items:center; gap:6px; font-size:12px; color:#93c5fd; cursor:pointer;">
+              <input type="checkbox" id="stage3-diff-filter-changes" checked onchange="renderStage3DiffSceneCards()">
+              <span>僅顯示有差異的分鏡 (Show only modified scenes)</span>
+            </label>
+          </div>
+
+          <!-- Cards container -->
+          <div id="stage3-diff-scenes-container" style="display:flex; flex-direction:column; gap:10px; max-height:360px; overflow-y:auto; padding-right:4px;">
+            <!-- Dynamically populated cards -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div style="padding:12px 20px; border-top:1px solid #1e293b; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; background:#050912;">
+        <span id="stage3-import-status-text" style="font-size:11px; color:#94a3b8;">程式即時逐行比對 · 0 LLM Token · 100% 確定性比對</span>
+        <div style="display:flex; gap:10px; align-items:center;">
+          <button class="btn-primary" id="btn-apply-stage3-import" onclick="applyStage3ImportScript()" disabled style="font-size:12px; padding:7px 20px; font-weight:800; background:linear-gradient(135deg, #059669 0%, #047857 100%); border:1px solid #10b981; color:#fff; cursor:not-allowed; opacity:0.6;">
+            ✅ 確認套用並更新 Stage 3 分鏡 (Apply Import)
+          </button>
+          <button class="btn-sec" onclick="closeStage3ImportModal()" style="font-size:12px; padding:6px 16px;">關閉 (Close)</button>
         </div>
       </div>
     </div>

@@ -89,6 +89,7 @@ class Scene(BaseModel):
     voice_profile: Optional[str] = None
     seed: Optional[int] = None
     audio_duration: Optional[float] = None
+    meta: dict[str, Any] = Field(default_factory=dict)
     image: Asset = Field(default_factory=Asset)
     audio: Asset = Field(default_factory=Asset)
     animation: Asset = Field(default_factory=Asset)
