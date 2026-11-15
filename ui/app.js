@@ -2203,6 +2203,7 @@
         if (stName === 'research') {
           return [
             { val: 'gemini', label: 'Cloud: Gemini 3.8 Flash (推薦)' },
+            { val: 'gemini_4_carbon', label: 'Cloud: Gemini 4 Carbon' },
             { val: 'ollama', label: 'Local: Ollama (qwen3:8b)' },
             { val: 'openai_compat', label: 'Cloud: GPT-4o-mini' }
           ];
@@ -2222,6 +2223,7 @@
         case 'research':
           return [
             { val: 'gemini_search', label: 'Cloud: Gemini Search' },
+            { val: 'gemini_4_carbon', label: 'Cloud: Gemini 4 Carbon' },
             { val: 'ollama', label: 'Local: Ollama' },
             { val: 'none', label: 'Disabled' }
           ];
@@ -2231,6 +2233,7 @@
           return [
             { val: 'ollama', label: 'Local GPU: Ollama' },
             { val: 'gemini', label: 'Cloud: Gemini Flash' },
+            { val: 'gemini_4_hydrogen', label: 'Cloud: Gemini 4 Hydrogen' },
             { val: 'openai_compat', label: 'Cloud: GPT-4o-mini' }
           ];
         case 'images':
@@ -2323,7 +2326,7 @@
     }
 
     function onStageModelChange(changedStage) {
-      const cloudOpts = ['gemini_search', 'gemini', 'openai_compat', 'fal-ai/flux-1/schnell', 'nano-banana-2.1', 'gpt-image-1', 'imagen-3.0-generate-002', 'dalle3', 'imagen3', 'stock', 'stock_video', 'elevenlabs', 'voai', 'edge', 'veo', 'kling', 'runway', 'hedra'];
+      const cloudOpts = ['gemini_search', 'gemini_4_carbon', 'gemini_4_hydrogen', 'gemini', 'openai_compat', 'fal-ai/flux-1/schnell', 'nano-banana-2.1', 'gpt-image-1', 'imagen-3.0-generate-002', 'dalle3', 'imagen3', 'stock', 'stock_video', 'elevenlabs', 'voai', 'edge', 'veo', 'kling', 'runway', 'hedra'];
       const stages = ['research', 'script', 'scenes', 'prompts', 'images', 'voice', 'animation', 'presenter', 'subtitles', 'render'];
       let cloudCount = 0;
       let localCount = 0;
@@ -3389,6 +3392,7 @@
         if (selRes) {
           selRes.innerHTML = `
             <option value="gemini" selected>Cloud: Google Gemini 3.8 Flash (推薦)</option>
+            <option value="gemini_4_carbon">Cloud: Google Gemini 4 Carbon</option>
             <option value="ollama">Local GPU: Ollama (qwen3:8b)</option>
             <option value="openai_compat">Cloud: OpenAI GPT-4o-mini</option>
           `;
@@ -3506,6 +3510,7 @@
         if (selRes) {
           selRes.innerHTML = `
             <option value="gemini_search" selected>Cloud: Google Gemini (Search Grounding)</option>
+            <option value="gemini_4_carbon">Cloud: Google Gemini 4 Carbon (Search Grounding)</option>
             <option value="ollama">Local: Ollama (qwen3:8b)</option>
             <option value="none">Disabled (Skip Research)</option>
           `;
@@ -13463,6 +13468,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
             <select style="padding:4px 8px; font-size:12px; border-radius:var(--radius-sm); background:var(--bg-canvas); color:var(--text-primary); border:1px solid var(--border-muted);" onchange="updateStudioStageModel('${stKey}', this.value)">
               <option value="ollama" ${currentSm === 'ollama' || !currentSm ? 'selected' : ''}>Local: Ollama (qwen3:8b)</option>
               <option value="gemini" ${currentSm === 'gemini' ? 'selected' : ''}>Cloud: Gemini 3.8 Flash</option>
+              <option value="gemini_4_hydrogen" ${currentSm === 'gemini_4_hydrogen' ? 'selected' : ''}>Cloud: Gemini 4 Hydrogen</option>
               <option value="openai_compat" ${currentSm === 'openai_compat' ? 'selected' : ''}>Cloud: GPT-4o-mini</option>
             </select>
           </div>
@@ -13474,6 +13480,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
               <label style="font-size:12px; font-weight:700; color:var(--text-muted); margin:0;">Storyboard Model:</label>
               <select style="padding:4px 8px; font-size:12px; border-radius:var(--radius-sm); background:var(--bg-canvas); color:var(--text-primary); border:1px solid var(--border-muted);" onchange="updateStudioStageModel('research', this.value)">
                 <option value="gemini" ${currentSm === 'gemini' || !currentSm ? 'selected' : ''}>Cloud: Gemini 3.8 Flash (推薦)</option>
+                <option value="gemini_4_carbon" ${currentSm === 'gemini_4_carbon' ? 'selected' : ''}>Cloud: Gemini 4 Carbon</option>
                 <option value="ollama" ${currentSm === 'ollama' ? 'selected' : ''}>Local: Ollama (qwen3:8b)</option>
                 <option value="openai_compat" ${currentSm === 'openai_compat' ? 'selected' : ''}>Cloud: GPT-4o-mini</option>
               </select>
@@ -13485,6 +13492,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
               <label style="font-size:12px; font-weight:700; color:var(--text-muted); margin:0;">Search:</label>
               <select style="padding:4px 8px; font-size:12px; border-radius:var(--radius-sm); background:var(--bg-canvas); color:var(--text-primary); border:1px solid var(--border-muted);" onchange="updateStudioStageModel('research', this.value)">
                 <option value="gemini_search" ${currentSm === 'gemini_search' || !currentSm ? 'selected' : ''}>Cloud: Gemini Search Grounding</option>
+                <option value="gemini_4_carbon" ${currentSm === 'gemini_4_carbon' ? 'selected' : ''}>Cloud: Gemini 4 Carbon</option>
                 <option value="ollama" ${currentSm === 'ollama' ? 'selected' : ''}>Local: Ollama</option>
                 <option value="none" ${currentSm === 'none' ? 'selected' : ''}>Disabled</option>
               </select>

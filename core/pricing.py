@@ -28,6 +28,10 @@ STAGE_META = {
 PRICING = {
     # LLM pricing per 1M tokens
     "llm": {
+        "gemini-4-carbon": {"input_1m": 2.00, "output_1m": 10.00, "default_req": 0.0080, "is_cloud": True},
+        "gemini_4_carbon": {"input_1m": 2.00, "output_1m": 10.00, "default_req": 0.0080, "is_cloud": True},
+        "gemini-4-hydrogen": {"input_1m": 1.50, "output_1m": 7.50, "default_req": 0.0040, "is_cloud": True},
+        "gemini_4_hydrogen": {"input_1m": 1.50, "output_1m": 7.50, "default_req": 0.0040, "is_cloud": True},
         "gemini-3.8-flash": {"input_1m": 0.075, "output_1m": 0.30, "default_req": 0.0006, "is_cloud": True},
         "gemini-3.5-flash": {"input_1m": 0.075, "output_1m": 0.30, "default_req": 0.0006, "is_cloud": True},
         "gemini-2.5-flash": {"input_1m": 0.075, "output_1m": 0.30, "default_req": 0.0006, "is_cloud": True},
@@ -234,7 +238,12 @@ def calculate_project_costs(project: Any) -> dict[str, Any]:
     res_desc = "Local / Skipped"
     if has_res:
         mode = res_data.get("mode", "")
-        if mode == "gemini_search" or res_model == "gemini_search" or cloud_enabled:
+        if mode == "gemini_4_carbon" or res_model == "gemini_4_carbon":
+            base_cost, _ = estimate_llm_cost("gemini-4-carbon", prompt_tokens=1500, completion_tokens=2000, requests=1)
+            search_grounding = PRICING["search"]["gemini_search"]
+            res_cost = base_cost + search_grounding
+            res_desc = "Gemini 4 Carbon + Google Search Grounding"
+        elif mode == "gemini_search" or res_model == "gemini_search" or cloud_enabled:
             # Gemini search grounding + LLM generation
             base_cost, _ = estimate_llm_cost("gemini-3.8-flash", prompt_tokens=1200, completion_tokens=1500, requests=1)
             search_grounding = PRICING["search"]["gemini_search"]

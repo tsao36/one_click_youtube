@@ -20,6 +20,14 @@ TYPES: dict[str, type[LLMProvider]] = {
 def build_provider(name: str, model: str | None = None, providers_cfg: dict | None = None) -> LLMProvider:
     pcfg = (providers_cfg or load_providers()).get("llm", {}).get("providers", {})
     if name not in pcfg:
+        if name in ("gemini_4_carbon", "gemini-4-carbon"):
+            gem_cfg = dict(pcfg.get("gemini", {"type": "gemini", "api_key_env": "GEMINI_API_KEY"}))
+            gem_cfg["model"] = "gemini-4-carbon"
+            return GeminiProvider(gem_cfg, model or "gemini-4-carbon")
+        elif name in ("gemini_4_hydrogen", "gemini-4-hydrogen"):
+            gem_cfg = dict(pcfg.get("gemini", {"type": "gemini", "api_key_env": "GEMINI_API_KEY"}))
+            gem_cfg["model"] = "gemini-4-hydrogen"
+            return GeminiProvider(gem_cfg, model or "gemini-4-hydrogen")
         raise LLMError(f"LLM provider '{name}' not configured in providers.yaml")
     cfg = pcfg[name]
     cls = TYPES.get(cfg.get("type", name))

@@ -12,6 +12,14 @@ llm:
       type: gemini
       model: gemini-flash-latest
       api_key_env: GEMINI_API_KEY
+    gemini_4_carbon:
+      type: gemini
+      model: gemini-4-carbon
+      api_key_env: GEMINI_API_KEY
+    gemini_4_hydrogen:
+      type: gemini
+      model: gemini-4-hydrogen
+      api_key_env: GEMINI_API_KEY
     openai_compat:
       type: openai_compat
       base_url: https://api.openai.com/v1
