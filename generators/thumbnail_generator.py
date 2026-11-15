@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 import random
-from PIL import Image, ImageChops, ImageDraw, ImageEnhance, ImageFilter, ImageFont
+from PIL import Image, ImageChops, ImageDraw, ImageEnhance, ImageFilter, ImageFont, ImageOps
 
 from core.config import ROOT
 
@@ -542,7 +542,7 @@ def select_random_high_contrast_colors(
 
 def _cover_resize(img: Image.Image, target_w: int = THUMB_W, target_h: int = THUMB_H) -> Image.Image:
     """Resize and center-crop an image to fill (target_w, target_h) without distortion."""
-    img = img.convert("RGB")
+    img = ImageOps.exif_transpose(img).convert("RGB")
     src_w, src_h = img.size
     if src_w == 0 or src_h == 0:
         return Image.new("RGB", (target_w, target_h), (24, 28, 32))
@@ -1570,7 +1570,8 @@ def _render_hiphop_mv_3d(
             )
             canvas.alpha_composite(badge_circle)
 
-            av_img = Image.open(avatar_path).convert("RGBA")
+            with Image.open(avatar_path) as im:
+                av_img = ImageOps.exif_transpose(im).convert("RGBA")
             av_sz = BADGE_RADIUS * 2
             av_img = av_img.resize((av_sz, av_sz), Image.Resampling.LANCZOS)
 
@@ -1948,6 +1949,10 @@ def get_scene_visual_path(project, scene) -> Optional[Path]:
 
 def resolve_background_image(project, bg_source: str = "auto") -> Image.Image:
     """Resolve the background image for the thumbnail from project scenes or custom upload."""
+    def _open_upright(path: Path) -> Image.Image:
+        with Image.open(path) as im:
+            return ImageOps.exif_transpose(im).convert("RGB")
+
     # 1. Explicit custom image path inside project
     if bg_source in ("black", "dark", "matte_black", "studio_dark"):
         return Image.new("RGB", (THUMB_W, THUMB_H), (12, 10, 8))
@@ -1960,39 +1965,39 @@ def resolve_background_image(project, bg_source: str = "auto") -> Image.Image:
                     if s.scene_id == sid:
                         p = get_scene_visual_path(project, s)
                         if p and p.exists():
-                            return Image.open(p).convert("RGB")
+                            return _open_upright(p)
             except Exception:
                 pass
         cand = project.path("output", bg_source)
         if cand.exists():
-            return Image.open(cand).convert("RGB")
+            return _open_upright(cand)
         abs_cand = Path(bg_source)
         if abs_cand.exists():
-            return Image.open(abs_cand).convert("RGB")
+            return _open_upright(abs_cand)
 
     # 2. Custom uploaded background if saved
     custom_bg = project.path("output", "thumbnail_bg_custom.png")
     if bg_source == "custom" and custom_bg.exists():
-        return Image.open(custom_bg).convert("RGB")
+        return _open_upright(custom_bg)
 
     # 3. First available completed scene visual from active scenes
     for s in project.active_scenes():
         p = get_scene_visual_path(project, s)
         if p and p.exists():
-            return Image.open(p).convert("RGB")
+            return _open_upright(p)
 
     # 4. Any scene frame or scene image on disk
     frames_dir = project.path("output", "scene_frames")
     if frames_dir.exists():
         pngs = sorted(frames_dir.glob("scene_*.png"))
         if pngs:
-            return Image.open(pngs[0]).convert("RGB")
+            return _open_upright(pngs[0])
 
     img_dir = project.path("images")
     if img_dir.exists():
         pngs = sorted(img_dir.glob("scene_*.png"))
         if pngs:
-            return Image.open(pngs[0]).convert("RGB")
+            return _open_upright(pngs[0])
 
     # 5. Stylish fallback studio backdrop
     fallback = Image.new("RGB", (THUMB_W, THUMB_H), (28, 34, 42))
@@ -2196,7 +2201,8 @@ def render_sample_thumbnail(
                     pngs = sorted(img_dir.glob("scene_*.png"))
                     if pngs:
                         try:
-                            raw_bg = Image.open(pngs[0]).convert("RGB")
+                            with Image.open(pngs[0]) as im:
+                                raw_bg = ImageOps.exif_transpose(im).convert("RGB")
                             break
                         except Exception:
                             pass

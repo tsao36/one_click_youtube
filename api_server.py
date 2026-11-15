@@ -5836,16 +5836,59 @@ def render_custom_project_thumbnail(project_id: str, req: ThumbnailRenderRequest
 
 @app.post("/api/projects/{project_id}/thumbnail/upload-bg")
 async def upload_project_thumbnail_bg(project_id: str, file: UploadFile = File(...)):
-    from PIL import Image
-    import io
     p = get_project(project_id)
     raw = await file.read()
     out_dir = p.path("output")
     out_dir.mkdir(parents=True, exist_ok=True)
     bg_path = out_dir / "thumbnail_bg_custom.png"
-    with Image.open(io.BytesIO(raw)) as im:
-        im.convert("RGB").save(bg_path, format="PNG")
-    return {"status": "ok", "bg_source": "custom"}
+
+    from core.image_utils import detect_image_orientation, adjust_image_orientation
+    from generators.thumbnail_generator import THUMB_W, THUMB_H
+
+    # Determine orientation and dimensions from uploaded image
+    detected = detect_image_orientation(raw)
+    detected_ratio = detected["aspect_ratio"]  # "9:16" or "16:9"
+    orientation = detected["orientation"]      # "portrait" or "landscape"
+    is_portrait = detected["is_portrait"]
+
+    # Target YouTube thumbnail resolution (16:9 1280x720)
+    target_w = int(p.data.settings.get("thumbnail_width") or THUMB_W)
+    target_h = int(p.data.settings.get("thumbnail_height") or THUMB_H)
+
+    # Apply the same orientation fix mechanism:
+    # 1. Automatically transposes smartphone/camera EXIF rotation tags (upright)
+    # 2. If image is 9:16 portrait, allow_blur_backdrop=True generates an aesthetic blurred
+    #    backdrop and centers the sharp upright photo to fit the 16:9 thumbnail canvas cleanly.
+    # 3. If image is 16:9 landscape, crops/resizes proportionally without distortion.
+    adjust_image_orientation(
+        raw,
+        output_path=bg_path,
+        target_aspect_ratio="16:9",
+        target_w=target_w,
+        target_h=target_h,
+        allow_blur_backdrop=True,
+    )
+
+    # Record custom background metadata in thumbnail settings
+    cfg = dict(p.data.settings.get("thumbnail_config") or {})
+    cfg["bg_source"] = "custom"
+    cfg["custom_bg_orientation"] = orientation
+    cfg["custom_bg_aspect_ratio"] = detected_ratio
+    p.data.settings["thumbnail_config"] = cfg
+    p.save()
+
+    return {
+        "status": "ok",
+        "bg_source": "custom",
+        "filename": file.filename,
+        "detected_aspect_ratio": detected_ratio,
+        "orientation": orientation,
+        "is_portrait": is_portrait,
+        "original_width": detected["width"],
+        "original_height": detected["height"],
+        "width": target_w,
+        "height": target_h,
+    }
 
 
 

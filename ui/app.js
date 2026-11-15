@@ -18221,10 +18221,10 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       const fd = new FormData();
       fd.append('file', inputEl.files[0]);
       try {
-        await apiRequest(`/api/projects/${currentProjectId}/thumbnail/upload-bg`, {
+        const data = await apiJson(`/api/projects/${currentProjectId}/thumbnail/upload-bg`, {
           method: 'POST',
           body: fd,
-        })
+        });
 
         const bgSel = document.getElementById('ts-bg-source');
         if (![...bgSel.options].some(o => o.value === 'custom')) {
@@ -18235,6 +18235,9 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
         }
         bgSel.value = 'custom';
         await renderCustomThumbnail(false);
+        if (data && data.detected_aspect_ratio) {
+          showToast(`✓ 已自動偵測縮圖比例為 ${data.detected_aspect_ratio} (${data.orientation})，方向已自動適配！`);
+        }
       } catch (e) {
         statusEl.textContent = '上傳失敗: ' + e.message;
       }

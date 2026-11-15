@@ -151,3 +151,96 @@ def test_api_upload_scene_image_auto_orientation(tmp_path, monkeypatch):
     assert sc.image.meta["orientation"] == "portrait"
     assert sc.image.meta["width"] == 1080
     assert sc.image.meta["height"] == 1920
+
+
+def test_api_upload_thumbnail_bg_portrait_auto_orientation(tmp_path, monkeypatch):
+    """Test that uploading a 9:16 portrait image as thumbnail background applies orientation fix."""
+    from core.project_manager import Project
+    monkeypatch.setattr("core.project_manager.PROJECTS_DIR", tmp_path)
+    monkeypatch.setattr("api_server.PROJECTS_DIR", tmp_path)
+
+    proj = Project.create(topic="Thumbnail Orientation Test")
+    client = TestClient(app)
+
+    portrait_bytes = _create_test_image(1080, 1920, color=(50, 120, 200))
+    files = {"file": ("my_phone_portrait.png", portrait_bytes, "image/png")}
+    res = client.post(f"/api/projects/{proj.id}/thumbnail/upload-bg", files=files)
+    assert res.status_code == 200
+    data = res.json()
+    assert data["status"] == "ok"
+    assert data["bg_source"] == "custom"
+    assert data["detected_aspect_ratio"] == "9:16"
+    assert data["orientation"] == "portrait"
+    assert data["is_portrait"] is True
+    assert data["width"] == 1280
+    assert data["height"] == 720
+
+    # Verify custom background file was created and adapted to 1280x720 with blurred backdrop
+    custom_bg = proj.path("output", "thumbnail_bg_custom.png")
+    assert custom_bg.exists()
+    with Image.open(custom_bg) as im:
+        assert im.size == (1280, 720)
+
+    # Verify thumbnail_config in settings
+    proj_reload = Project(proj.id)
+    thumb_cfg = proj_reload.data.settings.get("thumbnail_config", {})
+    assert thumb_cfg.get("bg_source") == "custom"
+    assert thumb_cfg.get("custom_bg_orientation") == "portrait"
+    assert thumb_cfg.get("custom_bg_aspect_ratio") == "9:16"
+
+
+def test_api_upload_thumbnail_bg_landscape_auto_orientation(tmp_path, monkeypatch):
+    """Test that uploading a 16:9 landscape image as thumbnail background formats to 1280x720."""
+    from core.project_manager import Project
+    monkeypatch.setattr("core.project_manager.PROJECTS_DIR", tmp_path)
+    monkeypatch.setattr("api_server.PROJECTS_DIR", tmp_path)
+
+    proj = Project.create(topic="Thumbnail Landscape Test")
+    client = TestClient(app)
+
+    landscape_bytes = _create_test_image(1920, 1080, color=(100, 200, 50))
+    files = {"file": ("my_landscape.png", landscape_bytes, "image/png")}
+    res = client.post(f"/api/projects/{proj.id}/thumbnail/upload-bg", files=files)
+    assert res.status_code == 200
+    data = res.json()
+    assert data["status"] == "ok"
+    assert data["bg_source"] == "custom"
+    assert data["detected_aspect_ratio"] == "16:9"
+    assert data["orientation"] == "landscape"
+    assert data["is_portrait"] is False
+
+    custom_bg = proj.path("output", "thumbnail_bg_custom.png")
+    assert custom_bg.exists()
+    with Image.open(custom_bg) as im:
+        assert im.size == (1280, 720)
+
+
+def test_api_upload_thumbnail_bg_exif_transpose(tmp_path, monkeypatch):
+    """Test that EXIF rotation tag (e.g. tag 274: 6) on camera photos is corrected automatically."""
+    from core.project_manager import Project
+    monkeypatch.setattr("core.project_manager.PROJECTS_DIR", tmp_path)
+    monkeypatch.setattr("api_server.PROJECTS_DIR", tmp_path)
+
+    proj = Project.create(topic="Thumbnail EXIF Test")
+    client = TestClient(app)
+
+    # Raw dimensions 1920x1080 with EXIF orientation 6 (transposes to 1080x1920 portrait)
+    im = Image.new("RGB", (1920, 1080), color=(180, 80, 220))
+    exif = im.getexif()
+    exif[0x0112] = 6
+    buf = io.BytesIO()
+    im.save(buf, format="JPEG", exif=exif)
+    exif_bytes = buf.getvalue()
+
+    files = {"file": ("camera_shot_exif6.jpg", exif_bytes, "image/jpeg")}
+    res = client.post(f"/api/projects/{proj.id}/thumbnail/upload-bg", files=files)
+    assert res.status_code == 200
+    data = res.json()
+    assert data["status"] == "ok"
+    assert data["detected_aspect_ratio"] == "9:16"
+    assert data["orientation"] == "portrait"
+
+    custom_bg = proj.path("output", "thumbnail_bg_custom.png")
+    assert custom_bg.exists()
+    with Image.open(custom_bg) as im_out:
+        assert im_out.size == (1280, 720)
