@@ -1480,6 +1480,7 @@ class YouTubeMusicImportRequest(BaseModel):
     url: str
     name: Optional[str] = None
     category: Optional[str] = "custom"
+    max_duration_seconds: Optional[int] = 1200
 
 
 @app.post("/api/music/youtube-info")
@@ -1508,7 +1509,8 @@ async def import_youtube_ambient_track(req: YouTubeMusicImportRequest):
             ym.download_and_convert_youtube_track,
             url=req.url,
             track_name=req.name,
-            category=req.category or "custom"
+            category=req.category or "custom",
+            max_duration_seconds=req.max_duration_seconds or 1200,
         )
         return {"status": "success", "track": entry}
     except Exception as e:

@@ -57,6 +57,27 @@ def _refresh_env_path_from_registry() -> list[str]:
     return paths
 
 
+def find_js_runtime_args() -> list[str]:
+    """Find available JavaScript runtime (node, deno, bun) for yt-dlp to solve YouTube n-challenge."""
+    for rt in ("node", "deno", "bun"):
+        found = shutil.which(rt)
+        if found:
+            return ["--js-runtimes", rt]
+
+    prog_files = os.environ.get("ProgramFiles", r"C:\Program Files")
+    node_std = Path(prog_files) / "nodejs" / "node.exe"
+    if node_std.is_file():
+        return ["--js-runtimes", f"node:{node_std.resolve()}"]
+
+    local_app = os.environ.get("LOCALAPPDATA", "")
+    if local_app:
+        matches = list(Path(local_app).glob("Programs/**/node.exe"))
+        if matches:
+            return ["--js-runtimes", f"node:{matches[0].resolve()}"]
+
+    return []
+
+
 def find_yt_dlp_binary() -> str:
     """Locate yt-dlp executable via PATH, registry, or standard WinGet package locations."""
     # 1. Existing PATH
@@ -186,10 +207,56 @@ def get_youtube_video_info(url: str) -> dict[str, Any]:
     """Fetch video metadata (title, duration, webpage_url) without downloading the media."""
     tools = ensure_media_tools_in_path()
     yt_bin = tools["yt_dlp"]
+    js_args = find_js_runtime_args()
 
-    cmd = [
+    # Fast print first: title and duration via --print is 5-10x faster and lighter than --dump-single-json
+    fast_cmd = [
         yt_bin,
+        *js_args,
         "--no-playlist",
+        "--force-overwrites",
+        "--no-warnings",
+        "--socket-timeout", "10",
+        "--print", "%(title)s###%(duration)s###%(uploader)s",
+        url.strip(),
+    ]
+    try:
+        proc = subprocess.run(
+            fast_cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            stdin=subprocess.DEVNULL,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            creationflags=_NO_WINDOW,
+            timeout=15,
+            check=True,
+        )
+        parts = proc.stdout.strip().split("###")
+        title = parts[0].strip() if parts and parts[0].strip() else "YouTube Ambient Track"
+        duration = 0.0
+        if len(parts) > 1 and parts[1].strip().replace(".", "", 1).isdigit():
+            duration = float(parts[1].strip())
+        uploader = parts[2].strip() if len(parts) > 2 else ""
+        return {
+            "title": title,
+            "duration": duration,
+            "uploader": uploader,
+            "description": "",
+            "webpage_url": url.strip(),
+        }
+    except Exception as e:
+        log.warning("yt-dlp fast print metadata query failed: %s; trying --dump-single-json fallback", e)
+
+    # Fallback to single json if --print was unsupported or incomplete
+    dump_cmd = [
+        yt_bin,
+        *js_args,
+        "--no-playlist",
+        "--force-overwrites",
+        "--no-warnings",
+        "--socket-timeout", "15",
         "--dump-single-json",
         "--skip-download",
         url.strip(),
@@ -197,14 +264,15 @@ def get_youtube_video_info(url: str) -> dict[str, Any]:
 
     try:
         proc = subprocess.run(
-            cmd,
+            dump_cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
+            stdin=subprocess.DEVNULL,
             text=True,
             encoding="utf-8",
             errors="replace",
             creationflags=_NO_WINDOW,
-            timeout=25,
+            timeout=20,
             check=True,
         )
         data = json.loads(proc.stdout)
@@ -215,46 +283,15 @@ def get_youtube_video_info(url: str) -> dict[str, Any]:
             "description": (data.get("description") or "")[:200],
             "webpage_url": data.get("webpage_url") or url.strip(),
         }
-    except Exception as e:
-        log.warning("yt-dlp json metadata query failed: %s; trying fast print fallback", e)
-        # Fast print fallback
-        try:
-            fb_cmd = [
-                yt_bin,
-                "--no-playlist",
-                "--print", "%(title)s###%(duration)s",
-                url.strip(),
-            ]
-            fb_proc = subprocess.run(
-                fb_cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                creationflags=_NO_WINDOW,
-                timeout=20,
-                check=True,
-            )
-            parts = fb_proc.stdout.strip().split("###")
-            title = parts[0].strip() if parts and parts[0].strip() else "YouTube Ambient Track"
-            duration = float(parts[1].strip()) if len(parts) > 1 and parts[1].strip().replace(".", "").isdigit() else 0.0
-            return {
-                "title": title,
-                "duration": duration,
-                "uploader": "",
-                "description": "",
-                "webpage_url": url.strip(),
-            }
-        except Exception as e2:
-            log.error("Fast print fallback also failed: %s", e2)
-            return {
-                "title": "YouTube Ambient Track",
-                "duration": 0.0,
-                "uploader": "",
-                "description": "",
-                "webpage_url": url.strip(),
-            }
+    except Exception as e2:
+        log.error("yt-dlp metadata query fallback also failed: %s", e2)
+        return {
+            "title": "YouTube Ambient Track",
+            "duration": 0.0,
+            "uploader": "",
+            "description": "",
+            "webpage_url": url.strip(),
+        }
 
 
 def sanitize_filename(name: str, max_length: int = 100) -> str:
@@ -272,6 +309,7 @@ def download_and_convert_youtube_track(
     url: str,
     track_name: Optional[str] = None,
     category: Optional[str] = "custom",
+    max_duration_seconds: Optional[int] = 1200,
 ) -> dict[str, Any]:
     """Download audio from YouTube and convert to MP3 for the Ambient Music Library.
     
@@ -280,6 +318,7 @@ def download_and_convert_youtube_track(
         track_name: User-defined recognizable track name (e.g. 'Chill Lo-Fi Study Vibe').
                     If omitted or empty, automatically derived from the YouTube video title.
         category: Music style category (e.g. 'calm_focus', 'tech_futuristic', 'custom', 'ambient').
+        max_duration_seconds: Maximum audio duration to download before sectioning (default: 20 min).
     
     Returns:
         dict representing the registered track entry with id, name, filename, url, etc.
@@ -291,12 +330,17 @@ def download_and_convert_youtube_track(
     tools = ensure_media_tools_in_path()
     yt_bin = tools["yt_dlp"]
     ff_dir = tools["ffmpeg_dir"]
+    js_args = find_js_runtime_args()
 
     # 1. Resolve track name and metadata
     user_name = (track_name or "").strip()
-    video_info = get_youtube_video_info(clean_url)
-    display_name = user_name if user_name else video_info.get("title", "YouTube Ambient Track")
-    approx_duration = float(video_info.get("duration", 0.0))
+    approx_duration = 0.0
+    if user_name:
+        display_name = user_name
+    else:
+        video_info = get_youtube_video_info(clean_url)
+        display_name = video_info.get("title", "YouTube Ambient Track")
+        approx_duration = float(video_info.get("duration", 0.0))
 
     # 2. Determine target category
     from generators.music import CATEGORY_KEYWORDS, sync_catalog
@@ -334,20 +378,33 @@ def download_and_convert_youtube_track(
     # 5. Execute yt-dlp audio extraction and FFmpeg MP3 conversion
     cmd = [
         yt_bin,
+        *js_args,
         "--no-playlist",
+        "--force-overwrites",
+        "--no-warnings",
+        "--socket-timeout", "15",
+        "--retries", "3",
+        "--fragment-retries", "3",
+        "-f", "bestaudio[ext=m4a]/bestaudio[ext=webm]/bestaudio/best",
         "-x",
         "--audio-format", "mp3",
         "--audio-quality", "0",  # Highest VBR / 320kbps MP3
         "--ffmpeg-location", ff_dir,
-        "-o", out_template,
-        clean_url,
     ]
+
+    # Sectioning safeguard for excessive length ambient videos (> 20 minutes)
+    if approx_duration > (max_duration_seconds or 1200):
+        log.info("Ambient video is very long (%.1fs); downloading first 15-minute loop section", approx_duration)
+        cmd.extend(["--download-sections", "*00:00:00-00:15:00"])
+
+    cmd.extend(["-o", out_template, clean_url])
 
     log.info("Executing yt-dlp audio download: %s", " ".join(cmd))
     res = subprocess.run(
         cmd,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
+        stdin=subprocess.DEVNULL,
         text=True,
         encoding="utf-8",
         errors="replace",
@@ -413,12 +470,25 @@ def download_and_convert_youtube_track(
         "basename": target_file.name,
         "size_mb": size_mb,
         "duration": round(duration, 1),
+        "duration_sec": round(duration, 1),
+        "instrumental": True,
+        "vocals": False,
+        "loop_friendly": True,
+        "is_voiceover_ready": True,
         "mood": "Ambient (YouTube)",
         "description": f"Imported from YouTube: {clean_url}",
         "source": "youtube",
         "source_url": clean_url,
         "tags": [target_cat, "youtube", "ambient", "custom"],
         "url": f"/api/music/audio/{rel_path}",
+        "license": {
+            "license_type": "YouTube Audio Content",
+            "name": "YouTube Ambient Ingestion",
+            "attribution_required": False,
+            "source": "YouTube",
+            "source_url": clean_url,
+            "commercial_use_allowed": True,
+        },
     }
 
     # 8. Persist into data/music/catalog.json

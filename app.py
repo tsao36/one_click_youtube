@@ -6,6 +6,7 @@ import sys
 import webbrowser
 from pathlib import Path
 
+from core.config import ROOT
 from core.hardware import detect_system
 from core.logging_setup import log, setup_logging
 from core.pipeline import get_pipeline
@@ -86,7 +87,40 @@ def main():
         if not args.no_browser:
             import threading
             threading.Timer(1.5, lambda: webbrowser.open(url)).start()
-        uvicorn.run("api_server:app", host="127.0.0.1", port=args.port, reload=True, log_level="info")
+        watch_dirs = [
+            str(ROOT / "core"),
+            str(ROOT / "generators"),
+            str(ROOT / "api_routes"),
+            str(ROOT / "providers"),
+            str(ROOT / "rendering"),
+            str(ROOT / "ui"),
+        ]
+        exclude_patterns = [
+            "projects/*",
+            "data/*",
+            "logs/*",
+            "cache/*",
+            "temp/*",
+            "tmp/*",
+            "*.mp3",
+            "*.mp4",
+            "*.wav",
+            "*.png",
+            "*.jpg",
+            "*.webm",
+            "*.json",
+            ".venv*",
+            "node_modules*",
+        ]
+        uvicorn.run(
+            "api_server:app",
+            host="127.0.0.1",
+            port=args.port,
+            reload=True,
+            reload_dirs=watch_dirs,
+            reload_excludes=exclude_patterns,
+            log_level="info",
+        )
 
 
 if __name__ == "__main__":

@@ -8347,12 +8347,32 @@
         btn.innerHTML = '<span style="display:inline-block;width:14px;height:14px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite;margin-right:6px;"></span> <span>⏳ 正在下載音訊並轉檔 MP3...</span>';
       }
       if (statusEl) {
-        statusEl.innerHTML = '<span style="color:#f87171;font-weight:600;">⚡ 正在啟動本機 yt-dlp 擷取音訊流，並調用 Gyan FFmpeg 轉碼為 320k 高音質 MP3，請稍候 (依長度約需數秒至半分鐘)...</span>';
+        statusEl.innerHTML = '<span style="color:#38bdf8;font-weight:600;"><span style="display:inline-block;width:12px;height:12px;border:2px solid #38bdf8;border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite;margin-right:6px;"></span>⚡ 正在啟動本機 yt-dlp 擷取音訊流，並調用 Gyan FFmpeg 轉碼為 320k 高音質 MP3 (0s)...</span>';
       }
+
+      let elapsedSec = 0;
+      const progressTimer = setInterval(() => {
+        elapsedSec++;
+        if (statusEl) {
+          if (elapsedSec < 6) {
+            statusEl.innerHTML = `<span style="color:#38bdf8;font-weight:600;"><span style="display:inline-block;width:12px;height:12px;border:2px solid #38bdf8;border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite;margin-right:6px;"></span>⚡ 正在啟動本機 yt-dlp 解析 YouTube 音訊流 (${elapsedSec}s)...</span>`;
+          } else if (elapsedSec < 18) {
+            statusEl.innerHTML = `<span style="color:#38bdf8;font-weight:600;"><span style="display:inline-block;width:12px;height:12px;border:2px solid #38bdf8;border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite;margin-right:6px;"></span>🎵 正在下載音訊並透過 Gyan FFmpeg 轉碼為 320k MP3 (${elapsedSec}s)...</span>`;
+          } else {
+            statusEl.innerHTML = `<span style="color:#f59e0b;font-weight:600;"><span style="display:inline-block;width:12px;height:12px;border:2px solid #f59e0b;border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite;margin-right:6px;"></span>⏳ 音訊檔案較大或長度較長，正在持續下載與轉檔中，請稍候 (${elapsedSec}s)...</span>`;
+          }
+        }
+      }, 1000);
+
+      const abortCtrl = new AbortController();
+      const abortTimer = setTimeout(() => {
+        abortCtrl.abort();
+      }, 150000);
 
       try {
         const resp = await apiJson('/api/music/youtube-import', {
           method: 'POST',
+          signal: abortCtrl.signal,
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             url: url,
@@ -8360,6 +8380,9 @@
             category: category
           })
         });
+
+        clearInterval(progressTimer);
+        clearTimeout(abortTimer);
 
         const track = resp.track || {};
         const trackTitle = track.name || name || 'YouTube Ambient Track';
@@ -8395,14 +8418,21 @@
         }
 
       } catch (err) {
+        clearInterval(progressTimer);
+        clearTimeout(abortTimer);
         console.error('YouTube music conversion error:', err);
+        const errMsg = err.name === 'AbortError' 
+          ? '連線或轉檔逾時 (超過 150 秒)，請檢查網路或 YouTube 影片是否過長。' 
+          : (err.message || '未知錯誤，請檢查連結或網路狀態');
         if (statusEl) {
-          statusEl.innerHTML = `<span style="color:#f87171;font-weight:700;">❌ 轉換失敗：${err.message || '未知錯誤，請檢查連結或網路狀態'}</span>`;
+          statusEl.innerHTML = `<span style="color:#f87171;font-weight:700;">❌ 轉換失敗：${errMsg}</span>`;
         }
         if (typeof showToast === 'function') {
-          showToast(`❌ YouTube 音訊轉換失敗: ${err.message}`, 4000);
+          showToast(`❌ YouTube 音訊轉換失敗: ${errMsg}`, 4000);
         }
       } finally {
+        clearInterval(progressTimer);
+        clearTimeout(abortTimer);
         if (btn) {
           btn.disabled = false;
           btn.style.opacity = '1';
