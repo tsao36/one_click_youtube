@@ -17,13 +17,13 @@ def test_minimalist_cinema_style_definition():
     style = STYLES.get("minimalist_cinema")
     assert style is not None
     font, size, primary, outline_col, outline, shadow, align, mv, bold, bs, spacing = style
-    assert size == 42
+    assert size == 55
     assert primary == "&H00FFFFFF"
     assert outline_col == "&H00000000"
-    assert outline == 2.0
-    assert shadow == 1.5
+    assert outline == 2.2
+    assert shadow == 1.8
     assert align == 2
-    assert 65 <= mv <= 75  # 70px bottom margin
+    assert 70 <= mv <= 75  # 72px bottom margin
     assert bs == 1  # BorderStyle 1 = outline + drop shadow, NO box
 
 

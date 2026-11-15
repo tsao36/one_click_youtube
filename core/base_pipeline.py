@@ -1766,6 +1766,8 @@ class BasePipeline:
         motion_graphics_callouts: Optional[bool] = None,
         subtitle_style: Optional[str] = None,
         subtitle_font: Optional[str] = None,
+        font_size: Optional[int] = None,
+        font_size_scale: Optional[float] = None,
         remotion_theme: Optional[str] = None,
     ) -> None:
         """Update scene message overlay style & configuration, regenerate subtitles/callouts, and re-render the final 1080p video."""
@@ -1788,6 +1790,10 @@ class BasePipeline:
                 sub_s["style"] = str(subtitle_style).strip()
             if subtitle_font is not None and str(subtitle_font).strip():
                 sub_s["font"] = str(subtitle_font).strip()
+            if font_size is not None:
+                sub_s["font_size"] = int(font_size)
+            if font_size_scale is not None:
+                sub_s["font_size_scale"] = float(font_size_scale)
             if remotion_theme is not None and str(remotion_theme).strip():
                 rem = self.p.data.settings.setdefault("remotion", {})
                 rem["theme"] = str(remotion_theme).strip()
@@ -2134,6 +2140,8 @@ class BasePipeline:
             font_override=sub_cfg.get("font"),
             ai_watermark=bool(sub_cfg.get("ai_watermark", watermark_default)),
             callout_style=sub_callout_style,
+            font_size=sub_cfg.get("font_size"),
+            font_size_scale=sub_cfg.get("font_size_scale"),
         )
         elapsed = round(max(0.1, time.perf_counter() - t0), 1)
         callouts_info = f" with {len(callouts)} motion graphic cards" if callouts else " (motion callouts disabled)"

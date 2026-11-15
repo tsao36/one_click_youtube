@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🎬 Pilot Scene Visual Review (+30% Subtitle Text Size)</title>
+  <style>
+    :root {
+      --bg: #090d16;
+      --card-bg: #0f172a;
+      --border: #1e293b;
+      --accent: #38bdf8;
+      --accent-orange: #f97316;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Microsoft JhengHei UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .container {
+      max-width: 1200px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .header {
+      background: linear-gradient(135deg, rgba(14, 165, 233, 0.15) 0%, rgba(15, 23, 42, 0.8) 100%);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 12px;
+      padding: 20px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .badge-pill {
+      background: rgba(56, 189, 248, 0.2);
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 20px;
+    }
+    .badge-orange {
+      background: rgba(249, 115, 22, 0.2);
+      border: 1px solid var(--accent-orange);
+      color: #fb923c;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 20px;
+    }
+    .controls-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 18px;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .btn-group {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    button {
+      background: #1e293b;
+      color: #cbd5e1;
+      border: 1px solid #334155;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    button:hover {
+      background: #334155;
+      color: #fff;
+    }
+    button.active {
+      background: var(--accent);
+      color: #04101e;
+      border-color: var(--accent);
+      font-weight: 700;
+    }
+    .viewport-wrapper {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #030712;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      overflow: hidden;
+      min-height: 540px;
+      transition: all 0.3s ease;
+    }
+    .video-frame-container {
+      position: relative;
+      width: 100%;
+      max-width: 1080px;
+      aspect-ratio: 16 / 9;
+      background: #000;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+      transition: all 0.3s ease;
+    }
+    .video-frame-container.viewport-mobile {
+      max-width: 390px;
+      aspect-ratio: 16 / 9;
+      border: 4px solid #334155;
+      border-radius: 14px;
+    }
+    .video-frame-container.viewport-tablet {
+      max-width: 720px;
+      aspect-ratio: 16 / 9;
+      border: 3px solid #334155;
+    }
+    video {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: cover;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+    }
+    .stat-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+    }
+    .stat-title {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+    .stat-value {
+      font-size: 20px;
+      font-weight: 800;
+      color: #fff;
+    }
+    .stat-sub {
+      font-size: 12px;
+      color: #38bdf8;
+      margin-top: 4px;
+    }
+    .comparison-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 768px) {
+      .comparison-grid { grid-template-columns: 1fr; }
+    }
+    .comp-box {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .comp-header {
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(255,255,255,0.03);
+      border-bottom: 1px solid var(--border);
+      font-weight: 700;
+      font-size: 13px;
+    }
+    .comp-img {
+      width: 100%;
+      display: block;
+      aspect-ratio: 16 / 9;
+      object-fit: cover;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <div>
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:4px;">
+          <h1 style="font-size:22px; font-weight:800; color:#fff;">🎬 Pilot Scene Visual Review</h1>
+          <span class="badge-pill">+30% Text Size Upgrade</span>
+          <span class="badge-orange">🔥 Corner Metric Active</span>
+        </div>
+        <p style="font-size:13px; color:var(--text-muted);">
+          <b>Scene #1:</b> 蘇美文明瀝青起源 · <code>"走在剛鋪好的平整柏油路上，你可能很難想像，"</code> (1080p · 30fps · VoAI 悅青)
+        </p>
+      </div>
+      <div style="display:flex; gap:10px;">
+        <a href="pilot_scene_55pt.mp4" download="pilot_scene_55pt.mp4" style="text-decoration:none;">
+          <button style="background:linear-gradient(135deg, #0284c7, #0369a1); color:#fff; border-color:#38bdf8;">📥 下載 55pt MP4</button>
+        </a>
+      </div>
+    </div>
+
+    <!-- Controls Bar -->
+    <div class="controls-bar">
+      <div class="btn-group">
+        <span style="font-size:12px; font-weight:700; color:var(--text-muted); margin-right:4px;">字體版本:</span>
+        <button id="btn-ver-55" class="active" onclick="switchVersion('55pt')">🌟 55pt (加大 +30% · 建議觀看)</button>
+        <button id="btn-ver-42" onclick="switchVersion('42pt')">📏 42pt (原版基準對照)</button>
+      </div>
+
+      <div class="btn-group">
+        <span style="font-size:12px; font-weight:700; color:var(--text-muted); margin-right:4px;">模擬視角:</span>
+        <button id="btn-vp-full" class="active" onclick="setViewport('full')">🖥️ 1080p 全螢幕 / 桌面</button>
+        <button id="btn-vp-tablet" onclick="setViewport('tablet')">💻 平板 (Tablet)</button>
+        <button id="btn-vp-mobile" onclick="setViewport('mobile')">📱 手機直式縮放 (Mobile)</button>
+      </div>
+    </div>
+
+    <!-- Viewport / Video Player -->
+    <div class="viewport-wrapper">
+      <div id="video-box" class="video-frame-container">
+        <video id="pilot-video" controls autoplay loop playsinline>
+          <source id="video-src" src="pilot_scene_55pt.mp4" type="video/mp4">
+          您的瀏覽器不支援 HTML5 影片播放。
+        </video>
+      </div>
+    </div>
+
+    <!-- Metric Specs -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-title">Subtitle Font Size</div>
+        <div class="stat-value" id="disp-size">55 pt <span style="font-size:14px; color:#4ade80;">(+30.95%)</span></div>
+        <div class="stat-sub">原先基準值為 42pt，升級後文字高度增加 30%</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-title">Backdrop Padding (Outline)</div>
+        <div class="stat-value">10.0 px</div>
+        <div class="stat-sub">半透明黑灰底框外擴間距隨文字等比放寬，不擁擠</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-title">Bottom Margin (MarginV)</div>
+        <div class="stat-value">56 px</div>
+        <div class="stat-sub">底部適當留白，零遮擋虛擬主播、人物下巴與進度條</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-title">Callout Card Coordination</div>
+        <div class="stat-value" style="color:#fb923c;">🔥 Corner Metric</div>
+        <div class="stat-sub">左上數據卡維持 72pt/32pt 視覺錨點，與底部字幕無衝突</div>
+      </div>
+    </div>
+
+    <!-- Still Frame Side-by-Side Comparison -->
+    <div style="margin-top:10px;">
+      <h2 style="font-size:16px; font-weight:700; margin-bottom:12px; color:#e2e8f0;">🔍 靜態畫面對照 (Side-by-Side Frame Comparison)</h2>
+      <div class="comparison-grid">
+        <div class="comp-box">
+          <div class="comp-header">
+            <span style="color:#38bdf8;">🌟 加大版：55pt (+30% Subtitle Size)</span>
+            <span style="font-size:11px; color:#4ade80; font-weight:600;">清晰好閱讀 · 手機端推薦</span>
+          </div>
+          <img src="pilot_scene_55pt_frame.png" class="comp-img" alt="55pt Subtitle Pilot Frame">
+        </div>
+        <div class="comp-box">
+          <div class="comp-header">
+            <span style="color:#94a3b8;">📏 原版：42pt (Original Baseline)</span>
+            <span style="font-size:11px; color:#94a3b8;">字體偏細 · 小螢幕需費力辨識</span>
+          </div>
+          <img src="pilot_scene_42pt_frame.png" class="comp-img" alt="42pt Subtitle Pilot Frame">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentVersion = '55pt';
+    const video = document.getElementById('pilot-video');
+    const videoSrc = document.getElementById('video-src');
+    const videoBox = document.getElementById('video-box');
+    const dispSize = document.getElementById('disp-size');
+
+    function switchVersion(ver) {
+      currentVersion = ver;
+      document.getElementById('btn-ver-55').classList.toggle('active', ver === '55pt');
+      document.getElementById('btn-ver-42').classList.toggle('active', ver === '42pt');
+
+      const curTime = video.currentTime;
+      videoSrc.src = `pilot_scene_${ver}.mp4`;
+      video.load();
+      video.currentTime = curTime;
+      video.play().catch(() => {});
+
+      if (ver === '55pt') {
+        dispSize.innerHTML = '55 pt <span style="font-size:14px; color:#4ade80;">(+30.95%)</span>';
+      } else {
+        dispSize.innerHTML = '42 pt <span style="font-size:14px; color:#94a3b8;">(Baseline)</span>';
+      }
+    }
+
+    function setViewport(vp) {
+      document.getElementById('btn-vp-full').classList.toggle('active', vp === 'full');
+      document.getElementById('btn-vp-tablet').classList.toggle('active', vp === 'tablet');
+      document.getElementById('btn-vp-mobile').classList.toggle('active', vp === 'mobile');
+
+      videoBox.className = 'video-frame-container';
+      if (vp === 'mobile') videoBox.classList.add('viewport-mobile');
+      else if (vp === 'tablet') videoBox.classList.add('viewport-tablet');
+    }
+  </script>
+</body>
+</html>

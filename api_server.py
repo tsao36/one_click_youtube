@@ -213,7 +213,8 @@ class ProjectSubtitleSettingsRequest(BaseModel):
     style: Optional[str] = None
     font: Optional[str] = None
     callout_style: Optional[str] = None
-    motion_graphics_callouts: Optional[bool] = None
+    font_size: Optional[int] = None
+    font_size_scale: Optional[float] = None
 
 
 class YouTubeUploadRequest(BaseModel):
@@ -3606,6 +3607,10 @@ def update_project_subtitle_settings(project_id: str, req: ProjectSubtitleSettin
         sub_s["font"] = req.font
     if req.callout_style is not None:
         sub_s["callout_style"] = req.callout_style
+    if req.font_size is not None:
+        sub_s["font_size"] = req.font_size
+    if req.font_size_scale is not None:
+        sub_s["font_size_scale"] = req.font_size_scale
     p.save()
     p.set_stage("subtitles", Status.PENDING)
     p.invalidate("render")
@@ -4631,6 +4636,8 @@ class RerenderOverlayAndVideoRequest(BaseModel):
     motion_graphics_callouts: Optional[bool] = None
     subtitle_style: Optional[str] = None
     subtitle_font: Optional[str] = None
+    font_size: Optional[int] = None
+    font_size_scale: Optional[float] = None
     remotion_theme: Optional[str] = None
 
 
@@ -4651,6 +4658,8 @@ def rerender_overlay_and_video_endpoint(
             motion_graphics_callouts=req.motion_graphics_callouts,
             subtitle_style=req.subtitle_style,
             subtitle_font=req.subtitle_font,
+            font_size=req.font_size,
+            font_size_scale=req.font_size_scale,
             remotion_theme=req.remotion_theme,
         )
 

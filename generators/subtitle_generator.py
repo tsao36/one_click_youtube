@@ -15,14 +15,15 @@ STYLES = {
     # name: (font, size, primary, outline_color, outline, shadow, alignment, margin_v, bold, border_style, spacing)
     # BorderStyle = 3 creates an opaque background drop (backdrop) box around the text:
     # outline_color is box fill (&HAABBGGRR), outline is box padding/extension, shadow is box drop shadow
-    "youtube_standard": ("Microsoft JhengHei UI", 42, "&H00FFFFFF", "&H35453E32", 9.5, 2.2, 2, 52, 1, 3, 1.2),
-    "minimalist_cinema": ("Microsoft JhengHei UI", 42, "&H00FFFFFF", "&H00000000", 2.0, 1.5, 2, 70, 1, 1, 1.2),
-    "opaque_backdrop": ("Microsoft JhengHei UI", 42, "&H00FFFFFF", "&H35453E32", 9.5, 2.2, 2, 52, 1, 3, 1.2),
-    "coordinate_zero": ("Microsoft JhengHei UI", 42, "&H00FFFFFF", "&H35453E32", 9.5, 2.2, 2, 52, 1, 3, 1.2),
-    "cinematic_documentary": ("Microsoft JhengHei UI", 44, "&H00F0F3F7", "&H35453E32", 8.5, 2.0, 2, 56, 1, 3, 1.2),
-    "minimal": ("Microsoft JhengHei UI", 44, "&H00F0F0F0", "&H50000000", 1.5, 1.2, 2, 55, 1, 1, 1.0),
-    "large_centered": ("Microsoft JhengHei UI", 76, "&H00FFFFFF", "&H000A0D14", 3.8, 2.5, 5, 0, 1, 1, 1.2),
-    "short_form": ("Microsoft JhengHei UI", 86, "&H0000F5FF", "&H00000000", 4.5, 2.8, 5, 0, 1, 1, 1.0),
+    # Text sizes upgraded (+30%): standard 42 -> 55, documentary 44 -> 57, centered 76 -> 99, short 86 -> 112
+    "youtube_standard": ("Microsoft JhengHei UI", 55, "&H00FFFFFF", "&H35453E32", 10.0, 2.2, 2, 56, 1, 3, 1.2),
+    "minimalist_cinema": ("Microsoft JhengHei UI", 55, "&H00FFFFFF", "&H00000000", 2.2, 1.8, 2, 72, 1, 1, 1.2),
+    "opaque_backdrop": ("Microsoft JhengHei UI", 55, "&H00FFFFFF", "&H35453E32", 10.0, 2.2, 2, 56, 1, 3, 1.2),
+    "coordinate_zero": ("Microsoft JhengHei UI", 55, "&H00FFFFFF", "&H35453E32", 10.0, 2.2, 2, 56, 1, 3, 1.2),
+    "cinematic_documentary": ("Microsoft JhengHei UI", 57, "&H00F0F3F7", "&H35453E32", 9.0, 2.0, 2, 58, 1, 3, 1.2),
+    "minimal": ("Microsoft JhengHei UI", 57, "&H00F0F0F0", "&H50000000", 1.8, 1.2, 2, 58, 1, 1, 1.0),
+    "large_centered": ("Microsoft JhengHei UI", 99, "&H00FFFFFF", "&H000A0D14", 4.2, 2.5, 5, 0, 1, 1, 1.2),
+    "short_form": ("Microsoft JhengHei UI", 112, "&H0000F5FF", "&H00000000", 5.0, 3.0, 5, 0, 1, 1, 1.0),
 }
 
 
@@ -268,7 +269,13 @@ def write_ass(
     style_vals = STYLES.get(style, STYLES["youtube_standard"])
     default_font = style_vals[0]
     font = font_override.strip() if (font_override and font_override.strip()) else resolve_caption_font(default_font)
-    size = style_vals[1]
+    size = kwargs.get("font_size") or style_vals[1]
+    scale_factor = kwargs.get("font_size_scale")
+    if scale_factor:
+        try:
+            size = max(12, round(size * float(scale_factor)))
+        except (ValueError, TypeError):
+            pass
     prim = style_vals[2]
     outc = style_vals[3]
     outline = style_vals[4]

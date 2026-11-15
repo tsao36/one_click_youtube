@@ -59,6 +59,7 @@ subtitles:
   burn_in: true
   style: youtube_standard
   font: Microsoft JhengHei UI
+  font_size: 55
   motion_graphics_callouts: true
   callouts_enabled: true
   callout_style: neutral_centered
