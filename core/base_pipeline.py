@@ -1288,6 +1288,18 @@ class BasePipeline:
 
                     needs_subtitle_refresh = True
 
+                    if getattr(sc, "is_presenter", False) or sc.visual_type in ("talking_head", "talking_actor"):
+                        sc.animation.status = Status.PENDING
+                        if sc.animation.meta is None:
+                            sc.animation.meta = {}
+                        sc.animation.meta["audio_outdated"] = True
+                        try:
+                            self.p.path("animation", f"{sc.tag}.mp4").unlink(missing_ok=True)
+                        except Exception:
+                            pass
+                        self.p.set_stage("presenter", Status.PENDING)
+                        self.p.set_stage("animation", Status.PENDING)
+
                 else:
 
                     sc.voice_profile = target
@@ -1297,6 +1309,18 @@ class BasePipeline:
                     sc.audio.error = None
 
                     mismatched_scenes.append(sc)
+
+                    if getattr(sc, "is_presenter", False) or sc.visual_type in ("talking_head", "talking_actor"):
+                        sc.animation.status = Status.PENDING
+                        if sc.animation.meta is None:
+                            sc.animation.meta = {}
+                        sc.animation.meta["audio_outdated"] = True
+                        try:
+                            self.p.path("animation", f"{sc.tag}.mp4").unlink(missing_ok=True)
+                        except Exception:
+                            pass
+                        self.p.set_stage("presenter", Status.PENDING)
+                        self.p.set_stage("animation", Status.PENDING)
 
 
 

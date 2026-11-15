@@ -125,6 +125,10 @@ def save_avatar(
         img_out.write_bytes(image_bytes)
         # Normalize and optimize image to 1080p, automatically correcting EXIF orientation from smartphones
         try:
+            from core.image_utils import detect_image_orientation
+            det = detect_image_orientation(img_out)
+            prof["detected_aspect_ratio"] = det["aspect_ratio"]
+            prof["orientation"] = det["orientation"]
             with Image.open(img_out) as im:
                 im = ImageOps.exif_transpose(im)
                 rgb = im.convert("RGB")
@@ -828,8 +832,10 @@ def generate_talking_avatar(
         hedra_key = get_secret("HEDRA_API_KEY") or get_secret("HEDRA_KEY")
         if hedra_key:
             try:
+                from core.image_utils import detect_image_orientation
                 from generators.hedra_client import generate_hedra_character_video
-                return generate_hedra_character_video(portrait_path, audio_path, output_mp4, hedra_key)
+                det_ratio = detect_image_orientation(portrait_path)["aspect_ratio"]
+                return generate_hedra_character_video(portrait_path, audio_path, output_mp4, hedra_key, aspect_ratio=det_ratio)
             except Exception as he:
                 if strict:
                     raise

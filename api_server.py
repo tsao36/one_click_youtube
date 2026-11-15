@@ -2189,6 +2189,7 @@ def update_stage_data_endpoint(project_id: str, stage_name: str, payload: dict[s
             existing_scenes_map = {s.scene_id: s for s in p.scenes}
             modified_text_scenes = []
             incoming_scenes = []
+            has_avatar_narr_change = False
             for raw_s in payload["scenes"]:
                 sc = Scene(**raw_s)
                 old_sc = existing_scenes_map.get(sc.scene_id)
@@ -2201,6 +2202,18 @@ def update_stage_data_endpoint(project_id: str, stage_name: str, payload: dict[s
                         sc.audio.meta = {}
                     sc.audio.meta["text_outdated"] = True
                     sc.audio.meta["previous_narration"] = old_sc.narration
+
+                    # If this is an avatar presenter scene, invalidate presenter animation so it re-syncs
+                    if getattr(sc, "is_presenter", False) or sc.visual_type in ("talking_head", "talking_actor"):
+                        sc.animation.status = Status.PENDING
+                        if sc.animation.meta is None:
+                            sc.animation.meta = {}
+                        sc.animation.meta["audio_outdated"] = True
+                        try:
+                            p.path("animation", f"{sc.tag}.mp4").unlink(missing_ok=True)
+                        except Exception:
+                            pass
+                        has_avatar_narr_change = True
                 incoming_scenes.append(sc)
             p.set_scenes(incoming_scenes)
             if stage_name == "scenes":
@@ -2211,6 +2224,11 @@ def update_stage_data_endpoint(project_id: str, stage_name: str, payload: dict[s
                     p.set_stage("voice", Status.PENDING)
                     p.set_stage("subtitles", Status.PENDING)
                     p.set_stage("render", Status.PENDING)
+                    if has_avatar_narr_change:
+                        p.invalidate("presenter")
+                        p.invalidate("animation")
+                        p.set_stage("presenter", Status.PENDING)
+                        p.set_stage("animation", Status.PENDING)
             elif stage_name == "prompts":
                 p.invalidate("images")
         if stage_name == "animation":
@@ -3896,19 +3914,22 @@ async def upload_scene_image_endpoint(
         with open(tmp_upload, "wb") as f:
             f.write(content_bytes)
 
-        # Determine target resolution based on project mode / aspect ratio
+        # Determine target resolution based on detected image orientation (9:16 vs 16:9)
+        from core.image_utils import detect_image_orientation, adjust_image_orientation
+        detected = detect_image_orientation(tmp_upload)
+        detected_ratio = detected["aspect_ratio"]  # "9:16" or "16:9"
+        orientation = detected["orientation"]      # "portrait" or "landscape"
+        is_portrait = detected["is_portrait"]
+
         cfg = p.settings or {}
         img_cfg = cfg.get("images", {})
-        video_cfg = cfg.get("video", {})
-        aspect_ratio = video_cfg.get("aspect_ratio") or cfg.get("aspect_ratio")
-        is_portrait = (aspect_ratio == "9:16") or (p.data.settings.get("mode") == "short_drama")
 
         if is_portrait:
-            target_w = int(img_cfg.get("width") or 1080)
-            target_h = int(img_cfg.get("height") or 1920)
+            target_w = int(img_cfg.get("width_portrait") or 1080)
+            target_h = int(img_cfg.get("height_portrait") or 1920)
         else:
-            target_w = int(img_cfg.get("width") or 1920)
-            target_h = int(img_cfg.get("height") or 1080)
+            target_w = int(img_cfg.get("width_landscape") or 1920)
+            target_h = int(img_cfg.get("height_landscape") or 1080)
 
         img_path = p.path("images", f"{s.tag}.png")
 
@@ -3918,8 +3939,15 @@ async def upload_scene_image_endpoint(
         except Exception as ex:
             log.debug("ensure_initial_image_take note: %s", ex)
 
-        # Format and center-crop uploaded image to fit standard video aspect ratio
-        format_stock_image(tmp_upload, img_path, target_w=target_w, target_h=target_h)
+        # Format and auto-adjust image orientation
+        adjust_image_orientation(
+            tmp_upload,
+            output_path=img_path,
+            target_aspect_ratio=detected_ratio,
+            target_w=target_w,
+            target_h=target_h,
+            allow_blur_backdrop=True,
+        )
 
         existing_img_meta = dict(s.image.meta or {})
         prev_img_takes = list(existing_img_meta.get("takes", []))
@@ -3936,6 +3964,13 @@ async def upload_scene_image_endpoint(
             "is_stock": False,
             "is_manual_upload": True,
             "takes": prev_img_takes,
+            "detected_aspect_ratio": detected_ratio,
+            "aspect_ratio": detected_ratio,
+            "orientation": orientation,
+            "original_width": detected["width"],
+            "original_height": detected["height"],
+            "width": target_w,
+            "height": target_h,
         })
 
         s.image.status = Status.COMPLETED
@@ -3973,6 +4008,8 @@ async def upload_scene_image_endpoint(
             "status": "uploaded",
             "image_url": f"/media/{project_id}/{s.image.path}",
             "filename": file.filename,
+            "detected_aspect_ratio": detected_ratio,
+            "orientation": orientation,
             "scene": s.model_dump(mode="json"),
         }
     except Exception as e:
@@ -3984,6 +4021,26 @@ async def upload_scene_image_endpoint(
                 tmp_upload.unlink()
             except Exception:
                 pass
+
+
+@app.post("/api/images/detect_orientation")
+async def detect_image_orientation_endpoint(file: UploadFile = File(...)):
+    """Detect whether an uploaded image is 9:16 (portrait) or 16:9 (landscape) and return orientation info."""
+    from core.image_utils import detect_image_orientation
+    content = await file.read()
+    det = detect_image_orientation(content)
+    return {
+        "status": "ok",
+        "filename": file.filename,
+        "aspect_ratio": det["aspect_ratio"],
+        "orientation": det["orientation"],
+        "width": det["width"],
+        "height": det["height"],
+        "ratio": det["ratio"],
+        "is_portrait": det["is_portrait"],
+        "is_landscape": det["is_landscape"],
+        "recommended_target": det["recommended_target"],
+    }
 
 
 @app.post("/api/projects/{project_id}/scenes/{scene_id}/regenerate_voice")

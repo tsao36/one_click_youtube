@@ -63,9 +63,26 @@ def render_ken_burns(image: Path, output: Path, seconds: float, motion: str, wid
     frames = max(2, math.ceil(seconds * fps) + 1)
     ow, oh = width * oversample, height * oversample
     z, x, y = zoompan_expr(motion, frames, zoom)
-    vf = (f"scale={ow}:{oh}:force_original_aspect_ratio=increase:flags=lanczos,crop={ow}:{oh},"
-          f"zoompan=z='{z}':x='{x}':y='{y}':d={frames}:s={width}x{height}:fps={fps},"
-          f"setsar=1,format=yuv420p")
+    
+    # Detect if image is 9:16 or 16:9 and adjust orientation framing automatically
+    is_mismatched = False
+    try:
+        from core.image_utils import detect_image_orientation
+        det = detect_image_orientation(image)
+        is_mismatched = (det["is_portrait"] != (height > width))
+    except Exception:
+        is_mismatched = False
+
+    if is_mismatched:
+        vf = (f"split[fg][bg];[bg]scale={ow}:{oh}:force_original_aspect_ratio=increase,crop={ow}:{oh},gblur=sigma=30[bg_blur];"
+              f"[fg]scale={ow}:{oh}:force_original_aspect_ratio=decrease[fg_scaled];"
+              f"[bg_blur][fg_scaled]overlay=(W-w)/2:(H-h)/2,"
+              f"zoompan=z='{z}':x='{x}':y='{y}':d={frames}:s={width}x{height}:fps={fps},"
+              f"setsar=1,format=yuv420p")
+    else:
+        vf = (f"scale={ow}:{oh}:force_original_aspect_ratio=increase:flags=lanczos,crop={ow}:{oh},"
+              f"zoompan=z='{z}':x='{x}':y='{y}':d={frames}:s={width}x{height}:fps={fps},"
+              f"setsar=1,format=yuv420p")
     enc = encoder_args or ["-c:v", "libx264", "-preset", "veryfast", "-crf", "17", "-threads", "4", "-pix_fmt", "yuv420p"]
     output.parent.mkdir(parents=True, exist_ok=True)
     run_ffmpeg(["-threads", "4", "-filter_threads", "4", "-i", str(image), "-vf", vf, "-frames:v", str(frames), "-r", str(fps), *enc, "-an", str(output)])

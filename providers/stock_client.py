@@ -487,28 +487,29 @@ def download_media_file(media_url: str, target_path: Path) -> Path:
     return target_path
 
 
-def format_stock_image(input_path: Path, output_path: Path, target_w: int = 1920, target_h: int = 1080) -> Path:
-    """Center-crop and resize an image to 16:9 widescreen format (1920x1080 or 1024x576)."""
-    with Image.open(input_path) as im:
-        im = im.convert("RGB")
-        w, h = im.size
-        target_aspect = target_w / target_h
-        current_aspect = w / h
+def format_stock_image(
+    input_path: Path,
+    output_path: Path,
+    target_w: int = 1920,
+    target_h: int = 1080,
+    auto_detect_orientation: bool = True,
+) -> Path:
+    """Detect if image is 9:16 or 16:9 and adjust the orientation automatically.
 
-        if current_aspect > target_aspect:
-            # Too wide: crop sides
-            new_w = int(h * target_aspect)
-            left = (w - new_w) // 2
-            im = im.crop((left, 0, left + new_w, h))
-        else:
-            # Too tall: crop top/bottom
-            new_h = int(w / target_aspect)
-            top = (h - new_h) // 2
-            im = im.crop((0, top, w, top + new_h))
+    Corrects EXIF camera orientation, detects 9:16 vertical portrait vs 16:9 widescreen,
+    and adjusts dimensions and framing to prevent image content clipping.
+    """
+    from core.image_utils import adjust_image_orientation
 
-        im = im.resize((target_w, target_h), Image.Resampling.LANCZOS)
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        im.save(output_path, "PNG", quality=95)
+    target_aspect = "auto" if auto_detect_orientation else ("9:16" if target_h > target_w else "16:9")
+    adjust_image_orientation(
+        input_image=input_path,
+        output_path=output_path,
+        target_aspect_ratio=target_aspect,
+        target_w=target_w,
+        target_h=target_h,
+        allow_blur_backdrop=True,
+    )
     return output_path
 
 

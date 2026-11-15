@@ -704,6 +704,7 @@ def apply_stage3_import(
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     modified_scene_ids: list[int] = []
     updated_scene_objs: list[Scene] = []
+    avatar_narr_changed = False
 
     for raw_imp in imported_scenes:
         sid = raw_imp.get("scene_id")
@@ -761,6 +762,18 @@ def apply_stage3_import(
                         sc.audio.meta = {}
                     sc.audio.meta["text_outdated"] = True
                     sc.audio.meta["previous_narration"] = old_narration
+
+                    # If this is an avatar presenter scene, invalidate presenter animation so it re-syncs
+                    if getattr(sc, "is_presenter", False) or sc.visual_type in ("talking_head", "talking_actor"):
+                        sc.animation.status = Status.PENDING
+                        if sc.animation.meta is None:
+                            sc.animation.meta = {}
+                        sc.animation.meta["audio_outdated"] = True
+                        try:
+                            project.path("animation", f"{sc.tag}.mp4").unlink(missing_ok=True)
+                        except Exception:
+                            pass
+                        avatar_narr_changed = True
             else:
                 # If unchanged, retain or clear existing diff marker
                 if sc.meta and "import_diff" in sc.meta:
@@ -795,6 +808,11 @@ def apply_stage3_import(
             project.set_stage("voice", Status.PENDING)
             project.set_stage("subtitles", Status.PENDING)
             project.set_stage("render", Status.PENDING)
+            if avatar_narr_changed:
+                project.invalidate("presenter")
+                project.invalidate("animation")
+                project.set_stage("presenter", Status.PENDING)
+                project.set_stage("animation", Status.PENDING)
         project.save()
 
     return {

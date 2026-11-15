@@ -288,3 +288,112 @@ def test_api_file_upload_and_stage_data_diff_reflection():
         assert resp_imp.json()["modified_count"] == 1
 
 
+def test_presenter_scene_invalidation_on_narration_change():
+    from core.models import Status, Asset
+    from core.stage3_importer import apply_stage3_import
+
+    p = MagicMock()
+    p.id = "proj_presenter_test"
+    p.path = MagicMock(return_value=MagicMock())
+
+    # Presenter scene with completed animation
+    sc1 = Scene(
+        scene_id=1,
+        section="Intro",
+        narration="原本主講人的開場白",
+        is_presenter=True,
+        visual_type="talking_head",
+        animation=Asset(status=Status.COMPLETED, path="animation/scene_001.mp4", meta={"provider": "fal_avatar"}),
+        audio=Asset(status=Status.COMPLETED, path="audio/scene_001.wav")
+    )
+    # B-roll scene with completed animation
+    sc2 = Scene(
+        scene_id=2,
+        section="Core",
+        narration="原本第二幕B-roll說明",
+        is_presenter=False,
+        visual_type="image",
+        animation=Asset(status=Status.COMPLETED, path="animation/scene_002.mp4"),
+        audio=Asset(status=Status.COMPLETED, path="audio/scene_002.wav")
+    )
+    p.scenes = [sc1, sc2]
+
+    # Import modified narration for presenter scene 1
+    imported = [
+        {"scene_id": 1, "narration": "修改後的全新主講人開場白，長度更精簡。"},
+        {"scene_id": 2, "narration": "原本第二幕B-roll說明"},
+    ]
+
+    res = apply_stage3_import(p, imported)
+    assert res["status"] == "ok"
+    assert res["modified_count"] == 1
+
+    # Check updated scenes passed to p.set_scenes
+    call_args = p.set_scenes.call_args[0][0]
+    updated_sc1 = call_args[0]
+    updated_sc2 = call_args[1]
+
+    # Presenter scene audio AND animation should both be invalidated to PENDING
+    assert updated_sc1.audio.status == Status.PENDING
+    assert updated_sc1.audio.meta.get("text_outdated") is True
+    assert updated_sc1.animation.status == Status.PENDING
+    assert updated_sc1.animation.meta.get("audio_outdated") is True
+
+    # B-roll scene animation should remain completed because only its voice was unchanged
+    assert updated_sc2.animation.status == Status.COMPLETED
+
+    # Check stages invalidated
+    p.invalidate.assert_any_call("presenter")
+    p.invalidate.assert_any_call("animation")
+    p.set_stage.assert_any_call("presenter", Status.PENDING)
+    p.set_stage.assert_any_call("animation", Status.PENDING)
+
+
+def test_ffmpeg_clip_key_invalidates_on_avatar_audio_change(tmp_path):
+    import time
+    from core.models import Status, Asset
+    from rendering.transitions import Slot
+    from rendering.ffmpeg_renderer import _clip_key
+
+    p = MagicMock()
+    p.settings = {"animation": {}, "presenter_placement": "corner"}
+    p.is_avatar_enabled = MagicMock(return_value=True)
+
+    aud_file = tmp_path / "scene_001.wav"
+    aud_file.write_bytes(b"RIFF" + b"\x00" * 100)
+
+    anim_file = tmp_path / "scene_001.mp4"
+    anim_file.write_bytes(b"ftyp" + b"\x00" * 100)
+
+    def mock_abs(path_str):
+        if "audio" in path_str:
+            return aud_file
+        if "animation" in path_str:
+            return anim_file
+        return None
+
+    p.abs = mock_abs
+    p.path = lambda *args: tmp_path / "/".join(args)
+
+    sc = Scene(
+        scene_id=1,
+        narration="測試講者台詞",
+        is_presenter=True,
+        visual_type="talking_head",
+        audio=Asset(status=Status.COMPLETED, path="audio/scene_001.wav"),
+        animation=Asset(status=Status.COMPLETED, path="animation/scene_001.mp4"),
+    )
+    slot = Slot(scene_id=1, start=0.0, length=5.0, audio_start=0.0, audio_length=5.0, transition="fade", trans_dur=0.0)
+
+    # Initial clip key
+    key1 = _clip_key(sc, slot, 1920, 1080, 30, p)
+
+    # Simulate updated audio file (newer mtime)
+    time.sleep(0.01)
+    aud_file.write_bytes(b"RIFF" + b"\x00" * 200)
+
+    key2 = _clip_key(sc, slot, 1920, 1080, 30, p)
+    # The key must change because the audio for the talking avatar changed
+    assert key1 != key2
+
+

@@ -2394,18 +2394,22 @@ class DocumentaryPipeline(BasePipeline):
                     continue
 
                 anim_file = self.p.abs(ps.animation.path) if (ps.animation and ps.animation.path) else None
-                if ps.animation.status == Status.COMPLETED and anim_file and anim_file.exists():
+                anim_meta = ps.animation.meta or {}
+                if ps.animation.status == Status.COMPLETED and anim_file and anim_file.exists() and not anim_meta.get("audio_outdated"):
                     try:
                         from rendering.ffmpeg_utils import duration as get_dur
+                        from core.base_pipeline import narration_fingerprint
                         a_dur = float(get_dur(audio_file))
                         v_dur = float(get_dur(anim_file))
                         a_mtime = os.path.getmtime(audio_file)
                         v_mtime = anim_file.stat().st_mtime
-                        if v_dur >= a_dur - 0.25 and v_mtime >= a_mtime:
+                        curr_hash = narration_fingerprint(ps.narration)
+                        meta_hash = anim_meta.get("narration_hash")
+                        if v_dur >= a_dur - 0.25 and v_mtime >= a_mtime and (not meta_hash or meta_hash == curr_hash):
                             continue
-                        log.info("Presenter scene %d avatar clip outdated (v_dur=%.2fs vs a_dur=%.2fs); re-rendering", ps.scene_id, v_dur, a_dur)
+                        log.info("Presenter scene %d avatar clip outdated (v_dur=%.2fs vs a_dur=%.2fs, hash_match=%s); re-rendering", ps.scene_id, v_dur, a_dur, meta_hash == curr_hash)
                     except Exception:
-                        continue
+                        pass
 
                 av_prof = load_avatar(getattr(ps, "avatar_profile", None) or (self.p.data.settings or {}).get("default_avatar"))
                 if not av_prof or (not av_prof.get("has_image") and not av_prof.get("has_base_video")):
@@ -2419,6 +2423,12 @@ class DocumentaryPipeline(BasePipeline):
                     t_av0 = time.perf_counter()
                     meta = generate_talking_avatar(Path(audio_file), av_prof, Path(out_clip))
                     av_dur = round(max(0.1, time.perf_counter() - t_av0), 1)
+
+                    from core.base_pipeline import narration_fingerprint
+                    if meta is None:
+                        meta = {}
+                    meta["narration_hash"] = narration_fingerprint(ps.narration)
+                    meta.pop("audio_outdated", None)
 
                     ps.animation.status = Status.COMPLETED
                     ps.animation.path = self.p.rel(out_clip)

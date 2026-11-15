@@ -230,15 +230,33 @@ async def upload_remotion_reference(project_id: str, file: UploadFile = File(...
         raise HTTPException(status_code=413, detail="Image exceeds the 20 MB limit")
     target.write_bytes(content)
     width = height = None
+    detected_ratio = "16:9"
+    orientation = "landscape"
     try:
-        from PIL import Image
-        with Image.open(BytesIO(content)) as image:
-            width, height = image.size
+        from core.image_utils import detect_image_orientation
+        det = detect_image_orientation(content)
+        width, height = det["width"], det["height"]
+        detected_ratio = det["aspect_ratio"]
+        orientation = det["orientation"]
     except Exception:
         pass
-    entry = {"id": image_id, "filename": file.filename or target.name, "kind": kind if kind in ("context", "template") else "context", "content_type": file.content_type, "size_bytes": len(content), "width": width, "height": height, "path": str(target.relative_to(PROJECTS_DIR / project_id)).replace("\\", "/"), "url": f"/api/projects/{project_id}/remotion/references/{image_id}"}
+    entry = {
+        "id": image_id,
+        "filename": file.filename or target.name,
+        "kind": kind if kind in ("context", "template") else "context",
+        "content_type": file.content_type,
+        "size_bytes": len(content),
+        "width": width,
+        "height": height,
+        "detected_aspect_ratio": detected_ratio,
+        "orientation": orientation,
+        "path": str(target.relative_to(PROJECTS_DIR / project_id)).replace("\\", "/"),
+        "url": f"/api/projects/{project_id}/remotion/references/{image_id}",
+    }
     remotion = project.data.settings.setdefault("remotion", {})
     remotion.setdefault("reference_images", []).append(entry)
+    if not remotion.get("aspect_ratio"):
+        remotion["aspect_ratio"] = detected_ratio
     project.save()
     return entry
 

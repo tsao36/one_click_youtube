@@ -227,6 +227,10 @@ def save_character(
         img_out = d / "portrait.png"
         img_out.write_bytes(image_bytes)
         try:
+            from core.image_utils import detect_image_orientation
+            det = detect_image_orientation(img_out)
+            prof["detected_aspect_ratio"] = det["aspect_ratio"]
+            prof["orientation"] = det["orientation"]
             with Image.open(img_out) as im:
                 im = ImageOps.exif_transpose(im)
                 rgb = im.convert("RGB")

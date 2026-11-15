@@ -3640,11 +3640,26 @@
     function previewCharUploadImage(input) {
       const previewBox = document.getElementById('char-form-preview-box');
       if (!input.files || !input.files[0] || !previewBox) return;
+      const file = input.files[0];
+      const img = new Image();
+      const objUrl = URL.createObjectURL(file);
+      img.onload = function() {
+        URL.revokeObjectURL(objUrl);
+        const isPortrait = img.naturalHeight > img.naturalWidth;
+        const detRatio = isPortrait ? '9:16' : '16:9';
+        const dramaAspect = document.getElementById('drama-aspect-ratio');
+        if (dramaAspect && dramaAspect.value !== detRatio) {
+          dramaAspect.value = detRatio;
+          showToast(`✓ 已自動偵測圖片為 ${detRatio} (${isPortrait ? '直式' : '橫式'})，已為您自動切換畫面比例！`);
+        }
+      };
+      img.src = objUrl;
+
       const reader = new FileReader();
       reader.onload = function(e) {
         previewBox.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;">`;
       };
-      reader.readAsDataURL(input.files[0]);
+      reader.readAsDataURL(file);
     }
 
     async function generateAiPortraitForForm() {
@@ -15238,11 +15253,15 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
           openTakesGalleryModal(sceneId);
         }
 
+        const ratioInfo = (data && data.detected_aspect_ratio) ? ` [${data.detected_aspect_ratio} ${data.orientation || ''}]` : '';
         const toast = document.getElementById(`studio-scene-toast-${sceneId}`) || document.getElementById(`insp-scene-toast-${sceneId}`);
         if (toast) {
-          toast.textContent = `✓ Scene #${sceneId} Image "${file.name}" Uploaded!`;
+          toast.textContent = `✓ Scene #${sceneId} Image "${file.name}"${ratioInfo} Uploaded!`;
           toast.style.display = 'block';
           setTimeout(() => { if (toast) toast.style.display = 'none'; }, 4000);
+        }
+        if (data && data.detected_aspect_ratio) {
+          showToast(`✓ 已自動偵測圖片比例為 ${data.detected_aspect_ratio} (${data.orientation})，方向已自動適配！`);
         }
       } catch (err) {
         alert("Image upload failed: " + err.message);
@@ -19715,7 +19734,14 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       for (const file of Array.from(files || [])) {
         const body = new FormData(); body.append('file', file);
         const kind = document.getElementById('remotion-reference-kind')?.value || 'context';
-        await apiJson(`/api/projects/${currentProjectId}/remotion/references?kind=${encodeURIComponent(kind)}`, { method: 'POST', body });
+        const res = await apiJson(`/api/projects/${currentProjectId}/remotion/references?kind=${encodeURIComponent(kind)}`, { method: 'POST', body });
+        if (res && res.detected_aspect_ratio) {
+          const ratioSel = document.getElementById('remotion-project-ratio');
+          if (ratioSel) {
+            ratioSel.value = res.detected_aspect_ratio;
+            showToast(`✓ 已自動偵測圖片比例為 ${res.detected_aspect_ratio} (${res.orientation})，已自動切換 Remotion 輸出比例！`);
+          }
+        }
       }
       await loadRemotionWorkspace();
     }

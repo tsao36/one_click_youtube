@@ -124,6 +124,13 @@ def _clip_key(sc: Scene, slot: Slot, w: int, h: int, fps: int, project: Project,
     anim_chk = project.abs(sc.animation.path) if sc.animation.status == Status.COMPLETED else None
     if img_chk and img_chk.exists() and anim_chk and anim_chk.exists() and img_chk.stat().st_mtime > anim_chk.stat().st_mtime:
         parts.append(f"image_override_newer:{img_chk.stat().st_mtime_ns}")
+    # Invalidate avatar cache if audio was updated after the avatar animation clip
+    if is_avatar:
+        aud_chk = project.abs(sc.audio.path) if (sc.audio and sc.audio.status == Status.COMPLETED) else project.path("audio", f"{sc.tag}.wav")
+        if aud_chk and aud_chk.exists():
+            parts.append(f"audio:{aud_chk}:{aud_chk.stat().st_mtime_ns}")
+            if anim_chk and anim_chk.exists() and aud_chk.stat().st_mtime > anim_chk.stat().st_mtime:
+                parts.append(f"audio_override_newer:{aud_chk.stat().st_mtime_ns}")
     if sc.visual_type == "title":
         parts.append(sc.visual_description or project.data.title or project.data.topic)
     return hashlib.md5("|".join(parts).encode()).hexdigest()[:10]
