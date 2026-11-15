@@ -185,8 +185,11 @@ def validate_music_plan(segments: list[Any], total_duration: float, min_score: f
     if total_duration > 0 and not segments:
         errors.append("no_music_segments")
     for i, seg in enumerate(segments):
-        if not Path(seg.track).exists():
+        trk = Path(seg.track)
+        if not trk.exists():
             errors.append(f"missing_track:{seg.name}")
+        elif trk.is_file() and trk.stat().st_size < 1000:
+            errors.append(f"empty_track:{seg.name}")
         if seg.end_time <= seg.start_time:
             errors.append(f"invalid_range:{i}")
         if getattr(seg, "confidence", 1.0) < min_score:
