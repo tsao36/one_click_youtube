@@ -23,6 +23,11 @@ def ffmpeg_bin() -> str:
     found = shutil.which("ffmpeg")
     if found:
         return found
+    try:
+        from generators.youtube_music import find_ffmpeg_binary
+        return find_ffmpeg_binary()
+    except Exception:
+        pass
     raise FFmpegError("FFmpeg not found. Run .\\setup.ps1 (downloads a portable build to tools\\ffmpeg).")
 
 

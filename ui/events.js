@@ -320,6 +320,7 @@
     "on_ro_callout_style_change": function(event) { onRoCalloutStyleChange() },
     "on_ro_motion_callouts_change": function(event) { onRoMotionCalloutsChange() },
     "copy_real_dir_path": function(event) { copyRealDirPath() },
+    "convert_youtube_music": function(event) { convertYouTubeToAmbientTrack() },
   };
   const eventNames = ["click","change","input","keydown","submit"];
   for (const eventName of eventNames) {

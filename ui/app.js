@@ -8230,6 +8230,137 @@
       }
     }
 
+    // ==========================================
+    // YouTube to Ambient Music (yt-dlp + Gyan FFmpeg)
+    // ==========================================
+    async function onYouTubeMusicUrlChanged(url) {
+      const nameInput = document.getElementById('yt-music-name');
+      const statusEl = document.getElementById('yt-music-status');
+      if (!url || !url.trim() || !nameInput || nameInput.value.trim()) return;
+
+      const cleanUrl = url.trim();
+      if (cleanUrl.includes('youtube.com/') || cleanUrl.includes('youtu.be/')) {
+        try {
+          if (statusEl) {
+            statusEl.innerHTML = '<span style="color:#60a5fa;">🔍 正在透過本機 yt-dlp 預先讀取影片標題資訊...</span>';
+          }
+          const info = await apiJson('/api/music/youtube-info', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: cleanUrl })
+          });
+          if (info && info.title && !nameInput.value.trim()) {
+            nameInput.placeholder = `自動採用標題: ${info.title}`;
+            if (statusEl) {
+              const durSec = info.duration ? ` • ⏱️ ${Math.floor(info.duration / 60)}分${Math.round(info.duration % 60)}秒` : '';
+              statusEl.innerHTML = `<span style="color:#94a3b8;">📺 偵測到影片：<b style="color:#cbd5e1;">${info.title}</b>${durSec}</span>`;
+            }
+          }
+        } catch (e) {
+          if (statusEl) statusEl.textContent = '';
+        }
+      }
+    }
+    window.onYouTubeMusicUrlChanged = onYouTubeMusicUrlChanged;
+
+    async function convertYouTubeToAmbientTrack() {
+      const urlInput = document.getElementById('yt-music-url');
+      const nameInput = document.getElementById('yt-music-name');
+      const catSelect = document.getElementById('yt-music-category');
+      const statusEl = document.getElementById('yt-music-status');
+      const btn = document.getElementById('btn-convert-yt-music');
+
+      const url = urlInput ? urlInput.value.trim() : '';
+      const name = nameInput ? nameInput.value.trim() : '';
+      const category = catSelect ? catSelect.value : 'auto';
+
+      if (!url) {
+        if (statusEl) {
+          statusEl.innerHTML = '<span style="color:#f87171;font-weight:700;">⚠️ 請輸入 YouTube 影片或音訊連結。</span>';
+        }
+        if (urlInput) urlInput.focus();
+        return;
+      }
+
+      if (!url.includes('youtube.com/') && !url.includes('youtu.be/')) {
+        if (statusEl) {
+          statusEl.innerHTML = '<span style="color:#f87171;font-weight:700;">⚠️ 請提供有效的 YouTube 連結 (例如 https://www.youtube.com/watch?v=...)。</span>';
+        }
+        return;
+      }
+
+      const origBtnHtml = btn ? btn.innerHTML : '';
+      if (btn) {
+        btn.disabled = true;
+        btn.style.opacity = '0.7';
+        btn.innerHTML = '<span style="display:inline-block;width:14px;height:14px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite;margin-right:6px;"></span> <span>⏳ 正在下載音訊並轉檔 MP3...</span>';
+      }
+      if (statusEl) {
+        statusEl.innerHTML = '<span style="color:#f87171;font-weight:600;">⚡ 正在啟動本機 yt-dlp 擷取音訊流，並調用 Gyan FFmpeg 轉碼為 320k 高音質 MP3，請稍候 (依長度約需數秒至半分鐘)...</span>';
+      }
+
+      try {
+        const resp = await apiJson('/api/music/youtube-import', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            url: url,
+            name: name,
+            category: category
+          })
+        });
+
+        const track = resp.track || {};
+        const trackTitle = track.name || name || 'YouTube Ambient Track';
+
+        if (statusEl) {
+          statusEl.innerHTML = `<span style="color:#34d399;font-weight:700;">✅ 成功轉換並納入音樂庫！音軌名稱：「${trackTitle}」(${track.size_mb || 0} MB • ${track.duration || 0}s)</span>`;
+        }
+        if (typeof showToast === 'function') {
+          showToast(`✓ YouTube 配樂「${trackTitle}」已轉檔為 MP3 並納入環境音效庫！`);
+        }
+
+        // Reset inputs
+        if (urlInput) urlInput.value = '';
+        if (nameInput) {
+          nameInput.value = '';
+          nameInput.placeholder = '例如：深夜無聲思考、Lofi Focus Beats (留空自動採用影片標題)';
+        }
+
+        // Refresh music library tracks across all dropdowns and views
+        await loadMusicTracks();
+
+        // If category is known, activate that category filter to showcase the new track
+        if (track.category) {
+          activeMusicCategory = track.category;
+          renderMusicCategoryPills();
+          renderMusicTracksList();
+        }
+
+        // Scroll music tracks list into view smoothly
+        const listEl = document.getElementById('music-tracks-list');
+        if (listEl) {
+          listEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+      } catch (err) {
+        console.error('YouTube music conversion error:', err);
+        if (statusEl) {
+          statusEl.innerHTML = `<span style="color:#f87171;font-weight:700;">❌ 轉換失敗：${err.message || '未知錯誤，請檢查連結或網路狀態'}</span>`;
+        }
+        if (typeof showToast === 'function') {
+          showToast(`❌ YouTube 音訊轉換失敗: ${err.message}`, 4000);
+        }
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.style.opacity = '1';
+          btn.innerHTML = origBtnHtml;
+        }
+      }
+    }
+    window.convertYouTubeToAmbientTrack = convertYouTubeToAmbientTrack;
+
     async function triggerTypeSafeGrading() {
       const btn = document.getElementById('btn-grade-typesafe');
       if (!confirm("Run TypeSafe AI System One (Jev) to grade and filter all tracks in your inventory for voiceover suitability?")) {

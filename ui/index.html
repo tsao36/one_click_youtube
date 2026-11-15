@@ -1746,6 +1746,71 @@
       </div>
     </div>
 
+    <!-- YOUTUBE TO AMBIENT MP3 CONVERTER CARD -->
+    <div class="card" style="margin-top: 20px; border-left: 4px solid #ef4444; background: linear-gradient(180deg, rgba(239, 68, 68, 0.04) 0%, rgba(15, 23, 42, 0.6) 100%);">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px; margin-bottom: 8px;">
+        <div>
+          <div class="card-title" style="display: flex; align-items: center; gap: 8px; margin-bottom: 2px;">
+            <span style="font-size: 19px;">📺</span>
+            <span>YouTube 影片轉背景配樂 (YouTube to Ambient MP3)</span>
+            <span style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); font-size: 11px; padding: 2px 8px; border-radius: 12px; font-weight: 700;">
+              yt-dlp + Gyan FFmpeg
+            </span>
+          </div>
+          <div style="font-size: 12px; color: var(--text-muted); line-height: 1.5;">
+            輸入 YouTube 影片連結並設定識別名稱，本機透過 <b>yt-dlp</b> 與 <b>Gyan FFmpeg</b> 自動擷取高音質音訊並轉檔為 320k MP3，即刻納入環境氛圍音樂庫供預覽及一鍵套用至專案！
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 14px; margin-top: 12px;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; align-items: end;">
+          <div class="form-group" style="margin-bottom: 0;">
+            <label style="font-size: 12px; font-weight: 700; color: #cbd5e1; display: flex; align-items: center; gap: 6px; margin-bottom: 5px;">
+              <span>🔗</span> <span>YouTube 影片網址 (Video Link)</span>
+            </label>
+            <input type="text" id="yt-music-url" placeholder="https://www.youtube.com/watch?v=... 或 https://youtu.be/..." 
+                   style="padding: 9px 12px; font-size: 13px; border-radius: var(--radius); background: var(--bg-sunken); border: 1px solid var(--border-muted); color: var(--text-main); width: 100%; box-sizing: border-box;"
+                   onchange="onYouTubeMusicUrlChanged(this.value)">
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0;">
+            <label style="font-size: 12px; font-weight: 700; color: #cbd5e1; display: flex; align-items: center; gap: 6px; margin-bottom: 5px;">
+              <span>🏷️</span> <span>自訂識別音軌名稱 (Track Name)</span>
+              <span style="font-size: 11px; color: #94a3b8; font-weight: 400;">(方便在音樂庫中辨識)</span>
+            </label>
+            <input type="text" id="yt-music-name" placeholder="例如：深夜無聲思考、Lofi Focus Beats (留空自動採用影片標題)" 
+                   style="padding: 9px 12px; font-size: 13px; border-radius: var(--radius); background: var(--bg-sunken); border: 1px solid var(--border-muted); color: var(--text-main); width: 100%; box-sizing: border-box;">
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0;">
+            <label style="font-size: 12px; font-weight: 700; color: #cbd5e1; display: flex; align-items: center; gap: 6px; margin-bottom: 5px;">
+              <span>📁</span> <span>配樂風格分類 (Category)</span>
+            </label>
+            <select id="yt-music-category" style="padding: 9px 12px; font-size: 13px; border-radius: var(--radius); background: var(--bg-sunken); border: 1px solid var(--border-muted); color: var(--text-main); width: 100%; box-sizing: border-box;">
+              <option value="auto" selected>🤖 自動智慧分流 (Auto Categorize)</option>
+              <option value="calm_focus">🌿 Calm & Focus (平靜沉思)</option>
+              <option value="tech_futuristic">🚀 Tech & Sci-Fi (科技未來)</option>
+              <option value="cinematic_documentary">🎬 Cinematic Documentary (歷史紀錄)</option>
+              <option value="mystery_cosmic">🌌 Dark Mystery & Space (宇宙未解)</option>
+              <option value="dramatic_tension">⚡ Dramatic Tension (衝突危機)</option>
+              <option value="uplifting_inspirational">✨ Uplifting & Wonder (勵志突破)</option>
+              <option value="ambient">🎧 Ambient & Lo-Fi (環境氛圍)</option>
+              <option value="custom">📁 Custom / Other (自訂風格)</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 4px;">
+          <div id="yt-music-status" style="font-size: 12.5px; color: #94a3b8; display: flex; align-items: center; gap: 8px; min-height: 28px;"></div>
+          <button id="btn-convert-yt-music" class="btn-primary" data-ui-click="convert_youtube_music" onclick="convertYouTubeToAmbientTrack()" 
+                  style="padding: 9px 22px; font-weight: 700; font-size: 13px; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border: none; box-shadow: 0 2px 10px rgba(239, 68, 68, 0.35); display: flex; align-items: center; gap: 8px; margin-left: auto; cursor: pointer;">
+            <span>⚡ 下載並轉為 MP3 音軌 (Extract & Convert MP3)</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- UPLOAD CUSTOM MUSIC CARD -->
     <div class="card" style="margin-top: 20px;">
       <div class="card-title">📤 Upload Custom Background Tracks (Multi-File Ingestion)</div>

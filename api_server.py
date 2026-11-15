@@ -1475,6 +1475,46 @@ async def upload_multiple_music_tracks(
     return {"status": "uploaded", "count": len(uploaded), "files": uploaded}
 
 
+class YouTubeMusicImportRequest(BaseModel):
+    url: str
+    name: Optional[str] = None
+    category: Optional[str] = "custom"
+
+
+@app.post("/api/music/youtube-info")
+async def get_youtube_music_info(req: YouTubeMusicImportRequest):
+    """Retrieve video title and duration from a YouTube URL before full conversion."""
+    try:
+        import generators.youtube_music as ym
+        if not ym.is_valid_youtube_url(req.url):
+            raise HTTPException(status_code=400, detail="Invalid YouTube URL or video ID")
+        info = await asyncio.to_thread(ym.get_youtube_video_info, req.url)
+        return info
+    except Exception as e:
+        log.warning("Failed to retrieve YouTube video info: %s", e)
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/api/music/youtube-import")
+async def import_youtube_ambient_track(req: YouTubeMusicImportRequest):
+    """Extract audio from YouTube URL and convert to MP3 track for Ambient Music Library."""
+    try:
+        import generators.youtube_music as ym
+        if not ym.is_valid_youtube_url(req.url):
+            raise HTTPException(status_code=400, detail="Invalid YouTube video URL or ID")
+
+        entry = await asyncio.to_thread(
+            ym.download_and_convert_youtube_track,
+            url=req.url,
+            track_name=req.name,
+            category=req.category or "custom"
+        )
+        return {"status": "success", "track": entry}
+    except Exception as e:
+        log.error("Failed to import YouTube track: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.delete("/api/music/tracks/{filepath:path}")
 def delete_music_track(filepath: str):
     music_dir = (DATA_DIR / "music").resolve()
