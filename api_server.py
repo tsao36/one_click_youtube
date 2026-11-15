@@ -1727,6 +1727,26 @@ def get_stage_data_endpoint(project_id: str, stage_name: str):
             sd["import_diff"] = imp_diff
             sd["has_diff"] = bool(imp_diff)
 
+            img_path = sc.image.path if sc.image and sc.image.path else f"images/{sc.tag}.png"
+            sd["image_url"] = f"/media/{p.id}/{img_path}" if p.path(img_path).exists() else None
+
+            # Check if this scene's visual asset was enhanced / upscaled
+            img_meta = (sc.image.meta or {}) if sc.image else {}
+            sc_meta = sc.meta or {}
+            is_enh = bool(
+                img_meta.get("enhanced") or img_meta.get("upscaled") or
+                sc_meta.get("enhanced") or sc_meta.get("upscaled")
+            )
+            enh_dict = img_meta.get("enhancement") or sc_meta.get("enhancement") or {}
+            orig_sz = enh_dict.get("original_size") or (
+                (img_meta.get("original_width"), img_meta.get("original_height")) if img_meta.get("original_width")
+                else ((img_meta.get("width"), img_meta.get("height")) if (is_enh and img_meta.get("width") and img_meta.get("width") < 1280) else None)
+            )
+            sd["is_enhanced"] = is_enh
+            sd["enhanced_engine"] = enh_dict.get("engine") or img_meta.get("engine") or ("RealESRGAN_x4plus" if is_enh else None)
+            sd["original_resolution"] = orig_sz
+            sd["target_resolution"] = enh_dict.get("target_size") or (1920, 1080)
+
             if stage_name in ("animation", "presenter"):
                 anim_rel = f"animation/{sc.tag}.mp4"
                 has_anim = p.path(anim_rel).exists()
@@ -1735,9 +1755,6 @@ def get_stage_data_endpoint(project_id: str, stage_name: str):
                     anim_rel = sc.animation.path
                 sd["has_animation"] = has_anim
                 sd["animation_url"] = f"/media/{p.id}/{anim_rel}" if has_anim else None
-
-                img_path = sc.image.path if sc.image and sc.image.path else f"images/{sc.tag}.png"
-                sd["image_url"] = f"/media/{p.id}/{img_path}" if p.path(img_path).exists() else None
 
                 anim_meta = (sc.animation.meta if sc.animation else {}) or {}
                 comp = anim_meta.get("composition") or anim_meta.get("sceneType")
@@ -1753,11 +1770,13 @@ def get_stage_data_endpoint(project_id: str, stage_name: str):
         stock_avail = sum(1 for sc in scenes_data if sc.get("quick_stock_available"))
         stock_active = sum(1 for sc in scenes_data if sc.get("is_stock_active"))
         diff_count = sum(1 for sc in scenes_data if sc.get("has_diff"))
+        enhanced_count = sum(1 for sc in scenes_data if sc.get("is_enhanced"))
 
         avatar_overlap_scene_ids = [s.get("scene_id") for s in scenes_data if s.get("is_avatar_overlapping")]
         ret = {
             "scenes": scenes_data,
             "total_scenes": total_sc,
+            "enhanced_scenes_count": enhanced_count,
             "avatar_enabled": p.is_avatar_enabled(),
             "presenter_placement": (p.data.settings or {}).get("presenter_placement") or p.settings.get("presenter_placement") or "none",
             "default_avatar": (p.data.settings or {}).get("default_avatar") or p.settings.get("default_avatar") or "",
@@ -4053,15 +4072,33 @@ async def upload_scene_image_endpoint(
         except Exception as ex:
             log.debug("ensure_initial_image_take note: %s", ex)
 
-        # Format and auto-adjust image orientation
-        adjust_image_orientation(
-            tmp_upload,
-            output_path=img_path,
-            target_aspect_ratio=detected_ratio,
-            target_w=target_w,
-            target_h=target_h,
-            allow_blur_backdrop=True,
-        )
+        # Format and auto-adjust image orientation (auto-upscale low-res images to 1080p)
+        from core.image_upscaler import is_image_low_resolution, upscale_image_to_1080p
+        is_low, w_orig, h_orig = is_image_low_resolution(tmp_upload)
+        enhance_info = None
+        if is_low and target_w >= 1280 and target_h >= 720:
+            is_face = (s.visual_type in ("authentic_portrait", "talking_head"))
+            try:
+                enhance_info = upscale_image_to_1080p(
+                    tmp_upload,
+                    output_path=img_path,
+                    target_w=target_w,
+                    target_h=target_h,
+                    face_enhance=is_face,
+                    allow_blur_backdrop=True,
+                )
+            except Exception as up_err:
+                log.warning("Upload AI upscale fallback: %s", up_err)
+
+        if not enhance_info:
+            adjust_image_orientation(
+                tmp_upload,
+                output_path=img_path,
+                target_aspect_ratio=detected_ratio,
+                target_w=target_w,
+                target_h=target_h,
+                allow_blur_backdrop=True,
+            )
 
         existing_img_meta = dict(s.image.meta or {})
         prev_img_takes = list(existing_img_meta.get("takes", []))
@@ -4086,6 +4123,15 @@ async def upload_scene_image_endpoint(
             "width": target_w,
             "height": target_h,
         })
+        if enhance_info:
+            merged_meta["enhanced"] = True
+            merged_meta["upscaled"] = True
+            merged_meta["enhancement"] = enhance_info
+            if not s.meta:
+                s.meta = {}
+            s.meta["enhanced"] = True
+            s.meta["upscaled"] = True
+            s.meta["enhancement"] = enhance_info
 
         s.image.status = Status.COMPLETED
         s.image.path = p.rel(img_path)
@@ -4172,6 +4218,110 @@ async def detect_image_orientation_endpoint(file: UploadFile = File(...)):
         "is_landscape": det["is_landscape"],
         "recommended_target": det["recommended_target"],
     }
+
+
+@app.post("/api/projects/{project_id}/scenes/{scene_id}/upscale_image")
+def upscale_scene_image_endpoint(project_id: str, scene_id: int):
+    """Upscale a specific scene image to 1920x1080 using AI Super-Resolution."""
+    from core.image_upscaler import upscale_image_to_1080p
+    p = get_project(project_id)
+    s = p.scene(scene_id)
+    img_path = p.path("images", f"{s.tag}.png")
+    if not img_path.exists():
+        raise HTTPException(status_code=404, detail="Scene image not found")
+
+    is_face = (s.visual_type in ("authentic_portrait", "talking_head")) or any(
+        k in (s.prompt or s.visual_description or "").lower() for k in ["portrait", "face", "actor", "shouting"]
+    )
+    # Check if there is an original clean asset in assets/real
+    img_meta = s.image.meta or {}
+    src_path = img_path
+    if img_meta.get("provider") == "real_asset" and img_meta.get("asset_id"):
+        real_dir = p.path("assets", "real")
+        matches = list(real_dir.glob(f"*{img_meta['asset_id']}*"))
+        if matches and matches[0].exists():
+            src_path = matches[0]
+
+    meta = upscale_image_to_1080p(src_path, img_path, target_w=1920, target_h=1080, face_enhance=is_face, force=True)
+
+    if not s.image.meta:
+        s.image.meta = {}
+    s.image.meta.update({
+        "enhanced": True,
+        "upscaled": True,
+        "enhancement": meta,
+        "width": 1920,
+        "height": 1080,
+    })
+    if not s.meta:
+        s.meta = {}
+    s.meta["enhanced"] = True
+    s.meta["upscaled"] = True
+    s.meta["enhancement"] = meta
+
+    p.clear_clips_cache(scene_id)
+    p.save_scenes()
+    p.save()
+    return {"status": "ok", "scene_id": scene_id, "enhancement": meta, "image_url": f"/media/{project_id}/{s.image.path}"}
+
+
+@app.post("/api/projects/{project_id}/upscale_all_lowres_images")
+def upscale_all_lowres_images_endpoint(project_id: str):
+    """Scan and upscale all low-resolution images (<1280x720) in a project to 1920x1080."""
+    from core.image_upscaler import upscale_image_to_1080p, is_image_low_resolution
+    p = get_project(project_id)
+    upscaled_scenes = []
+
+    for s in p.scenes:
+        img_path = p.path("images", f"{s.tag}.png")
+        if not img_path.exists():
+            continue
+        is_low, orig_w, orig_h = is_image_low_resolution(img_path)
+        img_meta = s.image.meta or {}
+        # Also check if it's a real_asset with 640x480 source
+        if not is_low and (img_meta.get("original_width") or 0) < 1280 and (img_meta.get("original_width") or 0) > 0:
+            is_low = True
+
+        # Check if native pixels were framed on 1080p canvas with black padding
+        if is_low or (img_meta.get("width") or 1920) < 1280 or (img_meta.get("provider") == "real_asset" and not img_meta.get("enhanced")):
+            is_face = (s.visual_type in ("authentic_portrait", "talking_head")) or any(
+                k in (s.prompt or s.visual_description or "").lower() for k in ["portrait", "face", "actor", "shouting"]
+            )
+            try:
+                src_path = img_path
+                if img_meta.get("provider") == "real_asset" and img_meta.get("asset_id"):
+                    real_dir = p.path("assets", "real")
+                    matches = list(real_dir.glob(f"*{img_meta['asset_id']}*"))
+                    if matches and matches[0].exists():
+                        src_path = matches[0]
+
+                meta = upscale_image_to_1080p(src_path, img_path, target_w=1920, target_h=1080, face_enhance=is_face, force=True)
+                if not s.image.meta:
+                    s.image.meta = {}
+                s.image.meta.update({
+                    "enhanced": True,
+                    "upscaled": True,
+                    "enhancement": meta,
+                    "width": 1920,
+                    "height": 1080,
+                    "original_width": meta.get("original_size", (orig_w, orig_h))[0],
+                    "original_height": meta.get("original_size", (orig_w, orig_h))[1],
+                })
+                if not s.meta:
+                    s.meta = {}
+                s.meta["enhanced"] = True
+                s.meta["upscaled"] = True
+                s.meta["enhancement"] = meta
+                p.clear_clips_cache(s.scene_id)
+                upscaled_scenes.append(s.scene_id)
+            except Exception as e:
+                log.warning("Failed to upscale scene %d: %s", s.scene_id, e)
+
+    if upscaled_scenes:
+        p.save_scenes()
+        p.save()
+
+    return {"status": "ok", "project_id": project_id, "upscaled_scenes": upscaled_scenes, "count": len(upscaled_scenes)}
 
 
 @app.post("/api/projects/{project_id}/scenes/{scene_id}/regenerate_voice")

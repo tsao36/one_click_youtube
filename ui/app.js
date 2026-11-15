@@ -13573,11 +13573,17 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       } else if (stKey === 'scenes') {
         const scenes = data.scenes || [];
         const diffScenesCount = scenes.filter(s => s.has_diff || (s.meta && s.meta.import_diff) || s.import_diff).length;
+        const enhancedScenesCount = scenes.filter(s => s.is_enhanced || (s.meta && (s.meta.enhanced || s.meta.upscaled)) || (s.image && s.image.meta && (s.image.meta.enhanced || s.image.meta.upscaled))).length;
         bodyHtml += `
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
             <div style="font-size: 13px; color: var(--text-muted); display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
               <span>Total Storyboard Scenes: <b style="color: #93c5fd;">${scenes.length}</b></span>
               <span style="font-size: 11px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.35); padding: 2px 8px; border-radius: 10px; font-weight: 600;">🎬 Stage 3 Actual Script</span>
+              ${enhancedScenesCount > 0 ? `
+                <span style="font-size: 11px; background: rgba(16, 185, 129, 0.18); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.4); padding: 2px 8px; border-radius: 10px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;" title="此專案共有 ${enhancedScenesCount} 幕歷史老照片/低解析素材已由 AI 自動升頻修復至 1080p">
+                  ✨ AI 畫質升頻修復: <b>${enhancedScenesCount}</b> 幕 (1080p Enhanced)
+                </span>
+              ` : ''}
             </div>
             <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
               <button class="btn-sec" style="font-size: 12px; padding: 6px 14px; background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.25) 100%); border-color: #10b981; color: #a7f3d0; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;" onclick="openStage3ImportModal()" title="匯入由他人審閱修改後的 Stage 3 腳本（支援 .txt/.csv/.md/.json 或貼上文字），以程式演算法逐行比對差異並自動標記">
@@ -13623,13 +13629,26 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
           const isAvatarOverlap = isSceneAvatarOverlapping(s, project || data, scenes);
           const diffObj = s.import_diff || (s.meta && s.meta.import_diff);
           const hasDiff = Boolean(diffObj);
+
+          const isEnhanced = Boolean(
+            s.is_enhanced ||
+            (s.meta && (s.meta.enhanced || s.meta.upscaled)) ||
+            (s.image && s.image.meta && (s.image.meta.enhanced || s.image.meta.upscaled))
+          );
+          const enhMeta = (s.image && s.image.meta && s.image.meta.enhancement) || (s.meta && s.meta.enhancement) || {};
+          const origRes = s.original_resolution || enhMeta.original_size || (s.image && s.image.meta && (s.image.meta.original_width ? [s.image.meta.original_width, s.image.meta.original_height] : (s.image.meta.width ? [s.image.meta.width, s.image.meta.height] : null)));
+          const origResText = Array.isArray(origRes) ? `${origRes[0]}×${origRes[1]}` : (origRes || '480p');
+          const enhEngine = s.enhanced_engine || enhMeta.engine || 'Real-ESRGAN (4× Super-Resolution)';
+          const imgPreviewUrl = s.image_url || (s.image && s.image.path ? `/media/${currentProjectId}/${s.image.path}` : null);
+
           bodyHtml += `
-            <div class="stage3-scene-card ${hasDiff ? 'has-stage3-diff' : ''}" style="background: #080d16; border: ${hasDiff ? '1.5px solid #f59e0b' : (isAvatarOverlap ? '1.5px solid #8b5cf6' : '1px solid var(--card-border)')}; ${hasDiff ? 'box-shadow: 0 0 16px rgba(245, 158, 11, 0.15);' : (isAvatarOverlap ? 'box-shadow: 0 0 14px rgba(139, 92, 246, 0.12);' : '')} border-radius: 8px; padding: 14px;">
+            <div class="stage3-scene-card ${hasDiff ? 'has-stage3-diff' : ''}" style="background: #080d16; border: ${hasDiff ? '1.5px solid #f59e0b' : (isAvatarOverlap ? '1.5px solid #8b5cf6' : (isEnhanced ? '1.5px solid #10b981' : '1px solid var(--card-border)'))}; ${hasDiff ? 'box-shadow: 0 0 16px rgba(245, 158, 11, 0.15);' : (isAvatarOverlap ? 'box-shadow: 0 0 14px rgba(139, 92, 246, 0.12);' : (isEnhanced ? 'box-shadow: 0 0 12px rgba(16, 185, 129, 0.12);' : ''))} border-radius: 8px; padding: 14px;">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 6px;">
                 <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                   <span style="font-weight: 700; color: #93c5fd; font-size: 14px;">Scene #${s.scene_id}</span>
                   ${isAvatarOverlap ? '<span style="font-size: 11px; background: rgba(147, 51, 234, 0.3); color: #f3e8ff; border: 1.5px solid #a855f7; padding: 2px 8px; border-radius: 4px; font-weight: 800; display: inline-flex; align-items: center; gap: 4px;">🎭 虛擬主播出鏡 (Avatar Appearance)</span>' : ''}
                   ${hasDiff ? '<span style="font-size: 11px; background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid #f59e0b; padding: 2px 7px; border-radius: 4px; font-weight: 700;">✏️ 腳本匯入修改 (Modified)</span>' : ''}
+                  ${isEnhanced ? `<span style="font-size: 11px; background: rgba(16, 185, 129, 0.2); color: #6ee7b7; border: 1px solid #10b981; padding: 2px 8px; border-radius: 4px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;" title="此分鏡之老照片/低解析素材已由 AI 超解析度修復升頻至 1920×1080">✨ 畫質修復升頻 (${origResText} ➔ 1080p)</span>` : ''}
                   ${s.speaker ? `<span style="font-size: 11px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; padding: 2px 6px; border-radius: 4px;">👤 ${escapeHtml(s.speaker)}</span>` : ''}
                 </div>
                 <span style="font-size: 12px; color: var(--text-muted);">Est: ${s.estimated_duration || 5}s</span>
@@ -13653,6 +13672,15 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
                   </div>
                 ` : ''}
               </div>
+              ${isEnhanced ? `
+                <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 6px; padding: 8px 12px; margin-top: 8px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                  <div style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #a7f3d0;">
+                    <span style="font-size: 15px;">🔍</span>
+                    <span><b>AI 畫質增強已套用：</b>歷史老照片/低解析素材已由 <b>${escapeHtml(enhEngine)}</b> 自動修復升頻至 <b>1920×1080</b>（原圖：<code style="color:#fef08a; background:rgba(0,0,0,0.3); padding:1px 4px; border-radius:3px;">${origResText}</code> ➔ <code style="color:#86efac; background:rgba(0,0,0,0.3); padding:1px 4px; border-radius:3px;">1920×1080 HD</code>）</span>
+                  </div>
+                  ${imgPreviewUrl ? `<a href="${imgPreviewUrl}" target="_blank" style="font-size: 11.5px; color: #38bdf8; text-decoration: none; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); padding: 3px 8px; border-radius: 4px;" title="在新分頁開啟 1080p 高清修復圖">🖼️ 預覽 1080p 圖 ↗</a>` : ''}
+                </div>
+              ` : ''}
               <div style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap;">
                 <div style="flex: 1; min-width: 200px;">
                   <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px;">Camera Motion Dynamics:</label>

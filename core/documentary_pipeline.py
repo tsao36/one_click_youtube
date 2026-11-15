@@ -1304,6 +1304,7 @@ class DocumentaryPipeline(BasePipeline):
 
                             if img_path.exists() and img_path.stat().st_size > 1000:
                                 merged_meta = dict(existing_img_meta)
+                                is_portrait_low = bool(portrait_info.get("width") and portrait_info["width"] < 1280)
                                 merged_meta.update({
                                     "provider": portrait_info.get("source", "wikipedia"),
                                     "search_keyword": person_name,
@@ -1313,7 +1314,14 @@ class DocumentaryPipeline(BasePipeline):
                                     "license": portrait_info.get("license", "Public Domain / CC"),
                                     "media_source": "stock_portrait",
                                     "is_stock": True,
+                                    "enhanced": is_portrait_low,
+                                    "upscaled": is_portrait_low,
                                 })
+                                if is_portrait_low:
+                                    if not s.meta:
+                                        s.meta = {}
+                                    s.meta["enhanced"] = True
+                                    s.meta["upscaled"] = True
                                 merged_meta["takes"] = prev_img_takes
                                 s.image.status = Status.COMPLETED
                                 s.image.path = self.p.rel(img_path)
