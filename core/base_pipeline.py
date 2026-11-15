@@ -135,11 +135,13 @@ def apply_presenter_placement(
 
 
     for idx, sc in enumerate(scenes):
-
-        if idx in target_indices:
-
+        is_manual = bool(
+            getattr(sc, "media_source", "") == "upload"
+            or getattr(sc, "is_manual_upload", False)
+            or (sc.image and sc.image.meta and (sc.image.meta.get("is_manual_upload") or sc.image.meta.get("source") == "manual_upload"))
+        )
+        if idx in target_indices and not is_manual:
             sc.is_presenter = True
-
             sc.visual_type = "talking_head"
 
             if default_avatar:
@@ -1425,8 +1427,13 @@ class BasePipeline:
 
 
             active_sc = self.p.active_scenes()
-
-            presenter_scenes = [s for s in active_sc if (getattr(s, "is_presenter", False) or s.visual_type == "talking_head")]
+            presenter_scenes = [
+                s for s in active_sc
+                if (getattr(s, "is_presenter", False) or s.visual_type == "talking_head")
+                and getattr(s, "media_source", "") != "upload"
+                and not getattr(s, "is_manual_upload", False)
+                and not (s.image and s.image.meta and (s.image.meta.get("is_manual_upload") or s.image.meta.get("source") == "manual_upload"))
+            ]
 
 
 

@@ -9650,6 +9650,17 @@
           const imgUrlBusted = imgUrl ? `${imgUrl}?t=${buster}` : '';
           const renderedModel = (s.image && s.image.meta && s.image.meta.model) ? s.image.meta.model : curModel;
           const renderedStyle = s.visual_style || (s.image && s.image.meta && (s.image.meta.visual_style || s.image.meta.style)) || curStyle || 'cinematic_documentary';
+          const imgMeta = (s.image && s.image.meta) || {};
+          const isImgPortrait = Boolean(
+            isDrama ||
+            imgMeta.orientation === 'portrait' ||
+            imgMeta.aspect_ratio === '9:16' ||
+            imgMeta.detected_aspect_ratio === '9:16' ||
+            imgMeta.is_portrait === true ||
+            (imgMeta.height && imgMeta.width && imgMeta.height > imgMeta.width) ||
+            s.orientation === 'portrait' ||
+            s.aspect_ratio === '9:16'
+          );
 
           let perSceneModelOptions = '';
           allModels.forEach(m => {
@@ -13502,6 +13513,17 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
           const imgUrlBusted = imgUrl ? `${imgUrl}?t=${buster}` : '';
           const renderedModel = (s.image && s.image.meta && s.image.meta.model) ? s.image.meta.model : curModel;
           const renderedStyle = s.visual_style || (s.image && s.image.meta && (s.image.meta.visual_style || s.image.meta.style)) || curStyle || 'cinematic_documentary';
+          const imgMeta = (s.image && s.image.meta) || {};
+          const isImgPortrait = Boolean(
+            isDrama ||
+            imgMeta.orientation === 'portrait' ||
+            imgMeta.aspect_ratio === '9:16' ||
+            imgMeta.detected_aspect_ratio === '9:16' ||
+            imgMeta.is_portrait === true ||
+            (imgMeta.height && imgMeta.width && imgMeta.height > imgMeta.width) ||
+            s.orientation === 'portrait' ||
+            s.aspect_ratio === '9:16'
+          );
 
           let perSceneModelOptions = '';
           allModels.forEach(m => {

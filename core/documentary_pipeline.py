@@ -2373,7 +2373,13 @@ class DocumentaryPipeline(BasePipeline):
         )
 
         avatar_allowed = self.p.is_avatar_enabled() if hasattr(self.p, "is_avatar_enabled") else (self.p.settings.get("presenter_placement") not in ("none", "off", "disabled", False))
-        presenter_scenes = [s for s in scenes if (getattr(s, "is_presenter", False) or s.visual_type == "talking_head")] if avatar_allowed else []
+        presenter_scenes = [
+            s for s in scenes
+            if (getattr(s, "is_presenter", False) or s.visual_type == "talking_head")
+            and getattr(s, "media_source", "") != "upload"
+            and not getattr(s, "is_manual_upload", False)
+            and not (s.image and s.image.meta and (s.image.meta.get("is_manual_upload") or s.image.meta.get("source") == "manual_upload"))
+        ] if avatar_allowed else []
         self.p.set_stage("presenter", Status.RUNNING, done=0, total=len(presenter_scenes))
 
         if presenter_scenes:

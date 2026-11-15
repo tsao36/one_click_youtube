@@ -110,19 +110,30 @@ def _clip_key(sc: Scene, slot: Slot, w: int, h: int, fps: int, project: Project,
     avatar_allowed = project.is_avatar_enabled() if hasattr(project, "is_avatar_enabled") else bool(
         settings.get("avatar_enabled", True) and settings.get("presenter_placement") not in ("none", "off", "disabled", False)
     )
+    is_manual_img = bool(
+        getattr(sc, "media_source", "") == "upload"
+        or getattr(sc, "is_manual_upload", False)
+        or (sc.image and sc.image.meta and (sc.image.meta.get("is_manual_upload") or sc.image.meta.get("source") == "manual_upload"))
+    )
     prov = str((sc.animation.meta or {}).get("provider", ""))
-    is_avatar = is_drama or ("hedra" in prov) or (avatar_allowed and (getattr(sc, "is_presenter", False) or sc.visual_type in ("talking_head", "talking_actor")))
+    is_avatar = (
+        not is_manual_img and (
+            is_drama or ("hedra" in prov) or (avatar_allowed and (getattr(sc, "is_presenter", False) or sc.visual_type in ("talking_head", "talking_actor")))
+        )
+    )
     lead_s = max(0.0, float(slot.audio_start - slot.start)) if is_avatar else 0.0
-    v_type = "image" if (not avatar_allowed and not is_drama and sc.visual_type in ("talking_head", "talking_actor")) else sc.visual_type
+    v_type = "image" if (is_manual_img or (not avatar_allowed and not is_drama and sc.visual_type in ("talking_head", "talking_actor"))) else sc.visual_type
     parts = [v_type, sc.camera_motion, f"{slot.clip_length:.3f}", f"lead={lead_s:.3f}", f"{w}x{h}@{fps}", f"av_allowed={avatar_allowed}", f"is_drama={is_drama}", motion_key,
              str((sc.animation.meta or {}).get("provider", ""))]
     for asset in (sc.image, sc.animation):
         p = project.abs(asset.path) if asset.status == Status.COMPLETED else None
         parts.append(f"{asset.path}:{p.stat().st_mtime_ns if p and p.exists() else 0}")
-    # Invalidate cache if image was updated after the animation clip
+    # Invalidate cache if image was updated after the animation clip or if image is manual upload
     img_chk = project.abs(sc.image.path) if sc.image.status == Status.COMPLETED else None
     anim_chk = project.abs(sc.animation.path) if sc.animation.status == Status.COMPLETED else None
-    if img_chk and img_chk.exists() and anim_chk and anim_chk.exists() and img_chk.stat().st_mtime > anim_chk.stat().st_mtime:
+    if is_manual_img and img_chk and img_chk.exists():
+        parts.append(f"manual_img:{img_chk.stat().st_mtime_ns}")
+    elif img_chk and img_chk.exists() and anim_chk and anim_chk.exists() and img_chk.stat().st_mtime > anim_chk.stat().st_mtime:
         parts.append(f"image_override_newer:{img_chk.stat().st_mtime_ns}")
     # Invalidate avatar cache if audio was updated after the avatar animation clip
     if is_avatar:
@@ -171,6 +182,12 @@ def render_scene_clip(project: Project, sc: Scene, slot: Slot, w: int, h: int, f
         avatar_allowed = project.is_avatar_enabled() if hasattr(project, "is_avatar_enabled") else bool(
             s.get("avatar_enabled", True) and s.get("presenter_placement") not in ("none", "off", "disabled", False)
         )
+        is_manual_img = bool(
+            getattr(sc, "media_source", "") == "upload"
+            or getattr(sc, "is_manual_upload", False)
+            or (sc.image and sc.image.meta and (sc.image.meta.get("is_manual_upload") or sc.image.meta.get("source") == "manual_upload"))
+        )
+
         vid = project.abs(sc.animation.path) if sc.animation.status == Status.COMPLETED else None
         prov = str((sc.animation.meta or {}).get("provider", "")) if (vid and vid.exists()) else ""
         if vid and vid.exists():
@@ -181,17 +198,20 @@ def render_scene_clip(project: Project, sc: Scene, slot: Slot, w: int, h: int, f
                 "local_fallback", "masked_speaker"
             ) or getattr(sc, "is_presenter", False) or sc.visual_type in ("talking_head", "talking_actor")
 
-            if not avatar_allowed and is_avatar_clip and not is_drama:
+            if is_manual_img and is_avatar_clip and not is_drama:
+                log.info("Scene %d has manually uploaded image; skipping avatar clip %s in favor of manual image", sc.scene_id, vid)
+                vid = None
+            elif not avatar_allowed and is_avatar_clip and not is_drama:
                 log.info("Avatar is disabled: skipping avatar clip for scene %d, using full-bleed visual image with Ken Burns", sc.scene_id)
                 vid = None
 
         # If user generated or updated a new image AFTER the animation clip was produced,
-        # prioritize the newly updated image with Ken Burns rather than playing the obsolete video clip.
+        # or if user uploaded a manual image, prioritize the image with Ken Burns rather than playing the obsolete video clip.
         if vid and vid.exists() and img and img.exists():
-            if img.stat().st_mtime > vid.stat().st_mtime:
+            if is_manual_img or img.stat().st_mtime > vid.stat().st_mtime:
                 log.info(
-                    "Scene %d: newly updated image (mtime %s) is newer than animation clip (%s); using updated image with Ken Burns",
-                    sc.scene_id, img.stat().st_mtime, vid.stat().st_mtime
+                    "Scene %d: newly updated/manual image is prioritized over animation clip (%s); using image with Ken Burns",
+                    sc.scene_id, vid.stat().st_mtime
                 )
                 vid = None
 

@@ -3978,16 +3978,33 @@ async def upload_scene_image_endpoint(
         s.image.error = None
         s.image.meta = merged_meta
         s.media_source = "upload"
+        s.is_manual_upload = True
 
-        # Invalidate old animation if it depended on old image
-        if s.animation and s.animation.status == Status.COMPLETED:
-            old_anim = p.path(s.animation.path)
-            if old_anim.exists():
-                try:
-                    old_anim.unlink()
-                except Exception:
-                    pass
+        # Invalidate old animation if it depended on old image or was an avatar clip
+        if s.animation:
+            if s.animation.path:
+                old_anim = p.path(s.animation.path)
+                if old_anim.exists():
+                    try:
+                        old_anim.unlink()
+                    except Exception:
+                        pass
             s.animation.status = Status.PENDING
+            s.animation.path = None
+            s.animation.meta = {}
+            s.animation.error = None
+
+        # When a manual image is uploaded, it is explicitly intended as the scene's visual asset.
+        # It must not be overridden by a virtual presenter avatar talking head.
+        if getattr(s, "is_presenter", False) or s.visual_type in ("talking_head", "talking_actor"):
+            s.is_presenter = False
+            s.visual_type = "image"
+            s.avatar_profile = None
+
+        s.ai_video = False
+
+        # Clear clips cache so re-rendering doesn't reuse outdated cached clip
+        p.clear_clips_cache(scene_id)
 
         p.save_scenes()
 
