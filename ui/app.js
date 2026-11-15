@@ -9722,7 +9722,8 @@
                        ondragleave="this.style.borderColor='#1e293b';"
                        ondrop="event.preventDefault(); this.style.borderColor='#1e293b'; if (event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files.length) uploadManualSceneImage(${s.scene_id}, event.dataTransfer.files[0]);">
                     ${imgUrl ? `
-                      <img id="insp-scene-img-${s.scene_id}" src="${imgUrlBusted}" style="width:100%; height:100%; object-fit:cover; cursor:pointer;" onclick="window.open('${imgUrl}')" title="Click to view full image">
+                      <img id="insp-scene-img-${s.scene_id}" src="${imgUrlBusted}" onload="if(this.naturalHeight > this.naturalWidth) { this.style.objectFit='contain'; this.style.background='radial-gradient(circle, #0f172a 0%, #020617 100%)'; }" style="width:100%; height:100%; object-fit:${isImgPortrait ? 'contain' : 'cover'}; background:${isImgPortrait ? 'radial-gradient(circle, #0f172a 0%, #020617 100%)' : '#000'}; cursor:pointer;" onclick="window.open('${imgUrl}')" title="Click to view full image">
+                      ${isImgPortrait ? '<span style="position: absolute; top: 4px; left: 4px; background: rgba(2, 132, 199, 0.85); border: 1px solid #38bdf8; color: #fff; font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 3px; z-index: 2;">📱 9:16 全景保留</span>' : ''}
                       <div style="position: absolute; bottom: 4px; left: 4px; background: rgba(0,0,0,0.7); font-size: 10px; color: #cbd5e1; padding: 2px 5px; border-radius: 3px; pointer-events: none;">🔍 Click to Zoom</div>
                       <div style="position: absolute; top: 4px; right: 4px; display: flex; gap: 4px; z-index: 2;">
                         <button onclick="event.stopPropagation(); triggerSceneImageUpload(${s.scene_id})" style="background: rgba(147, 51, 234, 0.85); border: 1px solid #c084fc; color: #fff; border-radius: 3px; padding: 2px 6px; font-size: 11px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 3px;" title="Replace with manually uploaded image">
@@ -13580,7 +13581,8 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
                        ondragleave="this.style.borderColor='#1e293b';"
                        ondrop="event.preventDefault(); this.style.borderColor='#1e293b'; if (event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files.length) uploadManualSceneImage(${s.scene_id}, event.dataTransfer.files[0]);">
                     ${imgUrl ? `
-                      <img id="studio-scene-img-${s.scene_id}" src="${imgUrlBusted}" style="width: 100%; height: 100%; object-fit: cover; cursor: pointer;" onclick="window.open('${imgUrl}')" title="Click to view full image in new tab">
+                      <img id="studio-scene-img-${s.scene_id}" src="${imgUrlBusted}" onload="if(this.naturalHeight > this.naturalWidth) { this.style.objectFit='contain'; this.style.background='radial-gradient(circle, #0f172a 0%, #020617 100%)'; }" style="width: 100%; height: 100%; object-fit: ${isImgPortrait ? 'contain' : 'cover'}; background: ${isImgPortrait ? 'radial-gradient(circle, #0f172a 0%, #020617 100%)' : '#000'}; cursor: pointer;" onclick="window.open('${imgUrl}')" title="Click to view full image in new tab">
+                      ${isImgPortrait ? '<span style="position: absolute; top: 4px; left: 4px; background: rgba(2, 132, 199, 0.85); border: 1px solid #38bdf8; color: #fff; font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 3px; z-index: 2;">📱 9:16 全景保留</span>' : ''}
                       <div style="position: absolute; bottom: 4px; left: 4px; background: rgba(0,0,0,0.7); font-size: 10px; color: #cbd5e1; padding: 2px 5px; border-radius: 3px; pointer-events: none;">🔍 Click to Zoom</div>
                       <div style="position: absolute; top: 4px; right: 4px; display: flex; gap: 4px; z-index: 2;">
                         <button onclick="event.stopPropagation(); triggerSceneImageUpload(${s.scene_id})" style="background: rgba(147, 51, 234, 0.85); border: 1px solid #c084fc; color: #fff; border-radius: 3px; padding: 2px 6px; font-size: 11px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 3px;" title="Replace with manually uploaded image">
@@ -13648,12 +13650,13 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
                   <div id="studio-takes-strip-${s.scene_id}" class="takes-scroll-strip" onwheel="if(event.deltaY !== 0){ event.preventDefault(); this.scrollLeft += event.deltaY; }">
                     ${takes.map(tk => {
                       const isAct = (tk.take === activeTake);
+                      const isTkPortrait = Boolean(tk.orientation === 'portrait' || tk.aspect_ratio === '9:16' || (isAct && isImgPortrait));
                       const tkSrc = `/media/${currentProjectId}/${tk.path}?t=${buster}`;
                       const tkStyle = (styles[tk.style] && styles[tk.style].label) || tk.style || 'Default';
                       return `
                         <div style="flex: 0 0 105px; background: ${isAct ? '#081a38' : '#03060d'}; border: 2px solid ${isAct ? '#3b82f6' : '#1e293b'}; border-radius: 6px; padding: 5px; display: flex; flex-direction: column; gap: 4px; cursor: pointer; transition: all 0.2s ease;" onclick="switchSceneTakeDirect(${s.scene_id}, ${tk.take})" title="Click to select Take #${tk.take} for final video">
                           <div style="width: 100%; height: 56px; background: #000; border-radius: 4px; overflow: hidden; position: relative;">
-                            <img src="${tkSrc}" alt="" onerror="this.onerror=null; this.src='/media/${currentProjectId}/images/scene_${String(s.scene_id).padStart(3, '0')}.png';" style="width: 100%; height: 100%; object-fit: cover;" title="Take #${tk.take}: ${tk.prompt || ''}">
+                            <img src="${tkSrc}" alt="" onload="if(this.naturalHeight > this.naturalWidth) { this.style.objectFit='contain'; this.parentElement.style.background='radial-gradient(circle, #0f172a 0%, #020617 100%)'; }" onerror="this.onerror=null; this.src='/media/${currentProjectId}/images/scene_${String(s.scene_id).padStart(3, '0')}.png';" style="width: 100%; height: 100%; object-fit: ${isTkPortrait ? 'contain' : 'cover'}; background: ${isTkPortrait ? 'radial-gradient(circle, #0f172a 0%, #020617 100%)' : '#000'};" title="Take #${tk.take}: ${tk.prompt || ''}">
                             ${isAct ? '<span style="position: absolute; top: 2px; right: 2px; background: #10b981; color: #fff; font-size: 8px; font-weight: 700; padding: 1px 4px; border-radius: 3px; box-shadow: 0 1px 3px rgba(0,0,0,0.6);">ACTIVE</span>' : ''}
                           </div>
                           <div style="display: flex; justify-content: space-between; align-items: center; font-size: 9px; font-weight: 700;">
@@ -15070,7 +15073,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
             </div>
 
             <div style="width:100%; height:160px; background:#000; border-radius:6px; overflow:hidden; position:relative; cursor:pointer;" onclick="window.open('${tkUrl}')" title="Click to view full image">
-              <img src="${tkUrl}" alt="" onerror="this.onerror=null; this.src='/media/${currentProjectId}/images/scene_${String(sceneId).padStart(3, '0')}.png';" style="width:100%; height:100%; object-fit:cover;">
+              <img src="${tkUrl}" alt="" onload="if(this.naturalHeight > this.naturalWidth) { this.style.objectFit='contain'; this.parentElement.style.background='radial-gradient(circle, #0f172a 0%, #020617 100%)'; }" onerror="this.onerror=null; this.src='/media/${currentProjectId}/images/scene_${String(sceneId).padStart(3, '0')}.png';" style="width:100%; height:100%; object-fit:cover;">
               <div style="position:absolute; bottom:4px; right:4px; background:rgba(0,0,0,0.7); font-size:9px; color:#cbd5e1; padding:2px 6px; border-radius:3px;">🔍 Zoom</div>
             </div>
 
