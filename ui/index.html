@@ -67,7 +67,7 @@
       <button class="btn-sec" id="hero-btn-global-find-replace" data-ui-click="static_012" style="padding: 5px 11px; font-size: 11.5px; font-weight: 600;" title="跨階段尋找並取代關鍵字">🔍 全階段同步取代 (Find & Replace)</button>
       <button class="btn-sec" id="hero-btn-rerender-voice" data-ui-click="static_013" style="padding: 5px 11px; font-size: 11.5px; font-weight: 600; color: #fde68a; border-color: rgba(193, 157, 73, 0.4);" title="Re-synthesize narration voice and update video">🎙️🔄 Re-render Voice & Video</button>
       <button class="btn-sec" id="hero-btn-rerender-avatar" data-ui-click="static_014" style="padding: 5px 11px; font-size: 11.5px; font-weight: 600;" title="Replace avatar clips and update video">🎭 Replace Avatar Clips & Video</button>
-      <button class="btn-sec" id="hero-btn-rerender-overlay" data-ui-click="hero_rerender_overlay" style="padding: 5px 11px; font-size: 11.5px; font-weight: 600; color: #7dd3fc; border-color: rgba(14, 165, 233, 0.4);" title="Change message overlay style and update video">🎨 Change Overlay Style & Video</button>
+      <button type="button" class="btn-sec" id="hero-btn-rerender-overlay" onclick="openRerenderOverlayModal()" data-ui-click="hero_rerender_overlay" style="padding: 5px 11px; font-size: 11.5px; font-weight: 600; color: #7dd3fc; border-color: rgba(14, 165, 233, 0.4); cursor: pointer;" title="Change message overlay style and update video">🎨 Change Overlay Style & Video</button>
     </div>
 
     <!-- Active Activity & Progress Bar -->
@@ -1288,7 +1288,7 @@
             <button class="btn-sec" data-ui-click="static_112" style="display: flex; align-items: center; gap: 6px; padding: 10px 16px; background: rgba(139, 92, 246, 0.18); border-color: #8b5cf6; color: #c4b5fd; font-weight: 700;" title="Replace only human avatar presenter clips and update the created 1080p video">
               🎭 Replace Avatar Clips & Video
             </button>
-            <button class="btn-sec" id="btn-rerender-overlay" data-ui-click="open_rerender_overlay_modal" style="display: flex; align-items: center; gap: 6px; padding: 10px 16px; background: rgba(14, 165, 233, 0.18); border-color: #0ea5e9; color: #7dd3fc; font-weight: 700;" title="Change scene message overlay style, subtitles, and update the created 1080p video">
+            <button type="button" class="btn-sec" id="btn-rerender-overlay" onclick="openRerenderOverlayModal()" data-ui-click="open_rerender_overlay_modal" style="display: flex; align-items: center; gap: 6px; padding: 10px 16px; background: rgba(14, 165, 233, 0.18); border-color: #0ea5e9; color: #7dd3fc; font-weight: 700; cursor: pointer;" title="Change scene message overlay style, subtitles, and update the created 1080p video">
               🎨 Change Overlay Style & Video
             </button>
             <button class="btn-primary" data-ui-click="static_113" style="display: flex; align-items: center; gap: 6px; padding: 10px 18px; background: linear-gradient(135deg, #2563eb, #1d4ed8); border: 1px solid #3b82f6; color: #fff; font-weight: 700;" title="只重新處理修改過的分鏡（快取命中其餘分鏡），極速合成並取代舊影片">
@@ -4233,7 +4233,7 @@
   </div>
 
   <!-- RE-RENDER OVERLAY STYLE & UPDATE VIDEO MODAL -->
-  <div id="rerender-overlay-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.82); z-index:10050; justify-content:center; align-items:center; padding:20px;">
+  <div id="rerender-overlay-modal" onclick="if(event.target===this)closeRerenderOverlayModal()" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.82); z-index:10050; justify-content:center; align-items:center; padding:20px;">
     <div style="background:#0b1322; border:1px solid #0ea5e9; border-radius:12px; width:100%; max-width:680px; max-height:90vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 20px 60px rgba(14, 165, 233, 0.35);">
       <!-- Header -->
       <div style="padding:16px 20px; border-bottom:1px solid #1e293b; display:flex; justify-content:space-between; align-items:center; background:linear-gradient(135deg, rgba(14, 116, 144, 0.45) 0%, #080d16 100%);">
@@ -4245,7 +4245,7 @@
             Configure message overlay styling, callouts & subtitles, and re-render the final 1080p video preserving all voice audio, avatar clips, and AI footage.
           </div>
         </div>
-        <button class="btn-sec" data-ui-click="close_rerender_overlay_modal" style="padding:4px 10px; font-size:13px;">✕</button>
+        <button type="button" class="btn-sec" onclick="closeRerenderOverlayModal()" data-ui-click="close_rerender_overlay_modal" style="padding:4px 10px; font-size:13px; cursor:pointer;">✕</button>
       </div>
 
       <!-- Body -->
@@ -4261,7 +4261,7 @@
             <span>🎬 1. Select Message Overlay Style:</span>
             <span id="ro-callout-style-badge" style="font-size:11px; color:#38bdf8; font-weight:600;">置中大字 · 輕度壓暗背景</span>
           </label>
-          <select id="ro-callout-style" data-ui-change="on_ro_callout_style_change" style="width:100%; padding:9px 12px; font-size:13px; font-weight:600; background:#070d18; border:1px solid #0284c7; color:#fff; border-radius:6px;">
+          <select id="ro-callout-style" onchange="onRoCalloutStyleChange()" data-ui-change="on_ro_callout_style_change" style="width:100%; padding:9px 12px; font-size:13px; font-weight:600; background:#070d18; border:1px solid #0284c7; color:#fff; border-radius:6px; cursor:pointer;">
             <option value="neutral_centered" selected>中性置中大字 (Neutral Centered · 輕度壓暗背景)</option>
             <option value="modern_pill">極簡深色毛玻璃膠囊橫幅 (Modern Glass Pill · 現代俐落霓虹)</option>
             <option value="archival_parchment">歷史檔案古籍牛皮紙印章 (Archival Parchment · 歷史紀錄片推薦)</option>
@@ -4285,7 +4285,7 @@
             </div>
           </div>
           <label style="position:relative; display:inline-block; width:44px; height:24px; margin:0; cursor:pointer; flex-shrink:0;">
-            <input type="checkbox" id="ro-motion-callouts" checked data-ui-change="on_ro_motion_callouts_change" style="opacity:0; width:0; height:0;">
+            <input type="checkbox" id="ro-motion-callouts" checked onchange="onRoMotionCalloutsChange()" data-ui-change="on_ro_motion_callouts_change" style="opacity:0; width:0; height:0;">
             <span style="position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background-color:#0284c7; transition:.25s; border-radius:24px;" id="ro-motion-callouts-slider">
               <span id="ro-motion-callouts-knob" style="position:absolute; height:18px; width:18px; left:23px; bottom:3px; background-color:#ffffff; transition:.25s; border-radius:50%; box-shadow:0 1px 3px rgba(0,0,0,0.4);"></span>
             </span>
@@ -4342,8 +4342,8 @@
 
       <!-- Footer -->
       <div style="padding:14px 20px; border-top:1px solid #1e293b; display:flex; justify-content:space-between; align-items:center; background:#080d16;">
-        <button class="btn-sec" data-ui-click="close_rerender_overlay_modal">Cancel</button>
-        <button id="btn-execute-rerender-overlay" class="btn-primary" data-ui-click="execute_rerender_overlay" style="background:linear-gradient(135deg, #0284c7 0%, #0369a1 100%); border-color:#38bdf8; font-weight:700; padding:10px 22px; font-size:13px; display:flex; align-items:center; gap:8px;">
+        <button type="button" class="btn-sec" onclick="closeRerenderOverlayModal()" data-ui-click="close_rerender_overlay_modal" style="cursor:pointer;">Cancel</button>
+        <button type="button" id="btn-execute-rerender-overlay" onclick="executeRerenderOverlayAndVideo()" class="btn-primary" data-ui-click="execute_rerender_overlay" style="background:linear-gradient(135deg, #0284c7 0%, #0369a1 100%); border-color:#38bdf8; font-weight:700; padding:10px 22px; font-size:13px; display:flex; align-items:center; gap:8px; cursor:pointer;">
           <span>🚀 Save Overlay & Re-render Video</span>
         </button>
       </div>
@@ -4351,8 +4351,8 @@
   </div>
 
   <script src="/api.js"></script>
-  <script src="/events.js?v=20261111_v1"></script>
-  <script src="/app.js?v=20261112_callout_timeline_v1"></script>
+  <script src="/events.js?v=20261115_overlay_v2"></script>
+  <script src="/app.js?v=20261115_overlay_v2"></script>
 
   <!-- Formula Manager Modal -->
   <div id="formula-manager-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 99999; align-items: center; justify-content: center; backdrop-filter: blur(4px);">

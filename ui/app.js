@@ -118,6 +118,18 @@
     let cachedRaAvatars = [];
     let cachedRaVoices = [];
 
+    function resolveActiveProjectId() {
+      if (currentProjectId) return currentProjectId;
+      const prevSel = document.getElementById('preview-project-select');
+      const globSel = document.getElementById('global-project-select');
+      const stored = localStorage.getItem('active_project_id');
+      const pid = (prevSel && prevSel.value) || (globSel && globSel.value) || stored || (typeof allProjectsCache !== 'undefined' && allProjectsCache.length ? allProjectsCache[0].id : null);
+      if (pid) {
+        currentProjectId = pid;
+      }
+      return currentProjectId;
+    }
+
     function closeRerenderAvatarModal() {
       const m = document.getElementById('rerender-avatar-modal');
       if (m) m.style.display = 'none';
@@ -190,12 +202,16 @@
     }
 
     async function openRerenderAvatarModal(preselectedAvatar = null) {
-      if (!currentProjectId) return alert("Please select a project first.");
-
       const m = document.getElementById('rerender-avatar-modal');
       if (m) m.style.display = 'flex';
 
+      const pid = resolveActiveProjectId();
       const diagBox = document.getElementById('ra-diagnosis-box');
+      if (!pid) {
+        if (diagBox) diagBox.innerHTML = '<span style="color:#fbbf24;">⚠️ 請先選取或載入一個專案 (Please select a project first).</span>';
+        return;
+      }
+
       const avSel = document.getElementById('ra-avatar-profile');
       const voiceSel = document.getElementById('ra-voice-profile');
       const customList = document.getElementById('ra-custom-scenes-list');
@@ -205,7 +221,7 @@
       try {
         const [aData, pData, vData] = await Promise.all([
           apiJson('/api/avatars'),
-          apiJson(`/api/projects/${currentProjectId}`),
+          apiJson(`/api/projects/${pid}`),
           apiJson('/api/voices')
         ]);
 
@@ -474,19 +490,22 @@
     }
 
     async function openRerenderVoiceModal(preselectedProfile = null) {
-      if (!currentProjectId) {
-        return alert("Please select a project first.");
-      }
       const m = document.getElementById('rerender-voice-modal');
       if (m) m.style.display = 'flex';
 
+      const pid = resolveActiveProjectId();
       const diagBox = document.getElementById('rv-diagnosis-box');
+      if (!pid) {
+        if (diagBox) diagBox.innerHTML = '<span style="color:#fbbf24;">⚠️ 請先選取或載入一個專案 (Please select a project first).</span>';
+        return;
+      }
+
       if (diagBox) diagBox.innerHTML = '⏳ Inspecting project scenes & voice tracks...';
 
       try {
         const [voiceData, pData] = await Promise.all([
           apiJson('/api/voices'),
-          apiJson(`/api/projects/${currentProjectId}`)
+          apiJson(`/api/projects/${pid}`)
         ]);
         cachedRerenderVoices = sortVoicesByGenderAndAgeDesc(voiceData || []);
         const proj = pData.project || {};
@@ -679,27 +698,39 @@
     function onRoCalloutStyleChange() {
       const sel = document.getElementById('ro-callout-style');
       const badge = document.getElementById('ro-callout-style-badge');
-      if (sel && badge) {
-        const info = CALLOUT_STYLES_INFO[sel.value] || CALLOUT_STYLES_INFO.neutral_centered;
-        badge.textContent = info.badge || '';
+      const stylesInfo = (typeof CALLOUT_STYLES_INFO !== 'undefined') ? CALLOUT_STYLES_INFO : (window.CALLOUT_STYLES_INFO || {});
+      if (sel && badge && stylesInfo[sel.value]) {
+        badge.textContent = stylesInfo[sel.value].badge || '';
       }
-      updateCalloutStyleWidget('ro-callout-style', 'ro-callout-preview-container');
+      if (typeof updateCalloutStyleWidget === 'function') {
+        updateCalloutStyleWidget('ro-callout-style', 'ro-callout-preview-container');
+      }
     }
 
     async function openRerenderOverlayModal() {
-      if (!currentProjectId) {
-        return alert("Please select a project first.");
-      }
+      // 1. Immediately display the modal so user gets instant visual feedback
       const m = document.getElementById('rerender-overlay-modal');
       if (m) m.style.display = 'flex';
 
       const diagBox = document.getElementById('ro-diagnosis-box');
+      const pid = resolveActiveProjectId();
+
+      if (!pid) {
+        if (diagBox) {
+          diagBox.innerHTML = `
+            <div style="color:#fbbf24; font-weight:700; margin-bottom:4px;">⚠️ 尚未選取任何專案 (No Project Selected)</div>
+            <div style="font-size:11.5px; color:#94a3b8;">請先在上方播放器「🎬 選擇播放專案」下拉選單中選取一個專案後再試。</div>
+          `;
+        }
+        return;
+      }
+
       if (diagBox) diagBox.innerHTML = '<span style="color:#7dd3fc;">🔍 Inspecting project overlay configuration & scene callouts...</span>';
 
       try {
         const [pData, subData] = await Promise.all([
-          apiJson(`/api/projects/${currentProjectId}`),
-          apiJson(`/api/projects/${currentProjectId}/stages/subtitles`).catch(() => ({})),
+          apiJson(`/api/projects/${pid}`),
+          apiJson(`/api/projects/${pid}/stages/subtitles`).catch(() => ({})),
         ]);
 
         const proj = pData.project || {};
@@ -709,7 +740,7 @@
 
         const subEl = document.getElementById('ro-project-subtitle');
         if (subEl) {
-          subEl.textContent = `Project: ${proj.title || proj.topic || currentProjectId} (${scenes.length} scenes)`;
+          subEl.textContent = `Project: ${proj.title || proj.topic || pid} (${scenes.length} scenes)`;
         }
 
         const currentCalloutStyle = sub.callout_style || projSub.callout_style || proj.settings?.callout_style || 'neutral_centered';
@@ -751,12 +782,17 @@
         }
 
         // Initialize callout style preview widget
-        initCalloutStyleWidget('ro-callout-style', 'ro-callout-preview-container');
-        updateCalloutStyleWidget('ro-callout-style', 'ro-callout-preview-container');
+        if (typeof initCalloutStyleWidget === 'function') {
+          initCalloutStyleWidget('ro-callout-style', 'ro-callout-preview-container');
+        }
+        if (typeof updateCalloutStyleWidget === 'function') {
+          updateCalloutStyleWidget('ro-callout-style', 'ro-callout-preview-container');
+        }
 
+        const stylesInfo = (typeof CALLOUT_STYLES_INFO !== 'undefined') ? CALLOUT_STYLES_INFO : (window.CALLOUT_STYLES_INFO || {});
         const badge = document.getElementById('ro-callout-style-badge');
-        if (badge && CALLOUT_STYLES_INFO[currentCalloutStyle]) {
-          badge.textContent = CALLOUT_STYLES_INFO[currentCalloutStyle].badge;
+        if (badge && stylesInfo[currentCalloutStyle]) {
+          badge.textContent = stylesInfo[currentCalloutStyle].badge;
         }
 
         // Scene callout diagnosis
@@ -765,10 +801,10 @@
         const detectedCalloutsCount = Math.max(calloutsList.length, scenesWithCallouts.length);
 
         if (diagBox) {
-          const info = CALLOUT_STYLES_INFO[currentCalloutStyle] || CALLOUT_STYLES_INFO.neutral_centered;
+          const info = stylesInfo[currentCalloutStyle] || stylesInfo.neutral_centered || { name: currentCalloutStyle, badge: '' };
           diagBox.innerHTML = `
             <div style="font-weight:700; color:#38bdf8; margin-bottom:4px;">
-              ✓ Current Overlay Style: <b>${escapeHtml(info.name)}</b> (${escapeHtml(currentCalloutStyle)}) — <i>${escapeHtml(info.badge)}</i>
+              ✓ Current Overlay Style: <b>${escapeHtml(info.name || currentCalloutStyle)}</b> (${escapeHtml(currentCalloutStyle)}) — <i>${escapeHtml(info.badge || '')}</i>
             </div>
             <div style="font-size:11.5px; color:#94a3b8; line-height:1.5;">
               Motion Graphic Callouts: <b style="color:${motionEnabled ? '#34d399' : '#f87171'};">${motionEnabled ? '✓ Enabled' : '✕ Disabled'}</b>
@@ -783,7 +819,8 @@
     }
 
     async function executeRerenderOverlayAndVideo() {
-      if (!currentProjectId) return;
+      const pid = resolveActiveProjectId();
+      if (!pid) return alert("Please select a project first.");
       const calloutStyle = document.getElementById('ro-callout-style')?.value || 'neutral_centered';
       const motionEnabled = document.getElementById('ro-motion-callouts') ? document.getElementById('ro-motion-callouts').checked : true;
       const subStyle = document.getElementById('ro-sub-style')?.value || null;
@@ -805,7 +842,7 @@
           remotion_theme: remotionTheme
         };
 
-        const data = await apiJson(`/api/projects/${currentProjectId}/rerender_overlay_and_video`, {
+        const data = await apiJson(`/api/projects/${pid}/rerender_overlay_and_video`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
@@ -8280,6 +8317,7 @@
         accent: '#64748b'
       }
     };
+    window.CALLOUT_STYLES_INFO = CALLOUT_STYLES_INFO;
 
     function renderCalloutStyleScreenHtml(styleKey, isMini = false) {
       const info = CALLOUT_STYLES_INFO[styleKey] || CALLOUT_STYLES_INFO.neutral_centered;
