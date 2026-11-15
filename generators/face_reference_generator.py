@@ -172,6 +172,8 @@ def generate_face_referenced_portrait(
                                         im_crop = raw_res.crop((0, top, w, min(h, top + crop_h)))
                                     
                                     im_final = im_crop.resize((target_width, target_height), Image.Resampling.LANCZOS)
+                                    from core.image_utils import imprint_ai_image_label
+                                    im_final = imprint_ai_image_label(im_final)
                                     output_path.parent.mkdir(parents=True, exist_ok=True)
                                     im_final.save(output_path, format="PNG")
                                     log.info("Successfully generated face-referenced character portrait at %s", output_path)

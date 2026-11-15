@@ -4036,6 +4036,10 @@ def regenerate_scene_image(project_id: str, scene_id: int, req_body: Optional[Re
         meta = provider.generate(req)
         merged_meta = dict(existing_img_meta)
         merged_meta.update(meta)
+        from core.image_utils import is_ai_created_image
+        if is_ai_created_image(merged_meta):
+            merged_meta["is_ai"] = True
+            merged_meta["ai_imprinted"] = True
         merged_meta["visual_style"] = chosen_style
         merged_meta["takes"] = prev_img_takes
         s.image.status = Status.COMPLETED
@@ -4161,6 +4165,7 @@ async def upload_scene_image_endpoint(
             "visual_style": "manual_upload",
             "is_stock": False,
             "is_manual_upload": True,
+            "is_ai": False,
             "takes": prev_img_takes,
             "detected_aspect_ratio": detected_ratio,
             "aspect_ratio": detected_ratio,

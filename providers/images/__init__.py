@@ -18,6 +18,7 @@ from typing import Any, Callable
 log = logging.getLogger(__name__)
 
 from core.config import ROOT, get_secret, load_providers
+from core.image_utils import imprint_ai_image_label, is_ai_created_image
 from agents.prompts_common import (
     UNIVERSAL_QUALITY_NEGATIVE,
     UNIVERSAL_ANTI_CLONE_NEGATIVE,
@@ -151,6 +152,8 @@ class ComfyUIImageProvider(ImageProvider):
 
         req.output.write_bytes(files[0][1])
 
+        imprint_ai_image_label(req.output, req.output)
+
         _check_not_blank(req.output)
 
         return {"provider": "comfyui", "workflow": wf_path.name, "model": values["CHECKPOINT"],
@@ -159,7 +162,7 @@ class ComfyUIImageProvider(ImageProvider):
 
                 "scheduler": values["SCHEDULER"], "width": req.width, "height": req.height,
 
-                "prompt": req.prompt, "negative": req.negative}
+                "prompt": req.prompt, "negative": req.negative, "is_ai": True, "ai_imprinted": True}
 
     def release(self):
 
@@ -212,11 +215,13 @@ def _generate_openai_image(req: ImageRequest, attempts: list[dict], key: str,
             continue
         req.output.parent.mkdir(parents=True, exist_ok=True)
         req.output.write_bytes(image_bytes)
+        imprint_ai_image_label(req.output, req.output)
         _check_not_blank(req.output)
         return {
             "provider": provider, "model": model, "seed": req.seed,
             "width": req.width, "height": req.height, "prompt": req.prompt,
             "revised_prompt": item.get("revised_prompt", req.prompt), "is_cloud": True,
+            "is_ai": True, "ai_imprinted": True,
         }
     raise RuntimeError(f"OpenAI {provider} generation failed: {last_error}")
 
@@ -239,6 +244,7 @@ def _decode_inline_image(data: dict) -> bytes | None:
 def _write_generated_image(req: ImageRequest, image_bytes: bytes) -> None:
     req.output.parent.mkdir(parents=True, exist_ok=True)
     req.output.write_bytes(image_bytes)
+    imprint_ai_image_label(req.output, req.output)
     _check_not_blank(req.output)
 
 
@@ -506,6 +512,10 @@ class Imagen302ImageProvider(ImageProvider):
 
                         "is_cloud": True,
 
+                        "is_ai": True,
+
+                        "ai_imprinted": True,
+
                     }
 
             elif r.status_code == 429:
@@ -555,6 +565,8 @@ class Imagen302ImageProvider(ImageProvider):
                             "height": req.height,
                             "prompt": req.prompt,
                             "is_cloud": True,
+                            "is_ai": True,
+                            "ai_imprinted": True,
                         }
 
             except Exception as ex:
@@ -768,6 +780,8 @@ class NanoBanana21ImageProvider(ImageProvider):
 
                             rgb_im = im.convert("RGB")
 
+                            rgb_im = imprint_ai_image_label(rgb_im)
+
                             rgb_im.save(req.output, format="PNG")
 
                             out_w, out_h = rgb_im.size
@@ -789,6 +803,10 @@ class NanoBanana21ImageProvider(ImageProvider):
                             "prompt": req.prompt,
 
                             "is_cloud": True,
+
+                            "is_ai": True,
+
+                            "ai_imprinted": True,
 
                             "rate_per_image": 0.0168,
 
@@ -925,6 +943,8 @@ class Imagen3ImageProvider(ImageProvider):
                             "height": req.height,
                             "prompt": req.prompt,
                             "is_cloud": True,
+                            "is_ai": True,
+                            "ai_imprinted": True,
                         }
 
                 except Exception as ex:
@@ -1076,6 +1096,7 @@ class StockImageProvider(ImageProvider):
                         "height": req.height,
                         "prompt": req.prompt,
                         "is_stock": True,
+                        "is_ai": False,
                     }
                 else:
                     log.info("StockImageProvider: All %d YouTube thumbnail candidates for '%s' are in recency cooldown/already used; falling back to Wikimedia/AI", len(vids), query)
@@ -1168,6 +1189,8 @@ class StockImageProvider(ImageProvider):
             "prompt": req.prompt,
 
             "is_stock": True,
+
+            "is_ai": False,
 
         }
 
@@ -1328,6 +1351,8 @@ class FalFluxSchnellImageProvider(ImageProvider):
 
             rgb_im = im.convert("RGB")
 
+            rgb_im = imprint_ai_image_label(rgb_im)
+
             rgb_im.save(req.output, format="PNG")
 
             out_w, out_h = rgb_im.size
@@ -1349,6 +1374,10 @@ class FalFluxSchnellImageProvider(ImageProvider):
             "height": out_h,
 
             "is_cloud": True,
+
+            "is_ai": True,
+
+            "ai_imprinted": True,
 
         }
 

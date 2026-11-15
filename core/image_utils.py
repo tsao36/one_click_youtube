@@ -10,7 +10,7 @@ import io
 from pathlib import Path
 from typing import Any, Optional, Union
 
-from PIL import Image, ImageFilter, ImageOps
+from PIL import Image, ImageDraw, ImageFilter, ImageFont, ImageOps
 
 
 def detect_image_orientation(image_input: Union[Path, str, Image.Image, bytes]) -> dict[str, Any]:
@@ -170,3 +170,162 @@ def adjust_image_orientation(
         "target_aspect_ratio": target_aspect_ratio,
     }
     return res_im, meta
+
+
+def _load_imprint_font(size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
+    """Load a clean, readable TrueType font for imprinting AI image labels."""
+    candidates = [
+        "segoeui.ttf",
+        "arial.ttf",
+        "calibri.ttf",
+        "tahoma.ttf",
+        r"C:\Windows\Fonts\segoeui.ttf",
+        r"C:\Windows\Fonts\arial.ttf",
+        r"C:\Windows\Fonts\calibri.ttf",
+        r"C:\Windows\Fonts\tahoma.ttf",
+        str(Path(__file__).resolve().parent.parent / "data" / "fonts" / "LXGWWenKaiTC-Regular.ttf"),
+    ]
+    for c in candidates:
+        try:
+            return ImageFont.truetype(c, size)
+        except Exception:
+            continue
+    try:
+        return ImageFont.load_default(size=size)
+    except TypeError:
+        return ImageFont.load_default()
+
+
+def imprint_ai_image_label(
+    image_input: Union[Path, str, Image.Image, bytes],
+    output_path: Optional[Union[Path, str]] = None,
+    label: str = "AI Image",
+    font_size: Optional[int] = None,
+    opacity: float = 0.90,
+) -> Image.Image:
+    """Imprint 'AI Image' in small font on the bottom-left of an image.
+
+    - Places the label in the bottom-left corner with clean, unobtrusive margins.
+    - Scales the typography and subtle rounded pill backdrop proportionally to
+      the image's resolution.
+    - Semi-transparent dark pill background ensures crisp legibility across both
+      pure bright and pure dark backgrounds without obscuring artwork.
+    - Safely handles PIL Image, Path, str, or raw bytes.
+    - Writes to output_path if provided.
+
+    Returns:
+        The imprinted PIL Image (RGB mode).
+    """
+    if isinstance(image_input, Image.Image):
+        im = image_input.copy()
+    elif isinstance(image_input, (bytes, bytearray)):
+        with Image.open(io.BytesIO(image_input)) as raw:
+            im = ImageOps.exif_transpose(raw).convert("RGB")
+    else:
+        path = Path(image_input)
+        if not path.exists():
+            raise FileNotFoundError(f"Image not found: {path}")
+        with Image.open(path) as raw:
+            im = ImageOps.exif_transpose(raw).convert("RGB")
+
+    w, h = im.size
+    min_dim = min(w, h)
+
+    if font_size is None:
+        # Subtle small font proportionally scaled to resolution (e.g. ~18-20px for 1080p, ~12-14px for 576p)
+        font_size = max(11, min(36, int(min_dim * 0.018)))
+
+    font = _load_imprint_font(font_size)
+    try:
+        bbox = font.getbbox(label)
+    except Exception:
+        bbox = (0, 0, 8 * len(label), 14)
+
+    tw = bbox[2] - bbox[0]
+    th = bbox[3] - bbox[1]
+
+    # Calculate positioning for the bottom-left corner
+    margin_x = max(14, int(w * 0.016))
+    margin_y = max(14, int(h * 0.020))
+    pad_x = max(7, int(font_size * 0.45))
+    pad_y = max(3, int(font_size * 0.25))
+
+    pill_x0 = margin_x
+    pill_y1 = h - margin_y
+    pill_y0 = pill_y1 - (th + pad_y * 2)
+    pill_x1 = pill_x0 + (tw + pad_x * 2)
+    corner_radius = max(3, int(font_size * 0.25))
+
+    overlay = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(overlay)
+
+    bg_alpha = int(115 * min(1.0, max(0.2, opacity)))
+    txt_alpha = int(235 * min(1.0, max(0.2, opacity)))
+
+    draw.rounded_rectangle(
+        [pill_x0, pill_y0, pill_x1, pill_y1],
+        radius=corner_radius,
+        fill=(0, 0, 0, bg_alpha),
+    )
+
+    text_x = pill_x0 + pad_x - bbox[0]
+    text_y = pill_y0 + pad_y - bbox[1]
+    draw.text((text_x, text_y), label, font=font, fill=(255, 255, 255, txt_alpha))
+
+    base_rgba = im.convert("RGBA")
+    composited = Image.alpha_composite(base_rgba, overlay)
+    result = composited.convert("RGB")
+
+    if output_path:
+        out = Path(output_path)
+        out.parent.mkdir(parents=True, exist_ok=True)
+        result.save(out, format="PNG")
+
+    return result
+
+
+def is_ai_created_image(obj: Any) -> bool:
+    """Determine whether an asset, scene, or metadata dictionary represents an AI-created image."""
+    if obj is None:
+        return False
+
+    meta = None
+    if hasattr(obj, "image") and getattr(obj, "image", None):
+        img_obj = obj.image
+        meta = getattr(img_obj, "meta", None)
+        if getattr(obj, "media_source", None) in ("stock", "youtube_snippet", "youtube_screenshot", "user_upload", "upload"):
+            return False
+    elif isinstance(obj, dict):
+        meta = obj
+    elif hasattr(obj, "meta"):
+        meta = getattr(obj, "meta")
+
+    if not isinstance(meta, dict):
+        return False
+
+    if meta.get("is_stock") or meta.get("is_uploaded") or meta.get("is_manual_upload"):
+        return False
+
+    source = str(meta.get("source", "")).lower()
+    if source in ("wikimedia", "pexels", "pixabay", "youtube", "youtube snippet", "upload", "user_upload", "manual_upload"):
+        return False
+
+    prov = str(meta.get("provider", "")).lower()
+    if prov in ("stock", "stock_photos", "wikimedia", "pexels", "pixabay", "youtube_snippet", "user_upload", "upload", "manual_upload", "placeholder", "avatar_presenter"):
+        return False
+
+    if meta.get("is_ai") is True or meta.get("is_ai_generated") is True:
+        return True
+
+    ai_providers = (
+        "comfyui", "fal-ai/flux-1/schnell", "fal-ai/flux/schnell", "flux-schnell",
+        "fal-flux-schnell", "flux-1-schnell", "gpt-image-1", "gpt_image_1",
+        "dalle3", "dall-e-3", "openai", "imagen-3.0-generate-002",
+        "imagen3", "imagen-3", "gemini_image", "nano-banana-2.1", "nano_banana_21",
+        "gemini-nano-banana-2.1", "nano-banana", "nano_banana", "banana-2.1", "banana",
+        "minimax", "hailuo", "stability", "midjourney"
+    )
+    if prov in ai_providers or any(prov.endswith(ext) for ext in (".safetensors", ".ckpt")):
+        return True
+
+    return False

@@ -931,6 +931,16 @@ class DocumentaryPipeline(BasePipeline):
                 if s.image.status == Status.COMPLETED and img_path.exists() and img_path.stat().st_size > 1000:
                     is_placeholder = bool(s.image.meta and s.image.meta.get("provider") == "placeholder")
                     if not (is_placeholder and current_model_name != "placeholder"):
+                        from core.image_utils import imprint_ai_image_label, is_ai_created_image
+                        if is_ai_created_image(s) and not (s.image.meta or {}).get("ai_imprinted"):
+                            try:
+                                imprint_ai_image_label(img_path, img_path)
+                                s.image.meta = dict(s.image.meta or {})
+                                s.image.meta["ai_imprinted"] = True
+                                s.image.meta["is_ai"] = True
+                                self.p.save_scenes()
+                            except Exception as ex:
+                                log.debug("imprint_ai_image_label note: %s", ex)
                         continue
 
 
