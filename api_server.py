@@ -3896,6 +3896,44 @@ def rerender_voice_and_video_endpoint(
     }
 
 
+# ---------------- Overlay Style Update & Video Re-render Endpoints ----------------
+class RerenderOverlayAndVideoRequest(BaseModel):
+    callout_style: Optional[str] = None
+    motion_graphics_callouts: Optional[bool] = None
+    subtitle_style: Optional[str] = None
+    subtitle_font: Optional[str] = None
+    remotion_theme: Optional[str] = None
+
+
+@app.post("/api/projects/{project_id}/rerender_overlay_and_video")
+def rerender_overlay_and_video_endpoint(
+    project_id: str,
+    req: RerenderOverlayAndVideoRequest,
+    background_tasks: BackgroundTasks,
+):
+    if not (PROJECTS_DIR / project_id).exists():
+        raise HTTPException(status_code=404, detail="Project not found")
+    p = get_project(project_id)
+
+    def do_work(pipeline: Pipeline):
+        pipeline.rerender_overlay_and_video(
+            callout_style=req.callout_style,
+            motion_graphics_callouts=req.motion_graphics_callouts,
+            subtitle_style=req.subtitle_style,
+            subtitle_font=req.subtitle_font,
+            remotion_theme=req.remotion_theme,
+        )
+
+    if not queue_pipeline_job(p, background_tasks, do_work):
+        return {"status": "already_running"}
+    return {
+        "status": "started",
+        "project_id": p.id,
+        "callout_style": req.callout_style,
+        "motion_graphics_callouts": req.motion_graphics_callouts,
+    }
+
+
 # ---------------- Human Avatar Replacement & Video Update Endpoints ----------------
 class RerenderAvatarClipsRequest(BaseModel):
     avatar_profile: Optional[str] = None

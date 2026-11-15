@@ -67,6 +67,7 @@
       <button class="btn-sec" id="hero-btn-global-find-replace" data-ui-click="static_012" style="padding: 5px 11px; font-size: 11.5px; font-weight: 600;" title="跨階段尋找並取代關鍵字">🔍 全階段同步取代 (Find & Replace)</button>
       <button class="btn-sec" id="hero-btn-rerender-voice" data-ui-click="static_013" style="padding: 5px 11px; font-size: 11.5px; font-weight: 600; color: #fde68a; border-color: rgba(193, 157, 73, 0.4);" title="Re-synthesize narration voice and update video">🎙️🔄 Re-render Voice & Video</button>
       <button class="btn-sec" id="hero-btn-rerender-avatar" data-ui-click="static_014" style="padding: 5px 11px; font-size: 11.5px; font-weight: 600;" title="Replace avatar clips and update video">🎭 Replace Avatar Clips & Video</button>
+      <button class="btn-sec" id="hero-btn-rerender-overlay" data-ui-click="hero_rerender_overlay" style="padding: 5px 11px; font-size: 11.5px; font-weight: 600; color: #7dd3fc; border-color: rgba(14, 165, 233, 0.4);" title="Change message overlay style and update video">🎨 Change Overlay Style & Video</button>
     </div>
 
     <!-- Active Activity & Progress Bar -->
@@ -1286,6 +1287,9 @@
             </button>
             <button class="btn-sec" data-ui-click="static_112" style="display: flex; align-items: center; gap: 6px; padding: 10px 16px; background: rgba(139, 92, 246, 0.18); border-color: #8b5cf6; color: #c4b5fd; font-weight: 700;" title="Replace only human avatar presenter clips and update the created 1080p video">
               🎭 Replace Avatar Clips & Video
+            </button>
+            <button class="btn-sec" id="btn-rerender-overlay" data-ui-click="open_rerender_overlay_modal" style="display: flex; align-items: center; gap: 6px; padding: 10px 16px; background: rgba(14, 165, 233, 0.18); border-color: #0ea5e9; color: #7dd3fc; font-weight: 700;" title="Change scene message overlay style, subtitles, and update the created 1080p video">
+              🎨 Change Overlay Style & Video
             </button>
             <button class="btn-primary" data-ui-click="static_113" style="display: flex; align-items: center; gap: 6px; padding: 10px 18px; background: linear-gradient(135deg, #2563eb, #1d4ed8); border: 1px solid #3b82f6; color: #fff; font-weight: 700;" title="只重新處理修改過的分鏡（快取命中其餘分鏡），極速合成並取代舊影片">
               ⚡ 僅替換已改分鏡並重新輸出影片 (Fast Re-render)
@@ -4223,6 +4227,124 @@
         <button class="btn-sec" data-ui-click="static_290">Cancel</button>
         <button id="btn-execute-rerender-avatar" class="btn-primary" data-ui-click="static_291" style="background:linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); border-color:#8b5cf6; font-weight:700; padding:10px 22px; font-size:13px; display:flex; align-items:center; gap:8px;">
           <span>🚀 Replace Avatar Clips & Update Video</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RE-RENDER OVERLAY STYLE & UPDATE VIDEO MODAL -->
+  <div id="rerender-overlay-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.82); z-index:10050; justify-content:center; align-items:center; padding:20px;">
+    <div style="background:#0b1322; border:1px solid #0ea5e9; border-radius:12px; width:100%; max-width:680px; max-height:90vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 20px 60px rgba(14, 165, 233, 0.35);">
+      <!-- Header -->
+      <div style="padding:16px 20px; border-bottom:1px solid #1e293b; display:flex; justify-content:space-between; align-items:center; background:linear-gradient(135deg, rgba(14, 116, 144, 0.45) 0%, #080d16 100%);">
+        <div>
+          <div style="font-size:16px; font-weight:800; color:#fff; display:flex; align-items:center; gap:8px;">
+            <span>🎨 Change Scene Message Overlay Style & Update Video</span>
+          </div>
+          <div id="ro-project-subtitle" style="font-size:12px; color:#7dd3fc; margin-top:2px;">
+            Configure message overlay styling, callouts & subtitles, and re-render the final 1080p video preserving all voice audio, avatar clips, and AI footage.
+          </div>
+        </div>
+        <button class="btn-sec" data-ui-click="close_rerender_overlay_modal" style="padding:4px 10px; font-size:13px;">✕</button>
+      </div>
+
+      <!-- Body -->
+      <div style="padding:20px; overflow-y:auto; display:flex; flex-direction:column; gap:16px;">
+        <!-- Current Project Diagnosis Box -->
+        <div id="ro-diagnosis-box" style="background:#070d18; border:1px solid #0369a1; border-radius:8px; padding:12px 14px; font-size:12px; color:#cbd5e1;">
+          Loading project overlay status & scene callouts...
+        </div>
+
+        <!-- 1. Overlay Style Selector -->
+        <div>
+          <label style="font-size:13px; font-weight:700; color:#e2e8f0; display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <span>🎬 1. Select Message Overlay Style:</span>
+            <span id="ro-callout-style-badge" style="font-size:11px; color:#38bdf8; font-weight:600;">置中大字 · 輕度壓暗背景</span>
+          </label>
+          <select id="ro-callout-style" data-ui-change="on_ro_callout_style_change" style="width:100%; padding:9px 12px; font-size:13px; font-weight:600; background:#070d18; border:1px solid #0284c7; color:#fff; border-radius:6px;">
+            <option value="neutral_centered" selected>中性置中大字 (Neutral Centered · 輕度壓暗背景)</option>
+            <option value="modern_pill">極簡深色毛玻璃膠囊橫幅 (Modern Glass Pill · 現代俐落霓虹)</option>
+            <option value="archival_parchment">歷史檔案古籍牛皮紙印章 (Archival Parchment · 歷史紀錄片推薦)</option>
+            <option value="historical_timeline">歷史紀年文獻卡 (Historical Timeline · 巨型年份/數字 + 硃紅底線)</option>
+            <option value="minimal_clean">極簡無框俐落字體 (Minimal Clean · 清透極簡風格)</option>
+            <option value="broadcast_news">專題電視新聞橫條 (Broadcast News Bar · 新聞專題風格)</option>
+            <option value="corner_metric">左上重點數據卡 (Corner Metric · 左上角大數字)</option>
+            <option value="none">停用場景訊息 · 純淨圖像 (No Message Overlay · 僅 Ken Burns/AI 圖像)</option>
+          </select>
+          <div id="ro-callout-preview-container" style="margin-top:10px;"></div>
+        </div>
+
+        <!-- 2. Motion Graphics Callout Toggle -->
+        <div style="background:rgba(14, 165, 233, 0.06); border:1px solid rgba(14, 165, 233, 0.25); border-radius:8px; padding:12px 14px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-size:13px; font-weight:700; color:#38bdf8;">
+              場景重點訊息特效 (Scene Message Overlay Callouts)
+            </div>
+            <div style="font-size:11px; color:#94a3b8; margin-top:2px;">
+              根據分鏡台詞核心觀點，在精彩場景中央浮現重點卡片，並輕度壓暗背景以聚焦視覺。
+            </div>
+          </div>
+          <label style="position:relative; display:inline-block; width:44px; height:24px; margin:0; cursor:pointer; flex-shrink:0;">
+            <input type="checkbox" id="ro-motion-callouts" checked data-ui-change="on_ro_motion_callouts_change" style="opacity:0; width:0; height:0;">
+            <span style="position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background-color:#0284c7; transition:.25s; border-radius:24px;" id="ro-motion-callouts-slider">
+              <span id="ro-motion-callouts-knob" style="position:absolute; height:18px; width:18px; left:23px; bottom:3px; background-color:#ffffff; transition:.25s; border-radius:50%; box-shadow:0 1px 3px rgba(0,0,0,0.4);"></span>
+            </span>
+          </label>
+        </div>
+
+        <!-- 3. Subtitle Appearance Settings -->
+        <div class="form-grid" style="grid-template-columns:1fr 1fr; gap:14px; margin-bottom:0;">
+          <div class="form-group" style="margin-bottom:0;">
+            <label style="font-size:12px; font-weight:700; color:#cbd5e1;">3. 字幕版型風格 (Subtitle Style)</label>
+            <select id="ro-sub-style" style="background:#040811; border:1px solid #334155; color:#fff; font-weight:600; width:100%; padding:8px 10px; border-radius:6px;">
+              <option value="youtube_standard" selected>YouTube Standard (經典黃白黑邊)</option>
+              <option value="cinematic">Cinematic (沉浸電影黑條微光)</option>
+              <option value="modern_bold">Modern Bold (現代醒目粗體雙層描邊)</option>
+              <option value="minimal_sub">Minimal Clean (俐落清透無框)</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label style="font-size:12px; font-weight:700; color:#cbd5e1;">4. 字幕字體 (Subtitle Font)</label>
+            <select id="ro-sub-font" style="background:#040811; border:1px solid #334155; color:#fff; font-weight:600; width:100%; padding:8px 10px; border-radius:6px;">
+              <option value="Microsoft JhengHei UI" selected>微軟正黑體 (Microsoft JhengHei UI)</option>
+              <option value="Noto Sans TC">思源黑體 (Noto Sans TC)</option>
+              <option value="PingFang TC">蘋方體 (PingFang TC)</option>
+              <option value="DFKai-SB">標楷體 (DFKai-SB)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- 4. Remotion Canvas Theme (Shown if remotion is enabled) -->
+        <div id="ro-remotion-theme-row" style="display:none;">
+          <label style="font-size:12px; font-weight:700; color:#cbd5e1; display:block; margin-bottom:4px;">
+            ⚛️ Remotion 畫布主題 (Remotion Canvas Theme):
+          </label>
+          <select id="ro-remotion-theme" style="width:100%; padding:8px 10px; background:#070d18; border:1px solid #334155; color:#e2e8f0; border-radius:6px;">
+            <option value="dark_obsidian" selected>Dark Obsidian (純黑曜石畫布)</option>
+            <option value="translucent_overlay">Translucent Overlay (毛玻璃遮罩)</option>
+            <option value="green_cutting_mat">Green Cutting Mat (墨綠雕刻墊)</option>
+            <option value="blueprint_grid">Blueprint Grid (深藍工程網格)</option>
+            <option value="finance_grid">Finance Grid (深灰金融盤勢)</option>
+            <option value="parchment_paper">Parchment Paper (古典羊皮紙)</option>
+            <option value="vox_charcoal">Vox Charcoal (高對比炭黑)</option>
+          </select>
+        </div>
+
+        <!-- Info Card -->
+        <div style="background:rgba(14, 165, 233, 0.08); border:1px solid rgba(14, 165, 233, 0.3); border-radius:8px; padding:10px 14px; font-size:12px; color:#bae6fd; line-height:1.5;">
+          <b>What happens when you click Save & Re-render:</b><br>
+          1. The new overlay style and subtitle settings are saved to project configuration.<br>
+          2. Subtitles (<code>.srt</code> / <code>.ass</code>) & motion callout cards are regenerated with the new design.<br>
+          3. Final 1080p MP4 video is re-rendered with all audio, avatar, and b-roll clips safely preserved.<br>
+          4. The player automatically reloads with the updated video once rendering completes.
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div style="padding:14px 20px; border-top:1px solid #1e293b; display:flex; justify-content:space-between; align-items:center; background:#080d16;">
+        <button class="btn-sec" data-ui-click="close_rerender_overlay_modal">Cancel</button>
+        <button id="btn-execute-rerender-overlay" class="btn-primary" data-ui-click="execute_rerender_overlay" style="background:linear-gradient(135deg, #0284c7 0%, #0369a1 100%); border-color:#38bdf8; font-weight:700; padding:10px 22px; font-size:13px; display:flex; align-items:center; gap:8px;">
+          <span>🚀 Save Overlay & Re-render Video</span>
         </button>
       </div>
     </div>

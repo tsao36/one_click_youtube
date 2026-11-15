@@ -312,6 +312,12 @@
     "static_296": function(event) { closeCreateVideoConfirmModal() },
     "static_297": function(event) { closeCreateVideoConfirmModal() },
     "static_298": function(event) { confirmAndProceedWithVideo() },
+    "open_rerender_overlay_modal": function(event) { openRerenderOverlayModal() },
+    "hero_rerender_overlay": function(event) { openRerenderOverlayModal() },
+    "close_rerender_overlay_modal": function(event) { closeRerenderOverlayModal() },
+    "execute_rerender_overlay": function(event) { executeRerenderOverlayAndVideo() },
+    "on_ro_callout_style_change": function(event) { onRoCalloutStyleChange() },
+    "on_ro_motion_callouts_change": function(event) { onRoMotionCalloutsChange() },
   };
   const eventNames = ["click","change","input","keydown","submit"];
   for (const eventName of eventNames) {

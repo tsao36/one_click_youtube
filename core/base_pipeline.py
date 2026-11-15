@@ -1726,6 +1726,86 @@ class BasePipeline:
 
             raise
 
+    def rerender_overlay_and_video(
+        self,
+        callout_style: Optional[str] = None,
+        motion_graphics_callouts: Optional[bool] = None,
+        subtitle_style: Optional[str] = None,
+        subtitle_font: Optional[str] = None,
+        remotion_theme: Optional[str] = None,
+    ) -> None:
+        """Update scene message overlay style & configuration, regenerate subtitles/callouts, and re-render the final 1080p video."""
+        with self._lock:
+            self._cancel_flag = False
+            self.p.data.state = "running"
+            self.p.data.error = None
+            self.p.data.activity = "Applying new overlay style & preparing video re-render..."
+
+            sub_s = self.p.data.settings.setdefault("subtitles", {})
+            if callout_style is not None:
+                sub_s["callout_style"] = str(callout_style)
+                self.p.data.settings["callout_style"] = str(callout_style)
+            if motion_graphics_callouts is not None:
+                val = bool(motion_graphics_callouts)
+                sub_s["motion_graphics_callouts"] = val
+                sub_s["callouts_enabled"] = val
+                self.p.data.settings["motion_callouts"] = val
+            if subtitle_style is not None and str(subtitle_style).strip():
+                sub_s["style"] = str(subtitle_style).strip()
+            if subtitle_font is not None and str(subtitle_font).strip():
+                sub_s["font"] = str(subtitle_font).strip()
+            if remotion_theme is not None and str(remotion_theme).strip():
+                rem = self.p.data.settings.setdefault("remotion", {})
+                rem["theme"] = str(remotion_theme).strip()
+                self.p.data.settings["remotion_theme"] = str(remotion_theme).strip()
+
+            if getattr(self.p, "project_mode", "documentary") != "short_drama":
+                self.ensure_consistent_project_voice()
+
+            # Invalidate subtitle cache files so they are rebuilt fresh with new overlay style
+            (self.p.path("subtitles", "subtitles.srt")).unlink(missing_ok=True)
+            (self.p.path("subtitles", "subtitles.ass")).unlink(missing_ok=True)
+            self.p.set_stage("subtitles", Status.PENDING)
+            self.p.set_stage("render", Status.PENDING)
+            self.p.save()
+
+        try:
+            log.info("Re-rendering overlay style (%s) and updating video for '%s'", callout_style, self.p.id)
+            self.p.activity("Stage: Re-generating subtitle & motion callout overlays...")
+            self._run_subtitles()
+            if self._cancel_flag:
+                raise PipelineCancelled()
+
+            self.p.activity("Stage: Re-rendering final 1080p video with new overlay styling...")
+            self._run_render()
+
+            with self.p.lock:
+                self.p.data.state = "completed"
+                self.p.data.completed_at = now()
+                self.p.data.activity = f"Overlay style '{callout_style or 'updated'}' applied & final 1080p video updated!"
+                self.p.save()
+
+            try:
+                from core.pricing import calculate_and_update_project_costs
+                calculate_and_update_project_costs(self.p)
+            except Exception as cost_err:
+                log.debug("Cost calculation note: %s", cost_err)
+
+        except PipelineCancelled:
+            with self.p.lock:
+                self.p.data.state = "paused"
+                self.p.data.activity = "Overlay re-render cancelled by user"
+                self.p.save()
+
+        except Exception as e:
+            with self.p.lock:
+                self.p.data.state = "failed"
+                self.p.data.error = str(e)
+                self.p.data.activity = f"Overlay re-render failed: {e}"
+                self.p.save()
+            log.exception("rerender_overlay_and_video failed for '%s': %s", self.p.id, e)
+            raise
+
 
 
     def _check_stop(self, current_stage: str) -> bool:

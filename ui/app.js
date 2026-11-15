@@ -655,6 +655,185 @@
         }
       }
     }
+
+    // ---------------- RE-RENDER OVERLAY STYLE & VIDEO MODAL LOGIC ----------------
+    function closeRerenderOverlayModal() {
+      const m = document.getElementById('rerender-overlay-modal');
+      if (m) m.style.display = 'none';
+    }
+
+    function onRoMotionCalloutsChange() {
+      const chk = document.getElementById('ro-motion-callouts');
+      const slider = document.getElementById('ro-motion-callouts-slider');
+      const knob = document.getElementById('ro-motion-callouts-knob');
+      if (!chk || !slider || !knob) return;
+      if (chk.checked) {
+        slider.style.backgroundColor = '#0284c7';
+        knob.style.left = '23px';
+      } else {
+        slider.style.backgroundColor = '#334155';
+        knob.style.left = '3px';
+      }
+    }
+
+    function onRoCalloutStyleChange() {
+      const sel = document.getElementById('ro-callout-style');
+      const badge = document.getElementById('ro-callout-style-badge');
+      if (sel && badge) {
+        const info = CALLOUT_STYLES_INFO[sel.value] || CALLOUT_STYLES_INFO.neutral_centered;
+        badge.textContent = info.badge || '';
+      }
+      updateCalloutStyleWidget('ro-callout-style', 'ro-callout-preview-container');
+    }
+
+    async function openRerenderOverlayModal() {
+      if (!currentProjectId) {
+        return alert("Please select a project first.");
+      }
+      const m = document.getElementById('rerender-overlay-modal');
+      if (m) m.style.display = 'flex';
+
+      const diagBox = document.getElementById('ro-diagnosis-box');
+      if (diagBox) diagBox.innerHTML = '<span style="color:#7dd3fc;">🔍 Inspecting project overlay configuration & scene callouts...</span>';
+
+      try {
+        const [pData, subData] = await Promise.all([
+          apiJson(`/api/projects/${currentProjectId}`),
+          apiJson(`/api/projects/${currentProjectId}/stages/subtitles`).catch(() => ({})),
+        ]);
+
+        const proj = pData.project || {};
+        const scenes = pData.scenes || [];
+        const sub = subData || {};
+        const projSub = (proj.settings && proj.settings.subtitles) || {};
+
+        const subEl = document.getElementById('ro-project-subtitle');
+        if (subEl) {
+          subEl.textContent = `Project: ${proj.title || proj.topic || currentProjectId} (${scenes.length} scenes)`;
+        }
+
+        const currentCalloutStyle = sub.callout_style || projSub.callout_style || proj.settings?.callout_style || 'neutral_centered';
+        const motionEnabled = (sub.motion_graphics_callouts !== undefined)
+          ? !!sub.motion_graphics_callouts
+          : (projSub.motion_graphics_callouts !== false && projSub.callouts_enabled !== false);
+
+        const calloutSel = document.getElementById('ro-callout-style');
+        if (calloutSel) {
+          calloutSel.value = currentCalloutStyle;
+        }
+
+        const motionChk = document.getElementById('ro-motion-callouts');
+        if (motionChk) {
+          motionChk.checked = motionEnabled;
+          onRoMotionCalloutsChange();
+        }
+
+        const subStyleSel = document.getElementById('ro-sub-style');
+        if (subStyleSel && (sub.style || projSub.style)) {
+          subStyleSel.value = sub.style || projSub.style;
+        }
+
+        const subFontSel = document.getElementById('ro-sub-font');
+        if (subFontSel && (sub.font || projSub.font)) {
+          subFontSel.value = sub.font || projSub.font;
+        }
+
+        const isRemotion = (proj.settings?.stage_models?.animation === 'remotion') || !!(proj.settings?.remotion);
+        const remRow = document.getElementById('ro-remotion-theme-row');
+        if (remRow) {
+          remRow.style.display = isRemotion ? 'block' : 'none';
+          if (isRemotion) {
+            const remSel = document.getElementById('ro-remotion-theme');
+            if (remSel) {
+              remSel.value = proj.settings?.remotion?.theme || proj.settings?.remotion_theme || 'dark_obsidian';
+            }
+          }
+        }
+
+        // Initialize callout style preview widget
+        initCalloutStyleWidget('ro-callout-style', 'ro-callout-preview-container');
+        updateCalloutStyleWidget('ro-callout-style', 'ro-callout-preview-container');
+
+        const badge = document.getElementById('ro-callout-style-badge');
+        if (badge && CALLOUT_STYLES_INFO[currentCalloutStyle]) {
+          badge.textContent = CALLOUT_STYLES_INFO[currentCalloutStyle].badge;
+        }
+
+        // Scene callout diagnosis
+        const calloutsList = sub.callouts_preview || [];
+        const scenesWithCallouts = scenes.filter(s => !!s.callout_text);
+        const detectedCalloutsCount = Math.max(calloutsList.length, scenesWithCallouts.length);
+
+        if (diagBox) {
+          const info = CALLOUT_STYLES_INFO[currentCalloutStyle] || CALLOUT_STYLES_INFO.neutral_centered;
+          diagBox.innerHTML = `
+            <div style="font-weight:700; color:#38bdf8; margin-bottom:4px;">
+              ✓ Current Overlay Style: <b>${escapeHtml(info.name)}</b> (${escapeHtml(currentCalloutStyle)}) — <i>${escapeHtml(info.badge)}</i>
+            </div>
+            <div style="font-size:11.5px; color:#94a3b8; line-height:1.5;">
+              Motion Graphic Callouts: <b style="color:${motionEnabled ? '#34d399' : '#f87171'};">${motionEnabled ? '✓ Enabled' : '✕ Disabled'}</b>
+              | Detected Callout Cards: <b style="color:#fcd34d;">${detectedCalloutsCount} scene(s)</b>
+              | Total Scenes: <b>${scenes.length}</b>
+            </div>
+          `;
+        }
+      } catch (err) {
+        if (diagBox) diagBox.innerHTML = `<span style="color:#f87171;">Failed to inspect project overlay settings: ${err.message}</span>`;
+      }
+    }
+
+    async function executeRerenderOverlayAndVideo() {
+      if (!currentProjectId) return;
+      const calloutStyle = document.getElementById('ro-callout-style')?.value || 'neutral_centered';
+      const motionEnabled = document.getElementById('ro-motion-callouts') ? document.getElementById('ro-motion-callouts').checked : true;
+      const subStyle = document.getElementById('ro-sub-style')?.value || null;
+      const subFont = document.getElementById('ro-sub-font')?.value || null;
+      const remotionTheme = document.getElementById('ro-remotion-theme')?.value || null;
+
+      const btn = document.getElementById('btn-execute-rerender-overlay');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span>⏳ Applying Overlay & Updating Video...</span>';
+      }
+
+      try {
+        const payload = {
+          callout_style: calloutStyle,
+          motion_graphics_callouts: motionEnabled,
+          subtitle_style: subStyle,
+          subtitle_font: subFont,
+          remotion_theme: remotionTheme
+        };
+
+        const data = await apiJson(`/api/projects/${currentProjectId}/rerender_overlay_and_video`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (data.status === 'already_running') {
+          alert("This project pipeline is already running. Please wait or stop the running process first.");
+          return;
+        }
+
+        closeRerenderOverlayModal();
+        showToast(`🎨 Re-rendering video with new overlay style (${calloutStyle})...`);
+        startPolling();
+      } catch (e) {
+        alert("Overlay Re-render Error: " + e.message);
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<span>🚀 Save Overlay & Re-render Video</span>';
+        }
+      }
+    }
+
+    window.openRerenderOverlayModal = openRerenderOverlayModal;
+    window.closeRerenderOverlayModal = closeRerenderOverlayModal;
+    window.executeRerenderOverlayAndVideo = executeRerenderOverlayAndVideo;
+    window.onRoCalloutStyleChange = onRoCalloutStyleChange;
+    window.onRoMotionCalloutsChange = onRoMotionCalloutsChange;
     let currentScenes = [];
     let projectStartTime = null;
     let imagesGalleryLayout = 'grid';
@@ -18089,6 +18268,10 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
           const mBlank = document.getElementById('topic-blank-warning-modal');
           if (mBlank && mBlank.style.display === 'flex') {
             closeTopicBlankWarningModal();
+          }
+          const mOverlay = document.getElementById('rerender-overlay-modal');
+          if (mOverlay && mOverlay.style.display === 'flex') {
+            closeRerenderOverlayModal();
           }
         }
       });
