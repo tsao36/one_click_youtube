@@ -497,9 +497,26 @@ def format_stock_image(
     """Detect if image is 9:16 or 16:9 and adjust the orientation automatically.
 
     Corrects EXIF camera orientation, detects 9:16 vertical portrait vs 16:9 widescreen,
-    and adjusts dimensions and framing to prevent image content clipping.
+    and automatically upscales low-resolution images (< 1280x720) to 1920x1080 via AI super-resolution.
     """
+    from core.image_upscaler import is_image_low_resolution, upscale_image_to_1080p
     from core.image_utils import adjust_image_orientation
+
+    is_low, w, h = is_image_low_resolution(input_path)
+    if is_low and target_w >= 1280 and target_h >= 720:
+        # Automatically upscale low-resolution image to 1920x1080
+        try:
+            upscale_image_to_1080p(
+                input_path,
+                output_path,
+                target_w=target_w,
+                target_h=target_h,
+                face_enhance=True,
+                allow_blur_backdrop=True,
+            )
+            return output_path
+        except Exception:
+            pass
 
     target_aspect = "auto" if auto_detect_orientation else ("9:16" if target_h > target_w else "16:9")
     adjust_image_orientation(

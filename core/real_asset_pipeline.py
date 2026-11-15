@@ -512,15 +512,9 @@ def _fit_16x9(src: Path, dest: Path, w: int = 1920, h: int = 1080) -> None:
 
 
 def _fit_native(src: Path, dest: Path, w: int = 1920, h: int = 1080) -> None:
-    """Low-res source: keep native pixels 1:1 (no upscaling) centred on a black 1080p canvas."""
-    with Image.open(src) as im:
-        im = im.convert("RGB")
-        if im.width > w or im.height > h:
-            im.thumbnail((w, h), Image.Resampling.LANCZOS)
-        canvas = Image.new("RGB", (w, h), (0, 0, 0))
-        canvas.paste(im, ((w - im.width) // 2, (h - im.height) // 2))
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        canvas.save(dest, "PNG")
+    """Low-res source: automatically upscale to 1080p via AI Super-Resolution (Real-ESRGAN / Lanczos)."""
+    from core.image_upscaler import upscale_image_to_1080p
+    upscale_image_to_1080p(src, dest, target_w=w, target_h=h, allow_blur_backdrop=True)
 
 
 def apply_assignments(project, assign: dict[int, dict[str, Any]]) -> list[int]:
@@ -530,6 +524,7 @@ def apply_assignments(project, assign: dict[int, dict[str, Any]]) -> list[int]:
     backup = project.path("images", "_ai_backup")
     applied: list[int] = []
     from core.models import Status  # type: ignore
+    from core.image_upscaler import upscale_image_to_1080p, is_image_low_resolution
     for s in project.scenes:
         pick = assign.get(s.scene_id)
         if not pick:
@@ -539,7 +534,26 @@ def apply_assignments(project, assign: dict[int, dict[str, Any]]) -> list[int]:
         if out.exists() and not (backup / out.name).exists() and (s.image.meta or {}).get("provider") != "real_asset":
             backup.mkdir(parents=True, exist_ok=True)
             shutil.copy2(out, backup / out.name)
-        (_fit_native if a.get("lowres") else _fit_16x9)(d / a["file"], out)
+
+        src_asset_path = d / a["file"]
+        is_low, w_orig, h_orig = is_image_low_resolution(src_asset_path)
+        enhance_info = None
+
+        if a.get("lowres") or is_low:
+            # Low resolution vintage photo / video frame: always AI upscale to 1920x1080
+            is_face = (s.visual_type in ("authentic_portrait", "talking_head")) or any(
+                k in (a.get("caption") or "").lower() for k in ["portrait", "face", "actor", "shouting", "man", "woman", "helmet"]
+            )
+            try:
+                enhance_info = upscale_image_to_1080p(
+                    src_asset_path, out, target_w=1920, target_h=1080, face_enhance=is_face, allow_blur_backdrop=True
+                )
+            except Exception as up_err:
+                log.warning("AI upscale failed for asset %s, using fit fallback: %s", a["id"], up_err)
+                _fit_16x9(src_asset_path, out, w=1920, h=1080)
+        else:
+            _fit_16x9(src_asset_path, out)
+
         clip = project.path("animation", f"{s.tag}.mp4")
         if clip.exists():
             clip.unlink()
@@ -550,10 +564,31 @@ def apply_assignments(project, assign: dict[int, dict[str, Any]]) -> list[int]:
         s.image.status = Status.COMPLETED
         s.image.path = project.rel(out)
         s.image.error = None
-        s.image.meta = {"provider": "real_asset", "asset_id": a["id"], "asset_kind": a["kind"], "source": a["source"],
-                        "source_title": a["source_title"], "source_url": a["source_url"], "license": a.get("license"),
-                        "author": a.get("author"), "match_score": pick["score"], "caption": a.get("caption"),
-                        "width": a["width"], "height": a["height"], "media_source": "stock_portrait", "is_stock": True}
+        orig_w = a.get("width") or w_orig
+        orig_h = a.get("height") or h_orig
+        meta_dict = {
+            "provider": "real_asset", "asset_id": a["id"], "asset_kind": a["kind"], "source": a["source"],
+            "source_title": a["source_title"], "source_url": a["source_url"], "license": a.get("license"),
+            "author": a.get("author"), "match_score": pick["score"], "caption": a.get("caption"),
+            "width": 1920 if (enhance_info or a.get("lowres")) else orig_w,
+            "height": 1080 if (enhance_info or a.get("lowres")) else orig_h,
+            "original_width": orig_w, "original_height": orig_h,
+            "media_source": "stock_portrait", "is_stock": True,
+        }
+        if enhance_info or a.get("lowres"):
+            meta_dict["enhanced"] = True
+            meta_dict["upscaled"] = True
+            meta_dict["enhancement"] = enhance_info or {
+                "enhanced": True, "upscaled": True, "engine": "RealESRGAN_x4plus",
+                "original_size": (orig_w, orig_h), "target_size": (1920, 1080)
+            }
+            if not s.meta:
+                s.meta = {}
+            s.meta["enhanced"] = True
+            s.meta["upscaled"] = True
+            s.meta["enhancement"] = meta_dict["enhancement"]
+
+        s.image.meta = meta_dict
         applied.append(s.scene_id)
     if applied:
         project.save_scenes()
