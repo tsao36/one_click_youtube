@@ -280,6 +280,77 @@ class TestProjectLifecycle:
         assert updated_scene["narration"] == "Updated first scene narration"
         assert updated_scene["prompt"] == "Dramatic sunset over pyramids"
 
+    def test_scene_manual_image_upload(self, webapp_env):
+        from PIL import Image
+
+        client = webapp_env["client"]
+        create_res = client.post("/api/projects", json={"topic": "Manual Upload Test", "start_now": False})
+        project_id = create_res.json()["project_id"]
+
+        scenes_payload = [
+            {
+                "scene_id": 1,
+                "narration": "Scene 1 narration",
+                "visual_prompt": "Cinematic visual",
+                "visual_type": "image",
+                "estimated_duration": 5.0,
+            }
+        ]
+        client.put(f"/api/projects/{project_id}/scenes", json=scenes_payload)
+
+        # Create dummy image
+        img = Image.new("RGB", (640, 360), color=(255, 0, 0))
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        buf.seek(0)
+
+        # 1. Upload to scene 1
+        res = client.post(
+            f"/api/projects/{project_id}/scenes/1/upload_image",
+            files={"file": ("my_custom_scene_art.png", buf, "image/png")},
+        )
+        assert res.status_code == 200
+        data = res.json()
+        assert data["status"] == "uploaded"
+        assert data["filename"] == "my_custom_scene_art.png"
+        assert "image_url" in data
+        assert data["scene"]["image"]["status"] == "COMPLETED"
+        assert data["scene"]["image"]["meta"]["is_manual_upload"] is True
+
+        # 2. Check stage_data for images includes manual upload flag
+        st_res = client.get(f"/api/projects/{project_id}/stage_data/images")
+        assert st_res.status_code == 200
+        st_data = st_res.json()
+        sc1 = st_data["scenes"][0]
+        assert sc1["is_manual_upload"] is True
+        assert sc1["manual_upload_filename"] == "my_custom_scene_art.png"
+
+        # 3. Upload a second image to verify take versioning
+        img2 = Image.new("RGB", (640, 360), color=(0, 255, 0))
+        buf2 = io.BytesIO()
+        img2.save(buf2, format="PNG")
+        buf2.seek(0)
+
+        res2 = client.post(
+            f"/api/projects/{project_id}/scenes/1/upload_image",
+            files={"file": ("take2_custom.png", buf2, "image/png")},
+        )
+        assert res2.status_code == 200
+        data2 = res2.json()
+        takes = data2["scene"]["image"]["meta"]["takes"]
+        assert len(takes) >= 2
+        assert data2["scene"]["image"]["meta"]["active_take"] == takes[-1]["take"]
+
+        # 4. Non-existent scene returns 404
+        buf3 = io.BytesIO()
+        img.save(buf3, format="PNG")
+        buf3.seek(0)
+        res_404 = client.post(
+            f"/api/projects/{project_id}/scenes/999/upload_image",
+            files={"file": ("test.png", buf3, "image/png")},
+        )
+        assert res_404.status_code == 404
+
     def test_project_settings_customization(self, webapp_env):
         client = webapp_env["client"]
         p_id = client.post("/api/projects", json={"topic": "Settings Customization", "start_now": False}).json()["project_id"]

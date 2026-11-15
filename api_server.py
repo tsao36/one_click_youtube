@@ -3687,7 +3687,10 @@ async def upload_scene_image_endpoint(
 ):
     """Manually upload an image file to replace a scene's visual asset in Stage 5."""
     p = get_project(project_id)
-    s = p.scene(scene_id)
+    try:
+        s = p.scene(scene_id)
+    except KeyError:
+        s = None
     if not s:
         raise HTTPException(status_code=404, detail="Scene not found")
 
@@ -3943,7 +3946,10 @@ async def upload_scene_avatar_clip(
     background_tasks: BackgroundTasks = None,
 ):
     p = get_project(project_id)
-    s = p.scene(scene_id)
+    try:
+        s = p.scene(scene_id)
+    except KeyError:
+        s = None
     if not s:
         raise HTTPException(status_code=404, detail="Scene not found")
 
@@ -4018,7 +4024,10 @@ def rerender_single_scene_avatar_clip(
     background_tasks: BackgroundTasks = None,
 ):
     p = get_project(project_id)
-    s = p.scene(scene_id)
+    try:
+        s = p.scene(scene_id)
+    except KeyError:
+        s = None
     if not s:
         raise HTTPException(status_code=404, detail="Scene not found")
 
@@ -4061,7 +4070,10 @@ def apply_stock_media(project_id: str, scene_id: int, req: ApplyStockMediaReques
     from providers.stock_client import download_media_file, format_stock_image, format_stock_video
 
     p = get_project(project_id)
-    s = p.scene(scene_id)
+    try:
+        s = p.scene(scene_id)
+    except KeyError:
+        s = None
     if not s:
         raise HTTPException(status_code=404, detail="Scene not found")
 
@@ -5563,7 +5575,10 @@ async def test_avatar_generation(name: str, engine: Optional[str] = None):
 @app.post("/api/projects/{project_id}/scenes/{scene_id}/toggle_presenter")
 def toggle_scene_presenter(project_id: str, scene_id: int, req: Optional[TogglePresenterRequest] = None):
     p = get_project(project_id)
-    s = p.scene(scene_id)
+    try:
+        s = p.scene(scene_id)
+    except KeyError:
+        s = None
     if not s:
         raise HTTPException(status_code=404, detail="Scene not found")
 
