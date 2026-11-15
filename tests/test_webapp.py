@@ -513,6 +513,37 @@ class TestMediaSecurity:
         res = client.get("/media/fake_project/nonexistent.mp4")
         assert res.status_code == 404
 
+    def test_open_video_folder_endpoint_and_ui(self, webapp_env, monkeypatch):
+        client = webapp_env["client"]
+        p_id = client.post("/api/projects", json={"topic": "Folder Test Project", "start_now": False}).json()["project_id"]
+        projects_dir = webapp_env["projects_dir"]
+        p_dir = projects_dir / p_id
+        final_dir = p_dir / "final"
+        final_dir.mkdir(parents=True, exist_ok=True)
+        video_file = final_dir / f"{p_id}.mp4"
+        video_file.write_bytes(b"dummy mp4 video bytes")
+
+        from api_server import get_project
+        p = get_project(p_id)
+        p.data.outputs = {"final": f"final/{p_id}.mp4"}
+        p.save()
+
+        # Mock subprocess.Popen to prevent actually opening explorer window during automated tests
+        mock_popen = MagicMock()
+        monkeypatch.setattr("subprocess.Popen", mock_popen)
+
+        res = client.post(f"/api/projects/{p_id}/open_folder")
+        assert res.status_code == 200
+        data = res.json()
+        assert data["status"] == "ok"
+        assert Path(data["folder_path"]).resolve() == final_dir.resolve()
+
+        # Also verify index.html includes the Open Directory button next to the file path
+        html_res = client.get("/")
+        assert html_res.status_code == 200
+        assert "Open Directory" in html_res.text
+        assert "preview-real-filepath" in html_res.text
+
 
 # =====================================================================
 # 6. Voices Management & TTS Status

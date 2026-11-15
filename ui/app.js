@@ -4963,6 +4963,12 @@
           subTitleEl.innerHTML = `
             <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:4px;">
               <span>📁 Real File: <code style="color:#7dd3fc; background:#020617; padding:2px 8px; border-radius:4px; font-family:'Consolas',monospace; font-size:12px; border:1px solid #1e293b; font-weight:700;">${escapeHtml(fullRelPath)}</code>${locBadge}</span>
+              <button type="button" class="btn-sec" onclick="openVideoFolder()" data-ui-click="static_107" style="padding: 2px 9px; font-size: 11.5px; display: inline-flex; align-items: center; gap: 4px; background: rgba(16, 185, 129, 0.18); border-color: #10b981; color: #6ee7b7; font-weight: 700; cursor: pointer; border-radius: 4px; box-shadow: 0 1px 4px rgba(16, 185, 129, 0.15);" title="Open video directory in Windows File Explorer and highlight the MP4 video">
+                📂 Open Directory
+              </button>
+              <button type="button" class="btn-sec" onclick="copyRealVideoPath()" data-ui-click="static_108" style="padding: 2px 8px; font-size: 11.5px; display: inline-flex; align-items: center; gap: 4px; background: rgba(56, 189, 248, 0.12); border-color: rgba(56, 189, 248, 0.4); color: #bae6fd; font-weight: 600; cursor: pointer; border-radius: 4px;" title="Copy file path to clipboard">
+                📋 Copy Path
+              </button>
               <span style="color:#94a3b8; font-size:12px;">${fileStatText}${mtimeText}</span>
             </div>
           `;
@@ -5000,6 +5006,7 @@
       }
 
       if (hasVideoFile) {
+        if (fileBanner) fileBanner.style.display = 'flex';
         const vsrc = `/api/projects/${currentProjectId}/video`;
         const renderUpdated = (p && p.stages && p.stages.render && p.stages.render.updated_at) || '';
         const buster = p && (p.updated_at || renderUpdated) ? ('?t=' + encodeURIComponent((p.updated_at || '') + '_' + renderUpdated)) : '';
@@ -5034,7 +5041,7 @@
           tabBtn.href = vsrc;
         }
         if (pathEl) {
-          pathEl.textContent = isExternal ? `External: ${fullRelPath}` : `File: ${fullRelPath}`;
+          pathEl.innerHTML = `<span style="display:inline-flex; align-items:center; gap:6px;">${isExternal ? 'External: ' : 'File: '}<code style="color:#7dd3fc; background:#020617; padding:2px 6px; border-radius:3px; font-family:'Consolas',monospace;">${escapeHtml(fullRelPath)}</code> <button type="button" class="btn-sec" onclick="openVideoFolder()" data-ui-click="static_107" style="padding:2px 7px; font-size:11px; display:inline-flex; align-items:center; gap:3px; background:rgba(16,185,129,0.18); border-color:#10b981; color:#6ee7b7; font-weight:600; cursor:pointer; border-radius:3px;" title="Open video directory in File Explorer">📂 Open Directory</button></span>`;
         }
 
         const ytBtn = document.getElementById('btn-yt-upload');
@@ -5300,6 +5307,8 @@
         prompt("Video file path:", pathText);
       });
     }
+    window.openVideoFolder = openVideoFolder;
+    window.copyRealVideoPath = copyRealVideoPath;
 
     function forceReloadVideoPlayer() {
       const vplayer = document.getElementById('final-video-player');
