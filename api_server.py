@@ -535,6 +535,24 @@ def build_project_settings(
         settings["auto_presenter"] = False
     if req.default_avatar:
         settings["default_avatar"] = req.default_avatar
+
+    # When avatar presenter is used in the video, always use the voice profile of the avatar presenter
+    if settings.get("presenter_placement") != "none" or settings.get("auto_presenter"):
+        try:
+            from generators.avatar_generator import load_avatar
+            target_av = req.default_avatar or settings.get("default_avatar")
+            av_obj = load_avatar(target_av)
+            if av_obj:
+                settings["default_avatar"] = av_obj.get("name")
+                av_voice = av_obj.get("voice_profile")
+                if av_voice:
+                    settings["voice_profile"] = av_voice
+                    from generators.voice_generator import load_profile
+                    vp_obj = load_profile(av_voice)
+                    if vp_obj and vp_obj.get("provider"):
+                        settings.setdefault("stage_models", {})["voice"] = vp_obj["provider"]
+        except Exception as av_err:
+            log.warning("Could not sync avatar voice profile on project creation: %s", av_err)
     return settings
 
 
@@ -2353,6 +2371,17 @@ def update_stage_data_endpoint(project_id: str, stage_name: str, payload: dict[s
         if "avatar_profile" in payload:
             p.data.settings["default_avatar"] = payload["avatar_profile"]
             p.data.settings["avatar_enabled"] = True
+        cur_placement = payload.get("placement") or p.data.settings.get("presenter_placement", "none")
+        if cur_placement != "none":
+            target_av = payload.get("avatar_profile") or p.data.settings.get("default_avatar")
+            if target_av:
+                try:
+                    from generators.avatar_generator import load_avatar
+                    av_obj = load_avatar(target_av)
+                    if av_obj and av_obj.get("voice_profile"):
+                        p.data.settings["voice_profile"] = av_obj["voice_profile"]
+                except Exception:
+                    pass
         if "placement" in payload:
             from core.base_pipeline import apply_presenter_placement
             placement = payload["placement"]

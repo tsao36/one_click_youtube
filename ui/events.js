@@ -92,6 +92,7 @@
     "static_077": function(event) { onStageModelChange('subtitles') },
     "static_078": function(event) { onStageModelChange('render') },
     "static_079": function(event) { onPresenterPlacementChange() },
+    "on_creator_presenter_avatar_change": function(event) { onPresenterAvatarChange() },
     "static_080": function(event) { switchTab('studio') },
     "static_081": function(event) { switchTab('preview') },
     "static_082": function(event) { startCreation() },

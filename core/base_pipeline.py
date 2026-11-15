@@ -144,7 +144,15 @@ def apply_presenter_placement(
     n = len(scenes)
     target_indices = get_presenter_target_indices(n, placement, scenes)
 
-
+    avatar_voice = None
+    if placement != "none" and default_avatar:
+        try:
+            from generators.avatar_generator import load_avatar
+            av_obj = load_avatar(default_avatar)
+            if av_obj and av_obj.get("voice_profile"):
+                avatar_voice = av_obj["voice_profile"]
+        except Exception:
+            pass
 
     for idx, sc in enumerate(scenes):
         is_manual = bool(
@@ -155,54 +163,24 @@ def apply_presenter_placement(
         if idx in target_indices and not is_manual:
             sc.is_presenter = True
             sc.visual_type = "talking_head"
-
             if default_avatar:
-
                 sc.avatar_profile = default_avatar
-
-                try:
-
-                    from generators.avatar_generator import load_avatar
-
-                    av_obj = load_avatar(default_avatar)
-
-                    if av_obj and av_obj.get("voice_profile"):
-
-                        if not sc.voice_profile and not project_voice_profile:
-
-                            sc.voice_profile = av_obj["voice_profile"]
-
-                except Exception:
-
-                    pass
-
+            if avatar_voice:
+                sc.voice_profile = avatar_voice
+            elif project_voice_profile and not sc.voice_profile:
+                sc.voice_profile = project_voice_profile
         else:
-
             if getattr(sc, "is_presenter", False):
-
                 sc.is_presenter = False
-
                 if sc.visual_type == "talking_head":
-
                     sc.visual_type = "image"
-
-                if default_avatar:
-
-                    try:
-
-                        from generators.avatar_generator import load_avatar
-
-                        av_obj = load_avatar(default_avatar)
-
-                        if av_obj and sc.voice_profile == av_obj.get("voice_profile"):
-
-                            sc.voice_profile = project_voice_profile or None
-
-                    except Exception:
-
-                        pass
-
-
+            if placement != "none" and avatar_voice:
+                # If avatar presenter is used, always use the avatar presenter's voice profile in the video
+                sc.voice_profile = avatar_voice
+            elif default_avatar and avatar_voice and sc.voice_profile == avatar_voice:
+                sc.voice_profile = project_voice_profile or None
+            elif project_voice_profile and not sc.voice_profile:
+                sc.voice_profile = project_voice_profile
 
     return scenes
 
@@ -1399,13 +1377,20 @@ class BasePipeline:
 
 
             if avatar_profile:
-
-
                 self.p.data.settings["default_avatar"] = avatar_profile
 
-
-
             # Handle Voice Profile update alongside avatar
+            # If avatar presenter is used, always use the voice profile of the avatar presenter
+            if not voice_profile or voice_profile in ("auto", "keep"):
+                target_av = avatar_profile or self.p.data.settings.get("default_avatar")
+                if target_av:
+                    try:
+                        from generators.avatar_generator import load_avatar
+                        av_obj = load_avatar(target_av)
+                        if av_obj and av_obj.get("voice_profile"):
+                            voice_profile = av_obj["voice_profile"]
+                    except Exception:
+                        pass
 
             has_voice_update = bool(voice_profile and voice_profile.strip() and voice_profile != "keep")
 
@@ -1982,26 +1967,39 @@ class BasePipeline:
                             break
             if not default_p_name or default_p_name in PROVIDER_NAMES or default_p_name not in vp_names:
                 default_p_name = default_profile_name(cfg)
+        # If avatar presenter is used in the video, always use the voice profile of the avatar presenter
+        avatar_is_used = self.p.is_avatar_enabled() if hasattr(self.p, "is_avatar_enabled") else (self.p.settings.get("presenter_placement") not in ("none", "off", "disabled", False))
+        if not avatar_is_used:
+            avatar_is_used = any(getattr(s, "is_presenter", False) or s.visual_type == "talking_head" for s in scenes)
+
+        if avatar_is_used:
+            av_name = (self.p.data.settings or {}).get("default_avatar") or self.p.settings.get("default_avatar")
+            if not av_name:
+                for sc_item in scenes:
+                    if (getattr(sc_item, "is_presenter", False) or sc_item.visual_type == "talking_head") and getattr(sc_item, "avatar_profile", None):
+                        av_name = sc_item.avatar_profile
+                        break
+            if av_name:
+                try:
+                    from generators.avatar_generator import load_avatar
+                    av_obj = load_avatar(av_name)
+                    if av_obj and av_obj.get("voice_profile"):
+                        avatar_voice = av_obj["voice_profile"]
+                        default_p_name = avatar_voice
+                        self.p.data.settings["voice_profile"] = avatar_voice
+                except Exception as av_err:
+                    log.warning("Could not resolve avatar voice profile: %s", av_err)
+
         try:
             for s in scenes:
                 if self._cancel_flag: raise PipelineCancelled()
                 audio_path = self.p.path("audio", f"{s.tag}.wav")
-                # In documentary / single-narrator mode, if a project-level voice is configured,
-                # do not let an avatar's default voice profile override the narrator voice.
                 is_drama = getattr(self.p, "project_mode", "documentary") == "short_drama"
-                if not is_drama and default_p_name:
-                    av_name = getattr(s, "avatar_profile", None) or (self.p.data.settings or {}).get("default_avatar")
-                    if av_name and s.voice_profile:
-                        try:
-                            from generators.avatar_generator import load_avatar
-                            av_obj = load_avatar(av_name)
-                            if av_obj and s.voice_profile == av_obj.get("voice_profile"):
-                                s.voice_profile = default_p_name
-                        except Exception:
-                            pass
-                # Dynamic check: did the user switch the voice model between scenes?
-                scene_p_name = s.voice_profile or default_p_name
-                # Only fall back to avatar profile's voice if neither the scene nor project has a configured voice profile
+                if not is_drama and avatar_is_used and default_p_name:
+                    s.voice_profile = default_p_name
+                    scene_p_name = default_p_name
+                else:
+                    scene_p_name = s.voice_profile or default_p_name
                 if not s.voice_profile and not self.p.data.settings.get("voice_profile") and (getattr(s, "is_presenter", False) or s.visual_type == "talking_head"):
                     av_name = getattr(s, "avatar_profile", None) or (self.p.data.settings or {}).get("default_avatar")
                     if av_name:

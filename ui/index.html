@@ -265,6 +265,10 @@
             </span>
           </label>
           <select id="voice-select" data-ui-change="static_034"></select>
+          <div id="creator-avatar-voice-sync-banner" style="display: none; margin-top: 6px; font-size: 11.5px; color: #c084fc; align-items: center; gap: 6px; background: rgba(139, 92, 246, 0.12); border: 1px solid rgba(139, 92, 246, 0.35); border-radius: 6px; padding: 4px 10px;">
+            <span>🎭</span>
+            <span id="creator-avatar-voice-sync-text">已自動同步出鏡虛擬主播專屬形象音色</span>
+          </div>
         </div>
       </div>
 
@@ -899,7 +903,7 @@
               <label style="display: block; font-size: 12px; font-weight: 600; color: #ddd6fe; margin-bottom: 5px;">
                 選擇主播形象 (Avatar Profile):
               </label>
-              <select id="creator-presenter-avatar" style="width: 100%; background: #0f172a; border: 1px solid rgba(124, 145, 182, 0.4); border-radius: 6px; color: #fff; padding: 8px 12px; font-size: 13px;">
+              <select id="creator-presenter-avatar" data-ui-change="on_creator_presenter_avatar_change" onchange="onPresenterAvatarChange()" style="width: 100%; background: #0f172a; border: 1px solid rgba(124, 145, 182, 0.4); border-radius: 6px; color: #fff; padding: 8px 12px; font-size: 13px;">
                 <option value="">載入中 (Loading avatars...)</option>
               </select>
               <div style="font-size: 11px; color: #94a3b8; margin-top: 5px;">
@@ -4469,8 +4473,8 @@
   </div>
 
   <script src="/api.js"></script>
-  <script src="/events.js?v=20261115_openfolder_autodetect_v2"></script>
-  <script src="/app.js?v=20261115_openfolder_autodetect_v2"></script>
+  <script src="/events.js?v=20261115_avatar_voice_sync_v1"></script>
+  <script src="/app.js?v=20261115_avatar_voice_sync_v1"></script>
 
   <!-- Formula Manager Modal -->
   <div id="formula-manager-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 99999; align-items: center; justify-content: center; backdrop-filter: blur(4px);">

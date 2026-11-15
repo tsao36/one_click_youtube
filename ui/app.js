@@ -1184,7 +1184,11 @@
         if (cachedVoiceList.some(v => v.name === 'mytsaovoice')) {
           sel.value = 'mytsaovoice';
         }
-        onVoiceProfileSelectChange(false);
+        if (typeof isAvatarPresenterActive === 'function' && isAvatarPresenterActive() && cachedAvatarsList && cachedAvatarsList.length > 0) {
+          syncVoiceProfileWithActivePresenter(false);
+        } else {
+          onVoiceProfileSelectChange(false);
+        }
       } catch (e) {
         console.error('Failed to load voice profiles:', e);
       }
@@ -1519,11 +1523,115 @@
       apply100PercentRemotionPreset();
     }
 
+    function isAvatarPresenterActive() {
+      const sel = document.getElementById('creator-presenter-placement');
+      if (!sel) return true; // Default in Documentary Creator is intro_middle_outro
+      return sel.value !== 'none';
+    }
+
+    function getActivePresenterAvatar() {
+      const avSel = document.getElementById('creator-presenter-avatar');
+      const val = avSel ? avSel.value : null;
+      const list = cachedAvatarsList || [];
+      if (val) {
+        const found = list.find(a => a.name === val);
+        if (found) return found;
+      }
+      return list.find(a => a.is_default) || list[0] || null;
+    }
+
+    function syncVoiceProfileWithActivePresenter(userInitiated = false) {
+      const voiceSel = document.getElementById('voice-select');
+      const syncBanner = document.getElementById('creator-avatar-voice-sync-banner');
+      const syncBannerText = document.getElementById('creator-avatar-voice-sync-text');
+      const hintEl = document.getElementById('voice-select-hint');
+
+      if (!isAvatarPresenterActive()) {
+        if (syncBanner) syncBanner.style.display = 'none';
+        if (voiceSel && voiceSel.value) {
+          onVoiceProfileSelectChange(false);
+        }
+        return;
+      }
+
+      const activeAvatar = getActivePresenterAvatar();
+      if (!activeAvatar) return;
+
+      const avName = activeAvatar.display_name || activeAvatar.name;
+      const targetVoice = activeAvatar.voice_profile;
+
+      if (targetVoice && voiceSel && (cachedVoiceList || []).length > 0) {
+        const voiceObj = (cachedVoiceList || []).find(v => v.name === targetVoice);
+        if (voiceObj) {
+          if (voiceSel.value !== targetVoice) {
+            voiceSel.value = targetVoice;
+          }
+          const prov = voiceObj.provider || 'bluemagpie';
+          const stageVoiceEl = document.getElementById('model-stage-voice');
+          if (stageVoiceEl && stageVoiceEl.value !== prov) {
+            stageVoiceEl.value = prov;
+            if (typeof onStageModelChange === 'function') {
+              onStageModelChange('voice', false);
+            }
+          }
+          const provLabel = getVoiceProviderLabel(prov);
+          if (hintEl) {
+            hintEl.innerHTML = `🎭 主播音色同步: <b>${avName}</b> (${provLabel})`;
+            hintEl.style.color = '#c084fc';
+          }
+          if (syncBanner) {
+            syncBanner.style.display = 'flex';
+            if (syncBannerText) {
+              syncBannerText.innerHTML = `已自動同步出鏡虛擬主播【<b>${avName}</b>】之專屬音色：<b>${voiceObj.display_name}</b> [${provLabel}]`;
+            }
+          }
+          const syncBadge = document.getElementById('stage-voice-sync-hint');
+          if (syncBadge) {
+            syncBadge.innerHTML = `🔗 Synced: <b>${voiceObj.display_name}</b>`;
+            syncBadge.style.color = '#10b981';
+          }
+          if (userInitiated && typeof showToast === 'function') {
+            showToast(`✓ 已同步虛擬主播【${avName}】專屬音色: ${voiceObj.display_name}`);
+          }
+          return;
+        }
+      }
+
+      if (!targetVoice && voiceSel && voiceSel.value && (cachedVoiceList || []).length > 0) {
+        const curVal = voiceSel.value;
+        activeAvatar.voice_profile = curVal;
+        apiRequest(`/api/avatars/${encodeURIComponent(activeAvatar.name)}/voice_profile`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ voice_profile: curVal })
+        }).catch(e => console.error('Failed to auto-sync voice to avatar:', e));
+
+        const voiceObj = (cachedVoiceList || []).find(v => v.name === curVal);
+        const provLabel = voiceObj ? getVoiceProviderLabel(voiceObj.provider) : '';
+        if (hintEl) {
+          hintEl.innerHTML = `🎭 主播音色同步: <b>${avName}</b> (${provLabel})`;
+          hintEl.style.color = '#c084fc';
+        }
+        if (syncBanner) {
+          syncBanner.style.display = 'flex';
+          if (syncBannerText) {
+            syncBannerText.innerHTML = `已將出鏡虛擬主播【<b>${avName}</b>】專屬音色設定為：<b>${voiceObj ? voiceObj.display_name : curVal}</b>`;
+          }
+        }
+      }
+    }
+
+    function onPresenterAvatarChange() {
+      syncVoiceProfileWithActivePresenter(true);
+    }
+
     function onVoiceProfileSelectChange(notify = true) {
       const sel = document.getElementById('voice-select');
       const stageVoiceEl = document.getElementById('model-stage-voice');
       const hintEl = document.getElementById('voice-select-hint');
       const syncBadge = document.getElementById('stage-voice-sync-hint');
+      const syncBanner = document.getElementById('creator-avatar-voice-sync-banner');
+      const syncBannerText = document.getElementById('creator-avatar-voice-sync-text');
       if (!sel || !sel.value) return;
 
       const chosen = cachedVoiceList.find(v => v.name === sel.value);
@@ -1537,6 +1645,42 @@
         }
       }
 
+      if (isAvatarPresenterActive()) {
+        const activeAvatar = getActivePresenterAvatar();
+        if (activeAvatar) {
+          const avName = activeAvatar.display_name || activeAvatar.name;
+          if (hintEl) {
+            hintEl.innerHTML = `🎭 主播音色同步: <b>${avName}</b> (${provLabel})`;
+            hintEl.style.color = '#c084fc';
+          }
+          if (syncBanner) {
+            syncBanner.style.display = 'flex';
+            if (syncBannerText) {
+              syncBannerText.innerHTML = `已自動同步出鏡虛擬主播【<b>${avName}</b>】之專屬音色：<b>${chosen ? chosen.display_name : sel.value}</b> [${provLabel}]`;
+            }
+          }
+          if (notify && activeAvatar.voice_profile !== sel.value) {
+            activeAvatar.voice_profile = sel.value;
+            apiRequest(`/api/avatars/${encodeURIComponent(activeAvatar.name)}/voice_profile`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ voice_profile: sel.value })
+            }).catch(e => console.error('Failed to sync avatar voice profile:', e));
+            if (typeof showToast === 'function') {
+              showToast(`✓ 主播 ${avName} 的出鏡聲音已同步更新為: ${chosen ? chosen.display_name : sel.value}`);
+            }
+          }
+          if (syncBadge) {
+            syncBadge.innerHTML = `🔗 Synced: <b>${chosen ? chosen.display_name : sel.value}</b>`;
+            syncBadge.style.color = '#10b981';
+          }
+          return;
+        }
+      }
+
+      if (syncBanner) {
+        syncBanner.style.display = 'none';
+      }
       if (hintEl) {
         hintEl.innerHTML = `🔗 Stage 6 TTS: <b>${provLabel}</b>`;
         hintEl.style.color = '#10b981';
@@ -7544,6 +7688,9 @@
       if (hint) {
         hint.textContent = hints[val] || '';
       }
+      if (typeof syncVoiceProfileWithActivePresenter === 'function') {
+        syncVoiceProfileWithActivePresenter(false);
+      }
     }
 
     function populatePresenterAvatarSelectors(avatars) {
@@ -7564,6 +7711,9 @@
             if (av.is_default) opt.selected = true;
             creatorSel.appendChild(opt);
           });
+        }
+        if (typeof syncVoiceProfileWithActivePresenter === 'function' && cachedVoiceList && cachedVoiceList.length > 0) {
+          syncVoiceProfileWithActivePresenter(false);
         }
       }
 
@@ -20298,3 +20448,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
     window.previewRemotionScene = previewRemotionScene;
     window.exportSelectedRemotionPreset = exportSelectedRemotionPreset;
     window.importRemotionPreset = importRemotionPreset;
+    window.onPresenterPlacementChange = onPresenterPlacementChange;
+    window.onPresenterAvatarChange = onPresenterAvatarChange;
+    window.syncVoiceProfileWithActivePresenter = syncVoiceProfileWithActivePresenter;
+    window.isAvatarPresenterActive = isAvatarPresenterActive;

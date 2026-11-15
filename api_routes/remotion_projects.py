@@ -535,6 +535,16 @@ def start_remotion_project(project_id: str, background_tasks: BackgroundTasks):
         ))
 
     any_presenter = any(s.is_presenter for s in scenes)
+    if any_presenter and default_avatar:
+        try:
+            from generators.avatar_generator import load_avatar
+            av_obj = load_avatar(default_avatar)
+            if av_obj and av_obj.get("voice_profile"):
+                project.data.settings["voice_profile"] = av_obj["voice_profile"]
+                for sc_item in scenes:
+                    sc_item.voice_profile = av_obj["voice_profile"]
+        except Exception:
+            pass
     project.data.settings["presenter_placement"] = (
         presenter_placement if (presenter_placement != "none" and any_presenter) else ("intro" if any_presenter else "none")
     )
