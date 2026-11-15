@@ -939,9 +939,16 @@ def get_project_details(project_id: str):
         except Exception:
             pass
 
+    from core.base_pipeline import is_avatar_overlapping_scene
+    scenes_res = []
+    for i, s in enumerate(p.scenes):
+        sd = s.model_dump(mode="json")
+        sd["is_avatar_overlapping"] = is_avatar_overlapping_scene(p, s, i, p.scenes)
+        scenes_res.append(sd)
+
     return {
         "project": p.data.model_dump(mode="json"),
-        "scenes": [s.model_dump(mode="json") for s in p.scenes],
+        "scenes": scenes_res,
         "script": p.read_json("script/script.json"),
         "research": p.read_json("research/research.json"),
         "final_file": final_file,
@@ -1614,8 +1621,17 @@ def get_stage_data_endpoint(project_id: str, stage_name: str):
         except Exception:
             detect_real_world_footage_target = None
 
-        for sc in p.scenes:
+        from core.base_pipeline import is_avatar_overlapping_scene
+
+        for idx, sc in enumerate(p.scenes):
             sd = sc.model_dump(mode="json")
+            is_overlap = is_avatar_overlapping_scene(p, sc, idx, p.scenes)
+            sd["is_avatar_overlapping"] = is_overlap
+            if is_overlap:
+                sd["avatar_overlap_reason"] = "Avatar Presenter Appearance"
+                if not sd.get("avatar_profile"):
+                    sd["avatar_profile"] = getattr(sc, "avatar_profile", None) or (p.data.settings or {}).get("default_avatar") or p.settings.get("default_avatar")
+
             target_kw = sc.search_keyword
             target_src = sc.media_source
             if not target_kw and detect_real_world_footage_target:
@@ -1665,9 +1681,15 @@ def get_stage_data_endpoint(project_id: str, stage_name: str):
         stock_active = sum(1 for sc in scenes_data if sc.get("is_stock_active"))
         diff_count = sum(1 for sc in scenes_data if sc.get("has_diff"))
 
+        avatar_overlap_scene_ids = [s.get("scene_id") for s in scenes_data if s.get("is_avatar_overlapping")]
         ret = {
             "scenes": scenes_data,
             "total_scenes": total_sc,
+            "avatar_enabled": p.is_avatar_enabled(),
+            "presenter_placement": (p.data.settings or {}).get("presenter_placement") or p.settings.get("presenter_placement") or "none",
+            "default_avatar": (p.data.settings or {}).get("default_avatar") or p.settings.get("default_avatar") or "",
+            "avatar_overlapping_scene_ids": avatar_overlap_scene_ids,
+            "avatar_overlapping_count": len(avatar_overlap_scene_ids),
             "stock_available_count": stock_avail,
             "stock_active_count": stock_active,
             "has_diff_markers": (diff_count > 0),
@@ -3713,6 +3735,14 @@ def update_project_image_settings(project_id: str, req: ProjectImageSettingsRequ
 def regenerate_scene_image(project_id: str, scene_id: int, req_body: Optional[RegenImageRequest] = None):
     p = get_project(project_id)
     s = p.scene(scene_id)
+
+    from core.base_pipeline import is_avatar_overlapping_scene
+    if is_avatar_overlapping_scene(p, s):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Scene #{scene_id} is an avatar presenter scene. Image generation is skipped to save tokens."
+        )
+
     cfg = p.settings
     img_cfg = cfg.get("images", {})
     stage_models = cfg.get("stage_models", {})
@@ -4688,6 +4718,12 @@ def run_batch_quick_stock_job(project_id: str, scope: str = "all", source: str =
 
     try:
         for i, s in enumerate(scenes):
+            from core.base_pipeline import is_avatar_overlapping_scene
+            if is_avatar_overlapping_scene(p, s, i, scenes):
+                batch_quick_stock_state["current_index"] = i + 1
+                batch_quick_stock_state["percent"] = round(((i + 1) / total) * 100)
+                continue
+
             target_kw = s.search_keyword
             pref_src = s.media_source or "wikimedia"
             if not target_kw:

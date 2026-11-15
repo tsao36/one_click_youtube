@@ -7422,6 +7422,81 @@
       }
     }
 
+    function getPresenterTargetIndices(n, placement, scenes) {
+      if (!n || n <= 0) return new Set();
+      const strat = (placement || 'none').trim().toLowerCase();
+      if (['none', 'false', '', 'off', 'disabled'].includes(strat)) {
+        return new Set();
+      } else if (['intro', 'beginning', 'hook', 'scene_1', 'true', 'start'].includes(strat)) {
+        return new Set([0]);
+      } else if (['intro_outro', 'beginning_end', 'start_end', 'intro_end'].includes(strat)) {
+        const s = new Set([0]);
+        if (n > 1) s.add(n - 1);
+        return s;
+      } else if (['intro_middle_outro', 'beginning_middle_end', 'start_middle_end', 'middle_and_end', 'three_point'].includes(strat)) {
+        const s = new Set([0]);
+        if (n >= 3) s.add(Math.floor(n / 2));
+        if (n > 1) s.add(n - 1);
+        return s;
+      } else if (['chapters', 'sections', 'chapter_intros'].includes(strat)) {
+        const s = new Set();
+        const seen = new Set();
+        const scList = scenes || [];
+        for (let i = 0; i < Math.min(n, scList.length); i++) {
+          const sec = (scList[i]?.section || '').trim();
+          if (sec && !seen.has(sec)) {
+            seen.add(sec);
+            s.add(i);
+          }
+        }
+        return s.size > 0 ? s : new Set([0]);
+      } else if (['all', 'all_scenes', 'full'].includes(strat)) {
+        return new Set(Array.from({ length: n }, (_, i) => i));
+      } else if (['every_3', 'every_third', 'thirds'].includes(strat)) {
+        const s = new Set();
+        for (let i = 0; i < n; i += 3) s.add(i);
+        return s;
+      }
+      return new Set([0]);
+    }
+
+    function isSceneAvatarOverlapping(scene, projectOrData, allScenes) {
+      if (!scene) return false;
+      // If manually uploaded visual, user explicitly overrode it
+      if (scene.is_manual_upload || scene.media_source === 'upload' || (scene.image && scene.image.meta && (scene.image.meta.is_manual_upload || scene.image.meta.source === 'manual_upload' || scene.image.meta.provider === 'manual_upload'))) {
+        return false;
+      }
+
+      // If backend explicitly flagged it
+      if (scene.is_avatar_overlapping) return true;
+
+      const proj = projectOrData || currentProject || studioProject;
+      const settings = (proj && (proj.data ? proj.data.settings : proj.settings)) || (projectOrData && projectOrData.settings) || {};
+      const placement = settings.presenter_placement || (projectOrData && projectOrData.presenter_placement);
+      const isEnabled = settings.avatar_enabled !== false && placement && !['none', 'off', 'disabled', 'false'].includes(String(placement).toLowerCase());
+
+      if (isEnabled === false) return false;
+
+      // Direct scene flags
+      if (scene.is_presenter || scene.visual_type === 'talking_head' || scene.visual_type === 'talking_actor' || Boolean(scene.avatar_profile)) {
+        return true;
+      }
+
+      // If placement is active and scenes list is available
+      if (placement && isEnabled) {
+        const scList = allScenes || (projectOrData && projectOrData.scenes) || (studioStageData && studioStageData.scenes) || currentScenes || [];
+        if (scList.length > 0) {
+          const idx = scList.findIndex(s => s.scene_id === scene.scene_id);
+          if (idx >= 0) {
+            const targetIndices = getPresenterTargetIndices(scList.length, placement, scList);
+            if (targetIndices.has(idx)) return true;
+          }
+        }
+      }
+
+      return false;
+    }
+
     function onPresenterPlacementChange() {
       const sel = document.getElementById('creator-presenter-placement');
       const hint = document.getElementById('creator-presenter-hint');
@@ -9639,6 +9714,35 @@
             </div>
           </div>` }
 
+          ${(() => {
+            const avatarOverlapScenes = scenes.filter(sc => isSceneAvatarOverlapping(sc, inspectedStageData || currentProject, scenes));
+            const avatarOverlapIds = avatarOverlapScenes.map(sc => sc.scene_id);
+            if (avatarOverlapIds.length > 0) {
+              return `
+                <!-- Avatar Overlap Token-Saving Info Banner in Modal Inspector -->
+                <div style="background: linear-gradient(135deg, rgba(88, 28, 135, 0.35) 0%, rgba(30, 27, 75, 0.5) 100%); border: 1.5px solid #8b5cf6; border-radius: 8px; padding: 12px 16px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);">
+                  <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 24px;">🎭</span>
+                    <div>
+                      <div style="font-size: 13.5px; font-weight: 800; color: #e9d5ff; display: flex; align-items: center; gap: 8px;">
+                        <span>AI 虛擬真人主播出鏡模式生效中 (Avatar Mode Active)</span>
+                        <span style="font-size: 10px; background: #6d28d9; color: #fff; padding: 2px 7px; border-radius: 4px; font-weight: 700;">TOKENS SAVED</span>
+                      </div>
+                      <div style="font-size: 12px; color: #cbd5e1; margin-top: 2px;">
+                        偵測到主播出鏡分鏡共 <b>${avatarOverlapIds.length}</b> 幕（第 <b>${avatarOverlapIds.join(', ')}</b> 幕）。
+                        這些分鏡在影片渲染時將直接由虛擬主播算繪動態口型視頻，系統已<b>自動跳過 AI 生圖以節省 Token</b>。這些分鏡無需且請勿手動上傳底圖。
+                      </div>
+                    </div>
+                  </div>
+                  <div style="font-size: 11px; background: rgba(139, 92, 246, 0.2); border: 1px solid #a855f7; color: #ddd6fe; padding: 4px 10px; border-radius: 5px; font-weight: 700;">
+                    ✨ ${avatarOverlapIds.length} 個鏡頭已免除生圖
+                  </div>
+                </div>
+              `;
+            }
+            return '';
+          })()}
+
           <!-- Per-Scene Gallery & Tuning -->
           <div style="font-size:12px; color:var(--text-muted); margin-bottom:10px;">Scene Images Gallery: Tune prompts or change models per scene, then click Regenerate to re-render using ComfyUI DirectML.</div>
           <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(460px, 1fr)); gap:14px;">
@@ -9646,6 +9750,7 @@
 
         const buster = Date.now();
         scenes.forEach((s, idx) => {
+          const isAvatarOverlap = isSceneAvatarOverlapping(s, inspectedStageData || currentProject, scenes);
           const imgUrl = s.image && s.image.path ? `/media/${currentProjectId}/${s.image.path}` : '';
           const imgUrlBusted = imgUrl ? `${imgUrl}?t=${buster}` : '';
           const renderedModel = (s.image && s.image.meta && s.image.meta.model) ? s.image.meta.model : curModel;
@@ -9680,13 +9785,21 @@
           const hasNextTake = activeTake < totalTakes;
 
           bodyHtml += `
-            <div id="insp-scene-card-${s.scene_id}" style="background:#080d16; border:1px solid var(--card-border); border-radius:8px; padding:12px; display:flex; flex-direction:column; gap:8px;">
+            <div id="insp-scene-card-${s.scene_id}" style="background:#080d16; border:${isAvatarOverlap ? '1.5px solid #8b5cf6' : '1px solid var(--card-border)'}; ${isAvatarOverlap ? 'box-shadow: 0 0 14px rgba(139, 92, 246, 0.18);' : ''} border-radius:8px; padding:12px; display:flex; flex-direction:column; gap:8px;">
               <div style="display:flex; justify-content:space-between; align-items:center;">
-                <span style="font-weight:700; color:#93c5fd; font-size:13px;">Scene #${s.scene_id}</span>
-                <span id="insp-scene-badge-${s.scene_id}" style="font-size: 12px; color:${imgUrl?'#34d399':'#f59e0b'}; font-weight:600;">${imgUrl ? '✓ Generated' : '⏳ Pending'}</span>
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                  <span style="font-weight:700; color:#93c5fd; font-size:13px;">Scene #${s.scene_id}</span>
+                  ${isAvatarOverlap ? `<span style="background: rgba(147, 51, 234, 0.3); border: 1.5px solid #a855f7; color: #f3e8ff; font-size: 10.5px; font-weight: 800; padding: 2px 7px; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px;">🎭 虛擬主播出鏡 (Avatar Appearance)</span>` : ''}
+                </div>
+                <span id="insp-scene-badge-${s.scene_id}" style="font-size: 12px; color:${isAvatarOverlap ? '#c084fc' : (imgUrl?'#34d399':'#f59e0b')}; font-weight:600;">${isAvatarOverlap ? '⚡ 免生圖 (Avatar)' : (imgUrl ? '✓ Generated' : '⏳ Pending')}</span>
               </div>
 
-              ${isDrama ? `
+              ${isAvatarOverlap ? `
+                <div style="font-size: 11px; padding: 6px 10px; background: rgba(88, 28, 135, 0.35); border: 1px solid #7c3aed; border-radius: 4px; color: #e9d5ff; font-weight: 600; display: flex; align-items: center; justify-content: space-between; gap: 6px;">
+                  <span>🎭 <b>此幕為虛擬真人主播出鏡</b>：由口型影片直接算繪，已自動跳過 AI 生圖以節省 Token。無需且請勿上傳底圖。</span>
+                  <span style="font-size: 9px; background: #6d28d9; color: #fff; padding: 1px 6px; border-radius: 3px; font-weight: 700; white-space: nowrap;">0 TOKENS</span>
+                </div>
+              ` : (isDrama ? `
                 <div style="font-size: 11px; padding: 4px 8px; background: rgba(245, 158, 11, 0.15); border: 1px solid #d97706; border-radius: 4px; color: #fbbf24; font-weight: 600; display: flex; align-items: center; justify-content: space-between;">
                   <span>👤 角色: <b>${s.character || s.speaker || '主演'}</b></span>
                   <span style="font-size: 9px; background: #b45309; color: #fff; padding: 1px 5px; border-radius: 3px; font-weight: 700;">9:16 直式立繪</span>
@@ -9722,34 +9835,42 @@
                     🎨 <span>AI 生成畫面 (無特定真實實體標籤)</span>
                   </div>
                 `))}
-              ` }
+              ` )}
 
               <!-- Side-by-Side: Image and Scene Script Line -->
               <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; align-items: stretch;">
                 <!-- Left: Scene Image Preview -->
                 <div style="display: flex; flex-direction: column; gap: 6px;">
-                  <div style="width:100%; height:150px; background:#000; border-radius:6px; overflow:hidden; display:flex; align-items:center; justify-content:center; position:relative; border: 1px solid #1e293b; transition: border-color 0.2s ease;"
-                       ondragover="event.preventDefault(); this.style.borderColor='#a855f7';"
-                       ondragleave="this.style.borderColor='#1e293b';"
-                       ondrop="event.preventDefault(); this.style.borderColor='#1e293b'; if (event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files.length) uploadManualSceneImage(${s.scene_id}, event.dataTransfer.files[0]);">
+                  <div style="width:100%; height:150px; background:#000; border-radius:6px; overflow:hidden; display:flex; align-items:center; justify-content:center; position:relative; border: 1px solid ${isAvatarOverlap ? '#7c3aed' : '#1e293b'}; transition: border-color 0.2s ease;"
+                       ${isAvatarOverlap ? '' : `ondragover="event.preventDefault(); this.style.borderColor='#a855f7';" ondragleave="this.style.borderColor='#1e293b';" ondrop="event.preventDefault(); this.style.borderColor='#1e293b'; if (event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files.length) uploadManualSceneImage(${s.scene_id}, event.dataTransfer.files[0]);"`}>
                     ${imgUrl ? `
                       <img id="insp-scene-img-${s.scene_id}" src="${imgUrlBusted}" onload="if(this.naturalHeight > this.naturalWidth) { this.style.objectFit='contain'; this.style.background='radial-gradient(circle, #0f172a 0%, #020617 100%)'; }" style="width:100%; height:100%; object-fit:${isImgPortrait ? 'contain' : 'cover'}; background:${isImgPortrait ? 'radial-gradient(circle, #0f172a 0%, #020617 100%)' : '#000'}; cursor:pointer;" onclick="window.open('${imgUrl}')" title="Click to view full image">
-                      ${isImgPortrait ? '<span style="position: absolute; top: 4px; left: 4px; background: rgba(2, 132, 199, 0.85); border: 1px solid #38bdf8; color: #fff; font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 3px; z-index: 2;">📱 9:16 全景保留</span>' : ''}
+                      ${isAvatarOverlap ? '<span style="position: absolute; top: 4px; left: 4px; background: rgba(124, 58, 237, 0.9); border: 1px solid #a855f7; color: #fff; font-size: 9px; font-weight: 700; padding: 1px 6px; border-radius: 3px; z-index: 2;">🎭 主播肖像預覽</span>' : (isImgPortrait ? '<span style="position: absolute; top: 4px; left: 4px; background: rgba(2, 132, 199, 0.85); border: 1px solid #38bdf8; color: #fff; font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 3px; z-index: 2;">📱 9:16 全景保留</span>' : '')}
                       <div style="position: absolute; bottom: 4px; left: 4px; background: rgba(0,0,0,0.7); font-size: 10px; color: #cbd5e1; padding: 2px 5px; border-radius: 3px; pointer-events: none;">🔍 Click to Zoom</div>
                       <div style="position: absolute; top: 4px; right: 4px; display: flex; gap: 4px; z-index: 2;">
-                        <button onclick="event.stopPropagation(); triggerSceneImageUpload(${s.scene_id})" style="background: rgba(147, 51, 234, 0.85); border: 1px solid #c084fc; color: #fff; border-radius: 3px; padding: 2px 6px; font-size: 11px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 3px;" title="Replace with manually uploaded image">
-                          📤 Replace
-                        </button>
-                        <button onclick="event.stopPropagation(); deleteSceneActiveImage(${s.scene_id})" style="position: absolute; top: 0px; right: 0px; background: rgba(0,0,0,0.75); border: 1px solid #ef4444; color: #fca5a5; border-radius: 3px; padding: 2px 6px; font-size: 11px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 3px; position: static;" title="Delete current image">
-                          🗑️ Delete
-                        </button>
+                        ${isAvatarOverlap ? `
+                          <span style="background: rgba(15, 23, 42, 0.85); border: 1px solid #7c3aed; color: #e9d5ff; border-radius: 3px; padding: 2px 7px; font-size: 10px; font-weight: 700;">🚫 免上傳底圖</span>
+                        ` : `
+                          <button onclick="event.stopPropagation(); triggerSceneImageUpload(${s.scene_id})" style="background: rgba(147, 51, 234, 0.85); border: 1px solid #c084fc; color: #fff; border-radius: 3px; padding: 2px 6px; font-size: 11px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 3px;" title="Replace with manually uploaded image">
+                            📤 Replace
+                          </button>
+                          <button onclick="event.stopPropagation(); deleteSceneActiveImage(${s.scene_id})" style="position: absolute; top: 0px; right: 0px; background: rgba(0,0,0,0.75); border: 1px solid #ef4444; color: #fca5a5; border-radius: 3px; padding: 2px 6px; font-size: 11px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 3px; position: static;" title="Delete current image">
+                            🗑️ Delete
+                          </button>
+                        `}
+                      </div>
+                    ` : (isAvatarOverlap ? `
+                      <div style="text-align: center; padding: 14px; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: radial-gradient(circle, #1e1b4b 0%, #03060d 100%);">
+                        <span style="font-size: 26px; margin-bottom: 4px;">🎭</span>
+                        <span style="font-size: 12px; color: #c084fc; font-weight: 700; margin-bottom: 2px;">虛擬真人主播出鏡鏡頭</span>
+                        <span style="font-size: 11px; color: #94a3b8; max-width: 200px; line-height: 1.35;">已自動跳過 AI 生圖以節省 Token<br><b style="color: #cbd5e1;">影片將直接由口型影片算繪，無需上傳底圖</b></span>
                       </div>
                     ` : `
                       <div style="text-align: center; cursor: pointer; padding: 12px; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;" onclick="triggerSceneImageUpload(${s.scene_id})" title="Click or drag an image file here to upload">
                         <span id="insp-no-img-${s.scene_id}" style="font-size:12px; color:gray; margin-bottom: 4px;">No Image Generated</span>
                         <span style="font-size: 11px; color: #c084fc; font-weight: 600; background: rgba(147, 51, 234, 0.15); border: 1px dashed #a855f7; padding: 3px 8px; border-radius: 4px;">📤 Click / Drag to Upload</span>
                       </div>
-                    `}
+                    `)}
                   </div>
                 </div>
 
@@ -13327,13 +13448,15 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
           <div style="display: flex; flex-direction: column; gap: 14px;" id="studio-scenes-list">
         `;
         scenes.forEach((s, idx) => {
+          const isAvatarOverlap = isSceneAvatarOverlapping(s, project || data, scenes);
           const diffObj = s.import_diff || (s.meta && s.meta.import_diff);
           const hasDiff = Boolean(diffObj);
           bodyHtml += `
-            <div class="stage3-scene-card ${hasDiff ? 'has-stage3-diff' : ''}" style="background: #080d16; border: ${hasDiff ? '1.5px solid #f59e0b' : '1px solid var(--card-border)'}; ${hasDiff ? 'box-shadow: 0 0 16px rgba(245, 158, 11, 0.15);' : ''} border-radius: 8px; padding: 14px;">
+            <div class="stage3-scene-card ${hasDiff ? 'has-stage3-diff' : ''}" style="background: #080d16; border: ${hasDiff ? '1.5px solid #f59e0b' : (isAvatarOverlap ? '1.5px solid #8b5cf6' : '1px solid var(--card-border)')}; ${hasDiff ? 'box-shadow: 0 0 16px rgba(245, 158, 11, 0.15);' : (isAvatarOverlap ? 'box-shadow: 0 0 14px rgba(139, 92, 246, 0.12);' : '')} border-radius: 8px; padding: 14px;">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 6px;">
-                <div style="display: flex; align-items: center; gap: 8px;">
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                   <span style="font-weight: 700; color: #93c5fd; font-size: 14px;">Scene #${s.scene_id}</span>
+                  ${isAvatarOverlap ? '<span style="font-size: 11px; background: rgba(147, 51, 234, 0.3); color: #f3e8ff; border: 1.5px solid #a855f7; padding: 2px 8px; border-radius: 4px; font-weight: 800; display: inline-flex; align-items: center; gap: 4px;">🎭 虛擬主播出鏡 (Avatar Appearance)</span>' : ''}
                   ${hasDiff ? '<span style="font-size: 11px; background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid #f59e0b; padding: 2px 7px; border-radius: 4px; font-weight: 700;">✏️ 腳本匯入修改 (Modified)</span>' : ''}
                   ${s.speaker ? `<span style="font-size: 11px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; padding: 2px 6px; border-radius: 4px;">👤 ${escapeHtml(s.speaker)}</span>` : ''}
                 </div>
@@ -13504,11 +13627,40 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
               <button class="btn-sec" id="btn-gallery-strip" style="padding: 3px 8px; font-size: 12px; font-weight: 600; ${imagesGalleryLayout === 'strip' ? 'background: #1e3a8a; border-color: #3b82f6; color: #fff;' : ''}" onclick="toggleImagesGalleryLayout('strip')" title="Horizontal scroll bar across all scene images">↔️ Horizontal Scroll View</button>
             </div>
           </div>
+          ${(() => {
+            const avatarOverlapScenes = scenes.filter(sc => isSceneAvatarOverlapping(sc, project || data, scenes));
+            const avatarOverlapIds = avatarOverlapScenes.map(sc => sc.scene_id);
+            if (avatarOverlapIds.length > 0) {
+              return `
+                <!-- Avatar Overlap Token-Saving Info Banner -->
+                <div style="background: linear-gradient(135deg, rgba(88, 28, 135, 0.35) 0%, rgba(30, 27, 75, 0.5) 100%); border: 1.5px solid #8b5cf6; border-radius: 8px; padding: 12px 16px; margin-bottom: 18px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; box-shadow: 0 4px 16px rgba(139, 92, 246, 0.15);">
+                  <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 24px;">🎭</span>
+                    <div>
+                      <div style="font-size: 13.5px; font-weight: 800; color: #e9d5ff; display: flex; align-items: center; gap: 8px;">
+                        <span>AI 虛擬真人主播出鏡模式生效中 (Avatar Mode Active)</span>
+                        <span style="font-size: 10px; background: #6d28d9; color: #fff; padding: 2px 7px; border-radius: 4px; font-weight: 700;">TOKENS SAVED</span>
+                      </div>
+                      <div style="font-size: 12px; color: #cbd5e1; margin-top: 2px;">
+                        偵測到主播出鏡分鏡共 <b>${avatarOverlapIds.length}</b> 幕（第 <b>${avatarOverlapIds.join(', ')}</b> 幕）。
+                        這些分鏡在影片渲染時將直接由虛擬主播算繪動態口型視頻，系統已<b>自動跳過 AI 生圖以節省 Token</b>。這些分鏡無需且請勿手動上傳底圖。
+                      </div>
+                    </div>
+                  </div>
+                  <div style="font-size: 11px; background: rgba(139, 92, 246, 0.2); border: 1px solid #a855f7; color: #ddd6fe; padding: 4px 10px; border-radius: 5px; font-weight: 700;">
+                    ✨ ${avatarOverlapIds.length} 個鏡頭已免除生圖
+                  </div>
+                </div>
+              `;
+            }
+            return '';
+          })()}
           <div id="studio-images-gallery-container" class="custom-horizontal-scroll" style="${imagesGalleryLayout === 'strip' ? 'display: flex; gap: 16px; overflow-x: auto; padding-bottom: 14px;' : 'display: grid; grid-template-columns: repeat(auto-fit, minmax(460px, 1fr)); gap: 16px; overflow-x: auto; padding-bottom: 10px;'}">
         `;
 
         const buster = Date.now();
         scenes.forEach(s => {
+          const isAvatarOverlap = isSceneAvatarOverlapping(s, project || data, scenes);
           const imgUrl = s.image && s.image.path ? `/media/${currentProjectId}/${s.image.path}` : '';
           const imgUrlBusted = imgUrl ? `${imgUrl}?t=${buster}` : '';
           const renderedModel = (s.image && s.image.meta && s.image.meta.model) ? s.image.meta.model : curModel;
@@ -13543,13 +13695,23 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
           const hasNextTake = activeTake < totalTakes;
 
           bodyHtml += `
-            <div id="studio-scene-card-${s.scene_id}" style="background: #080d16; border: 1px solid var(--card-border); border-radius: 8px; padding: 14px; display: flex; flex-direction: column; gap: 10px; min-width: 0; ${imagesGalleryLayout === 'strip' ? 'flex: 0 0 540px;' : ''} transition: border-color 0.3s ease;">
+            <div id="studio-scene-card-${s.scene_id}" style="background: #080d16; border: ${isAvatarOverlap ? '1.5px solid #8b5cf6' : '1px solid var(--card-border)'}; ${isAvatarOverlap ? 'box-shadow: 0 0 16px rgba(139, 92, 246, 0.18);' : ''} border-radius: 8px; padding: 14px; display: flex; flex-direction: column; gap: 10px; min-width: 0; ${imagesGalleryLayout === 'strip' ? 'flex: 0 0 540px;' : ''} transition: border-color 0.3s ease;">
               <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-weight: 700; color: #93c5fd; font-size: 14px;">Scene #${s.scene_id}</span>
-                <span id="studio-scene-badge-${s.scene_id}" style="font-size: 12px; color: ${imgUrl?'#34d399':'#f59e0b'}; font-weight: 600;">${imgUrl ? '✓ Generated' : '⏳ Pending'}</span>
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                  <span style="font-weight: 700; color: #93c5fd; font-size: 14px;">Scene #${s.scene_id}</span>
+                  ${isAvatarOverlap ? `<span style="background: rgba(147, 51, 234, 0.3); border: 1.5px solid #a855f7; color: #f3e8ff; font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px;">🎭 虛擬主播出鏡 (Avatar Appearance)</span>` : ''}
+                </div>
+                <span id="studio-scene-badge-${s.scene_id}" style="font-size: 12px; color: ${isAvatarOverlap ? '#c084fc' : (imgUrl?'#34d399':'#f59e0b')}; font-weight: 600;">${isAvatarOverlap ? '⚡ 免生圖 (Avatar)' : (imgUrl ? '✓ Generated' : '⏳ Pending')}</span>
               </div>
 
-              ${isDrama ? `
+              ${isAvatarOverlap ? `
+                <div style="font-size: 11px; padding: 6px 10px; background: rgba(88, 28, 135, 0.35); border: 1px solid #7c3aed; border-radius: 4px; color: #e9d5ff; font-weight: 600; display: flex; align-items: center; justify-content: space-between; gap: 6px;">
+                  <span style="display: flex; align-items: center; gap: 6px;">
+                    <span>🎭 <b>此幕為虛擬真人主播出鏡</b>：由口型影片直接算繪，已自動跳過 AI 生圖以節省 Token。無需且請勿上傳底圖。</span>
+                  </span>
+                  <span style="font-size: 9px; background: #6d28d9; color: #fff; padding: 1px 6px; border-radius: 3px; font-weight: 700; white-space: nowrap;">0 TOKENS</span>
+                </div>
+              ` : (isDrama ? `
                 <div style="font-size: 11px; padding: 4px 8px; background: rgba(245, 158, 11, 0.15); border: 1px solid #d97706; border-radius: 4px; color: #fbbf24; font-weight: 600; display: flex; align-items: center; justify-content: space-between;">
                   <span>👤 角色: <b>${s.character || s.speaker || '主演'}</b></span>
                   <span style="font-size: 9px; background: #b45309; color: #fff; padding: 1px 5px; border-radius: 3px; font-weight: 700;">9:16 直式立繪</span>
@@ -13585,7 +13747,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
                     🎨 <span>AI 生成畫面 (無特定真實實體標籤)</span>
                   </div>
                 `))}
-              ` }
+              ` )}
 
               <!-- Side-by-Side: Image and Scene Script Line -->
               <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; align-items: stretch;">
@@ -13598,28 +13760,36 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
                     </span>
                     ${totalTakes > 1 ? `<span id="studio-scene-active-take-badge-${s.scene_id}" style="background: rgba(5,150,105,0.25); border: 1px solid #059669; color: #34d399; font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 3px;">Take #${activeTake || 1} / ${totalTakes}</span>` : ''}
                   </div>
-                  <div style="width: 100%; height: 165px; background: #000; border-radius: 6px; overflow: hidden; display: flex; align-items: center; justify-content: center; position: relative; border: 1px solid #1e293b; transition: border-color 0.2s ease;"
-                       ondragover="event.preventDefault(); this.style.borderColor='#a855f7';"
-                       ondragleave="this.style.borderColor='#1e293b';"
-                       ondrop="event.preventDefault(); this.style.borderColor='#1e293b'; if (event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files.length) uploadManualSceneImage(${s.scene_id}, event.dataTransfer.files[0]);">
+                  <div style="width: 100%; height: 165px; background: #000; border-radius: 6px; overflow: hidden; display: flex; align-items: center; justify-content: center; position: relative; border: 1px solid ${isAvatarOverlap ? '#7c3aed' : '#1e293b'}; transition: border-color 0.2s ease;"
+                       ${isAvatarOverlap ? '' : `ondragover="event.preventDefault(); this.style.borderColor='#a855f7';" ondragleave="this.style.borderColor='#1e293b';" ondrop="event.preventDefault(); this.style.borderColor='#1e293b'; if (event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files.length) uploadManualSceneImage(${s.scene_id}, event.dataTransfer.files[0]);"`}>
                     ${imgUrl ? `
                       <img id="studio-scene-img-${s.scene_id}" src="${imgUrlBusted}" onload="if(this.naturalHeight > this.naturalWidth) { this.style.objectFit='contain'; this.style.background='radial-gradient(circle, #0f172a 0%, #020617 100%)'; }" style="width: 100%; height: 100%; object-fit: ${isImgPortrait ? 'contain' : 'cover'}; background: ${isImgPortrait ? 'radial-gradient(circle, #0f172a 0%, #020617 100%)' : '#000'}; cursor: pointer;" onclick="window.open('${imgUrl}')" title="Click to view full image in new tab">
-                      ${isImgPortrait ? '<span style="position: absolute; top: 4px; left: 4px; background: rgba(2, 132, 199, 0.85); border: 1px solid #38bdf8; color: #fff; font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 3px; z-index: 2;">📱 9:16 全景保留</span>' : ''}
+                      ${isAvatarOverlap ? '<span style="position: absolute; top: 4px; left: 4px; background: rgba(124, 58, 237, 0.9); border: 1px solid #a855f7; color: #fff; font-size: 9px; font-weight: 700; padding: 1px 6px; border-radius: 3px; z-index: 2;">🎭 主播肖像預覽</span>' : (isImgPortrait ? '<span style="position: absolute; top: 4px; left: 4px; background: rgba(2, 132, 199, 0.85); border: 1px solid #38bdf8; color: #fff; font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 3px; z-index: 2;">📱 9:16 全景保留</span>' : '')}
                       <div style="position: absolute; bottom: 4px; left: 4px; background: rgba(0,0,0,0.7); font-size: 10px; color: #cbd5e1; padding: 2px 5px; border-radius: 3px; pointer-events: none;">🔍 Click to Zoom</div>
                       <div style="position: absolute; top: 4px; right: 4px; display: flex; gap: 4px; z-index: 2;">
-                        <button onclick="event.stopPropagation(); triggerSceneImageUpload(${s.scene_id})" style="background: rgba(147, 51, 234, 0.85); border: 1px solid #c084fc; color: #fff; border-radius: 3px; padding: 2px 6px; font-size: 11px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 3px;" title="Replace with manually uploaded image">
-                          📤 Replace
-                        </button>
-                        <button onclick="event.stopPropagation(); deleteSceneActiveImage(${s.scene_id})" style="background: rgba(0,0,0,0.75); border: 1px solid #ef4444; color: #fca5a5; border-radius: 3px; padding: 2px 6px; font-size: 11px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 3px;" title="Delete current image">
-                          🗑️ Delete
-                        </button>
+                        ${isAvatarOverlap ? `
+                          <span style="background: rgba(15, 23, 42, 0.85); border: 1px solid #7c3aed; color: #e9d5ff; border-radius: 3px; padding: 2px 7px; font-size: 10px; font-weight: 700;">🚫 免上傳底圖</span>
+                        ` : `
+                          <button onclick="event.stopPropagation(); triggerSceneImageUpload(${s.scene_id})" style="background: rgba(147, 51, 234, 0.85); border: 1px solid #c084fc; color: #fff; border-radius: 3px; padding: 2px 6px; font-size: 11px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 3px;" title="Replace with manually uploaded image">
+                            📤 Replace
+                          </button>
+                          <button onclick="event.stopPropagation(); deleteSceneActiveImage(${s.scene_id})" style="background: rgba(0,0,0,0.75); border: 1px solid #ef4444; color: #fca5a5; border-radius: 3px; padding: 2px 6px; font-size: 11px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 3px;" title="Delete current image">
+                            🗑️ Delete
+                          </button>
+                        `}
+                      </div>
+                    ` : (isAvatarOverlap ? `
+                      <div style="text-align: center; padding: 14px; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: radial-gradient(circle, #1e1b4b 0%, #03060d 100%);">
+                        <span style="font-size: 26px; margin-bottom: 4px;">🎭</span>
+                        <span style="font-size: 12px; color: #c084fc; font-weight: 700; margin-bottom: 2px;">虛擬真人主播出鏡鏡頭</span>
+                        <span style="font-size: 11px; color: #94a3b8; max-width: 220px; line-height: 1.35;">已自動跳過 AI 生圖以節省 Token<br><b style="color: #cbd5e1;">影片將直接由口型影片算繪，無需上傳底圖</b></span>
                       </div>
                     ` : `
                       <div style="text-align: center; cursor: pointer; padding: 12px; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;" onclick="triggerSceneImageUpload(${s.scene_id})" title="Click or drag an image file here to upload">
                         <span id="studio-no-img-${s.scene_id}" style="font-size: 12px; color: gray; margin-bottom: 4px;">No Image Generated</span>
                         <span style="font-size: 11px; color: #c084fc; font-weight: 600; background: rgba(147, 51, 234, 0.15); border: 1px dashed #a855f7; padding: 4px 10px; border-radius: 4px;">📤 Click / Drag to Upload</span>
                       </div>
-                    `}
+                    `)}
                   </div>
 
                   <!-- Quick Takes Navigator Row under image -->
@@ -13731,14 +13901,25 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
                 </div>
               </div>
 
-              <div style="margin-top: 2px; display: flex; gap: 4px; flex-wrap: wrap;">
-                <button class="btn-sec" style="flex: 1; font-size: 12px; padding: 6px 12px; background: #1e3a8a; border-color: #3b82f6; color: #fff; font-weight: 600;" onclick="regenStudioImage(${s.scene_id})" id="studio-btn-regen-${s.scene_id}">🔄 Regenerate Scene Image</button>
-                <button class="btn-sec" style="font-size: 12px; padding: 6px 10px; background: rgba(5, 150, 105, 0.25); border-color: #059669; color: #6ee7b7; font-weight: 600;" onclick="quickStockPhotoForScene(${s.scene_id}, false)" title="Immediately fetch online stock photo for Scene #${s.scene_id}">🌐 Quick Stock</button>
-                <button class="btn-sec" style="font-size: 12px; padding: 6px 10px; background: rgba(16, 185, 129, 0.2); border-color: #059669; color: #6ee7b7; font-weight: 600;" onclick="openStockMediaModal(${s.scene_id}, \`${(s.visual_description || s.prompt || '').replace(/[`\\$]/g, ' ')}\`)" title="Search online stock footage & photos for Scene #${s.scene_id}">🔍 Stock Library</button>
-                <button class="btn-sec" id="studio-btn-upload-${s.scene_id}" style="font-size: 12px; padding: 6px 10px; background: rgba(147, 51, 234, 0.25); border-color: #a855f7; color: #d8b4fe; font-weight: 600;" onclick="triggerSceneImageUpload(${s.scene_id})" title="Manually upload an image from your computer to Scene #${s.scene_id}">📤 Upload Image</button>
-                <input type="file" id="studio-scene-upload-file-${s.scene_id}" accept="image/png,image/jpeg,image/webp,image/bmp,image/gif" style="display:none;" onchange="uploadManualSceneImage(${s.scene_id}, this.files[0])">
-                ${imgUrl ? `<button class="btn-sec" style="padding: 6px 10px; font-size: 12px; background: rgba(239, 68, 68, 0.15); border-color: #b91c1c; color: #fca5a5; font-weight: 600;" onclick="deleteSceneActiveImage(${s.scene_id})" title="Delete image for Scene #${s.scene_id}">🗑️ Delete</button>` : ''}
-              </div>
+              ${isAvatarOverlap ? `
+                <div style="margin-top: 2px; display: flex; gap: 4px; flex-wrap: wrap;">
+                  <button class="btn-sec" disabled style="flex: 1; opacity: 0.65; cursor: not-allowed; font-size: 12px; padding: 6px 12px; background: rgba(88, 28, 135, 0.35); border-color: #7c3aed; color: #ddd6fe; font-weight: 700;" title="此鏡頭為主播出鏡，已跳過 AI 生圖以節省 Token">
+                    🎭 主播鏡頭 (已省 Token)
+                  </button>
+                  <button class="btn-sec" disabled style="opacity: 0.55; cursor: not-allowed; font-size: 12px; padding: 6px 12px; background: rgba(15, 23, 42, 0.7); border-color: #334155; color: #94a3b8; font-weight: 600;" title="此鏡頭為主播出鏡，最終影片由口型視頻渲染，無需上傳底圖">
+                    🚫 免上傳底圖
+                  </button>
+                </div>
+              ` : `
+                <div style="margin-top: 2px; display: flex; gap: 4px; flex-wrap: wrap;">
+                  <button class="btn-sec" style="flex: 1; font-size: 12px; padding: 6px 12px; background: #1e3a8a; border-color: #3b82f6; color: #fff; font-weight: 600;" onclick="regenStudioImage(${s.scene_id})" id="studio-btn-regen-${s.scene_id}">🔄 Regenerate Scene Image</button>
+                  <button class="btn-sec" style="font-size: 12px; padding: 6px 10px; background: rgba(5, 150, 105, 0.25); border-color: #059669; color: #6ee7b7; font-weight: 600;" onclick="quickStockPhotoForScene(${s.scene_id}, false)" title="Immediately fetch online stock photo for Scene #${s.scene_id}">🌐 Quick Stock</button>
+                  <button class="btn-sec" style="font-size: 12px; padding: 6px 10px; background: rgba(16, 185, 129, 0.2); border-color: #059669; color: #6ee7b7; font-weight: 600;" onclick="openStockMediaModal(${s.scene_id}, \`${(s.visual_description || s.prompt || '').replace(/[`\\$]/g, ' ')}\`)" title="Search online stock footage & photos for Scene #${s.scene_id}">🔍 Stock Library</button>
+                  <button class="btn-sec" id="studio-btn-upload-${s.scene_id}" style="font-size: 12px; padding: 6px 10px; background: rgba(147, 51, 234, 0.25); border-color: #a855f7; color: #d8b4fe; font-weight: 600;" onclick="triggerSceneImageUpload(${s.scene_id})" title="Manually upload an image from your computer to Scene #${s.scene_id}">📤 Upload Image</button>
+                  <input type="file" id="studio-scene-upload-file-${s.scene_id}" accept="image/png,image/jpeg,image/webp,image/bmp,image/gif" style="display:none;" onchange="uploadManualSceneImage(${s.scene_id}, this.files[0])">
+                  ${imgUrl ? `<button class="btn-sec" style="padding: 6px 10px; font-size: 12px; background: rgba(239, 68, 68, 0.15); border-color: #b91c1c; color: #fca5a5; font-weight: 600;" onclick="deleteSceneActiveImage(${s.scene_id})" title="Delete image for Scene #${s.scene_id}">🗑️ Delete</button>` : ''}
+                </div>
+              `}
               <div id="studio-scene-toast-${s.scene_id}" style="font-size: 11px; color: #34d399; font-weight: 600; display: none; margin-top: 2px;"></div>
             </div>
           `;
@@ -15223,6 +15404,13 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
     }
 
     function triggerSceneImageUpload(sceneId) {
+      const allSc = (studioStageData?.scenes || inspectedStageData?.scenes || currentScenes || []);
+      const targetSc = allSc.find(x => x.scene_id === sceneId);
+      if (targetSc && isSceneAvatarOverlapping(targetSc, currentProject || studioProject, allSc)) {
+        alert(`⚠️ Scene #${sceneId} 為 AI 虛擬真人主播出鏡鏡頭！\n\n此鏡頭最終將直接渲染虛擬主播動態口型影片，系統已自動跳過 AI 生圖以節省 Token。無需且不建議上傳底圖。`);
+        return;
+      }
+
       const inp = document.getElementById(`studio-scene-upload-file-${sceneId}`) ||
                   document.getElementById(`insp-scene-upload-file-${sceneId}`) ||
                   document.getElementById(`takes-modal-upload-file-${sceneId}`) ||
@@ -15235,6 +15423,13 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
 
     async function uploadManualSceneImage(sceneId, file) {
       if (!currentProjectId || !file) return;
+
+      const allSc = (studioStageData?.scenes || inspectedStageData?.scenes || currentScenes || []);
+      const targetSc = allSc.find(x => x.scene_id === sceneId);
+      if (targetSc && isSceneAvatarOverlapping(targetSc, currentProject || studioProject, allSc)) {
+        alert(`⚠️ Scene #${sceneId} 為 AI 虛擬真人主播出鏡鏡頭！\n\n此鏡頭最終將直接渲染虛擬主播動態口型影片，系統已自動跳過 AI 生圖以節省 Token。無需且不建議上傳底圖。`);
+        return;
+      }
 
       if (!file.type || !file.type.startsWith('image/')) {
         alert("Please select a valid image file (PNG, JPG, WEBP, etc.)");

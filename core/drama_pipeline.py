@@ -26,7 +26,7 @@ from typing import Callable, Optional
 
 from agents.drama_agent import plan_drama_production
 
-from core.base_pipeline import BasePipeline, PipelineCancelled
+from core.base_pipeline import BasePipeline, PipelineCancelled, is_avatar_overlapping_scene
 
 from core.config import ROOT, get_secret, load_providers
 
@@ -1421,19 +1421,32 @@ class DramaPipeline(BasePipeline):
 
 
 
-        for s in scenes:
-
-
-
+        for idx, s in enumerate(scenes):
             if self._cancel_flag: raise PipelineCancelled()
 
-
-
             img_path = self.p.path("images", f"{s.tag}.png")
-
-
-
             vid_path = self.p.path("images", f"{s.tag}.mp4")
+
+            # Skip generation if avatar mode overlaps this scene to save tokens
+            if is_avatar_overlapping_scene(self.p, s, idx, scenes):
+                log.info("Drama Stage 5 Scene %d: Detected avatar presenter appearance. Skipping image generation to save tokens.", s.scene_id)
+                s.is_presenter = True
+                if s.visual_type not in ("talking_head", "talking_actor"):
+                    s.visual_type = "talking_head"
+                s.image.status = Status.COMPLETED
+                s.image.path = self.p.rel(img_path) if img_path.exists() else None
+                s.image.error = None
+                s.image.meta = {
+                    "provider": "avatar_presenter",
+                    "skipped": True,
+                    "avatar_overlap": True,
+                    "avatar_profile": getattr(s, "avatar_profile", None) or (self.p.data.settings or {}).get("default_avatar"),
+                    "reason": "Avatar presenter scene (AI image generation skipped to save tokens)",
+                }
+                self.p.save_scenes()
+                done = sum(1 for sc in scenes if sc.image.status == Status.COMPLETED)
+                self.p.progress("images", done, total)
+                continue
 
 
 

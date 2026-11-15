@@ -36,7 +36,7 @@ from agents.scene_planner import direct_scenes, segment, visual_bible
 from agents.script_writer import script_markdown, write_script
 
 from agents.prompts_common import merge_negative_prompts, UNIVERSAL_QUALITY_NEGATIVE
-from core.base_pipeline import BasePipeline, PipelineCancelled, apply_presenter_placement
+from core.base_pipeline import BasePipeline, PipelineCancelled, apply_presenter_placement, is_avatar_overlapping_scene
 
 from core.config import ROOT, get_secret, load_providers
 
@@ -870,22 +870,62 @@ class DocumentaryPipeline(BasePipeline):
         media_registry = get_project_media_registry(scenes)
 
         try:
-
-            for s in scenes:
-
-
-
+            for idx, s in enumerate(scenes):
                 if self._cancel_flag: raise PipelineCancelled()
-
-
 
                 img_path = self.p.path("images", f"{s.tag}.png")
 
+                # If avatar mode is selected, detect where avatar appearances are overlapping scenes:
+                # Do not generate images for those scenes to save tokens.
+                if is_avatar_overlapping_scene(self.p, s, idx, scenes):
+                    log.info("Stage 5 Scene %d: Detected avatar presenter appearance. Skipping AI image generation to save tokens.", s.scene_id)
+                    s.is_presenter = True
+                    if s.visual_type not in ("talking_head", "talking_actor"):
+                        s.visual_type = "talking_head"
+                    if not s.avatar_profile:
+                        s.avatar_profile = (self.p.data.settings or {}).get("default_avatar") or self.p.settings.get("default_avatar")
 
+                    # Copy avatar portrait as local visual asset if image doesn't exist
+                    if not img_path.exists() or img_path.stat().st_size == 0 or (s.image and s.image.meta and s.image.meta.get("provider") == "placeholder"):
+                        av_name = s.avatar_profile
+                        try:
+                            from generators.avatar_generator import AVATARS_DIR, load_avatar
+                            av_data = load_avatar(av_name) if av_name else None
+                            portrait_src = None
+                            if av_data and av_data.get("image_filename"):
+                                cand = AVATARS_DIR / av_name / av_data["image_filename"]
+                                if cand.exists():
+                                    portrait_src = cand
+                            if not portrait_src and av_name:
+                                cand2 = AVATARS_DIR / av_name / "portrait.png"
+                                if cand2.exists():
+                                    portrait_src = cand2
+                            if portrait_src and portrait_src.exists():
+                                shutil.copy2(str(portrait_src), str(img_path))
+                        except Exception as cp_err:
+                            log.warning("Could not copy avatar portrait for scene %d: %s", s.scene_id, cp_err)
 
+                    s.image.status = Status.COMPLETED
+                    s.image.path = self.p.rel(img_path) if img_path.exists() else None
+                    s.image.error = None
+                    s.image.meta = {
+                        "provider": "avatar_presenter",
+                        "skipped": True,
+                        "avatar_overlap": True,
+                        "avatar_profile": s.avatar_profile,
+                        "reason": "Avatar presenter scene (AI image generation skipped to save tokens)",
+                    }
+                    try:
+                        from core.versioning import record_scene_image_take
+                        if s.image.path:
+                            record_scene_image_take(self.p, s.scene_id, s.image.path, "avatar_presenter", s.prompt or "", "avatar_portrait")
+                    except Exception:
+                        pass
 
-
-
+                    self.p.save_scenes()
+                    done = sum(1 for sc in scenes if sc.image.status == Status.COMPLETED)
+                    self.p.progress("images", done, total)
+                    continue
 
                 # Skip if already generated (unless it was only a fallback placeholder)
                 if s.image.status == Status.COMPLETED and img_path.exists() and img_path.stat().st_size > 1000:

@@ -28,109 +28,121 @@ class PipelineCancelled(Exception):
     pass
 
 
-def apply_presenter_placement(
-
-    scenes: list[Scene],
-
-    placement: str = "none",
-
-    default_avatar: Optional[str] = None,
-
-    project_voice_profile: Optional[str] = None
-
-) -> list[Scene]:
-
-    """Applies presenter placement strategy to a list of scenes.
-
-
-
-    Strategies:
-
-      - 'none': No presenter scenes (pure visuals / b-roll)
-
-      - 'intro': Scene 1 only (opening hook)
-
-      - 'intro_outro': Scene 1 + final scene (hook + call to action)
-
-      - 'intro_middle_outro': Scene 1 + midpoint scene (~50%) + final scene
-
-      - 'chapters': First scene of each unique chapter/section
-
-      - 'all': Presenter on all scenes
-
-    """
-
-    if not scenes:
-
-        return scenes
-
-
-
-    n = len(scenes)
-
-    target_indices: set[int] = set()
+def get_presenter_target_indices(n: int, placement: Optional[str], scenes: Optional[list] = None) -> set[int]:
+    """Calculate 0-indexed scene indices that should have talking avatar presenter appearances."""
+    if n <= 0:
+        return set()
 
     strat = (placement or "none").strip().lower()
 
-
-
     if strat in ("none", "false", "", "off", "disabled"):
-
-        target_indices = set()
-
+        return set()
     elif strat in ("intro", "beginning", "hook", "scene_1", "true", "start"):
-
-        target_indices = {0}
-
+        return {0}
     elif strat in ("intro_outro", "beginning_end", "start_end", "intro_end"):
-
-        target_indices = {0}
-
+        target = {0}
         if n > 1:
-
-            target_indices.add(n - 1)
-
+            target.add(n - 1)
+        return target
     elif strat in ("intro_middle_outro", "beginning_middle_end", "start_middle_end", "middle_and_end", "three_point"):
-
-        target_indices = {0}
-
+        target = {0}
         if n >= 3:
-
-            target_indices.add(n // 2)
-
+            target.add(n // 2)
         if n > 1:
-
-            target_indices.add(n - 1)
-
+            target.add(n - 1)
+        return target
     elif strat in ("chapters", "sections", "chapter_intros"):
-
+        target = set()
         seen_sections: set[str] = set()
-
-        for idx, sc in enumerate(scenes):
-
+        sc_list = scenes or []
+        for idx in range(min(n, len(sc_list))):
+            sc = sc_list[idx]
             sec = (getattr(sc, "section", "") or "").strip()
-
             if sec and sec not in seen_sections:
-
                 seen_sections.add(sec)
-
-                target_indices.add(idx)
-
-        if not target_indices:
-
-            target_indices = {0}
-
+                target.add(idx)
+        if not target:
+            target = {0}
+        return target
     elif strat in ("all", "all_scenes", "full"):
-
-        target_indices = set(range(n))
-
+        return set(range(n))
     elif strat in ("every_3", "every_third", "thirds"):
-
-        target_indices = set(range(0, n, 3))
-
+        return set(range(0, n, 3))
     else:
+        return {0}
 
-        target_indices = {0}
+
+def is_avatar_overlapping_scene(project, scene, scene_idx: Optional[int] = None, scenes: Optional[list] = None) -> bool:
+    """Return True if talking avatar appearance is overlapping this scene."""
+    if not scene:
+        return False
+
+    if hasattr(project, "is_avatar_enabled") and not project.is_avatar_enabled():
+        return False
+
+    settings = getattr(project, "settings", {}) or {}
+    if hasattr(project, "data") and getattr(project.data, "settings", None):
+        merged = dict(settings)
+        merged.update(project.data.settings or {})
+        settings = merged
+
+    if settings.get("avatar_enabled") is False or settings.get("presenter_placement") in ("none", "off", "disabled", False):
+        return False
+
+    is_manual = bool(
+        getattr(scene, "media_source", "") == "upload"
+        or getattr(scene, "is_manual_upload", False)
+        or (getattr(scene, "image", None) and scene.image.meta and (scene.image.meta.get("is_manual_upload") or scene.image.meta.get("source") == "manual_upload"))
+    )
+    if is_manual:
+        return False
+
+    if getattr(scene, "is_presenter", False):
+        return True
+    if getattr(scene, "visual_type", "") in ("talking_head", "talking_actor"):
+        return True
+    if bool(getattr(scene, "avatar_profile", None)):
+        return True
+
+    placement = settings.get("presenter_placement")
+    if placement and str(placement).strip().lower() not in ("none", "off", "disabled", "false", ""):
+        all_sc = scenes if scenes is not None else (getattr(project, "scenes", None) or [])
+        if all_sc:
+            idx = scene_idx
+            if idx is None:
+                for i, sc in enumerate(all_sc):
+                    if getattr(sc, "scene_id", None) == getattr(scene, "scene_id", None):
+                        idx = i
+                        break
+            if idx is not None:
+                target_indices = get_presenter_target_indices(len(all_sc), placement, all_sc)
+                if idx in target_indices:
+                    return True
+
+    return False
+
+
+def apply_presenter_placement(
+    scenes: list[Scene],
+    placement: str = "none",
+    default_avatar: Optional[str] = None,
+    project_voice_profile: Optional[str] = None
+) -> list[Scene]:
+    """Applies presenter placement strategy to a list of scenes.
+
+    Strategies:
+      - 'none': No presenter scenes (pure visuals / b-roll)
+      - 'intro': Scene 1 only (opening hook)
+      - 'intro_outro': Scene 1 + final scene (hook + call to action)
+      - 'intro_middle_outro': Scene 1 + midpoint scene (~50%) + final scene
+      - 'chapters': First scene of each unique chapter/section
+      - 'all': Presenter on all scenes
+    """
+    if not scenes:
+        return scenes
+
+    n = len(scenes)
+    target_indices = get_presenter_target_indices(n, placement, scenes)
 
 
 
@@ -217,14 +229,20 @@ class BasePipeline:
         self._stage_models_override: dict[str, str] = {}
 
     def _completed_image_count(self, scenes: list[Scene]) -> int:
-        """Count scene images that are both marked complete and present on disk."""
+        """Count scene images that are both marked complete and present on disk, or completed avatar scenes."""
         return sum(
             1
             for scene in scenes
-            if scene.image.status == Status.COMPLETED
-            and self.p.abs(scene.image.path)
-            and self.p.abs(scene.image.path).exists()
-            and not (scene.image.meta and scene.image.meta.get("provider") == "placeholder")
+            if (
+                scene.image.status == Status.COMPLETED
+                and self.p.abs(scene.image.path)
+                and self.p.abs(scene.image.path).exists()
+                and not (scene.image.meta and scene.image.meta.get("provider") == "placeholder")
+            ) or (
+                self.p.is_avatar_enabled()
+                and is_avatar_overlapping_scene(self.p, scene)
+                and scene.image.status == Status.COMPLETED
+            )
         )
 
     def _resolve_image_provider(self, requested: str, fallback: str) -> tuple[Any, str]:

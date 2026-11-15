@@ -3,7 +3,13 @@ from __future__ import annotations
 
 from typing import Optional
 
-from core.base_pipeline import BasePipeline, PipelineCancelled, apply_presenter_placement
+from core.base_pipeline import (
+    BasePipeline,
+    PipelineCancelled,
+    apply_presenter_placement,
+    get_presenter_target_indices,
+    is_avatar_overlapping_scene,
+)
 from core.documentary_pipeline import DocumentaryPipeline
 from core.drama_pipeline import DramaPipeline
 from core.project_manager import Project
@@ -26,5 +32,7 @@ __all__ = [
     "DramaPipeline",
     "PipelineCancelled",
     "apply_presenter_placement",
+    "get_presenter_target_indices",
+    "is_avatar_overlapping_scene",
     "get_pipeline",
 ]
