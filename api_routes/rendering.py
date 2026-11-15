@@ -1,6 +1,7 @@
 """Draft and final video rendering endpoints."""
 from __future__ import annotations
 
+import os
 from fastapi import APIRouter, BackgroundTasks
 
 from core.pipeline_jobs import get_project, queue_pipeline_job
@@ -57,6 +58,18 @@ def fast_rerender_video_endpoint(project_id: str, background_tasks: BackgroundTa
                         sc.media_source = "ai"
         pipeline.p.save_scenes()
         pipeline.ensure_consistent_project_voice()
+        has_pending_anim = any(sc.animation.status == Status.PENDING for sc in pipeline.p.scenes)
+        avatar_allowed = pipeline.p.is_avatar_enabled() if hasattr(pipeline.p, "is_avatar_enabled") else (pipeline.p.settings.get("presenter_placement") not in ("none", "off", "disabled", False))
+        has_pending_presenter = avatar_allowed and any(
+            (getattr(sc, "is_presenter", False) or sc.visual_type == "talking_head") and (
+                sc.animation.status != Status.COMPLETED
+                or not (pipeline.p.abs(sc.animation.path) if sc.animation and sc.animation.path else None)
+                or not os.path.exists(pipeline.p.abs(sc.animation.path))
+            )
+            for sc in pipeline.p.scenes
+        )
+        if has_pending_anim or has_pending_presenter or pipeline.p.stages.get("animation") != Status.COMPLETED:
+            pipeline._run_animation()
         pipeline._run_subtitles()
         pipeline._run_render()
         project.data.activity = "Final 1080p video successfully updated! Replaced modified scenes."

@@ -714,6 +714,7 @@ async def parse_research_file(file: UploadFile = File(...)):
 
 class UpdateStageModelsRequest(BaseModel):
     stage_models: dict[str, str]
+    voice_profile: Optional[str] = None
 
 
 @app.get("/api/stage-models")
@@ -806,6 +807,13 @@ def update_project_stage_models(project_id: str, req: UpdateStageModelsRequest):
     else:
         p = get_project(project_id)
         p.data.settings.setdefault("stage_models", {}).update(req.stage_models)
+        if req.voice_profile:
+            vp_name = req.voice_profile.strip()
+            p.data.settings["voice_profile"] = vp_name
+            p.data.settings.setdefault("voice", {})["profile"] = vp_name
+            for sc in p.scenes:
+                sc.voice_profile = vp_name
+            p.save_scenes()
         if "images" in req.stage_models:
             model_val = req.stage_models["images"]
             if model_val not in ("stock", "stock_photos", "placeholder"):
@@ -2224,6 +2232,44 @@ def update_stage_data_endpoint(project_id: str, stage_name: str, payload: dict[s
             p.data.settings.setdefault("music", {})["vibe"] = payload["vibe"]
             p.save()
         p.invalidate("render")
+    elif stage_name == "voice":
+        if "voice_profile" in payload:
+            vp = str(payload["voice_profile"]).strip()
+            p.data.settings["voice_profile"] = vp
+            p.data.settings.setdefault("voice", {})["profile"] = vp
+            for sc in p.scenes:
+                sc.voice_profile = vp
+                sc.audio.status = Status.PENDING
+            p.save_scenes()
+        if "tts_provider" in payload:
+            p.data.settings.setdefault("stage_models", {})["voice"] = payload["tts_provider"]
+            p.data.settings.setdefault("voice", {})["provider"] = payload["tts_provider"]
+        p.set_stage("voice", Status.PENDING)
+        p.set_stage("render", Status.PENDING)
+        p.save()
+    elif stage_name == "presenter":
+        if "avatar_profile" in payload:
+            p.data.settings["default_avatar"] = payload["avatar_profile"]
+            p.data.settings["avatar_enabled"] = True
+        if "placement" in payload:
+            from core.base_pipeline import apply_presenter_placement
+            placement = payload["placement"]
+            p.data.settings["presenter_placement"] = placement
+            p.data.settings["auto_presenter"] = (placement != "none")
+            p.data.settings["avatar_enabled"] = (placement != "none")
+            updated = apply_presenter_placement(
+                p.scenes,
+                placement,
+                payload.get("avatar_profile") or p.data.settings.get("default_avatar"),
+                project_voice_profile=p.data.settings.get("voice_profile")
+            )
+            for sc in updated:
+                if getattr(sc, "is_presenter", False) or sc.visual_type == "talking_head":
+                    sc.animation.status = Status.PENDING
+            p.set_scenes(updated)
+        p.set_stage("animation", Status.PENDING)
+        p.set_stage("render", Status.PENDING)
+        p.save()
     elif stage_name == "subtitles":
         if "srt" in payload:
             p.write_text("subtitles/subtitles.srt", payload["srt"])
@@ -2231,10 +2277,17 @@ def update_stage_data_endpoint(project_id: str, stage_name: str, payload: dict[s
             val = bool(payload["motion_graphics_callouts"])
             p.data.settings.setdefault("subtitles", {})["motion_graphics_callouts"] = val
             p.data.settings.setdefault("subtitles", {})["callouts_enabled"] = val
-            p.save()
+            p.data.settings["motion_callouts"] = val
         if "callout_style" in payload:
             p.data.settings.setdefault("subtitles", {})["callout_style"] = str(payload["callout_style"])
-            p.save()
+            p.data.settings["callout_style"] = str(payload["callout_style"])
+        if "subtitle_style" in payload and str(payload["subtitle_style"]).strip():
+            p.data.settings.setdefault("subtitles", {})["style"] = str(payload["subtitle_style"]).strip()
+        if "subtitle_font" in payload and str(payload["subtitle_font"]).strip():
+            p.data.settings.setdefault("subtitles", {})["font"] = str(payload["subtitle_font"]).strip()
+        if "remotion_theme" in payload and str(payload["remotion_theme"]).strip():
+            p.data.settings.setdefault("remotion", {})["theme"] = str(payload["remotion_theme"]).strip()
+            p.data.settings["remotion_theme"] = str(payload["remotion_theme"]).strip()
         p.invalidate("render")
     p.clear_clips_cache()
     p.set_stage("render", Status.PENDING)
@@ -3857,6 +3910,168 @@ def regenerate_scene_voice(project_id: str, scene_id: int, req_body: Optional[Re
         "audio_url": f"/media/{project_id}/{s.audio.path}",
         "meta": s.audio.meta,
         "scene": s.model_dump(mode="json")
+    }
+
+
+# ---------------- Save Configuration Without Re-rendering Endpoints ----------------
+class SaveVoiceConfigRequest(BaseModel):
+    voice_profile: str
+    tts_provider: Optional[str] = None
+    scope: str = "all"  # "all", "mismatched", or "custom"
+    scene_ids: Optional[list[int]] = None
+
+
+@app.post("/api/projects/{project_id}/save_voice_config")
+def save_voice_config_endpoint(project_id: str, req: SaveVoiceConfigRequest):
+    if not (PROJECTS_DIR / project_id).exists():
+        raise HTTPException(status_code=404, detail="Project not found")
+    p = get_project(project_id)
+    vp = req.voice_profile.strip()
+    tts_prov = req.tts_provider
+    if not tts_prov:
+        try:
+            vp_obj = load_profile(vp)
+            if vp_obj and vp_obj.get("provider"):
+                tts_prov = vp_obj["provider"]
+        except Exception:
+            pass
+
+    p.data.settings["voice_profile"] = vp
+    p.data.settings.setdefault("voice", {})["profile"] = vp
+    if tts_prov:
+        p.data.settings.setdefault("stage_models", {})["voice"] = tts_prov
+        p.data.settings.setdefault("voice", {})["provider"] = tts_prov
+
+    scenes = p.scenes
+    target_ids = set(req.scene_ids) if (req.scope == "custom" and req.scene_ids) else None
+    for sc in scenes:
+        if target_ids is None or sc.scene_id in target_ids:
+            if sc.voice_profile != vp:
+                sc.voice_profile = vp
+                sc.audio.status = Status.PENDING
+    p.set_scenes(scenes)
+    p.set_stage("voice", Status.PENDING)
+    p.set_stage("render", Status.PENDING)
+    p.save()
+    return {
+        "status": "saved",
+        "project_id": p.id,
+        "voice_profile": vp,
+        "tts_provider": tts_prov,
+        "message": f"Voice profile saved as '{vp}'."
+    }
+
+
+class SaveOverlayConfigRequest(BaseModel):
+    callout_style: Optional[str] = None
+    motion_graphics_callouts: Optional[bool] = None
+    subtitle_style: Optional[str] = None
+    subtitle_font: Optional[str] = None
+    remotion_theme: Optional[str] = None
+
+
+@app.post("/api/projects/{project_id}/save_overlay_config")
+def save_overlay_config_endpoint(project_id: str, req: SaveOverlayConfigRequest):
+    if not (PROJECTS_DIR / project_id).exists():
+        raise HTTPException(status_code=404, detail="Project not found")
+    p = get_project(project_id)
+    sub_s = p.data.settings.setdefault("subtitles", {})
+    if req.callout_style is not None:
+        sub_s["callout_style"] = str(req.callout_style)
+        p.data.settings["callout_style"] = str(req.callout_style)
+    if req.motion_graphics_callouts is not None:
+        val = bool(req.motion_graphics_callouts)
+        sub_s["motion_graphics_callouts"] = val
+        sub_s["callouts_enabled"] = val
+        p.data.settings["motion_callouts"] = val
+    if req.subtitle_style is not None and str(req.subtitle_style).strip():
+        sub_s["style"] = str(req.subtitle_style).strip()
+    if req.subtitle_font is not None and str(req.subtitle_font).strip():
+        sub_s["font"] = str(req.subtitle_font).strip()
+    if req.remotion_theme is not None and str(req.remotion_theme).strip():
+        rem = p.data.settings.setdefault("remotion", {})
+        rem["theme"] = str(req.remotion_theme).strip()
+        p.data.settings["remotion_theme"] = str(req.remotion_theme).strip()
+
+    p.path("subtitles", "subtitles.srt").unlink(missing_ok=True)
+    p.path("subtitles", "subtitles.ass").unlink(missing_ok=True)
+    p.set_stage("subtitles", Status.PENDING)
+    p.set_stage("render", Status.PENDING)
+    p.save()
+    return {
+        "status": "saved",
+        "project_id": p.id,
+        "callout_style": req.callout_style,
+        "message": "Overlay and subtitle configuration saved."
+    }
+
+
+class SaveAvatarConfigRequest(BaseModel):
+    avatar_profile: Optional[str] = None
+    engine: Optional[str] = None
+    scene_ids: Optional[list[int]] = None
+    voice_profile: Optional[str] = None
+    voice_scope: Optional[str] = "all"
+
+
+@app.post("/api/projects/{project_id}/save_avatar_config")
+def save_avatar_config_endpoint(project_id: str, req: SaveAvatarConfigRequest):
+    if not (PROJECTS_DIR / project_id).exists():
+        raise HTTPException(status_code=404, detail="Project not found")
+    p = get_project(project_id)
+
+    if req.avatar_profile:
+        p.data.settings["default_avatar"] = req.avatar_profile
+        p.data.settings["avatar_enabled"] = True
+    if req.engine:
+        p.data.settings["avatar_engine"] = req.engine
+        p.data.settings.setdefault("stage_models", {})["avatar_engine"] = req.engine
+
+    has_voice_update = bool(req.voice_profile and req.voice_profile.strip() and req.voice_profile != "keep")
+    if has_voice_update:
+        vp = req.voice_profile.strip()
+        p.data.settings["voice_profile"] = vp
+        p.data.settings.setdefault("voice", {})["profile"] = vp
+        try:
+            vp_obj = load_profile(vp)
+            if vp_obj and vp_obj.get("provider"):
+                p.data.settings.setdefault("stage_models", {})["voice"] = vp_obj["provider"]
+        except Exception:
+            pass
+
+    scenes = p.scenes
+    target_ids = set(req.scene_ids) if req.scene_ids else None
+
+    for sc in scenes:
+        is_targeted_presenter = False
+        if target_ids is not None:
+            if sc.scene_id in target_ids:
+                sc.is_presenter = True
+                sc.visual_type = "talking_head"
+                is_targeted_presenter = True
+        else:
+            if getattr(sc, "is_presenter", False) or sc.visual_type == "talking_head":
+                is_targeted_presenter = True
+
+        if is_targeted_presenter and req.avatar_profile:
+            sc.avatar_profile = req.avatar_profile
+            sc.animation.status = Status.PENDING
+
+        if has_voice_update:
+            if req.voice_scope == "all" or (req.voice_scope == "presenter" and is_targeted_presenter):
+                sc.voice_profile = req.voice_profile.strip()
+                sc.audio.status = Status.PENDING
+
+    p.set_scenes(scenes)
+    p.set_stage("animation", Status.PENDING)
+    p.set_stage("render", Status.PENDING)
+    p.save()
+    return {
+        "status": "saved",
+        "project_id": p.id,
+        "avatar_profile": req.avatar_profile,
+        "engine": req.engine,
+        "message": "Avatar presenter configuration saved."
     }
 
 
@@ -5671,6 +5886,9 @@ def apply_project_presenter_placement(project_id: str, req: ApplyPresenterPlacem
         req.avatar_profile or p.data.settings.get("default_avatar"),
         project_voice_profile=proj_vp,
     )
+    for s in updated_scenes:
+        if getattr(s, "is_presenter", False) or s.visual_type == "talking_head":
+            s.animation.status = Status.PENDING
     p.set_scenes(updated_scenes)
     p.set_stage("animation", Status.PENDING)
     p.set_stage("render", Status.PENDING)

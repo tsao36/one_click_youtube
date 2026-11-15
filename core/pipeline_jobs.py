@@ -20,16 +20,17 @@ _jobs_lock = threading.RLock()
 def get_project(
     project_id: str,
     *,
-    projects_dir=PROJECTS_DIR,
+    projects_dir: Path | None = None,
     pipelines: dict[str, BasePipeline] | None = None,
 ) -> Project:
     """Use the job's live state instead of a competing disk snapshot."""
+    actual_dir = PROJECTS_DIR if projects_dir is None else projects_dir
     registry = active_pipelines if pipelines is None else pipelines
     with _jobs_lock:
         pipeline = registry.get(project_id)
         if pipeline is not None:
             return pipeline.p
-        if not (projects_dir / project_id / "project.json").is_file():
+        if not (actual_dir / project_id / "project.json").is_file():
             raise HTTPException(status_code=404, detail="Project not found")
         return Project(project_id)
 

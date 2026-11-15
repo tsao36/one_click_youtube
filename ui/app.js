@@ -305,14 +305,14 @@
 
     async function fastRerenderUpdatedVideo() {
       if (!currentProjectId) return alert("Please select a project first.");
-      if (!confirm("確定僅替換已修改的分鏡片段，並重新合成輸出完整 1080p 影片（取代舊影片）？\n\n其餘未修改的分鏡將直接命中快取，大幅節省時間！")) {
+      if (!confirm("確定將所有已變更的設定（包含聲音模型、虛擬主播、字卡字幕風格或修改過的分鏡）一次性重新算繪合成完整 1080p 影片？\n\n其餘未修改的分鏡將直接命中快取，極速完成！")) {
         return;
       }
       try {
         await apiRequest(`/api/projects/${currentProjectId}/fast_rerender_video`, { method: 'POST' })
 
         startPolling();
-        alert("⚡ 已開始快速合成影片！系統僅會替換已修改的分鏡，其餘畫面直接套用快取。完成後將自動更新播放器。");
+        showToast("⚡ 已開始快速合成影片！系統將套用全部已儲存的聲音、虛擬主持與字卡字幕變更，其餘畫面直接套用快取。完成後將自動更新播放器。");
       } catch (err) {
         alert("Fast render failed: " + err.message);
       }
@@ -373,6 +373,68 @@
         if (btn) {
           btn.disabled = false;
           btn.innerHTML = '<span>🚀 Replace Avatar Clips & Update Video</span>';
+        }
+      }
+    }
+
+    async function saveAvatarConfigOnly() {
+      let pid = resolveActiveProjectId();
+      if (!pid) pid = currentProjectId;
+      if (!pid) return alert("Please select a project first.");
+
+      const avSel = document.getElementById('ra-avatar-profile');
+      const engSel = document.getElementById('ra-engine');
+      const scopeSel = document.getElementById('ra-scope');
+      const voiceSel = document.getElementById('ra-voice-profile');
+      const voiceScopeSel = document.getElementById('ra-voice-scope');
+      const btn = document.getElementById('btn-save-avatar-config');
+
+      const avatar = avSel ? avSel.value : null;
+      const engine = engSel && engSel.value ? engSel.value : null;
+      const scope = scopeSel ? scopeSel.value : 'all';
+      const voiceProfile = voiceSel && voiceSel.value ? voiceSel.value : null;
+      const voiceScope = voiceScopeSel ? voiceScopeSel.value : 'all';
+
+      let sceneIds = null;
+      if (scope === 'custom') {
+        const chks = Array.from(document.querySelectorAll('.ra-scene-chk:checked')).map(c => parseInt(c.value));
+        if (!chks.length) return alert("Please select at least one presenter scene to update.");
+        sceneIds = chks;
+      }
+
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span>⏳ Saving Avatar Settings...</span>';
+      }
+
+      try {
+        const payload = {
+          avatar_profile: avatar,
+          engine: engine,
+          scene_ids: sceneIds,
+          voice_profile: voiceProfile,
+          voice_scope: voiceScope,
+        };
+
+        await apiJson(`/api/projects/${pid}/save_avatar_config`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        closeRerenderAvatarModal();
+        showToast(`💾 Avatar Presenter configuration saved (${avatar || 'Updated'})! You can make other changes and re-render together.`);
+        if (typeof loadProjectOverview === 'function') loadProjectOverview(pid);
+        if (typeof refreshActiveProjectBar === 'function') refreshActiveProjectBar();
+        if (typeof activeStudioStage !== 'undefined' && activeStudioStage === 'presenter' && typeof loadStageStudio === 'function') {
+          loadStageStudio('presenter');
+        }
+      } catch (e) {
+        alert("Save Avatar Error: " + e.message);
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<span>💾 僅儲存設定 (Save Config Only)</span>';
         }
       }
     }
@@ -681,6 +743,59 @@
       }
     }
 
+    async function saveVoiceConfigOnly() {
+      let pid = resolveActiveProjectId();
+      if (!pid) pid = currentProjectId;
+      if (!pid) return alert("Please select a project first.");
+
+      const voiceProfile = document.getElementById('rv-voice-profile')?.value || '';
+      const ttsProvider = document.getElementById('rv-tts-provider')?.value || '';
+      const scope = document.getElementById('rv-scope')?.value || 'all';
+      const customRangeStr = document.getElementById('rv-custom-range')?.value || '';
+
+      let sceneIds = null;
+      if (scope === 'custom') {
+        sceneIds = parseSceneRangeInput(customRangeStr);
+        if (!sceneIds.length) {
+          return alert("Please enter valid scene numbers or a range (e.g. 22-41).");
+        }
+      }
+
+      const btn = document.getElementById('btn-save-voice-config');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span>⏳ Saving Voice Settings...</span>';
+      }
+
+      try {
+        await apiJson(`/api/projects/${pid}/save_voice_config`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            voice_profile: voiceProfile,
+            tts_provider: ttsProvider,
+            scope: scope,
+            scene_ids: sceneIds
+          })
+        });
+
+        closeRerenderVoiceModal();
+        showToast(`💾 Voice Profile saved to "${voiceProfile}" (${ttsProvider || 'auto'})! You can make other changes and re-render together.`);
+        if (typeof loadProjectOverview === 'function') loadProjectOverview(pid);
+        if (typeof refreshActiveProjectBar === 'function') refreshActiveProjectBar();
+        if (typeof activeStudioStage !== 'undefined' && activeStudioStage === 'voice' && typeof loadStageStudio === 'function') {
+          loadStageStudio('voice');
+        }
+      } catch (e) {
+        alert("Save Voice Error: " + e.message);
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<span>💾 僅儲存設定 (Save Config Only)</span>';
+        }
+      }
+    }
+
     // ---------------- RE-RENDER OVERLAY STYLE & VIDEO MODAL LOGIC ----------------
     function closeRerenderOverlayModal() {
       const m = document.getElementById('rerender-overlay-modal');
@@ -878,9 +993,66 @@
       }
     }
 
+    async function saveOverlayConfigOnly() {
+      let pid = resolveActiveProjectId();
+      if (!pid) {
+        const pSel = document.getElementById('preview-project-select');
+        if (pSel && pSel.value && pSel.value.trim()) pid = pSel.value.trim();
+      }
+      if (!pid) pid = currentProjectId;
+      if (!pid) return alert("Please select a project first.");
+
+      const calloutStyle = document.getElementById('ro-callout-style')?.value || 'neutral_centered';
+      const motionEnabled = document.getElementById('ro-motion-callouts') ? document.getElementById('ro-motion-callouts').checked : true;
+      const subStyle = document.getElementById('ro-sub-style')?.value || null;
+      const subFont = document.getElementById('ro-sub-font')?.value || null;
+      const remotionTheme = document.getElementById('ro-remotion-theme')?.value || null;
+
+      const btn = document.getElementById('btn-save-overlay-config');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span>⏳ Saving Overlay Settings...</span>';
+      }
+
+      try {
+        const payload = {
+          callout_style: calloutStyle,
+          motion_graphics_callouts: motionEnabled,
+          subtitle_style: subStyle,
+          subtitle_font: subFont,
+          remotion_theme: remotionTheme
+        };
+
+        await apiJson(`/api/projects/${pid}/save_overlay_config`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        closeRerenderOverlayModal();
+        showToast(`💾 Overlay & Subtitle configuration saved (${calloutStyle})! You can make other changes and re-render together.`);
+        if (typeof loadProjectOverview === 'function') loadProjectOverview(pid);
+        if (typeof refreshActiveProjectBar === 'function') refreshActiveProjectBar();
+        if (typeof activeStudioStage !== 'undefined' && activeStudioStage === 'subtitles' && typeof loadStageStudio === 'function') {
+          loadStageStudio('subtitles');
+        }
+      } catch (e) {
+        alert("Save Overlay Error: " + e.message);
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<span>💾 僅儲存設定 (Save Config Only)</span>';
+        }
+      }
+    }
+
     window.openRerenderOverlayModal = openRerenderOverlayModal;
     window.closeRerenderOverlayModal = closeRerenderOverlayModal;
     window.executeRerenderOverlayAndVideo = executeRerenderOverlayAndVideo;
+    window.saveVoiceConfigOnly = saveVoiceConfigOnly;
+    window.saveAvatarConfigOnly = saveAvatarConfigOnly;
+    window.saveOverlayConfigOnly = saveOverlayConfigOnly;
+    window.applyPresenterFromStage = applyPresenterFromStage;
     window.onRoCalloutStyleChange = onRoCalloutStyleChange;
     window.onRoMotionCalloutsChange = onRoMotionCalloutsChange;
     let currentScenes = [];
@@ -7330,7 +7502,7 @@
       }
     }
 
-    async function applyPresenterFromStage() {
+    async function applyPresenterFromStage(rerender = false) {
       if (!currentProjectId) return alert('Please select a project first.');
       const avatar = document.getElementById('studio-presenter-avatar')?.value || null;
       const placement = document.getElementById('studio-presenter-placement')?.value || 'intro';
@@ -7340,12 +7512,16 @@
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ placement, avatar_profile: avatar })
         });
-        await apiJson(`/api/projects/${currentProjectId}/rerender_avatar_clips`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ avatar_profile: avatar, scene_ids: null, voice_scope: 'all' })
-        });
-        showToast('🚀 Presenter scenes configured; avatar clips and video rerender started.');
-        startPolling();
+        if (rerender) {
+          await apiJson(`/api/projects/${currentProjectId}/rerender_avatar_clips`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ avatar_profile: avatar, scene_ids: null, voice_scope: 'all' })
+          });
+          showToast('🚀 Presenter scenes configured; avatar clips and video rerender started.');
+          startPolling();
+        } else {
+          showToast(`💾 Presenter configuration saved (${avatar})! Ready to re-render together.`);
+        }
         setTimeout(() => loadStageStudio('presenter'), 500);
       } catch (e) {
         alert('Presenter configuration failed: ' + e.message);
@@ -9156,7 +9332,10 @@
             <button class="btn-sec" onclick="switchTab('avatars')">🧰 Open Presenter Library</button>
           </div>
         `;
-        actionButtons = `<button class="btn-primary" onclick="openRerenderAvatarModal()">▶ Apply Presenter Configuration & Re-render</button>`;
+        actionButtons = `
+          <button class="btn-sec" onclick="applyPresenterFromStage(false)" style="background:rgba(139,92,246,0.18); border-color:#8b5cf6; color:#c4b5fd; font-weight:700;">💾 僅儲存設定 (Save Config Only)</button>
+          <button class="btn-primary" onclick="openRerenderAvatarModal()">▶ Apply Presenter Configuration & Re-render</button>
+        `;
       } else if (stageName === 'research') {
         const resText = typeof data.research === 'string' ? data.research : JSON.stringify(data.research || {}, null, 2);
         const titleLabel = isDrama ? '爆款短劇分鏡大綱與衝突節奏 (Drama Storyboard Notes):' : 'Topic Research & Knowledge Notes:';
@@ -13774,7 +13953,8 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
             <div style="display:flex;gap:10px;align-items:end;flex-wrap:wrap;">
               <label style="font-size:12px;color:#cbd5e1;min-width:220px;">Avatar<select id="studio-presenter-avatar" style="display:block;width:100%;margin-top:4px;padding:7px;background:#080d16;color:#fff;border:1px solid #8b5cf6;border-radius:5px;">${avatarOptions || '<option value="">No avatars available</option>'}</select></label>
               <label style="font-size:12px;color:#cbd5e1;min-width:220px;">Placement<select id="studio-presenter-placement" style="display:block;width:100%;margin-top:4px;padding:7px;background:#080d16;color:#fff;border:1px solid #8b5cf6;border-radius:5px;"><option value="intro">Intro only</option><option value="intro_middle_outro">Intro, middle & end</option><option value="intro_outro">Intro & outro</option><option value="all">All scenes</option><option value="every_3">Every 3rd scene</option></select></label>
-              <button class="btn-primary" style="background:linear-gradient(135deg,#7c3aed,#6d28d9);font-weight:800;" onclick="applyPresenterFromStage()">✅ Apply Presenter Configuration & Re-render</button>
+              <button type="button" class="btn-sec" style="background:rgba(139,92,246,0.18); border-color:#8b5cf6; color:#c4b5fd; font-weight:700;" onclick="applyPresenterFromStage(false)">💾 僅儲存主持設定 (Save Config Only)</button>
+              <button type="button" class="btn-primary" style="background:linear-gradient(135deg,#7c3aed,#6d28d9);font-weight:800;" onclick="applyPresenterFromStage(true)">✅ 套用設定並重新算繪 (Apply & Re-render)</button>
               <button class="btn-sec" onclick="openRerenderAvatarModal()">🔄 Replace Existing Presenter Clips</button>
             </div>
           </div>
@@ -16178,12 +16358,29 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
         if (studioStageData && studioStageData.animation_model) {
           payload.animation_model = studioStageData.animation_model;
         }
+      } else if (stKey === 'presenter') {
+        const avEl = document.getElementById('studio-presenter-avatar');
+        const plEl = document.getElementById('studio-presenter-placement');
+        if (avEl) payload.avatar_profile = avEl.value;
+        if (plEl) payload.placement = plEl.value;
+      } else if (stKey === 'voice') {
+        const vEl = document.getElementById('studio-voice-select') || document.getElementById('insp-global-voice-profile') || document.getElementById('rv-voice-profile');
+        if (vEl) payload.voice_profile = vEl.value;
+        const provEl = document.getElementById('studio-voice-provider') || document.getElementById('rv-tts-provider');
+        if (provEl) payload.tts_provider = provEl.value;
       } else if (stKey === 'subtitles') {
-        payload.srt = document.getElementById('studio-srt').value;
-        const mcEl = document.getElementById('studio-motion-callouts');
+        const srtEl = document.getElementById('studio-srt');
+        if (srtEl) payload.srt = srtEl.value;
+        const mcEl = document.getElementById('studio-motion-callouts') || document.getElementById('ro-motion-callouts');
         if (mcEl) payload.motion_graphics_callouts = mcEl.checked;
-        const calloutStyleEl = document.getElementById('studio-callout-style');
+        const calloutStyleEl = document.getElementById('studio-callout-style') || document.getElementById('insp-callout-style') || document.getElementById('ro-callout-style');
         if (calloutStyleEl) payload.callout_style = calloutStyleEl.value;
+        const subStyleEl = document.getElementById('studio-sub-style') || document.getElementById('insp-sub-style') || document.getElementById('ro-sub-style');
+        if (subStyleEl) payload.subtitle_style = subStyleEl.value;
+        const subFontEl = document.getElementById('studio-sub-font') || document.getElementById('insp-sub-font') || document.getElementById('ro-sub-font');
+        if (subFontEl) payload.subtitle_font = subFontEl.value;
+        const remThemeEl = document.getElementById('studio-remotion-theme') || document.getElementById('ro-remotion-theme');
+        if (remThemeEl) payload.remotion_theme = remThemeEl.value;
       }
 
       try {
