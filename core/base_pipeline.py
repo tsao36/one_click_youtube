@@ -1769,6 +1769,7 @@ class BasePipeline:
         font_size: Optional[int] = None,
         font_size_scale: Optional[float] = None,
         remotion_theme: Optional[str] = None,
+        overlay_config: Optional[dict[str, Any]] = None,
     ) -> None:
         """Update scene message overlay style & configuration, regenerate subtitles/callouts, and re-render the final 1080p video."""
         with self._lock:
@@ -1798,6 +1799,9 @@ class BasePipeline:
                 rem = self.p.data.settings.setdefault("remotion", {})
                 rem["theme"] = str(remotion_theme).strip()
                 self.p.data.settings["remotion_theme"] = str(remotion_theme).strip()
+            if overlay_config is not None:
+                sub_s["overlay"] = dict(overlay_config)
+                self.p.data.settings["overlay_config"] = dict(overlay_config)
 
             if getattr(self.p, "project_mode", "documentary") != "short_drama":
                 self.ensure_consistent_project_voice()
@@ -2127,10 +2131,12 @@ class BasePipeline:
             and sub_cfg.get("callouts_enabled", True)
             and self.p.data.settings.get("motion_callouts", True)
         )
+        sub_overlay_cfg = sub_cfg.get("overlay") or sub_cfg.get("overlay_config") or self.p.data.settings.get("overlay_config") or {}
         callouts = None
         if enabled_motion_callouts:
             from generators.motion_callout_generator import extract_motion_callouts
-            callouts = extract_motion_callouts(scenes, slots, banner_style=sub_callout_style)
+            target_dur = float(sub_overlay_cfg.get("display_duration_sec") or 0.0) if sub_overlay_cfg else None
+            callouts = extract_motion_callouts(scenes, slots, banner_style=sub_callout_style, target_duration=target_dur)
         write_ass(
             cues, ass_file,
             style=sub_cfg.get("style", "youtube_standard"),
@@ -2142,6 +2148,7 @@ class BasePipeline:
             callout_style=sub_callout_style,
             font_size=sub_cfg.get("font_size"),
             font_size_scale=sub_cfg.get("font_size_scale"),
+            overlay_config=sub_overlay_cfg,
         )
         elapsed = round(max(0.1, time.perf_counter() - t0), 1)
         callouts_info = f" with {len(callouts)} motion graphic cards" if callouts else " (motion callouts disabled)"

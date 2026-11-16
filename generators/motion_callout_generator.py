@@ -376,6 +376,7 @@ def extract_motion_callouts(
     slots: list[Slot],
     min_interval: float = 3.5,
     banner_style: str = "neutral_centered",
+    target_duration: float | None = None,
 ) -> list[dict[str, Any]]:
     """Extract timeline-synchronized motion graphic callouts for all scenes.
 
@@ -457,8 +458,11 @@ def extract_motion_callouts(
         # Start timestamp near scene opening / keyword anticipation
         card_start = max(sl.audio_start + 0.25, sl.audio_start + frac * sl.audio_length - 0.2)
 
-        # Duration: prominent 4.2s to 6.5s window based on audio slot
-        card_dur = min(6.5, max(4.2, sl.audio_length * 0.82))
+        # Duration: prominent window based on audio slot or custom target_duration
+        if target_duration and target_duration > 0:
+            card_dur = min(8.0, max(1.5, min(float(target_duration), sl.audio_length * 0.9)))
+        else:
+            card_dur = min(6.5, max(4.2, sl.audio_length * 0.82))
         card_end = min(sl.start + sl.length - 0.12, card_start + card_dur)
 
         # If too close to previous callout, enforce minimum interval spacing

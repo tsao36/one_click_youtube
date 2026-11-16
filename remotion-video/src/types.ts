@@ -547,6 +547,11 @@ export const OverlayGraphicSceneSchema = BaseScenePropsSchema.extend({
   metric_callout: MetricCalloutDataSchema.nullable().optional().default(null),
   headline: z.string().optional().default(''),
   subtext: z.string().optional().default(''),
+  titleFontSize: z.number().optional(),
+  subtitleFontSize: z.number().optional(),
+  textColor: z.string().optional(),
+  motionEffect: z.string().optional(),
+  motionScale: z.number().optional(),
 });
 export type OverlayGraphicSceneProps = z.input<typeof OverlayGraphicSceneSchema>;
 

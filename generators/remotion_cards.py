@@ -759,6 +759,14 @@ def _normalize_props_for_composition(comp: str, raw: dict[str, Any]) -> dict[str
         p["subtext"] = subtext
         p["accentColor"] = p.get("accentColor") or "#FF5A1F"
         p["dim"] = float(p.get("dim") or 0.2)
+        if p.get("title_font_size"):
+            p["titleFontSize"] = int(p["title_font_size"])
+        if p.get("subtitle_font_size"):
+            p["subtitleFontSize"] = int(p["subtitle_font_size"])
+        if p.get("text_color"):
+            p["textColor"] = str(p["text_color"])
+        if p.get("motion_scale"):
+            p["motionScale"] = float(p["motion_scale"])
 
     elif comp == "BranchPathwayScene":
         p["title"] = title

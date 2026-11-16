@@ -2337,6 +2337,180 @@
             預設將背景輕度壓暗，於畫面中央顯示大型白色重點訊息；亦可切換其他題材樣式或完全停用。
           </div>
           <div id="settings-callout-preview-container" style="margin-top: 10px;"></div>
+
+          <!-- OVERLAY STYLE FINE-TUNING PANEL (TEXT SIZE, COLOR & MOTION CONFIGURATION) -->
+          <div id="overlay-style-customizer-card" style="margin-top: 14px; background: linear-gradient(180deg, #070d18 0%, #050912 100%); border: 1px solid #1e3a8a; border-radius: 8px; padding: 14px 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 15px;">🎨</span>
+                <span style="font-size: 13px; font-weight: 800; color: #38bdf8;">覆疊字卡細部自訂 (Overlay Style, Text Size, Color & Motion Editor)</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <button type="button" class="btn-sec" onclick="resetOverlayCustomizerToDefaults()" style="font-size: 11px; padding: 4px 10px; cursor: pointer;" title="回復為當前樣式之官方預設數值">
+                  🔄 重設為樣式預設值
+                </button>
+                <button type="button" id="btn-test-overlay-motion" onclick="triggerOverlayMotionPreviewAnimation()" class="btn-primary" style="font-size: 11px; padding: 5px 13px; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); border-color: #38bdf8; display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                  <span>▶ 播放動態效果 (Test Motion)</span>
+                </button>
+              </div>
+            </div>
+            
+            <div style="font-size: 11.5px; color: #94a3b8; margin-bottom: 14px; line-height: 1.5;">
+              自訂場景訊息覆疊卡（Message Overlay）之標題大小、副標題大小、主要字色、強調色、背景底框顏色、壓暗透明度，以及進場動態（Fade, Slide, Scale Punch）與停留時長。上方 16:9 畫面將即時反映調整效果。
+            </div>
+
+            <!-- Three Columns: Typography / Color / Motion -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px;">
+              
+              <!-- 1. Text Size Configuration -->
+              <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid #1e293b; border-radius: 6px; padding: 12px;">
+                <div style="font-size: 12px; font-weight: 700; color: #f1f5f9; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+                  <span>🔤</span>
+                  <span>文字大小設定 (Text Typography)</span>
+                </div>
+
+                <!-- Title Font Size -->
+                <div style="margin-bottom: 12px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <label style="font-size: 11.5px; color: #cbd5e1; margin: 0;">主標題 / 數據大小 (Title Size)</label>
+                    <span id="set-overlay-title-size-val" style="font-size: 11px; font-weight: 700; color: #38bdf8;">72 pt</span>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <input type="range" id="set-overlay-title-size-slider" min="32" max="130" step="2" value="72" oninput="onOverlaySliderInput('title-size', this.value)" style="flex: 1; accent-color: #0284c7; cursor: pointer;">
+                    <input type="number" id="set-overlay-title-size" min="32" max="130" step="2" value="72" oninput="onOverlayNumberInput('title-size', this.value)" style="width: 58px; padding: 4px 6px; font-size: 11.5px; font-weight: 700; background: #060b16; border: 1px solid #1e293b; color: #38bdf8; border-radius: 4px; text-align: center;">
+                  </div>
+                </div>
+
+                <!-- Subtitle Font Size -->
+                <div style="margin-bottom: 12px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <label style="font-size: 11.5px; color: #cbd5e1; margin: 0;">副標題 / 標籤大小 (Subtitle Size)</label>
+                    <span id="set-overlay-sub-size-val" style="font-size: 11px; font-weight: 700; color: #38bdf8;">28 pt</span>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <input type="range" id="set-overlay-sub-size-slider" min="16" max="56" step="2" value="28" oninput="onOverlaySliderInput('sub-size', this.value)" style="flex: 1; accent-color: #0284c7; cursor: pointer;">
+                    <input type="number" id="set-overlay-sub-size" min="16" max="56" step="2" value="28" oninput="onOverlayNumberInput('sub-size', this.value)" style="width: 58px; padding: 4px 6px; font-size: 11.5px; font-weight: 700; background: #060b16; border: 1px solid #1e293b; color: #38bdf8; border-radius: 4px; text-align: center;">
+                  </div>
+                </div>
+
+                <!-- Quick Size Buttons -->
+                <div>
+                  <label style="font-size: 11px; color: #94a3b8; display: block; margin-bottom: 5px;">快速比例縮放 (Quick Presets):</label>
+                  <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+                    <button type="button" class="btn-sec" onclick="applyOverlaySizePreset(0.8)" style="font-size: 10.5px; padding: 3px 8px; cursor: pointer;">精巧 80%</button>
+                    <button type="button" class="btn-sec" onclick="applyOverlaySizePreset(1.0)" style="font-size: 10.5px; padding: 3px 8px; cursor: pointer;">標準 100%</button>
+                    <button type="button" class="btn-sec" onclick="applyOverlaySizePreset(1.25)" style="font-size: 10.5px; padding: 3px 8px; cursor: pointer;">放大 125%</button>
+                    <button type="button" class="btn-sec" onclick="applyOverlaySizePreset(1.5)" style="font-size: 10.5px; padding: 3px 8px; cursor: pointer;">特大 150%</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 2. Color & Backdrop Configuration -->
+              <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid #1e293b; border-radius: 6px; padding: 12px;">
+                <div style="font-size: 12px; font-weight: 700; color: #f1f5f9; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+                  <span>🎨</span>
+                  <span>色彩與背景遮罩 (Colors & Backdrop)</span>
+                </div>
+
+                <!-- Text Color -->
+                <div style="margin-bottom: 12px;">
+                  <label style="font-size: 11.5px; color: #cbd5e1; display: block; margin-bottom: 4px;">主要文字顏色 (Text Color)</label>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <input type="color" id="set-overlay-text-color-picker" value="#FFFFFF" oninput="onOverlayColorPickerInput('text', this.value)" style="width: 32px; height: 30px; border: none; border-radius: 4px; cursor: pointer; background: transparent; padding: 0;">
+                    <input type="text" id="set-overlay-text-color" value="#FFFFFF" oninput="onOverlayHexInput('text', this.value)" style="flex: 1; padding: 5px 8px; font-size: 11.5px; font-weight: 700; background: #060b16; border: 1px solid #1e293b; color: #f8fafc; border-radius: 4px; text-transform: uppercase;">
+                  </div>
+                </div>
+
+                <!-- Accent Color -->
+                <div style="margin-bottom: 12px;">
+                  <label style="font-size: 11.5px; color: #cbd5e1; display: block; margin-bottom: 4px;">重點強調色 (Accent / Highlight Color)</label>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <input type="color" id="set-overlay-accent-color-picker" value="#FF5A1F" oninput="onOverlayColorPickerInput('accent', this.value)" style="width: 32px; height: 30px; border: none; border-radius: 4px; cursor: pointer; background: transparent; padding: 0;">
+                    <input type="text" id="set-overlay-accent-color" value="#FF5A1F" oninput="onOverlayHexInput('accent', this.value)" style="flex: 1; padding: 5px 8px; font-size: 11.5px; font-weight: 700; background: #060b16; border: 1px solid #1e293b; color: #FF5A1F; border-radius: 4px; text-transform: uppercase;">
+                  </div>
+                  <!-- Quick Accent Color Swatches -->
+                  <div style="display: flex; gap: 6px; margin-top: 6px; align-items: center;">
+                    <button type="button" onclick="setOverlayAccentColor('#FF5A1F')" style="width: 18px; height: 18px; border-radius: 50%; background: #FF5A1F; border: 1px solid #fff; cursor: pointer;" title="活力橘 #FF5A1F"></button>
+                    <button type="button" onclick="setOverlayAccentColor('#38BDF8')" style="width: 18px; height: 18px; border-radius: 50%; background: #38BDF8; border: 1px solid #fff; cursor: pointer;" title="霓虹青 #38BDF8"></button>
+                    <button type="button" onclick="setOverlayAccentColor('#A855F7')" style="width: 18px; height: 18px; border-radius: 50%; background: #A855F7; border: 1px solid #fff; cursor: pointer;" title="賽博紫 #A855F7"></button>
+                    <button type="button" onclick="setOverlayAccentColor('#10B981')" style="width: 18px; height: 18px; border-radius: 50%; background: #10B981; border: 1px solid #fff; cursor: pointer;" title="翡翠綠 #10B981"></button>
+                    <button type="button" onclick="setOverlayAccentColor('#F59E0B')" style="width: 18px; height: 18px; border-radius: 50%; background: #F59E0B; border: 1px solid #fff; cursor: pointer;" title="琥珀金 #F59E0B"></button>
+                    <button type="button" onclick="setOverlayAccentColor('#F43F5E')" style="width: 18px; height: 18px; border-radius: 50%; background: #F43F5E; border: 1px solid #fff; cursor: pointer;" title="玫瑰紅 #F43F5E"></button>
+                  </div>
+                </div>
+
+                <!-- Backdrop Tint Color & Opacity -->
+                <div>
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <label style="font-size: 11.5px; color: #cbd5e1; margin: 0;">字卡背景色與不透明度 (Backdrop)</label>
+                    <span id="set-overlay-bg-opacity-val" style="font-size: 11px; font-weight: 700; color: #38bdf8;">85%</span>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <input type="color" id="set-overlay-bg-color-picker" value="#03080E" oninput="onOverlayColorPickerInput('bg', this.value)" style="width: 32px; height: 30px; border: none; border-radius: 4px; cursor: pointer; background: transparent; padding: 0;">
+                    <input type="range" id="set-overlay-bg-opacity-slider" min="0" max="100" step="5" value="85" oninput="onOverlayBgOpacityInput(this.value)" style="flex: 1; accent-color: #0284c7; cursor: pointer;">
+                    <input type="hidden" id="set-overlay-bg-color" value="#03080E">
+                  </div>
+                </div>
+              </div>
+
+              <!-- 3. Motion Configuration -->
+              <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid #1e293b; border-radius: 6px; padding: 12px;">
+                <div style="font-size: 12px; font-weight: 700; color: #f1f5f9; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+                  <span>⚡</span>
+                  <span>動態特效與進場動畫 (Motion Configuration)</span>
+                </div>
+
+                <!-- Motion Entrance Effect -->
+                <div style="margin-bottom: 12px;">
+                  <label style="font-size: 11.5px; color: #cbd5e1; display: block; margin-bottom: 4px;">進場動態效果 (Entrance Motion Effect)</label>
+                  <select id="set-overlay-motion-effect" onchange="onOverlayMotionEffectChange(this.value)" style="width: 100%; padding: 6px 9px; font-size: 12px; font-weight: 600; background: #060b16; border: 1px solid #1e293b; color: #38bdf8; border-radius: 4px; cursor: pointer;">
+                    <option value="fade_drift" selected>柔和浮現與微幅位移 (Fade & Drift · 經典標準)</option>
+                    <option value="slide_up">底部滑入與彈跳 (Bottom-Up Slide & Spring · 動感吸睛)</option>
+                    <option value="scale_punch">縮放衝擊震撼彈入 (Pop-in & Scale Punch · 數據張力)</option>
+                    <option value="slide_horizontal">橫向俐落切入 (Kinetic Slide Left-to-Right · 科技感)</option>
+                    <option value="subtle_fade">極簡淡入淡出 (Gentle Dissolve · 典雅文藝)</option>
+                  </select>
+                </div>
+
+                <!-- Entrance Animation Duration -->
+                <div style="margin-bottom: 12px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <label style="font-size: 11.5px; color: #cbd5e1; margin: 0;">進場動畫時長 (Entrance Duration)</label>
+                    <span id="set-overlay-entrance-duration-val" style="font-size: 11px; font-weight: 700; color: #38bdf8;">320 ms</span>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <input type="range" id="set-overlay-entrance-duration-slider" min="150" max="800" step="25" value="320" oninput="onOverlaySliderInput('entrance-duration', this.value)" style="flex: 1; accent-color: #0284c7; cursor: pointer;">
+                    <input type="number" id="set-overlay-entrance-duration" min="150" max="800" step="25" value="320" oninput="onOverlayNumberInput('entrance-duration', this.value)" style="width: 62px; padding: 4px 6px; font-size: 11.5px; font-weight: 700; background: #060b16; border: 1px solid #1e293b; color: #38bdf8; border-radius: 4px; text-align: center;">
+                  </div>
+                </div>
+
+                <!-- Display Duration -->
+                <div style="margin-bottom: 12px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <label style="font-size: 11.5px; color: #cbd5e1; margin: 0;">字卡停留秒數 (Display Duration)</label>
+                    <span id="set-overlay-display-duration-val" style="font-size: 11px; font-weight: 700; color: #38bdf8;">3.0 秒</span>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <input type="range" id="set-overlay-display-duration-slider" min="1.5" max="6.0" step="0.5" value="3.0" oninput="onOverlaySliderInput('display-duration', this.value)" style="flex: 1; accent-color: #0284c7; cursor: pointer;">
+                    <input type="number" id="set-overlay-display-duration" min="1.5" max="6.0" step="0.5" value="3.0" oninput="onOverlayNumberInput('display-duration', this.value)" style="width: 62px; padding: 4px 6px; font-size: 11.5px; font-weight: 700; background: #060b16; border: 1px solid #1e293b; color: #38bdf8; border-radius: 4px; text-align: center;">
+                  </div>
+                </div>
+
+                <!-- Motion Zoom Scale / Intensity -->
+                <div>
+                  <label style="font-size: 11.5px; color: #cbd5e1; display: block; margin-bottom: 4px;">動態衝擊/縮放比例 (Motion Zoom Intensity)</label>
+                  <select id="set-overlay-motion-scale" onchange="onOverlayMotionScaleChange(this.value)" style="width: 100%; padding: 6px 9px; font-size: 12px; font-weight: 600; background: #060b16; border: 1px solid #1e293b; color: #38bdf8; border-radius: 4px; cursor: pointer;">
+                    <option value="1.00">1.00x · 無縮放 (Static Flat)</option>
+                    <option value="1.04">1.04x · 微幅呼吸感 (Subtle Breathe)</option>
+                    <option value="1.08" selected>1.08x · 標準電影衝擊 (Standard Punch)</option>
+                    <option value="1.14">1.14x · 強烈能量張力 (High Energy)</option>
+                  </select>
+                </div>
+
+              </div>
+
+            </div>
+          </div>
         </div>
       </div>
       <div style="background: #0c1526; border: 1px solid #1e3a8a; border-radius: 8px; padding: 12px 16px; margin: 12px 0; display: flex; justify-content: space-between; align-items: center;">

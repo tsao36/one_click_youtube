@@ -8765,6 +8765,13 @@
           if (ss && sub.style) ss.value = sub.style;
           const scs = document.getElementById('set-callout-banner-style');
           if (scs && sub.callout_style) scs.value = sub.callout_style;
+          if (typeof populateOverlayCustomizerUI === 'function') {
+            if (sub.overlay || sub.overlay_config) {
+              populateOverlayCustomizerUI(sub.overlay || sub.overlay_config, sub.callout_style);
+            } else {
+              populateOverlayCustomizerUI({}, sub.callout_style || 'corner_metric');
+            }
+          }
           const ccs = document.getElementById('creator-callout-style');
           if (ccs) {
             if (sub.callout_style && sub.callout_style !== 'neutral_centered') {
@@ -8867,26 +8874,40 @@
       const ccs = document.getElementById('creator-callout-style');
       if (ccs) ccs.value = calloutBannerStyle;
       updateMotionCalloutsSwitchUI('creator-motion-callouts', motion);
+      const overlayCfg = (typeof getOverlayCustomizerValues === 'function')
+        ? getOverlayCustomizerValues()
+        : null;
+
       try {
+        const subPayload = {
+          motion_graphics_callouts: motion,
+          callouts_enabled: motion,
+          font: font,
+          style: style,
+          callout_style: calloutBannerStyle
+        };
+        if (overlayCfg) {
+          subPayload.overlay = overlayCfg;
+          subPayload.overlay_config = overlayCfg;
+        }
+
         await apiRequest('/api/settings', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             settings: {
-              subtitles: {
-                motion_graphics_callouts: motion,
-                callouts_enabled: motion,
-                font: font,
-                style: style,
-                callout_style: calloutBannerStyle
-              },
+              subtitles: subPayload,
               rendering: {
                 phase_turn_duration: phaseTurnDur
               }
             }
           })
         });
-        alert("Subtitle & Motion Graphic settings saved successfully!");
+        if (typeof showToast === 'function') {
+          showToast("💾 Subtitle, Motion Graphic & Overlay settings saved successfully!");
+        } else {
+          alert("Subtitle, Motion Graphic & Overlay settings saved successfully!");
+        }
       } catch(e) {
         alert("Failed to save settings: " + e.message);
       }
@@ -8905,7 +8926,16 @@
         subtitle: '權力博弈與時代變革的深刻分水嶺',
         tags: ['高張力轉折', '歷史與政治', '置中大字'],
         chipLabel: '🎬 置中大字',
-        accent: '#38bdf8'
+        accent: '#38bdf8',
+        defaultTitlePt: 96,
+        defaultSubPt: 36,
+        defaultText: '#FFFFFF',
+        defaultBg: '#000000',
+        defaultBgOpacity: 0.58,
+        defaultMotion: 'fade_drift',
+        defaultEntranceMs: 320,
+        defaultDisplaySec: 3.0,
+        defaultMotionScale: 1.08
       },
       modern_pill: {
         key: 'modern_pill',
@@ -8918,7 +8948,16 @@
         subtitle: '核心數據突破與發展態勢',
         tags: ['科技商業', '現代都會', '毛玻璃質感'],
         chipLabel: '💎 毛玻璃膠囊',
-        accent: '#00F5FF'
+        accent: '#00F5FF',
+        defaultTitlePt: 48,
+        defaultSubPt: 24,
+        defaultText: '#FFFFFF',
+        defaultBg: '#0A101C',
+        defaultBgOpacity: 0.85,
+        defaultMotion: 'scale_punch',
+        defaultEntranceMs: 280,
+        defaultDisplaySec: 3.0,
+        defaultMotionScale: 1.06
       },
       archival_parchment: {
         key: 'archival_parchment',
@@ -8931,7 +8970,16 @@
         subtitle: '國史館與中研院珍貴文獻',
         tags: ['歷史文史', '珍貴檔案', '典雅古典'],
         chipLabel: '📜 牛皮紙印章',
-        accent: '#eab308'
+        accent: '#eab308',
+        defaultTitlePt: 50,
+        defaultSubPt: 26,
+        defaultText: '#FEF3C7',
+        defaultBg: '#1A120C',
+        defaultBgOpacity: 0.92,
+        defaultMotion: 'subtle_fade',
+        defaultEntranceMs: 350,
+        defaultDisplaySec: 3.5,
+        defaultMotionScale: 1.00
       },
       historical_timeline: {
         key: 'historical_timeline',
@@ -8944,7 +8992,16 @@
         subtitle: '右大臣岩倉具視帶隊，考察歐美將近兩年',
         tags: ['經典歷史', '巨型年份', '紀錄片首選'],
         chipLabel: '🏛️ 歷史紀年',
-        accent: '#ef4444'
+        accent: '#ef4444',
+        defaultTitlePt: 54,
+        defaultSubPt: 28,
+        defaultText: '#FFFFFF',
+        defaultBg: '#16181A',
+        defaultBgOpacity: 0.80,
+        defaultMotion: 'slide_horizontal',
+        defaultEntranceMs: 320,
+        defaultDisplaySec: 3.5,
+        defaultMotionScale: 1.04
       },
       minimal_clean: {
         key: 'minimal_clean',
@@ -8957,7 +9014,16 @@
         subtitle: '結構性變數與長線演進趨勢',
         tags: ['文藝沈浸', '無邊框', '純淨清透'],
         chipLabel: '✨ 極簡無框',
-        accent: '#cbd5e1'
+        accent: '#cbd5e1',
+        defaultTitlePt: 48,
+        defaultSubPt: 24,
+        defaultText: '#FFFFFF',
+        defaultBg: '#000000',
+        defaultBgOpacity: 0.00,
+        defaultMotion: 'fade_drift',
+        defaultEntranceMs: 300,
+        defaultDisplaySec: 3.0,
+        defaultMotionScale: 1.02
       },
       broadcast_news: {
         key: 'broadcast_news',
@@ -8970,7 +9036,16 @@
         subtitle: '深度追蹤與各界焦點反應',
         tags: ['時事評論', '新聞調查', '專業權威'],
         chipLabel: '📺 電視新聞',
-        accent: '#facc15'
+        accent: '#facc15',
+        defaultTitlePt: 52,
+        defaultSubPt: 26,
+        defaultText: '#FFFFFF',
+        defaultBg: '#081836',
+        defaultBgOpacity: 0.92,
+        defaultMotion: 'slide_up',
+        defaultEntranceMs: 300,
+        defaultDisplaySec: 3.0,
+        defaultMotionScale: 1.04
       },
       corner_metric: {
         key: 'corner_metric',
@@ -8983,7 +9058,16 @@
         subtitle: '起火後3天 又產生的垃圾',
         tags: ['🔥 推薦預設', '數據重點', '左上角', '大數字'],
         chipLabel: '🔥 左上數據卡',
-        accent: '#FF5A1F'
+        accent: '#FF5A1F',
+        defaultTitlePt: 72,
+        defaultSubPt: 32,
+        defaultText: '#FFFFFF',
+        defaultBg: '#03080E',
+        defaultBgOpacity: 0.94,
+        defaultMotion: 'fade_drift',
+        defaultEntranceMs: 320,
+        defaultDisplaySec: 3.0,
+        defaultMotionScale: 1.08
       },
       none: {
         key: 'none',
@@ -8996,23 +9080,317 @@
         subtitle: '',
         tags: ['純淨視覺', '無文字覆蓋', '原始畫面'],
         chipLabel: '🚫 停用訊息',
-        accent: '#64748b'
+        accent: '#64748b',
+        defaultTitlePt: 48,
+        defaultSubPt: 24,
+        defaultText: '#94A3B8',
+        defaultBg: '#0F172A',
+        defaultBgOpacity: 0.85,
+        defaultMotion: 'subtle_fade',
+        defaultEntranceMs: 300,
+        defaultDisplaySec: 3.0,
+        defaultMotionScale: 1.00
       }
     };
     window.CALLOUT_STYLES_INFO = CALLOUT_STYLES_INFO;
 
-    function renderCalloutStyleScreenHtml(styleKey, isMini = false) {
+    function hexToRgba(hex, alpha = 1.0) {
+      if (!hex || typeof hex !== 'string') return `rgba(0,0,0,${alpha})`;
+      let c = hex.replace('#', '');
+      if (c.length === 3) c = c.split('').map(x => x + x).join('');
+      if (c.length !== 6) return `rgba(0,0,0,${alpha})`;
+      const r = parseInt(c.substring(0, 2), 16) || 0;
+      const g = parseInt(c.substring(2, 4), 16) || 0;
+      const b = parseInt(c.substring(4, 6), 16) || 0;
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+    window.hexToRgba = hexToRgba;
+
+    function getOverlayCustomizerValues() {
+      const getVal = (id, def) => {
+        const el = document.getElementById(id);
+        return (el && el.value !== undefined && el.value !== null) ? el.value : def;
+      };
+      const getNum = (id, def) => {
+        const el = document.getElementById(id);
+        const v = el ? parseFloat(el.value) : NaN;
+        return isNaN(v) ? def : v;
+      };
+
+      return {
+        title_font_size: getNum('set-overlay-title-size', 72),
+        subtitle_font_size: getNum('set-overlay-sub-size', 28),
+        text_color: getVal('set-overlay-text-color', '#FFFFFF'),
+        accent_color: getVal('set-overlay-accent-color', '#FF5A1F'),
+        bg_color: getVal('set-overlay-bg-color', '#03080E'),
+        bg_opacity: getNum('set-overlay-bg-opacity-slider', 85) / 100,
+        motion_effect: getVal('set-overlay-motion-effect', 'fade_drift'),
+        entrance_duration_ms: getNum('set-overlay-entrance-duration', 320),
+        display_duration_sec: getNum('set-overlay-display-duration', 3.0),
+        motion_scale: getNum('set-overlay-motion-scale', 1.08),
+      };
+    }
+    window.getOverlayCustomizerValues = getOverlayCustomizerValues;
+
+    function populateOverlayCustomizerUI(overlayCfg = {}, styleKey = '') {
+      if (!overlayCfg) overlayCfg = {};
+      const currentStyle = styleKey || document.getElementById('set-callout-banner-style')?.value || 'corner_metric';
+      const info = CALLOUT_STYLES_INFO[currentStyle] || CALLOUT_STYLES_INFO.corner_metric || {};
+
+      const titlePt = overlayCfg.title_font_size || info.defaultTitlePt || 72;
+      const subPt = overlayCfg.subtitle_font_size || info.defaultSubPt || 28;
+      const textColor = overlayCfg.text_color || info.defaultText || '#FFFFFF';
+      const accentColor = overlayCfg.accent_color || info.accent || '#FF5A1F';
+      const bgColor = overlayCfg.bg_color || info.defaultBg || '#03080E';
+      const bgOpacity = (overlayCfg.bg_opacity !== undefined) ? overlayCfg.bg_opacity : (info.defaultBgOpacity !== undefined ? info.defaultBgOpacity : 0.85);
+      const motionEffect = overlayCfg.motion_effect || info.defaultMotion || 'fade_drift';
+      const entranceMs = overlayCfg.entrance_duration_ms || info.defaultEntranceMs || 320;
+      const displaySec = overlayCfg.display_duration_sec || info.defaultDisplaySec || 3.0;
+      const motionScale = overlayCfg.motion_scale || info.defaultMotionScale || 1.08;
+
+      const setEl = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.value = val;
+      };
+
+      setEl('set-overlay-title-size', titlePt);
+      setEl('set-overlay-title-size-slider', titlePt);
+      const titleValEl = document.getElementById('set-overlay-title-size-val');
+      if (titleValEl) titleValEl.textContent = `${titlePt} pt`;
+
+      setEl('set-overlay-sub-size', subPt);
+      setEl('set-overlay-sub-size-slider', subPt);
+      const subValEl = document.getElementById('set-overlay-sub-size-val');
+      if (subValEl) subValEl.textContent = `${subPt} pt`;
+
+      setEl('set-overlay-text-color', textColor);
+      setEl('set-overlay-text-color-picker', textColor);
+
+      setEl('set-overlay-accent-color', accentColor);
+      setEl('set-overlay-accent-color-picker', accentColor);
+      const accentInput = document.getElementById('set-overlay-accent-color');
+      if (accentInput) accentInput.style.color = accentColor;
+
+      setEl('set-overlay-bg-color', bgColor);
+      setEl('set-overlay-bg-color-picker', bgColor);
+
+      const opPercent = Math.round(bgOpacity * 100);
+      setEl('set-overlay-bg-opacity-slider', opPercent);
+      const opValEl = document.getElementById('set-overlay-bg-opacity-val');
+      if (opValEl) opValEl.textContent = `${opPercent}%`;
+
+      setEl('set-overlay-motion-effect', motionEffect);
+
+      setEl('set-overlay-entrance-duration', entranceMs);
+      setEl('set-overlay-entrance-duration-slider', entranceMs);
+      const entValEl = document.getElementById('set-overlay-entrance-duration-val');
+      if (entValEl) entValEl.textContent = `${entranceMs} ms`;
+
+      setEl('set-overlay-display-duration', displaySec);
+      setEl('set-overlay-display-duration-slider', displaySec);
+      const dispValEl = document.getElementById('set-overlay-display-duration-val');
+      if (dispValEl) dispValEl.textContent = `${displaySec} 秒`;
+
+      setEl('set-overlay-motion-scale', String(motionScale));
+    }
+    window.populateOverlayCustomizerUI = populateOverlayCustomizerUI;
+
+    function updateOverlayCustomizerPreview() {
+      const currentVal = document.getElementById('set-callout-banner-style')?.value || 'corner_metric';
+      if (typeof updateCalloutStyleWidget === 'function') {
+        updateCalloutStyleWidget('set-callout-banner-style', 'settings-callout-preview-container');
+      }
+    }
+    window.updateOverlayCustomizerPreview = updateOverlayCustomizerPreview;
+
+    function onOverlaySliderInput(field, val) {
+      if (field === 'title-size') {
+        const num = document.getElementById('set-overlay-title-size');
+        if (num) num.value = val;
+        const valEl = document.getElementById('set-overlay-title-size-val');
+        if (valEl) valEl.textContent = `${val} pt`;
+      } else if (field === 'sub-size') {
+        const num = document.getElementById('set-overlay-sub-size');
+        if (num) num.value = val;
+        const valEl = document.getElementById('set-overlay-sub-size-val');
+        if (valEl) valEl.textContent = `${val} pt`;
+      } else if (field === 'entrance-duration') {
+        const num = document.getElementById('set-overlay-entrance-duration');
+        if (num) num.value = val;
+        const valEl = document.getElementById('set-overlay-entrance-duration-val');
+        if (valEl) valEl.textContent = `${val} ms`;
+      } else if (field === 'display-duration') {
+        const num = document.getElementById('set-overlay-display-duration');
+        if (num) num.value = val;
+        const valEl = document.getElementById('set-overlay-display-duration-val');
+        if (valEl) valEl.textContent = `${val} 秒`;
+      }
+      updateOverlayCustomizerPreview();
+    }
+    window.onOverlaySliderInput = onOverlaySliderInput;
+
+    function onOverlayNumberInput(field, val) {
+      if (field === 'title-size') {
+        const slider = document.getElementById('set-overlay-title-size-slider');
+        if (slider) slider.value = val;
+        const valEl = document.getElementById('set-overlay-title-size-val');
+        if (valEl) valEl.textContent = `${val} pt`;
+      } else if (field === 'sub-size') {
+        const slider = document.getElementById('set-overlay-sub-size-slider');
+        if (slider) slider.value = val;
+        const valEl = document.getElementById('set-overlay-sub-size-val');
+        if (valEl) valEl.textContent = `${val} pt`;
+      } else if (field === 'entrance-duration') {
+        const slider = document.getElementById('set-overlay-entrance-duration-slider');
+        if (slider) slider.value = val;
+        const valEl = document.getElementById('set-overlay-entrance-duration-val');
+        if (valEl) valEl.textContent = `${val} ms`;
+      } else if (field === 'display-duration') {
+        const slider = document.getElementById('set-overlay-display-duration-slider');
+        if (slider) slider.value = val;
+        const valEl = document.getElementById('set-overlay-display-duration-val');
+        if (valEl) valEl.textContent = `${val} 秒`;
+      }
+      updateOverlayCustomizerPreview();
+    }
+    window.onOverlayNumberInput = onOverlayNumberInput;
+
+    function onOverlayColorPickerInput(field, hex) {
+      if (field === 'text') {
+        const txt = document.getElementById('set-overlay-text-color');
+        if (txt) txt.value = hex.toUpperCase();
+      } else if (field === 'accent') {
+        const txt = document.getElementById('set-overlay-accent-color');
+        if (txt) {
+          txt.value = hex.toUpperCase();
+          txt.style.color = hex;
+        }
+      } else if (field === 'bg') {
+        const txt = document.getElementById('set-overlay-bg-color');
+        if (txt) txt.value = hex.toUpperCase();
+      }
+      updateOverlayCustomizerPreview();
+    }
+    window.onOverlayColorPickerInput = onOverlayColorPickerInput;
+
+    function onOverlayHexInput(field, hex) {
+      let h = (hex || '').trim();
+      if (!h.startsWith('#')) h = '#' + h;
+      if (/^#[0-9A-Fa-f]{6}$/.test(h)) {
+        if (field === 'text') {
+          const picker = document.getElementById('set-overlay-text-color-picker');
+          if (picker) picker.value = h;
+        } else if (field === 'accent') {
+          const picker = document.getElementById('set-overlay-accent-color-picker');
+          if (picker) picker.value = h;
+          const txt = document.getElementById('set-overlay-accent-color');
+          if (txt) txt.style.color = h;
+        } else if (field === 'bg') {
+          const picker = document.getElementById('set-overlay-bg-color-picker');
+          if (picker) picker.value = h;
+          const txt = document.getElementById('set-overlay-bg-color');
+          if (txt) txt.value = h.toUpperCase();
+        }
+      }
+      updateOverlayCustomizerPreview();
+    }
+    window.onOverlayHexInput = onOverlayHexInput;
+
+    function setOverlayAccentColor(hex) {
+      const picker = document.getElementById('set-overlay-accent-color-picker');
+      const txt = document.getElementById('set-overlay-accent-color');
+      if (picker) picker.value = hex;
+      if (txt) {
+        txt.value = hex.toUpperCase();
+        txt.style.color = hex;
+      }
+      updateOverlayCustomizerPreview();
+      triggerOverlayMotionPreviewAnimation();
+    }
+    window.setOverlayAccentColor = setOverlayAccentColor;
+
+    function onOverlayBgOpacityInput(val) {
+      const valEl = document.getElementById('set-overlay-bg-opacity-val');
+      if (valEl) valEl.textContent = `${val}%`;
+      updateOverlayCustomizerPreview();
+    }
+    window.onOverlayBgOpacityInput = onOverlayBgOpacityInput;
+
+    function onOverlayMotionEffectChange(val) {
+      updateOverlayCustomizerPreview();
+      triggerOverlayMotionPreviewAnimation();
+    }
+    window.onOverlayMotionEffectChange = onOverlayMotionEffectChange;
+
+    function onOverlayMotionScaleChange(val) {
+      updateOverlayCustomizerPreview();
+      triggerOverlayMotionPreviewAnimation();
+    }
+    window.onOverlayMotionScaleChange = onOverlayMotionScaleChange;
+
+    function applyOverlaySizePreset(ratio) {
+      const currentStyle = document.getElementById('set-callout-banner-style')?.value || 'corner_metric';
+      const info = CALLOUT_STYLES_INFO[currentStyle] || CALLOUT_STYLES_INFO.corner_metric || {};
+      const baseTitle = info.defaultTitlePt || 72;
+      const baseSub = info.defaultSubPt || 28;
+
+      const newTitle = Math.round(baseTitle * ratio);
+      const newSub = Math.round(baseSub * ratio);
+
+      onOverlaySliderInput('title-size', newTitle);
+      onOverlaySliderInput('sub-size', newSub);
+    }
+    window.applyOverlaySizePreset = applyOverlaySizePreset;
+
+    function resetOverlayCustomizerToDefaults() {
+      const currentStyle = document.getElementById('set-callout-banner-style')?.value || 'corner_metric';
+      populateOverlayCustomizerUI({}, currentStyle);
+      updateOverlayCustomizerPreview();
+      triggerOverlayMotionPreviewAnimation();
+      if (typeof showToast === 'function') {
+        showToast(`🔄 已回復為「${CALLOUT_STYLES_INFO[currentStyle]?.name || currentStyle}」的官方預設外觀與動態數值`);
+      }
+    }
+    window.resetOverlayCustomizerToDefaults = resetOverlayCustomizerToDefaults;
+
+    function triggerOverlayMotionPreviewAnimation() {
+      const el = document.getElementById('callout-preview-animated-element');
+      if (!el) return;
+      const effect = document.getElementById('set-overlay-motion-effect')?.value || 'fade_drift';
+      const dur = (parseInt(document.getElementById('set-overlay-entrance-duration')?.value) || 320) + 'ms';
+      el.style.animation = 'none';
+      el.offsetHeight; // trigger reflow
+      el.style.animation = `overlayMotion_${effect} ${dur} cubic-bezier(0.16, 1, 0.3, 1) both`;
+    }
+    window.triggerOverlayMotionPreviewAnimation = triggerOverlayMotionPreviewAnimation;
+
+    function renderCalloutStyleScreenHtml(styleKey, isMini = false, customOpts = null) {
       const info = CALLOUT_STYLES_INFO[styleKey] || CALLOUT_STYLES_INFO.neutral_centered;
       let overlayHtml = '';
 
+      const customizerValues = (typeof getOverlayCustomizerValues === 'function') ? getOverlayCustomizerValues() : null;
+      const opts = customOpts || (!isMini ? customizerValues : null);
+
+      const titlePt = (opts && opts.title_font_size) || info.defaultTitlePt || 72;
+      const subPt = (opts && opts.subtitle_font_size) || info.defaultSubPt || 28;
+      const textColor = (opts && opts.text_color) || info.defaultText || '#FFFFFF';
+      const accentColor = (opts && opts.accent_color) || info.accent || '#38BDF8';
+      const bgColor = (opts && opts.bg_color) || info.defaultBg || '#03080E';
+      const bgOpacity = (opts && opts.bg_opacity !== undefined) ? opts.bg_opacity : (info.defaultBgOpacity !== undefined ? info.defaultBgOpacity : 0.85);
+      const motionEffect = (opts && opts.motion_effect) || info.defaultMotion || 'fade_drift';
+      const entranceMs = (opts && opts.entrance_duration_ms) || info.defaultEntranceMs || 320;
+
+      const titleSize = isMini ? Math.round(titlePt * 0.13) + 'px' : Math.round(titlePt * 0.25) + 'px';
+      const subSize = isMini ? Math.round(subPt * 0.13) + 'px' : Math.round(subPt * 0.25) + 'px';
+      const animStyle = isMini ? '' : `animation: overlayMotion_${motionEffect} ${entranceMs}ms cubic-bezier(0.16, 1, 0.3, 1) both;`;
+      const animId = isMini ? '' : 'id="callout-preview-animated-element"';
+
       if (styleKey === 'neutral_centered') {
-        const titleSize = isMini ? '12px' : '18px';
-        const subSize = isMini ? '9px' : '11px';
         overlayHtml = `
-          <div style="position:absolute; inset:0; background:rgba(0,0,0,0.58); backdrop-filter:blur(1px); pointer-events:none;"></div>
-          <div style="position:absolute; top:30%; bottom:30%; left:0; right:0; background:rgba(0,0,0,0.45); border-top:1px solid rgba(255,255,255,0.08); border-bottom:1px solid rgba(255,255,255,0.08); pointer-events:none;"></div>
-          <div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:2; padding:0 ${isMini ? '8px' : '16px'}; text-align:center; pointer-events:none;">
-            <div style="font-size:${titleSize}; font-weight:900; color:#ffffff; letter-spacing:0.04em; text-shadow:0 2px 10px rgba(0,0,0,0.95), 0 0 1px #000; line-height:1.3;">
+          <div style="position:absolute; inset:0; background:${hexToRgba(bgColor, bgOpacity * 0.7)}; backdrop-filter:blur(1px); pointer-events:none;"></div>
+          <div style="position:absolute; top:30%; bottom:30%; left:0; right:0; background:${hexToRgba(bgColor, bgOpacity)}; border-top:1px solid rgba(255,255,255,0.08); border-bottom:1px solid rgba(255,255,255,0.08); pointer-events:none;"></div>
+          <div ${animId} class="overlay-motion-animated" style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:2; padding:0 ${isMini ? '8px' : '16px'}; text-align:center; pointer-events:none; ${animStyle}">
+            <div style="font-size:${titleSize}; font-weight:900; color:${textColor}; letter-spacing:0.04em; text-shadow:0 2px 10px rgba(0,0,0,0.95), 0 0 1px #000; line-height:1.3;">
               ${info.title}
             </div>
             <div style="font-size:${subSize}; font-weight:500; color:#cbd5e1; margin-top:${isMini ? '2px' : '4px'}; text-shadow:0 2px 6px rgba(0,0,0,0.9);">
@@ -9023,88 +9401,77 @@
       } else if (styleKey === 'modern_pill') {
         const topPos = isMini ? '8px' : '14px';
         const pad = isMini ? '3px 10px' : '6px 16px';
-        const tagSize = isMini ? '9px' : '11px';
-        const titleSize = isMini ? '10px' : '12px';
         overlayHtml = `
-          <div style="position:absolute; top:${topPos}; left:50%; transform:translateX(-50%); z-index:2; width:90%; max-width:${isMini ? '240px' : '380px'}; pointer-events:none;">
-            <div style="background:rgba(10, 16, 28, 0.85); border:1px solid rgba(56, 189, 248, 0.5); border-radius:999px; padding:${pad}; box-shadow:0 4px 18px rgba(0,0,0,0.7), 0 0 12px rgba(56, 189, 248, 0.25); backdrop-filter:blur(10px); display:flex; align-items:center; justify-content:center; gap:${isMini ? '4px' : '8px'};">
-              <span style="color:#38bdf8; font-size:${tagSize}; font-weight:800; letter-spacing:0.05em; white-space:nowrap;">[ ${info.tag} ]</span>
-              <span style="color:#ffffff; font-size:${titleSize}; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${info.title}</span>
+          <div ${animId} class="overlay-motion-animated" style="position:absolute; top:${topPos}; left:50%; transform:translateX(-50%); z-index:2; width:90%; max-width:${isMini ? '240px' : '380px'}; pointer-events:none; ${animStyle}">
+            <div style="background:${hexToRgba(bgColor, bgOpacity)}; border:1px solid ${accentColor}; border-radius:999px; padding:${pad}; box-shadow:0 4px 18px rgba(0,0,0,0.7), 0 0 12px ${hexToRgba(accentColor, 0.25)}; backdrop-filter:blur(10px); display:flex; align-items:center; justify-content:center; gap:${isMini ? '4px' : '8px'};">
+              <span style="color:${accentColor}; font-size:${subSize}; font-weight:800; letter-spacing:0.05em; white-space:nowrap;">[ ${info.tag} ]</span>
+              <span style="color:${textColor}; font-size:${titleSize}; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${info.title}</span>
             </div>
           </div>
         `;
       } else if (styleKey === 'archival_parchment') {
         const topPos = isMini ? '8px' : '14px';
         const pad = isMini ? '3px 8px' : '5px 14px';
-        const tagSize = isMini ? '8px' : '10px';
-        const titleSize = isMini ? '10px' : '12px';
         overlayHtml = `
-          <div style="position:absolute; top:${topPos}; left:50%; transform:translateX(-50%); z-index:2; width:90%; max-width:${isMini ? '240px' : '380px'}; pointer-events:none;">
-            <div style="background:rgba(26, 18, 12, 0.92); border:1.5px solid #854d0e; border-radius:4px; padding:${pad}; box-shadow:0 4px 18px rgba(0,0,0,0.85); display:flex; align-items:center; justify-content:center; gap:${isMini ? '4px' : '8px'};">
-              <span style="background:#991b1b; color:#fef08a; padding:1px 5px; border-radius:2px; font-size:${tagSize}; font-weight:800; font-family:serif; border:1px solid #b91c1c; white-space:nowrap;">【 ${info.tag} 】</span>
-              <span style="color:#fef3c7; font-size:${titleSize}; font-weight:700; font-family:serif; letter-spacing:0.03em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${info.title}</span>
+          <div ${animId} class="overlay-motion-animated" style="position:absolute; top:${topPos}; left:50%; transform:translateX(-50%); z-index:2; width:90%; max-width:${isMini ? '240px' : '380px'}; pointer-events:none; ${animStyle}">
+            <div style="background:${hexToRgba(bgColor, bgOpacity)}; border:1.5px solid ${accentColor}; border-radius:4px; padding:${pad}; box-shadow:0 4px 18px rgba(0,0,0,0.85); display:flex; align-items:center; justify-content:center; gap:${isMini ? '4px' : '8px'};">
+              <span style="background:#991b1b; color:#fef08a; padding:1px 5px; border-radius:2px; font-size:${subSize}; font-weight:800; font-family:serif; border:1px solid #b91c1c; white-space:nowrap;">【 ${info.tag} 】</span>
+              <span style="color:${textColor}; font-size:${titleSize}; font-weight:700; font-family:serif; letter-spacing:0.03em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${info.title}</span>
             </div>
           </div>
         `;
       } else if (styleKey === 'historical_timeline') {
         const topPos = isMini ? '8px' : '14px';
         const leftPos = isMini ? '8px' : '14px';
-        const yearSize = isMini ? '22px' : '36px';
         const strokeW = isMini ? '1px' : '1.8px';
         const pad = isMini ? '3px 8px' : '5px 12px';
-        const titleSize = isMini ? '9.5px' : '13px';
-        const subSize = isMini ? '7.5px' : '10px';
         const redLineH = isMini ? '2px' : '3px';
         overlayHtml = `
-          <div style="position:absolute; top:${topPos}; left:${leftPos}; z-index:2; display:flex; align-items:center; gap:${isMini ? '6px' : '10px'}; max-width:92%; pointer-events:none;">
-            <!-- Hollow Outline Year Badge -->
-            <div style="font-family:'Arial Black', Impact, 'Segoe UI Black', sans-serif; font-size:${yearSize}; font-weight:900; line-height:1; letter-spacing:0.02em; color:rgba(20,20,20,0.65); -webkit-text-stroke:${strokeW} #ffffff; text-shadow:0 3px 12px rgba(0,0,0,0.9); white-space:nowrap;">
-              ${info.tag || '1871'}
+          <div ${animId} class="overlay-motion-animated" style="position:absolute; top:${topPos}; left:${leftPos}; z-index:2; display:flex; align-items:center; gap:${isMini ? '6px' : '10px'}; max-width:92%; pointer-events:none; ${animStyle}">
+            <div style="font-family:'Arial Black', Impact, 'Segoe UI Black', sans-serif; font-size:${titleSize}; font-weight:900; line-height:1; letter-spacing:0.02em; color:rgba(20,20,20,0.65); -webkit-text-stroke:${strokeW} ${textColor}; text-shadow:0 3px 12px rgba(0,0,0,0.9); white-space:nowrap;">
+              ${info.tag}
             </div>
-            <!-- Translucent Dark Card with Crimson Red Bottom Line -->
-            <div style="background:rgba(28, 25, 23, 0.88); border-bottom:${redLineH} solid #b91c1c; border-top:1px solid rgba(255,255,255,0.06); border-right:1px solid rgba(255,255,255,0.06); border-left:1px solid rgba(255,255,255,0.06); padding:${pad}; box-shadow:0 6px 20px rgba(0,0,0,0.85); display:flex; flex-direction:column; justify-content:center;">
-              <div style="color:#ffffff; font-size:${titleSize}; font-weight:800; letter-spacing:0.03em; line-height:1.25; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                ${info.title}
-              </div>
-              <div style="color:#d6d3d1; font-size:${subSize}; font-weight:500; margin-top:${isMini ? '1px' : '2px'}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                ${info.subtitle}
-              </div>
+            <div style="background:${hexToRgba(bgColor, bgOpacity)}; border-radius:4px; padding:${pad}; box-shadow:0 6px 20px rgba(0,0,0,0.85); position:relative; overflow:hidden; border-top:1px solid rgba(255,255,255,0.06); border-right:1px solid rgba(255,255,255,0.06);">
+              <div style="position:absolute; bottom:0; left:0; right:0; height:${redLineH}; background:${accentColor};"></div>
+              <div style="color:${textColor}; font-size:${titleSize}; font-weight:800; white-space:nowrap;">${info.title}</div>
+              <div style="color:#cbd5e1; font-size:${subSize}; margin-top:${isMini ? '1px' : '3px'}; white-space:nowrap;">${info.subtitle}</div>
             </div>
           </div>
         `;
       } else if (styleKey === 'minimal_clean') {
         const topPos = isMini ? '8px' : '14px';
-        const tagSize = isMini ? '8px' : '10px';
-        const titleSize = isMini ? '11px' : '13px';
         overlayHtml = `
-          <div style="position:absolute; top:${topPos}; left:50%; transform:translateX(-50%); z-index:2; width:90%; text-align:center; pointer-events:none;">
-            <div style="color:#94a3b8; font-size:${tagSize}; font-weight:700; letter-spacing:0.12em; text-transform:uppercase;">• ${info.tag} •</div>
-            <div style="color:#ffffff; font-size:${titleSize}; font-weight:800; margin-top:2px; letter-spacing:0.02em; text-shadow:0 2px 8px rgba(0,0,0,0.95); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${info.title}</div>
+          <div ${animId} class="overlay-motion-animated" style="position:absolute; top:${topPos}; left:50%; transform:translateX(-50%); z-index:2; text-align:center; width:92%; pointer-events:none; ${animStyle}">
+            <div style="display:inline-flex; align-items:center; gap:5px; margin-bottom:2px;">
+              <span style="color:${accentColor}; font-size:${subSize}; font-weight:700;">•</span>
+              <span style="color:${accentColor}; font-size:${subSize}; font-weight:700; letter-spacing:0.06em;">${info.tag}</span>
+              <span style="color:${accentColor}; font-size:${subSize}; font-weight:700;">•</span>
+            </div>
+            <div style="color:${textColor}; font-size:${titleSize}; font-weight:800; letter-spacing:0.03em; text-shadow:0 2px 10px rgba(0,0,0,0.95); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+              ${info.title}
+            </div>
+            ${!isMini ? `<div style="color:#94a3b8; font-size:${subSize}; margin-top:2px; text-shadow:0 2px 6px rgba(0,0,0,0.9);">${info.subtitle}</div>` : ''}
           </div>
         `;
       } else if (styleKey === 'broadcast_news') {
         const topPos = isMini ? '8px' : '14px';
         const pad = isMini ? '3px 8px' : '5px 14px';
-        const tagSize = isMini ? '9px' : '11px';
-        const titleSize = isMini ? '10px' : '12px';
         overlayHtml = `
-          <div style="position:absolute; top:${topPos}; left:50%; transform:translateX(-50%); z-index:2; width:92%; max-width:${isMini ? '250px' : '400px'}; pointer-events:none;">
-            <div style="background:linear-gradient(90deg, rgba(8, 24, 54, 0.95) 0%, rgba(15, 35, 75, 0.88) 100%); border-left:4px solid #38bdf8; border-top:1px solid rgba(56, 189, 248, 0.35); border-right:1px solid rgba(56, 189, 248, 0.35); border-bottom:1px solid rgba(56, 189, 248, 0.35); border-radius:4px; padding:${pad}; box-shadow:0 4px 18px rgba(0,0,0,0.8); display:flex; align-items:center; justify-content:center; gap:${isMini ? '4px' : '8px'};">
-              <span style="color:#fde047; font-size:${tagSize}; font-weight:900; white-space:nowrap;">▶ ${info.tag}</span>
-              <span style="color:#ffffff; font-size:${titleSize}; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${info.title}</span>
+          <div ${animId} class="overlay-motion-animated" style="position:absolute; top:${topPos}; left:50%; transform:translateX(-50%); z-index:2; width:92%; max-width:${isMini ? '250px' : '400px'}; pointer-events:none; ${animStyle}">
+            <div style="background:linear-gradient(90deg, ${hexToRgba(bgColor, bgOpacity)} 0%, ${hexToRgba(bgColor, Math.max(0, bgOpacity - 0.1))} 100%); border-left:4px solid ${accentColor}; border-top:1px solid ${hexToRgba(accentColor, 0.35)}; border-right:1px solid ${hexToRgba(accentColor, 0.35)}; border-bottom:1px solid ${hexToRgba(accentColor, 0.35)}; border-radius:4px; padding:${pad}; box-shadow:0 4px 18px rgba(0,0,0,0.8); display:flex; align-items:center; justify-content:center; gap:${isMini ? '4px' : '8px'};">
+              <span style="color:${accentColor}; font-size:${subSize}; font-weight:900; white-space:nowrap;">▶ ${info.tag}</span>
+              <span style="color:${textColor}; font-size:${titleSize}; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${info.title}</span>
             </div>
           </div>
         `;
       } else if (styleKey === 'corner_metric') {
         const pos = isMini ? '8px' : '14px';
-        const bigSize = isMini ? '20px' : '30px';
-        const lblSize = isMini ? '8px' : '12px';
         overlayHtml = `
-          <div style="position:absolute; top:${pos}; left:${pos}; z-index:2; display:flex; overflow:hidden; border-radius:${isMini ? '5px' : '8px'}; background:rgba(3,8,14,0.94); box-shadow:0 6px 16px rgba(0,0,0,0.6); padding:${isMini ? '6px 10px 6px 0' : '10px 16px 10px 0'}; pointer-events:none;">
-            <div style="width:${isMini ? '4px' : '6px'}; background:#FF5A1F; margin-right:${isMini ? '8px' : '12px'};"></div>
+          <div ${animId} class="overlay-motion-animated" style="position:absolute; top:${pos}; left:${pos}; z-index:2; display:flex; overflow:hidden; border-radius:${isMini ? '5px' : '8px'}; background:${hexToRgba(bgColor, bgOpacity)}; box-shadow:0 6px 16px rgba(0,0,0,0.6); padding:${isMini ? '6px 10px 6px 0' : '10px 16px 10px 0'}; pointer-events:none; ${animStyle}">
+            <div style="width:${isMini ? '4px' : '6px'}; background:${accentColor}; margin-right:${isMini ? '8px' : '12px'};"></div>
             <div>
-              <div style="color:#FF5A1F; font-size:${bigSize}; font-weight:850; line-height:1; white-space:nowrap;">${info.title}</div>
-              <div style="color:#f8fafc; font-size:${lblSize}; font-weight:700; margin-top:${isMini ? '3px' : '5px'}; white-space:nowrap;">${info.subtitle}</div>
+              <div style="color:${accentColor}; font-size:${titleSize}; font-weight:850; line-height:1; white-space:nowrap;">${info.title}</div>
+              <div style="color:${textColor}; font-size:${subSize}; font-weight:700; margin-top:${isMini ? '3px' : '5px'}; white-space:nowrap;">${info.subtitle}</div>
             </div>
           </div>
         `;
@@ -9121,10 +9488,10 @@
 
       // Simulated subtitle at the bottom
       const subPad = isMini ? '1px 6px' : '2px 10px';
-      const subSize = isMini ? '8px' : '10.5px';
+      const subFontSize = isMini ? '8px' : '10.5px';
       const bottomSubtitleHtml = `
         <div style="position:absolute; bottom:${isMini ? '4px' : '7px'}; left:0; right:0; text-align:center; z-index:3; pointer-events:none; padding:0 8px;">
-          <span style="display:inline-block; background:rgba(0,0,0,0.7); border:1px solid rgba(255,255,255,0.06); padding:${subPad}; border-radius:3px; color:#ffffff; font-size:${subSize}; font-weight:600; text-shadow:0 1px 3px rgba(0,0,0,0.9); white-space:nowrap; max-width:92%; overflow:hidden; text-overflow:ellipsis;">
+          <span style="display:inline-block; background:rgba(0,0,0,0.7); border:1px solid rgba(255,255,255,0.06); padding:${subPad}; border-radius:3px; color:#ffffff; font-size:${subFontSize}; font-weight:600; text-shadow:0 1px 3px rgba(0,0,0,0.9); white-space:nowrap; max-width:92%; overflow:hidden; text-overflow:ellipsis;">
             每一項關鍵抉擇，都深切牽動著未來的走向。
           </span>
         </div>
@@ -9260,6 +9627,9 @@
         sel.value = styleKey;
         sel.dispatchEvent(new Event('change', { bubbles: true }));
       }
+      if (selectId === 'set-callout-banner-style' && typeof populateOverlayCustomizerUI === 'function') {
+        populateOverlayCustomizerUI({}, styleKey);
+      }
       updateCalloutStyleWidget(selectId, containerId);
     };
 
@@ -9278,8 +9648,15 @@
       if (!sel.dataset.hasPreviewListener) {
         sel.dataset.hasPreviewListener = 'true';
         sel.addEventListener('change', () => {
+          if (selectId === 'set-callout-banner-style' && typeof populateOverlayCustomizerUI === 'function') {
+            populateOverlayCustomizerUI({}, sel.value);
+          }
           updateCalloutStyleWidget(selectId, containerId);
         });
+      }
+
+      if (selectId === 'set-callout-banner-style' && typeof populateOverlayCustomizerUI === 'function') {
+        populateOverlayCustomizerUI({}, sel.value);
       }
 
       updateCalloutStyleWidget(selectId, containerId);

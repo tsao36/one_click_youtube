@@ -612,3 +612,35 @@ pre {
   overflow-x: auto;
   max-height: 380px;
 }
+
+/* ==================== OVERLAY STYLE MOTION PREVIEW ANIMATIONS ==================== */
+@keyframes overlayMotion_fade_drift {
+  0% { opacity: 0; transform: translateY(18px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes overlayMotion_slide_up {
+  0% { opacity: 0; transform: translateY(46px); }
+  72% { transform: translateY(-4px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes overlayMotion_scale_punch {
+  0% { opacity: 0; transform: scale(0.8); }
+  70% { transform: scale(1.08); }
+  100% { opacity: 1; transform: scale(1.0); }
+}
+
+@keyframes overlayMotion_slide_horizontal {
+  0% { opacity: 0; transform: translateX(-45px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes overlayMotion_subtle_fade {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+.overlay-motion-animated {
+  animation-fill-mode: both;
+}

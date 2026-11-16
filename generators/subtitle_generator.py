@@ -80,6 +80,30 @@ def resolve_caption_font(preferred: str | None = None) -> str:
     return "jf-openhuninn-2.1"
 
 
+def hex_to_ass_color(hex_str: str | None, default: str = "&H00FFFFFF&") -> str:
+    """Convert #RRGGBB hex color string to ASS &H00BBGGRR& color format."""
+    if not hex_str or not isinstance(hex_str, str):
+        return default
+    c = hex_str.strip().lstrip("#")
+    if len(c) == 6:
+        r, g, b = c[0:2], c[2:4], c[4:6]
+        return f"&H00{b}{g}{r}&".upper()
+    return default
+
+
+def opacity_to_ass_alpha(opacity: float | int | str | None, default: str = "&H26&") -> str:
+    """Convert opacity (0.0 to 1.0) to ASS &HAA& alpha format (00=opaque, FF=transparent)."""
+    if opacity is None:
+        return default
+    try:
+        op = float(opacity)
+        op = max(0.0, min(1.0, op))
+        alpha = round((1.0 - op) * 255)
+        return f"&H{alpha:02X}&"
+    except Exception:
+        return default
+
+
 @dataclass
 class Cue:
     start: float
@@ -344,15 +368,38 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 if not title or (is_meta_section_label(title) and b_style not in ("corner_metric", "corner_metric_overlay")):
                     continue
 
-                fs_tag = round(25 * scale)
-                fs_title = round(54 * scale)
-                fs_sub = round(29 * scale)
+                overlay_config = kwargs.get("overlay_config") or {}
+                ov_title_size = overlay_config.get("title_font_size")
+                ov_sub_size = overlay_config.get("subtitle_font_size")
+                ov_text_color = overlay_config.get("text_color")
+                ov_accent_color = overlay_config.get("accent_color")
+                ov_bg_color = overlay_config.get("bg_color")
+                ov_bg_opacity = overlay_config.get("bg_opacity")
+                ov_motion_effect = str(overlay_config.get("motion_effect") or "fade_drift").lower().strip()
+                ov_entrance_ms = int(overlay_config.get("entrance_duration_ms") or 320)
+                ov_motion_scale = float(overlay_config.get("motion_scale") or 1.08)
+
+                fs_tag = round(max(14, int(ov_sub_size) * 0.9) * scale) if ov_sub_size else round(25 * scale)
+                fs_title = round(int(ov_title_size) * scale) if ov_title_size else round(54 * scale)
+                fs_sub = round(int(ov_sub_size) * scale) if ov_sub_size else round(29 * scale)
 
                 mid_x = round(width / 2)
                 y_top_start = round(72 * scale)
                 y_top_target = round(48 * scale)
 
-                anim_tag = f"{{\\an8\\move({mid_x},{y_top_start},{mid_x},{y_top_target},0,320)\\fad(250,300)}}"
+                fade_in_def = max(80, ov_entrance_ms - 60)
+                fade_out_def = 300
+                if ov_motion_effect == "slide_up":
+                    anim_tag = f"{{\\an8\\move({mid_x},{y_top_target + round(45 * scale)},{mid_x},{y_top_target},0,{ov_entrance_ms})\\fad({fade_in_def},{fade_out_def})}}"
+                elif ov_motion_effect == "scale_punch":
+                    punch_pct = round(ov_motion_scale * 100)
+                    anim_tag = f"{{\\an8\\pos({mid_x},{y_top_target})\\fscx{punch_pct}\\fscy{punch_pct}\\t(0,{ov_entrance_ms},\\fscx100\\fscy100)\\fad({fade_in_def},{fade_out_def})}}"
+                elif ov_motion_effect == "slide_horizontal":
+                    anim_tag = f"{{\\an8\\move({mid_x - round(50 * scale)},{y_top_target},{mid_x},{y_top_target},0,{ov_entrance_ms})\\fad({fade_in_def},{fade_out_def})}}"
+                elif ov_motion_effect == "subtle_fade":
+                    anim_tag = f"{{\\an8\\pos({mid_x},{y_top_target})\\fad({fade_in_def},{fade_out_def})}}"
+                else: # fade_drift
+                    anim_tag = f"{{\\an8\\move({mid_x},{y_top_start},{mid_x},{y_top_target},0,{ov_entrance_ms})\\fad({fade_in_def},{fade_out_def})}}"
                 has_metric = bool(re.search(r"(\d|[一二三四五六七八九十百千萬兩]+\s*[尊枚把件座名位人戶個條份公釐公厘毫米公分公尺公里倍成%])", title))
 
                 if b_style in ("neutral_centered", "fox_kinetic"):
@@ -362,27 +409,46 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                     center_y = round(height / 2)
                     band_top = round(height * 0.37)
                     band_bottom = round(height * 0.63)
-                    fade = "\\fad(220,260)"
+                    fade_in_nc = max(80, ov_entrance_ms - 60)
+                    fade = f"\\fad({fade_in_nc},260)"
                     full_frame = f"m 0 0 l {width} 0 l {width} {height} l 0 {height}"
                     center_band = f"m 0 {band_top} l {width} {band_top} l {width} {band_bottom} l 0 {band_bottom}"
+
+                    nc_bg_col = hex_to_ass_color(ov_bg_color, "&H00000000&")
+                    nc_full_alpha = opacity_to_ass_alpha(float(ov_bg_opacity) * 0.65 if ov_bg_opacity is not None else 0.58, "&H98&")
+                    nc_band_alpha = opacity_to_ass_alpha(ov_bg_opacity if ov_bg_opacity is not None else 0.85, "&H55&")
+
                     raw_events.append((
                         c_start,
                         f"Dialogue: 1,{_ts_ass(c_start)},{_ts_ass(c_end)},FoxCalloutBox,,0,0,0,,"
-                        f"{{\\an7\\pos(0,0)\\p1\\bord0\\shad0\\1c&H000000&\\1a&H98&{fade}}}{full_frame}",
+                        f"{{\\an7\\pos(0,0)\\p1\\bord0\\shad0\\1c{nc_bg_col}\\1a{nc_full_alpha}{fade}}}{full_frame}",
                     ))
                     raw_events.append((
                         c_start,
                         f"Dialogue: 2,{_ts_ass(c_start)},{_ts_ass(c_end)},FoxCalloutBox,,0,0,0,,"
-                        f"{{\\an7\\pos(0,0)\\p1\\bord0\\shad0\\1c&H000000&\\1a&H55&{fade}}}{center_band}",
+                        f"{{\\an7\\pos(0,0)\\p1\\bord0\\shad0\\1c{nc_bg_col}\\1a{nc_band_alpha}{fade}}}{center_band}",
                     ))
+                    nc_title_fs = round(int(ov_title_size) * scale) if ov_title_size else round(96 * scale)
+                    nc_sub_fs = round(int(ov_sub_size) * scale) if ov_sub_size else round(36 * scale)
+                    nc_text_col = hex_to_ass_color(ov_text_color, "&H00FFFFFF&")
                     card_lines = [
-                        f"{{\\fs{round(96 * scale)}\\c&H00FFFFFF&\\3c&H00000000&\\bord2.5\\shad2.5\\b1}}{title}",
+                        f"{{\\fs{nc_title_fs}\\c{nc_text_col}\\3c&H00000000&\\bord2.5\\shad2.5\\b1}}{title}",
                     ]
                     if subtitle:
                         card_lines.append(
-                            f"{{\\fs{round(36 * scale)}\\c&H00E5E7EB&\\3c&H00000000&\\bord1.8\\shad2\\b0}}{subtitle}"
+                            f"{{\\fs{nc_sub_fs}\\c&H00E5E7EB&\\3c&H00000000&\\bord1.8\\shad2\\b0}}{subtitle}"
                         )
-                    anim_tag = f"{{\\an5\\pos({mid_x},{center_y})\\fad(220,260)}}"
+                    if ov_motion_effect == "slide_up":
+                        anim_tag = f"{{\\an5\\move({mid_x},{center_y + round(50 * scale)},{mid_x},{center_y},0,{ov_entrance_ms}){fade}}}"
+                    elif ov_motion_effect == "scale_punch":
+                        punch_pct = round(ov_motion_scale * 100)
+                        anim_tag = f"{{\\an5\\pos({mid_x},{center_y})\\fscx{punch_pct}\\fscy{punch_pct}\\t(0,{ov_entrance_ms},\\fscx100\\fscy100){fade}}}"
+                    elif ov_motion_effect == "slide_horizontal":
+                        anim_tag = f"{{\\an5\\move({mid_x - round(60 * scale)},{center_y},{mid_x},{center_y},0,{ov_entrance_ms}){fade}}}"
+                    elif ov_motion_effect == "subtle_fade":
+                        anim_tag = f"{{\\an5\\pos({mid_x},{center_y}){fade}}}"
+                    else: # fade_drift
+                        anim_tag = f"{{\\an5\\move({mid_x},{center_y + round(16 * scale)},{mid_x},{center_y},0,{ov_entrance_ms}){fade}}}"
                     event_style = "NeutralMessage"
 
                 elif b_style in ("historical_timeline", "timeline_badge"):
@@ -494,11 +560,12 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
                 elif b_style in ("corner_metric", "corner_metric_overlay"):
                     # Corner metric card: black rounded-look card, orange left bar, big number + white label (top-left)
-                    fade = r"\fad(220,260)"
+                    fade_in_cm = max(80, ov_entrance_ms - 60)
+                    fade = f"\\fad({fade_in_cm},260)"
                     x1 = round(80 * scale * width / 1920)
                     y1 = round(70 * scale * height / 1080)
-                    fs_big = round(72 * scale)
-                    fs_lbl = round(32 * scale)
+                    fs_big = round(int(ov_title_size) * scale) if ov_title_size else round(72 * scale)
+                    fs_lbl = round(int(ov_sub_size) * scale) if ov_sub_size else round(32 * scale)
                     bar_w = round(12 * scale)
                     pad_l = round(28 * scale)
                     pad_r = round(34 * scale)
@@ -513,21 +580,27 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                     card_h = pad_v * 2 + fs_big + (round(12 * scale) + fs_lbl if subtitle else 0)
                     y2 = y1 + card_h
                     card_box = f"m {x1} {y1} l {x2} {y1} l {x2} {y2} l {x1} {y2}"
+
+                    cm_bg_col = hex_to_ass_color(ov_bg_color, "&H00080503&")
+                    cm_bg_a = opacity_to_ass_alpha(ov_bg_opacity if ov_bg_opacity is not None else 0.94, "&H0A&")
+                    cm_accent_col = hex_to_ass_color(ov_accent_color, "&H001F5AFF&")
+                    cm_text_col = hex_to_ass_color(ov_text_color, "&H00FCFAF8&")
+
                     raw_events.append((
                         c_start,
                         f"Dialogue: 1,{_ts_ass(c_start)},{_ts_ass(c_end)},FoxCalloutBox,,0,0,0,,"
-                        f"{{\\an7\\pos(0,0)\\p1\\bord{round(6 * scale)}\\shad{round(4 * scale)}\\1c&H00080503&\\3c&H00080503&\\1a&H0A&\\3a&H0A&{fade}}}{card_box}",
+                        f"{{\\an7\\pos(0,0)\\p1\\bord{round(6 * scale)}\\shad{round(4 * scale)}\\1c{cm_bg_col}\\3c{cm_bg_col}\\1a{cm_bg_a}\\3a{cm_bg_a}{fade}}}{card_box}",
                     ))
                     bar_box = f"m {x1} {y1} l {x1 + bar_w} {y1} l {x1 + bar_w} {y2} l {x1} {y2}"
                     raw_events.append((
                         c_start,
                         f"Dialogue: 2,{_ts_ass(c_start)},{_ts_ass(c_end)},FoxCalloutBox,,0,0,0,,"
-                        f"{{\\an7\\pos(0,0)\\p1\\bord0\\shad0\\1c&H001F5AFF&\\1a&H00&{fade}}}{bar_box}",
+                        f"{{\\an7\\pos(0,0)\\p1\\bord0\\shad0\\1c{cm_accent_col}\\1a&H00&{fade}}}{bar_box}",
                     ))
                     text_x = x1 + bar_w + pad_l
-                    lines = [f"{{\\fs{fs_big}\\b1\\c&H001F5AFF&\\3c&H00080503&\\bord0\\shad0}}{title}"]
+                    lines = [f"{{\\fs{fs_big}\\b1\\c{cm_accent_col}\\3c{cm_bg_col}\\bord0\\shad0}}{title}"]
                     if subtitle:
-                        lines.append(f"{{\\fs{fs_lbl}\\b1\\c&H00FCFAF8&\\3c&H00080503&\\bord0\\shad0}}{subtitle}")
+                        lines.append(f"{{\\fs{fs_lbl}\\b1\\c{cm_text_col}\\3c{cm_bg_col}\\bord0\\shad0}}{subtitle}")
                     raw_events.append((
                         c_start,
                         f"Dialogue: 3,{_ts_ass(c_start)},{_ts_ass(c_end)},FoxCalloutCard,,0,0,0,,"
@@ -538,9 +611,11 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 elif b_style == "archival_parchment":
                     # Historical Archival Stamp banner (Vintage Crimson Stamp + Warm Parchment Text)
                     tag_decor = f"【  {clean_tag}  】"
+                    arch_accent = hex_to_ass_color(ov_accent_color, "&H001B1B99&")
+                    arch_text = hex_to_ass_color(ov_text_color, "&H00D8EDF8&")
                     card_lines = [
-                        f"{{\\fs{fs_tag}\\c&H001B1B99&\\3c&H000C121E&\\bord2.2\\shad3\\b1}}{tag_decor}",
-                        f"{{\\fs{fs_title}\\c&H00D8EDF8&\\3c&H000C121E&\\bord3.2\\shad4\\b1}}{title}",
+                        f"{{\\fs{fs_tag}\\c{arch_accent}\\3c&H000C121E&\\bord2.2\\shad3\\b1}}{tag_decor}",
+                        f"{{\\fs{fs_title}\\c{arch_text}\\3c&H000C121E&\\bord3.2\\shad4\\b1}}{title}",
                     ]
                     if subtitle:
                         card_lines.append(f"{{\\fs{fs_sub}\\c&H00B0C4DE&\\3c&H000C121E&\\bord2.2\\shad2.5\\b0}}{subtitle}")
@@ -548,10 +623,11 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 elif b_style == "modern_pill":
                     # Modern Glassmorphism Pill banner (Neon Cyan Accent)
                     tag_decor = f"[  {clean_tag}  ]"
-                    title_color = "&H0038D8FF&" if has_metric else "&H00FFFFFF&"
+                    pill_accent = hex_to_ass_color(ov_accent_color, "&H00F5FF00&")
+                    pill_text = hex_to_ass_color(ov_text_color, "&H0038D8FF&" if has_metric else "&H00FFFFFF&")
                     card_lines = [
-                        f"{{\\fs{fs_tag}\\c&H00F5FF00&\\3c&H00181008&\\bord2.2\\shad3\\b1}}{tag_decor}",
-                        f"{{\\fs{fs_title}\\c{title_color}\\3c&H00100804&\\bord3.0\\shad3.5\\b1}}{title}",
+                        f"{{\\fs{fs_tag}\\c{pill_accent}\\3c&H00181008&\\bord2.2\\shad3\\b1}}{tag_decor}",
+                        f"{{\\fs{fs_title}\\c{pill_text}\\3c&H00100804&\\bord3.0\\shad3.5\\b1}}{title}",
                     ]
                     if subtitle:
                         card_lines.append(f"{{\\fs{fs_sub}\\c&H00DDEEFF&\\3c&H00100804&\\bord2.0\\shad2.5\\b0}}{subtitle}")
@@ -559,9 +635,11 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 elif b_style == "minimal_clean":
                     # Minimal Clean Typography with subtle soft shadow
                     tag_decor = f"•  {clean_tag}  •"
+                    min_accent = hex_to_ass_color(ov_accent_color, "&H00CBD5E1&")
+                    min_text = hex_to_ass_color(ov_text_color, "&H00FFFFFF&")
                     card_lines = [
-                        f"{{\\fs{fs_tag}\\c&H00CBD5E1&\\3c&H00000000&\\bord1.5\\shad2\\b1}}{tag_decor}",
-                        f"{{\\fs{fs_title}\\c&H00FFFFFF&\\3c&H00000000&\\bord2.0\\shad3\\b1}}{title}",
+                        f"{{\\fs{fs_tag}\\c{min_accent}\\3c&H00000000&\\bord1.5\\shad2\\b1}}{tag_decor}",
+                        f"{{\\fs{fs_title}\\c{min_text}\\3c&H00000000&\\bord2.0\\shad3\\b1}}{title}",
                     ]
                     if subtitle:
                         card_lines.append(f"{{\\fs{fs_sub}\\c&H0094A3B8&\\3c&H00000000&\\bord1.5\\shad2\\b0}}{subtitle}")
@@ -569,9 +647,11 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 elif b_style == "broadcast_news":
                     # Broadcast news upper banner
                     tag_decor = f"▶  {clean_tag}"
+                    bn_accent = hex_to_ass_color(ov_accent_color, "&H0015CCFA&")
+                    bn_text = hex_to_ass_color(ov_text_color, "&H00FFFFFF&")
                     card_lines = [
-                        f"{{\\fs{fs_tag}\\c&H0015CCFA&\\3c&H00081020&\\bord2.5\\shad3\\b1}}{tag_decor}",
-                        f"{{\\fs{fs_title}\\c&H00FFFFFF&\\3c&H00081020&\\bord3.2\\shad4\\b1}}{title}",
+                        f"{{\\fs{fs_tag}\\c{bn_accent}\\3c&H00081020&\\bord2.5\\shad3\\b1}}{tag_decor}",
+                        f"{{\\fs{fs_title}\\c{bn_text}\\3c&H00081020&\\bord3.2\\shad4\\b1}}{title}",
                     ]
                     if subtitle:
                         card_lines.append(f"{{\\fs{fs_sub}\\c&H00E2E8F0&\\3c&H00081020&\\bord2.2\\shad2.5\\b0}}{subtitle}")

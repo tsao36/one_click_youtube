@@ -4498,6 +4498,7 @@ class SaveOverlayConfigRequest(BaseModel):
     subtitle_style: Optional[str] = None
     subtitle_font: Optional[str] = None
     remotion_theme: Optional[str] = None
+    overlay_config: Optional[dict[str, Any]] = None
 
 
 @app.post("/api/projects/{project_id}/save_overlay_config")
@@ -4522,6 +4523,9 @@ def save_overlay_config_endpoint(project_id: str, req: SaveOverlayConfigRequest)
         rem = p.data.settings.setdefault("remotion", {})
         rem["theme"] = str(req.remotion_theme).strip()
         p.data.settings["remotion_theme"] = str(req.remotion_theme).strip()
+    if req.overlay_config is not None:
+        sub_s["overlay"] = dict(req.overlay_config)
+        p.data.settings["overlay_config"] = dict(req.overlay_config)
 
     p.path("subtitles", "subtitles.srt").unlink(missing_ok=True)
     p.path("subtitles", "subtitles.ass").unlink(missing_ok=True)
@@ -4650,6 +4654,7 @@ class RerenderOverlayAndVideoRequest(BaseModel):
     font_size: Optional[int] = None
     font_size_scale: Optional[float] = None
     remotion_theme: Optional[str] = None
+    overlay_config: Optional[dict[str, Any]] = None
 
 
 @app.post("/api/projects/{project_id}/rerender_overlay_and_video")
@@ -4672,6 +4677,7 @@ def rerender_overlay_and_video_endpoint(
             font_size=req.font_size,
             font_size_scale=req.font_size_scale,
             remotion_theme=req.remotion_theme,
+            overlay_config=req.overlay_config,
         )
 
     if not queue_pipeline_job(p, background_tasks, do_work):
