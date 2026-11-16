@@ -4355,6 +4355,586 @@
         ],
         "terms_url": "https://support.google.com/youtube/answer/3376882"
       }
+    },
+    {
+      "id": "calm_focus/Novembers_-_Come_Over.mp3",
+      "name": "Novembers - Come Over",
+      "title": "Novembers - Come Over",
+      "style": "calm_focus",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "calm_focus",
+      "category_label": "Calm Focus",
+      "filename": "calm_focus/Novembers_-_Come_Over.mp3",
+      "basename": "Novembers_-_Come_Over.mp3",
+      "size_mb": 2.37,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Novembers - Come Over soundscape for documentary focus.",
+      "description": "Novembers - Come Over background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "calm_focus",
+        "explanation",
+        "novembers_-_come_over"
+      ],
+      "url": "/api/music/audio/calm_focus/Novembers_-_Come_Over.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Novembers - Come Over' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "calm_focus/Tomer_Baruch_-_The_Girl_with_the_Cat.mp3",
+      "name": "Tomer Baruch - The Girl With The Cat",
+      "title": "Tomer Baruch - The Girl With The Cat",
+      "style": "calm_focus",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "calm_focus",
+      "category_label": "Calm Focus",
+      "filename": "calm_focus/Tomer_Baruch_-_The_Girl_with_the_Cat.mp3",
+      "basename": "Tomer_Baruch_-_The_Girl_with_the_Cat.mp3",
+      "size_mb": 9.35,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Tomer Baruch - The Girl With The Cat soundscape for documentary focus.",
+      "description": "Tomer Baruch - The Girl With The Cat background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "calm_focus",
+        "explanation",
+        "tomer_baruch_-_the_girl_with_the_cat"
+      ],
+      "url": "/api/music/audio/calm_focus/Tomer_Baruch_-_The_Girl_with_the_Cat.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Tomer Baruch - The Girl With The Cat' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "calm_focus/Tomer_Baruch_feat__IBY_-_Sleepless_on_the_Internet.mp3",
+      "name": "Tomer Baruch Feat  Iby - Sleepless On The Internet",
+      "title": "Tomer Baruch Feat  Iby - Sleepless On The Internet",
+      "style": "calm_focus",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "calm_focus",
+      "category_label": "Calm Focus",
+      "filename": "calm_focus/Tomer_Baruch_feat__IBY_-_Sleepless_on_the_Internet.mp3",
+      "basename": "Tomer_Baruch_feat__IBY_-_Sleepless_on_the_Internet.mp3",
+      "size_mb": 7.96,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Tomer Baruch Feat  Iby - Sleepless On The Internet soundscape for documentary focus.",
+      "description": "Tomer Baruch Feat  Iby - Sleepless On The Internet background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "calm_focus",
+        "explanation",
+        "tomer_baruch_feat__iby_-_sleepless_on_the_internet"
+      ],
+      "url": "/api/music/audio/calm_focus/Tomer_Baruch_feat__IBY_-_Sleepless_on_the_Internet.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Tomer Baruch Feat  Iby - Sleepless On The Internet' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "calm_focus/WOOLFSON_-_Dreams.mp3",
+      "name": "Woolfson - Dreams",
+      "title": "Woolfson - Dreams",
+      "style": "calm_focus",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "calm_focus",
+      "category_label": "Calm Focus",
+      "filename": "calm_focus/WOOLFSON_-_Dreams.mp3",
+      "basename": "WOOLFSON_-_Dreams.mp3",
+      "size_mb": 1.77,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Woolfson - Dreams soundscape for documentary focus.",
+      "description": "Woolfson - Dreams background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "calm_focus",
+        "explanation",
+        "woolfson_-_dreams"
+      ],
+      "url": "/api/music/audio/calm_focus/WOOLFSON_-_Dreams.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Woolfson - Dreams' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "calm_focus/Ardie_Son_-_Cloud.mp3",
+      "name": "Ardie Son - Cloud",
+      "title": "Ardie Son - Cloud",
+      "style": "calm_focus",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "calm_focus",
+      "category_label": "Calm Focus",
+      "filename": "calm_focus/Ardie_Son_-_Cloud.mp3",
+      "basename": "Ardie_Son_-_Cloud.mp3",
+      "size_mb": 3.69,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Ardie Son - Cloud soundscape for documentary focus.",
+      "description": "Ardie Son - Cloud background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "calm_focus",
+        "explanation",
+        "ardie_son_-_cloud"
+      ],
+      "url": "/api/music/audio/calm_focus/Ardie_Son_-_Cloud.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Ardie Son - Cloud' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "calm_focus/Dodo_Danciu_-_Scarlett.mp3",
+      "name": "Dodo Danciu - Scarlett",
+      "title": "Dodo Danciu - Scarlett",
+      "style": "calm_focus",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "calm_focus",
+      "category_label": "Calm Focus",
+      "filename": "calm_focus/Dodo_Danciu_-_Scarlett.mp3",
+      "basename": "Dodo_Danciu_-_Scarlett.mp3",
+      "size_mb": 3.73,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Dodo Danciu - Scarlett soundscape for documentary focus.",
+      "description": "Dodo Danciu - Scarlett background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "calm_focus",
+        "explanation",
+        "dodo_danciu_-_scarlett"
+      ],
+      "url": "/api/music/audio/calm_focus/Dodo_Danciu_-_Scarlett.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Dodo Danciu - Scarlett' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "calm_focus/Eldad_Zitrin_-_Good_Morning_Love.mp3",
+      "name": "Eldad Zitrin - Good Morning Love",
+      "title": "Eldad Zitrin - Good Morning Love",
+      "style": "calm_focus",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "calm_focus",
+      "category_label": "Calm Focus",
+      "filename": "calm_focus/Eldad_Zitrin_-_Good_Morning_Love.mp3",
+      "basename": "Eldad_Zitrin_-_Good_Morning_Love.mp3",
+      "size_mb": 7.96,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Eldad Zitrin - Good Morning Love soundscape for documentary focus.",
+      "description": "Eldad Zitrin - Good Morning Love background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "calm_focus",
+        "explanation",
+        "eldad_zitrin_-_good_morning_love"
+      ],
+      "url": "/api/music/audio/calm_focus/Eldad_Zitrin_-_Good_Morning_Love.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Eldad Zitrin - Good Morning Love' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "tech_futuristic/Aija_Alsina_-_Fragile.mp3",
+      "name": "Aija Alsina - Fragile",
+      "title": "Aija Alsina - Fragile",
+      "style": "tech_futuristic",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "tech_futuristic",
+      "category_label": "Tech Futuristic",
+      "filename": "tech_futuristic/Aija_Alsina_-_Fragile.mp3",
+      "basename": "Aija_Alsina_-_Fragile.mp3",
+      "size_mb": 2.39,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Aija Alsina - Fragile soundscape for documentary focus.",
+      "description": "Aija Alsina - Fragile background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "tech_futuristic",
+        "explanation",
+        "aija_alsina_-_fragile"
+      ],
+      "url": "/api/music/audio/tech_futuristic/Aija_Alsina_-_Fragile.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Aija Alsina - Fragile' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "calm_focus/Diamonds_And_Ice_-_Blue.mp3",
+      "name": "Diamonds And Ice - Blue",
+      "title": "Diamonds And Ice - Blue",
+      "style": "calm_focus",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "calm_focus",
+      "category_label": "Calm Focus",
+      "filename": "calm_focus/Diamonds_And_Ice_-_Blue.mp3",
+      "basename": "Diamonds_And_Ice_-_Blue.mp3",
+      "size_mb": 2.06,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Diamonds And Ice - Blue soundscape for documentary focus.",
+      "description": "Diamonds And Ice - Blue background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "calm_focus",
+        "explanation",
+        "diamonds_and_ice_-_blue"
+      ],
+      "url": "/api/music/audio/calm_focus/Diamonds_And_Ice_-_Blue.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Diamonds And Ice - Blue' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "calm_focus/Yehezkel_Raz_feat__Sivan_Talmor_-_Finding_My_Memories_-_Instrumental_version.mp3",
+      "name": "Yehezkel Raz Feat  Sivan Talmor - Finding My Memories - Instrumental Version",
+      "title": "Yehezkel Raz Feat  Sivan Talmor - Finding My Memories - Instrumental Version",
+      "style": "calm_focus",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "calm_focus",
+      "category_label": "Calm Focus",
+      "filename": "calm_focus/Yehezkel_Raz_feat__Sivan_Talmor_-_Finding_My_Memories_-_Instrumental_version.mp3",
+      "basename": "Yehezkel_Raz_feat__Sivan_Talmor_-_Finding_My_Memories_-_Instrumental_version.mp3",
+      "size_mb": 13.11,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Yehezkel Raz Feat  Sivan Talmor - Finding My Memories - Instrumental Version soundscape for documentary focus.",
+      "description": "Yehezkel Raz Feat  Sivan Talmor - Finding My Memories - Instrumental Version background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "calm_focus",
+        "explanation",
+        "yehezkel_raz_feat__sivan_talmor_-_finding_my_memories_-_instrumental_version"
+      ],
+      "url": "/api/music/audio/calm_focus/Yehezkel_Raz_feat__Sivan_Talmor_-_Finding_My_Memories_-_Instrumental_version.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Yehezkel Raz Feat  Sivan Talmor - Finding My Memories - Instrumental Version' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
     }
   ]
 }
