@@ -43,6 +43,34 @@ def test_historical_timeline_ass_generation(tmp_path: Path):
     assert "&H001C1CB9&" in content
     # Dark charcoal/sepia card background
     assert "&H0016181A&" in content
+    # No stray closing bracket syntax bug
+    assert "{\\fad(" not in content
+    assert "}}" not in content
+
+
+def test_historical_timeline_chinese_tag_spacing(tmp_path: Path):
+    cues = [Cue(0.0, 5.0, "但每一次狂歡落幕，等待它們的卻幾乎都是內鬨、分裂")]
+    callouts = [{
+        "start": 0.5,
+        "end": 4.5,
+        "tag": "組織危機",
+        "title": "內部路線分歧",
+        "subtitle": "理念交鋒導致核心分裂",
+        "style": "FoxCalloutCard",
+        "banner_style": "historical_timeline"
+    }]
+    ass_path = tmp_path / "test_chinese_timeline.ass"
+    write_ass(cues, ass_path, callouts=callouts, width=1920, height=1080)
+
+    content = ass_path.read_text(encoding="utf-8")
+    assert "組織危機" in content
+    assert "}}組織危機" not in content
+    assert "內部路線分歧" in content
+    assert "}}內部路線分歧" not in content
+    # Ensure no nested ASS tag override braces anywhere
+    assert "{\\fad(" not in content
+    import re
+    assert not re.search(r"\{[^{}]*\{", content)
 
 def test_historical_timeline_extraction():
     scenes = [

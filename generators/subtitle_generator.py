@@ -333,7 +333,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
                 raw_tag = str(co.get("tag", "")).strip()
                 clean_tag = re.sub(r"[^\u4e00-\u9fffA-Za-z0-9\s\-_/%]", "", raw_tag).strip() or "重點解析"
-                if is_meta_section_label(clean_tag):
+                if is_meta_section_label(clean_tag) and not re.search(r"\b\d{3,4}\b", clean_tag):
                     clean_tag = "重點解析"
                 title = str(co.get("title", "")).strip()
                 subtitle = str(co.get("subtitle", "")).strip()
@@ -387,22 +387,50 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
                 elif b_style in ("historical_timeline", "timeline_badge"):
                     # Historical Timeline Banner: Top-left giant outline year/tag + dark translucent card with crimson red bottom accent line
-                    fade = r"{\fad(220,260)}"
+                    fade = r"\fad(220,260)"
                     x_start = round(width * 0.05)
                     y_start = round(height * 0.08)
 
                     # Extract year or numeric tag if present, else clean tag
                     year_match = re.search(r"(\b\d{3,4}\b)", clean_tag) or re.search(r"(\b\d{3,4}\b)", title)
                     year_text = year_match.group(1) if year_match else clean_tag
-                    if len(year_text) > 8:
-                        year_text = year_text[:8]
 
                     # Clean title if it duplicates the year
                     clean_title = re.sub(r"^\s*(?:西元)?\d{3,4}\s*年?\s*", "", title).strip() or title
 
-                    # Sizing calculations for 16:9 ASS canvas
-                    tag_len = max(3, len(year_text))
-                    tag_width = round(tag_len * 46 * scale)
+                    # Determine if badge is numeric year/ASCII or non-ASCII (e.g. Chinese)
+                    is_numeric_year = bool(re.match(r"^\d{3,4}$", year_text))
+                    cjk_count = sum(1 for c in year_text if ord(c) > 127)
+                    ascii_count = len(year_text) - cjk_count
+
+                    outline_w = max(2.5, round(3.8 * scale))
+                    shad_w = max(1.5, round(2.5 * scale))
+
+                    if is_numeric_year:
+                        badge_fs = round(90 * scale)
+                        tag_width = round(max(3, len(year_text)) * 46 * scale)
+                        badge_font_cmd = r"\fnImpact"
+                        badge_color_cmd = f"\\1c&H0016181A&\\1a&HE0&\\3c&H00FFFFFF&\\bord{outline_w}\\shad{shad_w}"
+                        badge_y = y_start - round(4 * scale)
+                    elif cjk_count > 0:
+                        if len(year_text) > 6:
+                            year_text = year_text[:6]
+                            cjk_count = sum(1 for c in year_text if ord(c) > 127)
+                            ascii_count = len(year_text) - cjk_count
+                        badge_fs = round(44 * scale)
+                        tag_width = round((cjk_count * 46 + ascii_count * 24) * scale)
+                        badge_font_cmd = f"\\fn{font}"
+                        badge_color_cmd = "\\1c&H00FFFFFF&\\1a&H00&\\3c&H00100C0A&\\bord2.0\\shad2"
+                        badge_y = y_start + round(8 * scale)
+                    else:
+                        if len(year_text) > 8:
+                            year_text = year_text[:8]
+                        badge_fs = round(72 * scale)
+                        tag_width = round(max(3, len(year_text)) * 42 * scale)
+                        badge_font_cmd = r"\fnImpact"
+                        badge_color_cmd = f"\\1c&H0016181A&\\1a&HE0&\\3c&H00FFFFFF&\\bord{outline_w}\\shad{shad_w}"
+                        badge_y = y_start - round(2 * scale)
+
                     gap = round(16 * scale)
                     card_x1 = x_start + tag_width + gap
 
@@ -433,13 +461,11 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                     ))
 
                     # 3. Giant hollow outline year badge on the left (Layer 3)
-                    outline_w = max(2.5, round(3.8 * scale))
-                    shad_w = max(1.5, round(2.5 * scale))
                     raw_events.append((
                         c_start,
                         f"Dialogue: 3,{_ts_ass(c_start)},{_ts_ass(c_end)},FoxCalloutCard,,0,0,0,,"
-                        f"{{\\an7\\pos({x_start},{y_start - round(4 * scale)})\\fnImpact\\fs{round(90 * scale)}\\b1"
-                        f"\\1c&H0016181A&\\1a&HE0&\\3c&H00FFFFFF&\\bord{outline_w}\\shad{shad_w}{fade}}}{year_text}",
+                        f"{{\\an7\\pos({x_start},{badge_y}){badge_font_cmd}\\fs{badge_fs}\\b1"
+                        f"{badge_color_cmd}{fade}}}{year_text}",
                     ))
 
                     # 4. Title and Subtitle inside the card (Layer 3)
