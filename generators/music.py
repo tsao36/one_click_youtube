@@ -179,6 +179,28 @@ def calculate_calibrated_bgm_level(
     return round(max(-36.0, min(-18.0, target)), 2)
 
 
+def calculate_minimum_ambient_bgm_level(
+    narration_lufs: float | None = None,
+    requested_volume_db: float | None = None,
+    listening_test_offset_db: float = 0.0,
+    min_voice_headroom_db: float = 18.0,
+    floor_lufs: float = -40.0,
+    ceiling_lufs: float = -30.0,
+) -> float:
+    """Automatically adjust ambient BGM target level to a minimum bed so voice is clearly heard.
+
+    Ensures at least `min_voice_headroom_db` (default 18 dB) below active narration loudness,
+    and caps the ambient bed at `ceiling_lufs` (-30 LUFS) even if a project or plan
+    specified a louder baseline.
+    """
+    nar = float(narration_lufs) if narration_lufs is not None else -16.0
+    target = nar - float(min_voice_headroom_db)
+    if requested_volume_db is not None:
+        target = min(target, float(requested_volume_db))
+    target += float(listening_test_offset_db)
+    return round(max(float(floor_lufs), min(float(ceiling_lufs), target)), 2)
+
+
 def load_catalog(directory: str = "data/music") -> dict[str, Any]:
     cat_file = ROOT / directory / "catalog.json"
     if cat_file.exists():

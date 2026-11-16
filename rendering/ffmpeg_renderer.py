@@ -15,7 +15,13 @@ from core.project_manager import Project
 import json
 import re
 import subprocess
-from generators.music import pick_track, plan_music_timeline, calculate_calibrated_bgm_level, STARTING_BGM_LEVEL_DBFS
+from generators.music import (
+    pick_track,
+    plan_music_timeline,
+    calculate_calibrated_bgm_level,
+    calculate_minimum_ambient_bgm_level,
+    STARTING_BGM_LEVEL_DBFS,
+)
 from providers.images import ImageRequest, PlaceholderImageProvider
 from rendering import ken_burns
 from rendering.ffmpeg_utils import FFmpegError, duration, run_ffmpeg, video_encoder_args
@@ -333,6 +339,25 @@ def measure_audio_loudness(audio_path: Path) -> dict[str, float]:
         return {"mean_volume": -16.0, "max_volume": -1.0}
 
 
+def measure_integrated_lufs(audio_path: Path) -> float | None:
+    """Measure gated integrated loudness (LUFS) via FFmpeg ebur128 (ignores silence gaps)."""
+    if not audio_path.exists():
+        return None
+    try:
+        from rendering.ffmpeg_utils import ffmpeg_bin
+        cmd = [ffmpeg_bin(), "-nostdin", "-i", str(audio_path), "-af", "ebur128", "-f", "null", "-"]
+        proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=False)
+        # Look for the final Summary Integrated loudness line: "I: -15.2 LUFS"
+        matches = re.findall(r"^\s*I:\s*([-0-9\.]+)\s*LUFS", proc.stderr, flags=re.MULTILINE)
+        if matches:
+            val = float(matches[-1])
+            if -70.0 < val <= 0.0:
+                return val
+    except Exception as e:
+        log.warning("Could not measure integrated LUFS for %s: %s", audio_path, e)
+    return None
+
+
 def build_audio_mix(project: Project, narration: Path, total: float, out: Path,
                     scenes: list[Scene] | None = None, slots: list[Slot] | None = None,
                     cancel: Callable[[], bool] | None = None) -> dict:
@@ -448,10 +473,21 @@ def build_audio_mix(project: Project, narration: Path, total: float, out: Path,
                 log.warning("Could not load pre-planned music timeline: %s, falling back to dynamic plan", e)
                 music_plan = []
 
-        # Measure narration loudness to calibrate BGM starting level (-24 dBFS baseline)
+        # Measure narration loudness (prefer gated ebur128 integrated LUFS for active speech)
         measured_nar = measure_audio_loudness(narration)
         nar_mean = measured_nar.get("mean_volume", -16.0)
-        log.info("Measured narration loudness: mean=%.1f dBFS, max=%.1f dBFS", nar_mean, measured_nar.get("max_volume", -1.0))
+        nar_lufs = measure_integrated_lufs(narration)
+        effective_nar_lufs = nar_lufs if nar_lufs is not None else nar_mean
+        log.info(
+            "Measured narration loudness: integrated=%s LUFS, mean=%.1f dBFS, max=%.1f dBFS",
+            f"{nar_lufs:.1f}" if nar_lufs is not None else "n/a",
+            nar_mean,
+            measured_nar.get("max_volume", -1.0),
+        )
+
+        auto_adjust = bool(m.get("auto_adjust_volume", True))
+        min_headroom = float(m.get("min_voice_headroom_db", 18.0))
+        listening_offset = float(m.get("listening_test_offset_db", 0.0))
 
         if not music_plan:
             music_plan = plan_music_timeline(
@@ -464,16 +500,32 @@ def build_audio_mix(project: Project, narration: Path, total: float, out: Path,
                 slots=slots,
                 chapters=chapters,
                 music_settings=m,
-                measured_narration_lufs=nar_mean,
+                measured_narration_lufs=effective_nar_lufs,
             )
+
+        if auto_adjust:
+            for seg in music_plan:
+                old_vol = getattr(seg, "volume_db", STARTING_BGM_LEVEL_DBFS)
+                seg.volume_db = calculate_minimum_ambient_bgm_level(
+                    narration_lufs=effective_nar_lufs,
+                    requested_volume_db=old_vol,
+                    listening_test_offset_db=listening_offset,
+                    min_voice_headroom_db=min_headroom,
+                )
+            if music_plan:
+                log.info(
+                    "Auto-adjusted ambient music target to %.1f LUFS (narration=%.1f LUFS, headroom=%.1f dB)",
+                    music_plan[0].volume_db,
+                    effective_nar_lufs,
+                    min_headroom,
+                )
         else:
-            # Calibrate pre-planned volume using measured narration loudness and listening test offset
             for seg in music_plan:
                 if seg.volume_db == -16.0 or not hasattr(seg, "volume_db"):
                     seg.volume_db = calculate_calibrated_bgm_level(
                         base_level_dbfs=m.get("volume_db", STARTING_BGM_LEVEL_DBFS),
-                        narration_loudness_db=nar_mean,
-                        listening_test_offset_db=float(m.get("listening_test_offset_db", 0.0)),
+                        narration_loudness_db=effective_nar_lufs,
+                        listening_test_offset_db=listening_offset,
                     )
     final_norm = f"loudnorm=I={r.get('final_lufs', -14)}:TP=-1.5:LRA=11"
 
@@ -492,14 +544,29 @@ def build_audio_mix(project: Project, narration: Path, total: float, out: Path,
         run_ffmpeg([*args, "-filter_complex", fc, "-map", "[out]", "-t", f"{total:.3f}", "-ar", "48000", "-ac", "2", "-c:a", "pcm_s16le", str(out)], cancel=cancel)
         return info
 
-    # ADR 0017: Voice-Carving Notch EQ (-3dB at 1.8kHz) + Real-time DSP Sidechain Ducking
+    # ADR 0017: Voice-Carving Notch EQ (-3.5dB at 1.8kHz) + Real-time DSP Sidechain Ducking
     duck_filter = (
-        "[mus_bed]equalizer=f=1800:t=q:w=1.2:g=-2.5[mus_eq];"
-        "[nsc]highpass=f=120,lowpass=f=3500[sc_ctrl];"
-        "[mus_eq][sc_ctrl]sidechaincompress=threshold=0.08:ratio=2.5:attack=40:release=500:makeup=1[md];"
+        "[mus_bed]equalizer=f=1800:t=q:w=1.2:g=-3.5[mus_eq];"
+        "[nsc]highpass=f=120,lowpass=f=4000[sc_ctrl];"
+        "[mus_eq][sc_ctrl]sidechaincompress=threshold=0.03:ratio=4.0:attack=25:release=450:makeup=1[md];"
         if m.get("ducking", True)
-        else "[mus_bed]equalizer=f=1800:t=q:w=1.2:g=-2.5[md];[nsc]anullsink;"
+        else "[mus_bed]equalizer=f=1800:t=q:w=1.2:g=-3.5[md];[nsc]anullsink;"
     )
+
+    track_lufs_cache: dict[str, float | None] = {}
+
+    def _bgm_gain_filter(track_path: Path, target_lufs: float) -> str:
+        """Compute deterministic volume gain from measured track LUFS to reach target_lufs."""
+        key = str(track_path)
+        if key not in track_lufs_cache:
+            track_lufs_cache[key] = measure_integrated_lufs(track_path)
+        track_lufs = track_lufs_cache[key]
+        if track_lufs is not None:
+            gain_db = max(-48.0, min(12.0, float(target_lufs) - track_lufs))
+            log.info("BGM track %s measured %.1f LUFS -> applying %.2f dB gain (target %.1f LUFS)", track_path.name, track_lufs, gain_db, target_lufs)
+            return f"volume={gain_db:.2f}dB"
+        norm_target = int(round(target_lufs)) if target_lufs <= -10 else -32
+        return f"loudnorm=I={max(-70, norm_target)}:TP=-2"
 
     if len(music_plan) == 1:
         # Single-track background music (classic)
@@ -513,9 +580,10 @@ def build_audio_mix(project: Project, narration: Path, total: float, out: Path,
         if drum_triggers and drum_path:
             args += ["-i", str(drum_path)]
 
+        gain_expr = _bgm_gain_filter(Path(track), vol)
         fc_parts = [
             f"[0:a]aresample=48000,aformat=channel_layouts=stereo,asplit=2[nar][nsc];",
-            f"[1:a]aresample=48000,aformat=channel_layouts=stereo,loudnorm=I={int(round(vol)) if vol <= -10 else -24}:TP=-2,"
+            f"[1:a]aresample=48000,aformat=channel_layouts=stereo,{gain_expr},"
             f"atrim={so:.3f}:{so + total:.3f},asetpts=PTS-STARTPTS,afade=t=in:d={fi},afade=t=out:st={max(0, total - fo):.3f}:d={fo}[mus_bed];",
             duck_filter,
         ]
@@ -566,8 +634,9 @@ def build_audio_mix(project: Project, narration: Path, total: float, out: Path,
         overlap = fo_i if i < len(music_plan) - 1 else 0.0
         trim_len = dur_i + overlap
 
+        gain_expr_i = _bgm_gain_filter(Path(seg.track), vol_i)
         fc_parts.append(
-            f"[{in_idx}:a]aresample=48000,aformat=channel_layouts=stereo,loudnorm=I={int(round(vol_i)) if vol_i <= -10 else -24}:TP=-2,"
+            f"[{in_idx}:a]aresample=48000,aformat=channel_layouts=stereo,{gain_expr_i},"
             f"atrim={so_i:.3f}:{so_i + trim_len:.3f},asetpts=PTS-STARTPTS,afade=t=in:d={fi_i}:curve=qsin,afade=t=out:st={dur_i:.3f}:d={fo_i}:curve=iqsin,"
             f"adelay={start_ms}:all=1[m{i}];"
         )

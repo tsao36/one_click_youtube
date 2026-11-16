@@ -520,4 +520,66 @@ def test_single_loop_progression():
     assert plan[0].end_time == 75.0
 
 
+def test_minimum_ambient_bgm_level_auto_adjustment():
+    """Verify automatic ambient music level drops to minimum bed so voice is clearly heard."""
+    from generators.music import calculate_minimum_ambient_bgm_level
+
+    # Loud pre-planned volume (-18 dB) with -15.5 LUFS narration -> drops to -33.5 LUFS (18 dB headroom)
+    assert calculate_minimum_ambient_bgm_level(
+        narration_lufs=-15.5,
+        requested_volume_db=-18.0,
+    ) == -33.5
+
+    # Very loud narration (-10 LUFS) still caps BGM at -30.0 LUFS ceiling
+    assert calculate_minimum_ambient_bgm_level(
+        narration_lufs=-10.0,
+        requested_volume_db=-16.0,
+    ) == -30.0
+
+    # Quieter narration (-22 LUFS) drops BGM proportionally to -40.0 LUFS floor
+    assert calculate_minimum_ambient_bgm_level(
+        narration_lufs=-22.0,
+        requested_volume_db=-18.0,
+    ) == -40.0
+
+    # Even quieter explicit user preference (-38 dB) is respected
+    assert calculate_minimum_ambient_bgm_level(
+        narration_lufs=-15.5,
+        requested_volume_db=-38.0,
+    ) == -38.0
+
+
+def test_build_audio_mix_auto_adjusts_loud_music_plan(sample_narration_audio, tmp_path):
+    """Verify build_audio_mix overrides loud music_plan volume_db (-16/-18) to minimum ambient bed."""
+    from rendering.ffmpeg_renderer import build_audio_mix, measure_integrated_lufs
+
+    tracks = list_tracks("data/music")
+    assert tracks, "Music tracks must exist in data/music"
+    track = tracks[0].resolve()
+
+    proj_dir = tmp_path / "test_auto_min_bgm"
+    music_dir = proj_dir / "music"
+    music_dir.mkdir(parents=True, exist_ok=True)
+    plan = [{
+        "track": str(track), "start_time": 0.0, "end_time": 4.0,
+        "crossfade_in": 0.2, "crossfade_out": 0.2, "volume_db": -16.0,
+        "category": "explanation", "name": track.name, "start_offset": 0.0,
+    }]
+    (music_dir / "music_plan.json").write_text(json.dumps(plan), encoding="utf-8")
+
+    class MockProject:
+        id = "test_auto_min_bgm"
+        settings = {"music": {"enabled": True, "directory": "data/music", "ducking": True}, "rendering": {}}
+        data = SimpleNamespace(topic="Test Topic", settings=settings)
+        def path(self, *parts): return proj_dir.joinpath(*parts)
+
+    out_wav = tmp_path / "out_auto_min_mix.wav"
+    info = build_audio_mix(MockProject(), sample_narration_audio, 4.0, out_wav, scenes=[], slots=[])
+    assert out_wav.exists() and out_wav.stat().st_size > 1000
+    assert info["music"] == track.name
+    mixed_lufs = measure_integrated_lufs(out_wav)
+    assert mixed_lufs is not None and -20.0 <= mixed_lufs <= -10.0
+
+
+
 

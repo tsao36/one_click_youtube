@@ -1,7 +1,7 @@
 {
   "version": 1,
   "created_at": "2026-11-16T22:32:40.174600",
-  "updated_at": "2026-11-16T23:50:32.338640",
+  "updated_at": "2026-11-17T00:42:36.921959",
   "daily": {
     "2026-11-16": {
       "date": "2026-11-16",
@@ -103,6 +103,38 @@
       "cost_usd": 0.016575,
       "requests": 5,
       "failed_requests": 0
+    },
+    "2026-11-17": {
+      "date": "2026-11-17",
+      "stages": {
+        "script": {
+          "prompt_tokens": 586,
+          "completion_tokens": 94,
+          "total_tokens": 680,
+          "wasted_tokens": 0,
+          "cost_usd": 7.2e-05,
+          "requests": 1,
+          "failed_requests": 0,
+          "models": {
+            "gemini-flash-latest": {
+              "prompt_tokens": 586,
+              "completion_tokens": 94,
+              "total_tokens": 680,
+              "wasted_tokens": 0,
+              "cost_usd": 7.2e-05,
+              "requests": 1,
+              "failed_requests": 0
+            }
+          }
+        }
+      },
+      "total_tokens": 680,
+      "prompt_tokens": 586,
+      "completion_tokens": 94,
+      "wasted_tokens": 0,
+      "cost_usd": 7.2e-05,
+      "requests": 1,
+      "failed_requests": 0
     }
   },
   "cumulative": {
@@ -128,12 +160,12 @@
         }
       },
       "script": {
-        "prompt_tokens": 28869,
-        "completion_tokens": 15679,
-        "total_tokens": 44548,
+        "prompt_tokens": 29455,
+        "completion_tokens": 15773,
+        "total_tokens": 45228,
         "wasted_tokens": 3200,
-        "cost_usd": 0.00681,
-        "requests": 2,
+        "cost_usd": 0.006882,
+        "requests": 3,
         "failed_requests": 0,
         "models": {
           "gemini-3.8-flash": {
@@ -151,6 +183,15 @@
             "total_tokens": 548,
             "wasted_tokens": 0,
             "cost_usd": 0.0,
+            "requests": 1,
+            "failed_requests": 0
+          },
+          "gemini-flash-latest": {
+            "prompt_tokens": 586,
+            "completion_tokens": 94,
+            "total_tokens": 680,
+            "wasted_tokens": 0,
+            "cost_usd": 7.2e-05,
             "requests": 1,
             "failed_requests": 0
           }
@@ -197,12 +238,12 @@
         }
       }
     },
-    "total_tokens": 112048,
-    "prompt_tokens": 75469,
-    "completion_tokens": 36579,
+    "total_tokens": 112728,
+    "prompt_tokens": 76055,
+    "completion_tokens": 36673,
     "wasted_tokens": 5900,
-    "cost_usd": 0.016575,
-    "requests": 5,
+    "cost_usd": 0.016647,
+    "requests": 6,
     "failed_requests": 0
   }
 }

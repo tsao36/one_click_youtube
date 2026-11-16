@@ -79,7 +79,9 @@ subtitles:
 music:
   enabled: true
   directory: data/music
-  volume_db: -16
+  volume_db: -30
+  auto_adjust_volume: true
+  min_voice_headroom_db: 18.0
   ducking: true
   fade_in: 1.5
   fade_out: 2.5
