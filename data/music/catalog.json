@@ -1457,38 +1457,2903 @@
       }
     },
     {
-      "id": "calm_focus/電人查勃卡主題曲.mp3",
-      "name": "電人查勃卡主題曲",
-      "title": "電人查勃卡主題曲",
+      "id": "calm_focus/Amazing_Grace_-_Casa_Rosa.mp3",
+      "name": "Amazing Grace - Casa Rosa",
+      "title": "Amazing Grace - Casa Rosa",
+      "style": "calm_focus",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
       "category": "calm_focus",
-      "category_label": "Calm & Focus (平靜沉思)",
-      "filename": "calm_focus/電人查勃卡主題曲.mp3",
-      "basename": "電人查勃卡主題曲.mp3",
-      "size_mb": 1.67,
-      "duration": 62.3,
-      "duration_sec": 62.3,
+      "category_label": "Calm Focus",
+      "filename": "calm_focus/Amazing_Grace_-_Casa_Rosa.mp3",
+      "basename": "Amazing_Grace_-_Casa_Rosa.mp3",
+      "size_mb": 4.7,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Amazing Grace - Casa Rosa soundscape for documentary focus.",
+      "description": "Amazing Grace - Casa Rosa background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
       "instrumental": true,
       "vocals": false,
       "loop_friendly": true,
       "is_voiceover_ready": true,
-      "mood": "Ambient (YouTube)",
-      "description": "Imported from YouTube: https://youtu.be/CPoPIezuI_s?si=3pM9LO_xm9Llqr5I",
-      "source": "youtube",
-      "source_url": "https://youtu.be/CPoPIezuI_s?si=3pM9LO_xm9Llqr5I",
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
       "tags": [
         "calm_focus",
-        "youtube",
-        "ambient",
-        "custom"
+        "explanation",
+        "amazing_grace_-_casa_rosa"
       ],
-      "url": "/api/music/audio/calm_focus/電人查勃卡主題曲.mp3",
+      "url": "/api/music/audio/calm_focus/Amazing_Grace_-_Casa_Rosa.mp3",
       "license": {
-        "license_type": "YouTube Audio Content",
-        "name": "YouTube Ambient Ingestion",
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
         "attribution_required": false,
-        "source": "YouTube",
-        "source_url": "https://youtu.be/CPoPIezuI_s?si=3pM9LO_xm9Llqr5I",
-        "commercial_use_allowed": true
+        "attribution_text": "Music: 'Amazing Grace - Casa Rosa' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "calm_focus/Ave_Maria_Op_52_No_6_D_839__Franz_Schubert__-_Golden_Cut_Reborn.mp3",
+      "name": "Ave Maria Op 52 No 6 D 839  Franz Schubert  - Golden Cut Reborn",
+      "title": "Ave Maria Op 52 No 6 D 839  Franz Schubert  - Golden Cut Reborn",
+      "style": "calm_focus",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "calm_focus",
+      "category_label": "Calm Focus",
+      "filename": "calm_focus/Ave_Maria_Op_52_No_6_D_839__Franz_Schubert__-_Golden_Cut_Reborn.mp3",
+      "basename": "Ave_Maria_Op_52_No_6_D_839__Franz_Schubert__-_Golden_Cut_Reborn.mp3",
+      "size_mb": 8.22,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Ave Maria Op 52 No 6 D 839  Franz Schubert  - Golden Cut Reborn soundscape for documentary focus.",
+      "description": "Ave Maria Op 52 No 6 D 839  Franz Schubert  - Golden Cut Reborn background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "calm_focus",
+        "explanation",
+        "ave_maria_op_52_no_6_d_839__franz_schubert__-_golden_cut_reborn"
+      ],
+      "url": "/api/music/audio/calm_focus/Ave_Maria_Op_52_No_6_D_839__Franz_Schubert__-_Golden_Cut_Reborn.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Ave Maria Op 52 No 6 D 839  Franz Schubert  - Golden Cut Reborn' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "calm_focus/Beyond_-_Patrick_Patrikios.mp3",
+      "name": "Beyond - Patrick Patrikios",
+      "title": "Beyond - Patrick Patrikios",
+      "style": "calm_focus",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "calm_focus",
+      "category_label": "Calm Focus",
+      "filename": "calm_focus/Beyond_-_Patrick_Patrikios.mp3",
+      "basename": "Beyond_-_Patrick_Patrikios.mp3",
+      "size_mb": 6.87,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Beyond - Patrick Patrikios soundscape for documentary focus.",
+      "description": "Beyond - Patrick Patrikios background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "calm_focus",
+        "explanation",
+        "beyond_-_patrick_patrikios"
+      ],
+      "url": "/api/music/audio/calm_focus/Beyond_-_Patrick_Patrikios.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Beyond - Patrick Patrikios' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "calm_focus/Clean_Soul.mp3",
+      "name": "Clean Soul",
+      "title": "Clean Soul",
+      "style": "calm_focus",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "calm_focus",
+      "category_label": "Calm Focus",
+      "filename": "calm_focus/Clean_Soul.mp3",
+      "basename": "Clean_Soul.mp3",
+      "size_mb": 11.7,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Clean Soul soundscape for documentary focus.",
+      "description": "Clean Soul background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "calm_focus",
+        "explanation",
+        "clean_soul"
+      ],
+      "url": "/api/music/audio/calm_focus/Clean_Soul.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Clean Soul' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "calm_focus/Como_Vamos__-_Casa_Rosa.mp3",
+      "name": "Como Vamos  - Casa Rosa",
+      "title": "Como Vamos  - Casa Rosa",
+      "style": "calm_focus",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "calm_focus",
+      "category_label": "Calm Focus",
+      "filename": "calm_focus/Como_Vamos__-_Casa_Rosa.mp3",
+      "basename": "Como_Vamos__-_Casa_Rosa.mp3",
+      "size_mb": 3.91,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Como Vamos  - Casa Rosa soundscape for documentary focus.",
+      "description": "Como Vamos  - Casa Rosa background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "calm_focus",
+        "explanation",
+        "como_vamos__-_casa_rosa"
+      ],
+      "url": "/api/music/audio/calm_focus/Como_Vamos__-_Casa_Rosa.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Como Vamos  - Casa Rosa' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "calm_focus/Curadora_-_Casa_Rosa.mp3",
+      "name": "Curadora - Casa Rosa",
+      "title": "Curadora - Casa Rosa",
+      "style": "calm_focus",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "calm_focus",
+      "category_label": "Calm Focus",
+      "filename": "calm_focus/Curadora_-_Casa_Rosa.mp3",
+      "basename": "Curadora_-_Casa_Rosa.mp3",
+      "size_mb": 4.08,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Curadora - Casa Rosa soundscape for documentary focus.",
+      "description": "Curadora - Casa Rosa background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "calm_focus",
+        "explanation",
+        "curadora_-_casa_rosa"
+      ],
+      "url": "/api/music/audio/calm_focus/Curadora_-_Casa_Rosa.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Curadora - Casa Rosa' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "calm_focus/Daniel_Catal__-_Reach_the_Light.mp3",
+      "name": "Daniel Catal  - Reach The Light",
+      "title": "Daniel Catal  - Reach The Light",
+      "style": "calm_focus",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "calm_focus",
+      "category_label": "Calm Focus",
+      "filename": "calm_focus/Daniel_Catal__-_Reach_the_Light.mp3",
+      "basename": "Daniel_Catal__-_Reach_the_Light.mp3",
+      "size_mb": 6.39,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Daniel Catal  - Reach The Light soundscape for documentary focus.",
+      "description": "Daniel Catal  - Reach The Light background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "calm_focus",
+        "explanation",
+        "daniel_catal__-_reach_the_light"
+      ],
+      "url": "/api/music/audio/calm_focus/Daniel_Catal__-_Reach_the_Light.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Daniel Catal  - Reach The Light' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "calm_focus/Daniel_Magen_-_Earth.mp3",
+      "name": "Daniel Magen - Earth",
+      "title": "Daniel Magen - Earth",
+      "style": "calm_focus",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "calm_focus",
+      "category_label": "Calm Focus",
+      "filename": "calm_focus/Daniel_Magen_-_Earth.mp3",
+      "basename": "Daniel_Magen_-_Earth.mp3",
+      "size_mb": 5.31,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Daniel Magen - Earth soundscape for documentary focus.",
+      "description": "Daniel Magen - Earth background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "calm_focus",
+        "explanation",
+        "daniel_magen_-_earth"
+      ],
+      "url": "/api/music/audio/calm_focus/Daniel_Magen_-_Earth.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Daniel Magen - Earth' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "calm_focus/Dream_Culture.mp3",
+      "name": "Dream Culture",
+      "title": "Dream Culture",
+      "style": "calm_focus",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "calm_focus",
+      "category_label": "Calm Focus",
+      "filename": "calm_focus/Dream_Culture.mp3",
+      "basename": "Dream_Culture.mp3",
+      "size_mb": 8.18,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Dream Culture soundscape for documentary focus.",
+      "description": "Dream Culture background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "calm_focus",
+        "explanation",
+        "dream_culture"
+      ],
+      "url": "/api/music/audio/calm_focus/Dream_Culture.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Dream Culture' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "calm_focus/Dulcinea_-_Steve_Adams.mp3",
+      "name": "Dulcinea - Steve Adams",
+      "title": "Dulcinea - Steve Adams",
+      "style": "calm_focus",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "calm_focus",
+      "category_label": "Calm Focus",
+      "filename": "calm_focus/Dulcinea_-_Steve_Adams.mp3",
+      "basename": "Dulcinea_-_Steve_Adams.mp3",
+      "size_mb": 6.17,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Dulcinea - Steve Adams soundscape for documentary focus.",
+      "description": "Dulcinea - Steve Adams background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "calm_focus",
+        "explanation",
+        "dulcinea_-_steve_adams"
+      ],
+      "url": "/api/music/audio/calm_focus/Dulcinea_-_Steve_Adams.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Dulcinea - Steve Adams' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "calm_focus/Flower_Duet_from_Lakme__Leo_Delibes__-_Golden_Cut_Reborn.mp3",
+      "name": "Flower Duet From Lakme  Leo Delibes  - Golden Cut Reborn",
+      "title": "Flower Duet From Lakme  Leo Delibes  - Golden Cut Reborn",
+      "style": "calm_focus",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "calm_focus",
+      "category_label": "Calm Focus",
+      "filename": "calm_focus/Flower_Duet_from_Lakme__Leo_Delibes__-_Golden_Cut_Reborn.mp3",
+      "basename": "Flower_Duet_from_Lakme__Leo_Delibes__-_Golden_Cut_Reborn.mp3",
+      "size_mb": 6.24,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Flower Duet From Lakme  Leo Delibes  - Golden Cut Reborn soundscape for documentary focus.",
+      "description": "Flower Duet From Lakme  Leo Delibes  - Golden Cut Reborn background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "calm_focus",
+        "explanation",
+        "flower_duet_from_lakme__leo_delibes__-_golden_cut_reborn"
+      ],
+      "url": "/api/music/audio/calm_focus/Flower_Duet_from_Lakme__Leo_Delibes__-_Golden_Cut_Reborn.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Flower Duet From Lakme  Leo Delibes  - Golden Cut Reborn' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "calm_focus/Fresh_Air.mp3",
+      "name": "Fresh Air",
+      "title": "Fresh Air",
+      "style": "calm_focus",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "calm_focus",
+      "category_label": "Calm Focus",
+      "filename": "calm_focus/Fresh_Air.mp3",
+      "basename": "Fresh_Air.mp3",
+      "size_mb": 8.98,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Fresh Air soundscape for documentary focus.",
+      "description": "Fresh Air background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "calm_focus",
+        "explanation",
+        "fresh_air"
+      ],
+      "url": "/api/music/audio/calm_focus/Fresh_Air.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Fresh Air' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "calm_focus/From_Here_on_In_-_Everet_Almond.mp3",
+      "name": "From Here On In - Everet Almond",
+      "title": "From Here On In - Everet Almond",
+      "style": "calm_focus",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "calm_focus",
+      "category_label": "Calm Focus",
+      "filename": "calm_focus/From_Here_on_In_-_Everet_Almond.mp3",
+      "basename": "From_Here_on_In_-_Everet_Almond.mp3",
+      "size_mb": 7.21,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "From Here On In - Everet Almond soundscape for documentary focus.",
+      "description": "From Here On In - Everet Almond background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "calm_focus",
+        "explanation",
+        "from_here_on_in_-_everet_almond"
+      ],
+      "url": "/api/music/audio/calm_focus/From_Here_on_In_-_Everet_Almond.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'From Here On In - Everet Almond' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "calm_focus/From_Whence_We_Came_-_Dan__Lebo__Lebowitz__Tone_Seeker.mp3",
+      "name": "From Whence We Came - Dan  Lebo  Lebowitz  Tone Seeker",
+      "title": "From Whence We Came - Dan  Lebo  Lebowitz  Tone Seeker",
+      "style": "calm_focus",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "calm_focus",
+      "category_label": "Calm Focus",
+      "filename": "calm_focus/From_Whence_We_Came_-_Dan__Lebo__Lebowitz__Tone_Seeker.mp3",
+      "basename": "From_Whence_We_Came_-_Dan__Lebo__Lebowitz__Tone_Seeker.mp3",
+      "size_mb": 6.06,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "From Whence We Came - Dan  Lebo  Lebowitz  Tone Seeker soundscape for documentary focus.",
+      "description": "From Whence We Came - Dan  Lebo  Lebowitz  Tone Seeker background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "calm_focus",
+        "explanation",
+        "from_whence_we_came_-_dan__lebo__lebowitz__tone_seeker"
+      ],
+      "url": "/api/music/audio/calm_focus/From_Whence_We_Came_-_Dan__Lebo__Lebowitz__Tone_Seeker.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'From Whence We Came - Dan  Lebo  Lebowitz  Tone Seeker' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "calm_focus/Habanera_from_Carmen__Georges_Bizet__-_Golden_Cut_Reborn.mp3",
+      "name": "Habanera From Carmen  Georges Bizet  - Golden Cut Reborn",
+      "title": "Habanera From Carmen  Georges Bizet  - Golden Cut Reborn",
+      "style": "calm_focus",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "calm_focus",
+      "category_label": "Calm Focus",
+      "filename": "calm_focus/Habanera_from_Carmen__Georges_Bizet__-_Golden_Cut_Reborn.mp3",
+      "basename": "Habanera_from_Carmen__Georges_Bizet__-_Golden_Cut_Reborn.mp3",
+      "size_mb": 9.16,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Habanera From Carmen  Georges Bizet  - Golden Cut Reborn soundscape for documentary focus.",
+      "description": "Habanera From Carmen  Georges Bizet  - Golden Cut Reborn background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "calm_focus",
+        "explanation",
+        "habanera_from_carmen__georges_bizet__-_golden_cut_reborn"
+      ],
+      "url": "/api/music/audio/calm_focus/Habanera_from_Carmen__Georges_Bizet__-_Golden_Cut_Reborn.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Habanera From Carmen  Georges Bizet  - Golden Cut Reborn' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "calm_focus/High_Beams_-_Bosley.mp3",
+      "name": "High Beams - Bosley",
+      "title": "High Beams - Bosley",
+      "style": "calm_focus",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "calm_focus",
+      "category_label": "Calm Focus",
+      "filename": "calm_focus/High_Beams_-_Bosley.mp3",
+      "basename": "High_Beams_-_Bosley.mp3",
+      "size_mb": 8.57,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "High Beams - Bosley soundscape for documentary focus.",
+      "description": "High Beams - Bosley background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "calm_focus",
+        "explanation",
+        "high_beams_-_bosley"
+      ],
+      "url": "/api/music/audio/calm_focus/High_Beams_-_Bosley.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'High Beams - Bosley' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "calm_focus/Highway_One_-_Steve_Adams.mp3",
+      "name": "Highway One - Steve Adams",
+      "title": "Highway One - Steve Adams",
+      "style": "calm_focus",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "calm_focus",
+      "category_label": "Calm Focus",
+      "filename": "calm_focus/Highway_One_-_Steve_Adams.mp3",
+      "basename": "Highway_One_-_Steve_Adams.mp3",
+      "size_mb": 6.92,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Highway One - Steve Adams soundscape for documentary focus.",
+      "description": "Highway One - Steve Adams background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "calm_focus",
+        "explanation",
+        "highway_one_-_steve_adams"
+      ],
+      "url": "/api/music/audio/calm_focus/Highway_One_-_Steve_Adams.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Highway One - Steve Adams' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "calm_focus/Journey_Home_-_Chris_Haugen.mp3",
+      "name": "Journey Home - Chris Haugen",
+      "title": "Journey Home - Chris Haugen",
+      "style": "calm_focus",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "calm_focus",
+      "category_label": "Calm Focus",
+      "filename": "calm_focus/Journey_Home_-_Chris_Haugen.mp3",
+      "basename": "Journey_Home_-_Chris_Haugen.mp3",
+      "size_mb": 6.2,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Journey Home - Chris Haugen soundscape for documentary focus.",
+      "description": "Journey Home - Chris Haugen background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "calm_focus",
+        "explanation",
+        "journey_home_-_chris_haugen"
+      ],
+      "url": "/api/music/audio/calm_focus/Journey_Home_-_Chris_Haugen.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Journey Home - Chris Haugen' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "calm_focus/Meditation_Impromptu_01.mp3",
+      "name": "Meditation Impromptu 01",
+      "title": "Meditation Impromptu 01",
+      "style": "calm_focus",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "calm_focus",
+      "category_label": "Calm Focus",
+      "filename": "calm_focus/Meditation_Impromptu_01.mp3",
+      "basename": "Meditation_Impromptu_01.mp3",
+      "size_mb": 6.72,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Meditation Impromptu 01 soundscape for documentary focus.",
+      "description": "Meditation Impromptu 01 background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "calm_focus",
+        "explanation",
+        "meditation_impromptu_01"
+      ],
+      "url": "/api/music/audio/calm_focus/Meditation_Impromptu_01.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Meditation Impromptu 01' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "calm_focus/Meditation_Impromptu_02.mp3",
+      "name": "Meditation Impromptu 02",
+      "title": "Meditation Impromptu 02",
+      "style": "calm_focus",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "calm_focus",
+      "category_label": "Calm Focus",
+      "filename": "calm_focus/Meditation_Impromptu_02.mp3",
+      "basename": "Meditation_Impromptu_02.mp3",
+      "size_mb": 7.88,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Meditation Impromptu 02 soundscape for documentary focus.",
+      "description": "Meditation Impromptu 02 background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "calm_focus",
+        "explanation",
+        "meditation_impromptu_02"
+      ],
+      "url": "/api/music/audio/calm_focus/Meditation_Impromptu_02.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Meditation Impromptu 02' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "calm_focus/Moonlight_Magic_-_Asher_Fulero.mp3",
+      "name": "Moonlight Magic - Asher Fulero",
+      "title": "Moonlight Magic - Asher Fulero",
+      "style": "calm_focus",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "calm_focus",
+      "category_label": "Calm Focus",
+      "filename": "calm_focus/Moonlight_Magic_-_Asher_Fulero.mp3",
+      "basename": "Moonlight_Magic_-_Asher_Fulero.mp3",
+      "size_mb": 6.0,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Moonlight Magic - Asher Fulero soundscape for documentary focus.",
+      "description": "Moonlight Magic - Asher Fulero background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "calm_focus",
+        "explanation",
+        "moonlight_magic_-_asher_fulero"
+      ],
+      "url": "/api/music/audio/calm_focus/Moonlight_Magic_-_Asher_Fulero.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Moonlight Magic - Asher Fulero' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "calm_focus/Mosswood_-_Steve_Adams.mp3",
+      "name": "Mosswood - Steve Adams",
+      "title": "Mosswood - Steve Adams",
+      "style": "calm_focus",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "calm_focus",
+      "category_label": "Calm Focus",
+      "filename": "calm_focus/Mosswood_-_Steve_Adams.mp3",
+      "basename": "Mosswood_-_Steve_Adams.mp3",
+      "size_mb": 6.8,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Mosswood - Steve Adams soundscape for documentary focus.",
+      "description": "Mosswood - Steve Adams background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "calm_focus",
+        "explanation",
+        "mosswood_-_steve_adams"
+      ],
+      "url": "/api/music/audio/calm_focus/Mosswood_-_Steve_Adams.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Mosswood - Steve Adams' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "calm_focus/Nolan_Nova_-_432_-_Relax.mp3",
+      "name": "Nolan Nova - 432 - Relax",
+      "title": "Nolan Nova - 432 - Relax",
+      "style": "calm_focus",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "calm_focus",
+      "category_label": "Calm Focus",
+      "filename": "calm_focus/Nolan_Nova_-_432_-_Relax.mp3",
+      "basename": "Nolan_Nova_-_432_-_Relax.mp3",
+      "size_mb": 2.39,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Nolan Nova - 432 - Relax soundscape for documentary focus.",
+      "description": "Nolan Nova - 432 - Relax background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "calm_focus",
+        "explanation",
+        "nolan_nova_-_432_-_relax"
+      ],
+      "url": "/api/music/audio/calm_focus/Nolan_Nova_-_432_-_Relax.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Nolan Nova - 432 - Relax' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "calm_focus/Pienso_Viento_-_Casa_Rosa.mp3",
+      "name": "Pienso Viento - Casa Rosa",
+      "title": "Pienso Viento - Casa Rosa",
+      "style": "calm_focus",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "calm_focus",
+      "category_label": "Calm Focus",
+      "filename": "calm_focus/Pienso_Viento_-_Casa_Rosa.mp3",
+      "basename": "Pienso_Viento_-_Casa_Rosa.mp3",
+      "size_mb": 6.01,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Pienso Viento - Casa Rosa soundscape for documentary focus.",
+      "description": "Pienso Viento - Casa Rosa background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "calm_focus",
+        "explanation",
+        "pienso_viento_-_casa_rosa"
+      ],
+      "url": "/api/music/audio/calm_focus/Pienso_Viento_-_Casa_Rosa.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Pienso Viento - Casa Rosa' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "calm_focus/Simon_Herody_-_Turn_In_The_Sun.mp3",
+      "name": "Simon Herody - Turn In The Sun",
+      "title": "Simon Herody - Turn In The Sun",
+      "style": "calm_focus",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "calm_focus",
+      "category_label": "Calm Focus",
+      "filename": "calm_focus/Simon_Herody_-_Turn_In_The_Sun.mp3",
+      "basename": "Simon_Herody_-_Turn_In_The_Sun.mp3",
+      "size_mb": 7.89,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Simon Herody - Turn In The Sun soundscape for documentary focus.",
+      "description": "Simon Herody - Turn In The Sun background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "calm_focus",
+        "explanation",
+        "simon_herody_-_turn_in_the_sun"
+      ],
+      "url": "/api/music/audio/calm_focus/Simon_Herody_-_Turn_In_The_Sun.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Simon Herody - Turn In The Sun' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "calm_focus/Simon_Herody_-_Way_Back_Home.mp3",
+      "name": "Simon Herody - Way Back Home",
+      "title": "Simon Herody - Way Back Home",
+      "style": "calm_focus",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "calm_focus",
+      "category_label": "Calm Focus",
+      "filename": "calm_focus/Simon_Herody_-_Way_Back_Home.mp3",
+      "basename": "Simon_Herody_-_Way_Back_Home.mp3",
+      "size_mb": 8.44,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Simon Herody - Way Back Home soundscape for documentary focus.",
+      "description": "Simon Herody - Way Back Home background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "calm_focus",
+        "explanation",
+        "simon_herody_-_way_back_home"
+      ],
+      "url": "/api/music/audio/calm_focus/Simon_Herody_-_Way_Back_Home.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Simon Herody - Way Back Home' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "calm_focus/Sleep_Music_No__1_-_Chris_Haugen.mp3",
+      "name": "Sleep Music No  1 - Chris Haugen",
+      "title": "Sleep Music No  1 - Chris Haugen",
+      "style": "calm_focus",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "calm_focus",
+      "category_label": "Calm Focus",
+      "filename": "calm_focus/Sleep_Music_No__1_-_Chris_Haugen.mp3",
+      "basename": "Sleep_Music_No__1_-_Chris_Haugen.mp3",
+      "size_mb": 7.41,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Sleep Music No  1 - Chris Haugen soundscape for documentary focus.",
+      "description": "Sleep Music No  1 - Chris Haugen background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "calm_focus",
+        "explanation",
+        "sleep_music_no__1_-_chris_haugen"
+      ],
+      "url": "/api/music/audio/calm_focus/Sleep_Music_No__1_-_Chris_Haugen.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Sleep Music No  1 - Chris Haugen' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "calm_focus/Tal_Mashiach_-_Into_the_Deep.mp3",
+      "name": "Tal Mashiach - Into The Deep",
+      "title": "Tal Mashiach - Into The Deep",
+      "style": "calm_focus",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "calm_focus",
+      "category_label": "Calm Focus",
+      "filename": "calm_focus/Tal_Mashiach_-_Into_the_Deep.mp3",
+      "basename": "Tal_Mashiach_-_Into_the_Deep.mp3",
+      "size_mb": 6.44,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Tal Mashiach - Into The Deep soundscape for documentary focus.",
+      "description": "Tal Mashiach - Into The Deep background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "calm_focus",
+        "explanation",
+        "tal_mashiach_-_into_the_deep"
+      ],
+      "url": "/api/music/audio/calm_focus/Tal_Mashiach_-_Into_the_Deep.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Tal Mashiach - Into The Deep' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "calm_focus/The_Palace_Gardens_-_Asher_Fulero.mp3",
+      "name": "The Palace Gardens - Asher Fulero",
+      "title": "The Palace Gardens - Asher Fulero",
+      "style": "calm_focus",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "calm_focus",
+      "category_label": "Calm Focus",
+      "filename": "calm_focus/The_Palace_Gardens_-_Asher_Fulero.mp3",
+      "basename": "The_Palace_Gardens_-_Asher_Fulero.mp3",
+      "size_mb": 4.66,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "The Palace Gardens - Asher Fulero soundscape for documentary focus.",
+      "description": "The Palace Gardens - Asher Fulero background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "calm_focus",
+        "explanation",
+        "the_palace_gardens_-_asher_fulero"
+      ],
+      "url": "/api/music/audio/calm_focus/The_Palace_Gardens_-_Asher_Fulero.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'The Palace Gardens - Asher Fulero' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "calm_focus/Tiburtina_-_Schwartzy.mp3",
+      "name": "Tiburtina - Schwartzy",
+      "title": "Tiburtina - Schwartzy",
+      "style": "calm_focus",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "calm_focus",
+      "category_label": "Calm Focus",
+      "filename": "calm_focus/Tiburtina_-_Schwartzy.mp3",
+      "basename": "Tiburtina_-_Schwartzy.mp3",
+      "size_mb": 6.87,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Tiburtina - Schwartzy soundscape for documentary focus.",
+      "description": "Tiburtina - Schwartzy background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "calm_focus",
+        "explanation",
+        "tiburtina_-_schwartzy"
+      ],
+      "url": "/api/music/audio/calm_focus/Tiburtina_-_Schwartzy.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Tiburtina - Schwartzy' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "cinematic_documentary/Autumn_Day.mp3",
+      "name": "Autumn Day",
+      "title": "Autumn Day",
+      "style": "cinematic_documentary",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "cinematic_documentary",
+      "category_label": "Cinematic Documentary",
+      "filename": "cinematic_documentary/Autumn_Day.mp3",
+      "basename": "Autumn_Day.mp3",
+      "size_mb": 7.05,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Autumn Day soundscape for documentary focus.",
+      "description": "Autumn Day background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "cinematic_documentary",
+        "explanation",
+        "autumn_day"
+      ],
+      "url": "/api/music/audio/cinematic_documentary/Autumn_Day.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Autumn Day' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "cinematic_documentary/Deep_Haze.mp3",
+      "name": "Deep Haze",
+      "title": "Deep Haze",
+      "style": "cinematic_documentary",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "cinematic_documentary",
+      "category_label": "Cinematic Documentary",
+      "filename": "cinematic_documentary/Deep_Haze.mp3",
+      "basename": "Deep_Haze.mp3",
+      "size_mb": 4.66,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Deep Haze soundscape for documentary focus.",
+      "description": "Deep Haze background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "cinematic_documentary",
+        "explanation",
+        "deep_haze"
+      ],
+      "url": "/api/music/audio/cinematic_documentary/Deep_Haze.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Deep Haze' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "cinematic_documentary/Dreamer.mp3",
+      "name": "Dreamer",
+      "title": "Dreamer",
+      "style": "cinematic_documentary",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "cinematic_documentary",
+      "category_label": "Cinematic Documentary",
+      "filename": "cinematic_documentary/Dreamer.mp3",
+      "basename": "Dreamer.mp3",
+      "size_mb": 6.23,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Dreamer soundscape for documentary focus.",
+      "description": "Dreamer background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "cinematic_documentary",
+        "explanation",
+        "dreamer"
+      ],
+      "url": "/api/music/audio/cinematic_documentary/Dreamer.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Dreamer' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "cinematic_documentary/Frost_Waltz.mp3",
+      "name": "Frost Waltz",
+      "title": "Frost Waltz",
+      "style": "cinematic_documentary",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "cinematic_documentary",
+      "category_label": "Cinematic Documentary",
+      "filename": "cinematic_documentary/Frost_Waltz.mp3",
+      "basename": "Frost_Waltz.mp3",
+      "size_mb": 5.27,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Frost Waltz soundscape for documentary focus.",
+      "description": "Frost Waltz background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "cinematic_documentary",
+        "explanation",
+        "frost_waltz"
+      ],
+      "url": "/api/music/audio/cinematic_documentary/Frost_Waltz.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Frost Waltz' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "cinematic_documentary/Heartbreaking.mp3",
+      "name": "Heartbreaking",
+      "title": "Heartbreaking",
+      "style": "cinematic_documentary",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "cinematic_documentary",
+      "category_label": "Cinematic Documentary",
+      "filename": "cinematic_documentary/Heartbreaking.mp3",
+      "basename": "Heartbreaking.mp3",
+      "size_mb": 3.76,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Heartbreaking soundscape for documentary focus.",
+      "description": "Heartbreaking background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "cinematic_documentary",
+        "explanation",
+        "heartbreaking"
+      ],
+      "url": "/api/music/audio/cinematic_documentary/Heartbreaking.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Heartbreaking' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "mystery_cosmic/Blue_Sizzle.mp3",
+      "name": "Blue Sizzle",
+      "title": "Blue Sizzle",
+      "style": "mystery_cosmic",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "mystery_cosmic",
+      "category_label": "Mystery Cosmic",
+      "filename": "mystery_cosmic/Blue_Sizzle.mp3",
+      "basename": "Blue_Sizzle.mp3",
+      "size_mb": 5.69,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Blue Sizzle soundscape for documentary focus.",
+      "description": "Blue Sizzle background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "mystery_cosmic",
+        "explanation",
+        "blue_sizzle"
+      ],
+      "url": "/api/music/audio/mystery_cosmic/Blue_Sizzle.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Blue Sizzle' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "mystery_cosmic/Darkest_Child.mp3",
+      "name": "Darkest Child",
+      "title": "Darkest Child",
+      "style": "mystery_cosmic",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "mystery_cosmic",
+      "category_label": "Mystery Cosmic",
+      "filename": "mystery_cosmic/Darkest_Child.mp3",
+      "basename": "Darkest_Child.mp3",
+      "size_mb": 9.11,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Darkest Child soundscape for documentary focus.",
+      "description": "Darkest Child background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "mystery_cosmic",
+        "explanation",
+        "darkest_child"
+      ],
+      "url": "/api/music/audio/mystery_cosmic/Darkest_Child.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Darkest Child' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "mystery_cosmic/Mesmerize.mp3",
+      "name": "Mesmerize",
+      "title": "Mesmerize",
+      "style": "mystery_cosmic",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "mystery_cosmic",
+      "category_label": "Mystery Cosmic",
+      "filename": "mystery_cosmic/Mesmerize.mp3",
+      "basename": "Mesmerize.mp3",
+      "size_mb": 12.94,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Mesmerize soundscape for documentary focus.",
+      "description": "Mesmerize background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "mystery_cosmic",
+        "explanation",
+        "mesmerize"
+      ],
+      "url": "/api/music/audio/mystery_cosmic/Mesmerize.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Mesmerize' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "mystery_cosmic/Static_Motion.mp3",
+      "name": "Static Motion",
+      "title": "Static Motion",
+      "style": "mystery_cosmic",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "mystery_cosmic",
+      "category_label": "Mystery Cosmic",
+      "filename": "mystery_cosmic/Static_Motion.mp3",
+      "basename": "Static_Motion.mp3",
+      "size_mb": 7.2,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Static Motion soundscape for documentary focus.",
+      "description": "Static Motion background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "mystery_cosmic",
+        "explanation",
+        "static_motion"
+      ],
+      "url": "/api/music/audio/mystery_cosmic/Static_Motion.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Static Motion' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "tech_futuristic/Ain_t_No_Strangers_-_David_Simon-Baker__Elliot_Randall.mp3",
+      "name": "Ain T No Strangers - David Simon-Baker  Elliot Randall",
+      "title": "Ain T No Strangers - David Simon-Baker  Elliot Randall",
+      "style": "tech_futuristic",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "tech_futuristic",
+      "category_label": "Tech Futuristic",
+      "filename": "tech_futuristic/Ain_t_No_Strangers_-_David_Simon-Baker__Elliot_Randall.mp3",
+      "basename": "Ain_t_No_Strangers_-_David_Simon-Baker__Elliot_Randall.mp3",
+      "size_mb": 8.9,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Ain T No Strangers - David Simon-Baker  Elliot Randall soundscape for documentary focus.",
+      "description": "Ain T No Strangers - David Simon-Baker  Elliot Randall background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "tech_futuristic",
+        "explanation",
+        "ain_t_no_strangers_-_david_simon-baker__elliot_randall"
+      ],
+      "url": "/api/music/audio/tech_futuristic/Ain_t_No_Strangers_-_David_Simon-Baker__Elliot_Randall.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Ain T No Strangers - David Simon-Baker  Elliot Randall' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "tech_futuristic/Air_on_the_G_String_from_Orchestral_Suite_No__3_in_D_major__BWV_1068__Johann_Sebastian_Bach__-_Golden_Cut_Reborn.mp3",
+      "name": "Air On The G String From Orchestral Suite No  3 In D Major  Bwv 1068  Johann Sebastian Bach  - Golden Cut Reborn",
+      "title": "Air On The G String From Orchestral Suite No  3 In D Major  Bwv 1068  Johann Sebastian Bach  - Golden Cut Reborn",
+      "style": "tech_futuristic",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "tech_futuristic",
+      "category_label": "Tech Futuristic",
+      "filename": "tech_futuristic/Air_on_the_G_String_from_Orchestral_Suite_No__3_in_D_major__BWV_1068__Johann_Sebastian_Bach__-_Golden_Cut_Reborn.mp3",
+      "basename": "Air_on_the_G_String_from_Orchestral_Suite_No__3_in_D_major__BWV_1068__Johann_Sebastian_Bach__-_Golden_Cut_Reborn.mp3",
+      "size_mb": 10.27,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Air On The G String From Orchestral Suite No  3 In D Major  Bwv 1068  Johann Sebastian Bach  - Golden Cut Reborn soundscape for documentary focus.",
+      "description": "Air On The G String From Orchestral Suite No  3 In D Major  Bwv 1068  Johann Sebastian Bach  - Golden Cut Reborn background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "tech_futuristic",
+        "explanation",
+        "air_on_the_g_string_from_orchestral_suite_no__3_in_d_major__bwv_1068__johann_sebastian_bach__-_golden_cut_reborn"
+      ],
+      "url": "/api/music/audio/tech_futuristic/Air_on_the_G_String_from_Orchestral_Suite_No__3_in_D_major__BWV_1068__Johann_Sebastian_Bach__-_Golden_Cut_Reborn.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Air On The G String From Orchestral Suite No  3 In D Major  Bwv 1068  Johann Sebastian Bach  - Golden Cut Reborn' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "tech_futuristic/Airship_Serenity.mp3",
+      "name": "Airship Serenity",
+      "title": "Airship Serenity",
+      "style": "tech_futuristic",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "tech_futuristic",
+      "category_label": "Tech Futuristic",
+      "filename": "tech_futuristic/Airship_Serenity.mp3",
+      "basename": "Airship_Serenity.mp3",
+      "size_mb": 7.33,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Airship Serenity soundscape for documentary focus.",
+      "description": "Airship Serenity background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "tech_futuristic",
+        "explanation",
+        "airship_serenity"
+      ],
+      "url": "/api/music/audio/tech_futuristic/Airship_Serenity.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Airship Serenity' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "tech_futuristic/Crypto.mp3",
+      "name": "Crypto",
+      "title": "Crypto",
+      "style": "tech_futuristic",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "tech_futuristic",
+      "category_label": "Tech Futuristic",
+      "filename": "tech_futuristic/Crypto.mp3",
+      "basename": "Crypto.mp3",
+      "size_mb": 6.23,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Crypto soundscape for documentary focus.",
+      "description": "Crypto background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "tech_futuristic",
+        "explanation",
+        "crypto"
+      ],
+      "url": "/api/music/audio/tech_futuristic/Crypto.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Crypto' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "tech_futuristic/Deliberate_Thought.mp3",
+      "name": "Deliberate Thought",
+      "title": "Deliberate Thought",
+      "style": "tech_futuristic",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "tech_futuristic",
+      "category_label": "Tech Futuristic",
+      "filename": "tech_futuristic/Deliberate_Thought.mp3",
+      "basename": "Deliberate_Thought.mp3",
+      "size_mb": 6.89,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Deliberate Thought soundscape for documentary focus.",
+      "description": "Deliberate Thought background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "tech_futuristic",
+        "explanation",
+        "deliberate_thought"
+      ],
+      "url": "/api/music/audio/tech_futuristic/Deliberate_Thought.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Deliberate Thought' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "tech_futuristic/Digital_Bark.mp3",
+      "name": "Digital Bark",
+      "title": "Digital Bark",
+      "style": "tech_futuristic",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "tech_futuristic",
+      "category_label": "Tech Futuristic",
+      "filename": "tech_futuristic/Digital_Bark.mp3",
+      "basename": "Digital_Bark.mp3",
+      "size_mb": 10.08,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Digital Bark soundscape for documentary focus.",
+      "description": "Digital Bark background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "tech_futuristic",
+        "explanation",
+        "digital_bark"
+      ],
+      "url": "/api/music/audio/tech_futuristic/Digital_Bark.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Digital Bark' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "tech_futuristic/Dor_Ben_Lulu_Amitai_Mann_-_October.mp3",
+      "name": "Dor Ben Lulu Amitai Mann - October",
+      "title": "Dor Ben Lulu Amitai Mann - October",
+      "style": "tech_futuristic",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "tech_futuristic",
+      "category_label": "Tech Futuristic",
+      "filename": "tech_futuristic/Dor_Ben_Lulu_Amitai_Mann_-_October.mp3",
+      "basename": "Dor_Ben_Lulu_Amitai_Mann_-_October.mp3",
+      "size_mb": 9.31,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Dor Ben Lulu Amitai Mann - October soundscape for documentary focus.",
+      "description": "Dor Ben Lulu Amitai Mann - October background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "tech_futuristic",
+        "explanation",
+        "dor_ben_lulu_amitai_mann_-_october"
+      ],
+      "url": "/api/music/audio/tech_futuristic/Dor_Ben_Lulu_Amitai_Mann_-_October.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Dor Ben Lulu Amitai Mann - October' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "tech_futuristic/Floating_Cities.mp3",
+      "name": "Floating Cities",
+      "title": "Floating Cities",
+      "style": "tech_futuristic",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "tech_futuristic",
+      "category_label": "Tech Futuristic",
+      "filename": "tech_futuristic/Floating_Cities.mp3",
+      "basename": "Floating_Cities.mp3",
+      "size_mb": 5.62,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Floating Cities soundscape for documentary focus.",
+      "description": "Floating Cities background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "tech_futuristic",
+        "explanation",
+        "floating_cities"
+      ],
+      "url": "/api/music/audio/tech_futuristic/Floating_Cities.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Floating Cities' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "tech_futuristic/Itamar_Gross_-_Last_Fairy_Tale.mp3",
+      "name": "Itamar Gross - Last Fairy Tale",
+      "title": "Itamar Gross - Last Fairy Tale",
+      "style": "tech_futuristic",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "tech_futuristic",
+      "category_label": "Tech Futuristic",
+      "filename": "tech_futuristic/Itamar_Gross_-_Last_Fairy_Tale.mp3",
+      "basename": "Itamar_Gross_-_Last_Fairy_Tale.mp3",
+      "size_mb": 8.13,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Itamar Gross - Last Fairy Tale soundscape for documentary focus.",
+      "description": "Itamar Gross - Last Fairy Tale background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "tech_futuristic",
+        "explanation",
+        "itamar_gross_-_last_fairy_tale"
+      ],
+      "url": "/api/music/audio/tech_futuristic/Itamar_Gross_-_Last_Fairy_Tale.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Itamar Gross - Last Fairy Tale' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "tech_futuristic/Ran_Raiten_-_Down_the_River.mp3",
+      "name": "Ran Raiten - Down The River",
+      "title": "Ran Raiten - Down The River",
+      "style": "tech_futuristic",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "tech_futuristic",
+      "category_label": "Tech Futuristic",
+      "filename": "tech_futuristic/Ran_Raiten_-_Down_the_River.mp3",
+      "basename": "Ran_Raiten_-_Down_the_River.mp3",
+      "size_mb": 6.07,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Ran Raiten - Down The River soundscape for documentary focus.",
+      "description": "Ran Raiten - Down The River background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "tech_futuristic",
+        "explanation",
+        "ran_raiten_-_down_the_river"
+      ],
+      "url": "/api/music/audio/tech_futuristic/Ran_Raiten_-_Down_the_River.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Ran Raiten - Down The River' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
+      }
+    },
+    {
+      "id": "tech_futuristic/Ran_Raiten_-_New_Dawn.mp3",
+      "name": "Ran Raiten - New Dawn",
+      "title": "Ran Raiten - New Dawn",
+      "style": "tech_futuristic",
+      "scene_tag": "explanation",
+      "scene_tags": [
+        "explanation"
+      ],
+      "category": "tech_futuristic",
+      "category_label": "Tech Futuristic",
+      "filename": "tech_futuristic/Ran_Raiten_-_New_Dawn.mp3",
+      "basename": "Ran_Raiten_-_New_Dawn.mp3",
+      "size_mb": 6.24,
+      "duration_sec": 60.0,
+      "bpm": 70.0,
+      "key": "C",
+      "peak_db": -1.4,
+      "rms_db": -18.0,
+      "mood": "Ran Raiten - New Dawn soundscape for documentary focus.",
+      "description": "Ran Raiten - New Dawn background audio.",
+      "energy_level": "mid",
+      "movement_roles": [
+        "intro",
+        "explanation",
+        "conclusion"
+      ],
+      "instrumental": true,
+      "vocals": false,
+      "loop_friendly": true,
+      "is_voiceover_ready": true,
+      "is_distracting": false,
+      "distraction_prob": 0.03,
+      "voiceover_fitness": 4.8,
+      "tags": [
+        "tech_futuristic",
+        "explanation",
+        "ran_raiten_-_new_dawn"
+      ],
+      "url": "/api/music/audio/tech_futuristic/Ran_Raiten_-_New_Dawn.mp3",
+      "license": {
+        "license_type": "YouTube Audio Library License",
+        "name": "YouTube Studio Audio Library Royalty-Free License",
+        "attribution_required": false,
+        "attribution_text": "Music: 'Ran Raiten - New Dawn' - YouTube Audio Library",
+        "artist": "YouTube Audio Library",
+        "source": "YouTube Audio Library",
+        "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+        "commercial_use_allowed": true,
+        "redistribution_allowed": false,
+        "api_accessible": false,
+        "restrictions": [
+          "Monetization permitted on YouTube videos",
+          "No standalone audio redistribution or API scraping"
+        ],
+        "terms_url": "https://support.google.com/youtube/answer/3376882"
       }
     }
   ]

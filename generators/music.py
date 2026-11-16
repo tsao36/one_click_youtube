@@ -196,8 +196,94 @@ def load_catalog(directory: str = "data/music") -> dict[str, Any]:
 
 
 def sync_catalog(directory: str = "data/music") -> dict[str, Any]:
-    """Scan music directory and return catalog."""
-    return load_catalog(directory)
+    """Scan music directory, register any uncataloged tracks on disk into catalog.json, and return catalog."""
+    cat_file = ROOT / directory / "catalog.json"
+    catalog_data = load_catalog(directory)
+    music_dir = ROOT / directory
+    if not music_dir.exists():
+        return catalog_data
+
+    existing_filenames = set()
+    existing_basenames = set()
+    for t in catalog_data.get("tracks", []):
+        if t.get("filename"):
+            existing_filenames.add(t["filename"].replace("\\", "/"))
+        if t.get("basename"):
+            existing_basenames.add(t["basename"])
+
+    changed = False
+    for p in sorted(music_dir.rglob("*")):
+        if p.is_file() and p.suffix.lower() in AUDIO_EXT:
+            rel = p.relative_to(music_dir).as_posix()
+            if rel in existing_filenames or p.name in existing_basenames:
+                continue
+
+            # Determine category, style, scene tag
+            cat_key = p.parent.name if p.parent != music_dir else "explanation"
+            st_norm = normalize_style(cat_key)
+            stag = detect_scene_tag(p.stem)
+            label = catalog_data.get("categories", {}).get(cat_key, {}).get("label", cat_key.replace("_", " ").title())
+            clean_name = p.stem.replace("_", " ").title()
+
+            entry = {
+                "id": rel,
+                "name": clean_name,
+                "title": clean_name,
+                "style": st_norm,
+                "scene_tag": stag,
+                "scene_tags": [stag],
+                "category": cat_key,
+                "category_label": label,
+                "filename": rel,
+                "basename": p.name,
+                "size_mb": round(p.stat().st_size / (1024 * 1024), 2),
+                "duration_sec": 60.0,
+                "bpm": 70.0,
+                "key": "C",
+                "peak_db": -1.4,
+                "rms_db": -18.0,
+                "mood": f"{clean_name} soundscape for documentary focus.",
+                "description": f"{clean_name} background audio.",
+                "energy_level": "low" if "ambient" in rel.lower() else "mid",
+                "movement_roles": ["intro", "explanation", "conclusion"],
+                "instrumental": True,
+                "vocals": False,
+                "loop_friendly": True,
+                "is_voiceover_ready": True,
+                "is_distracting": False,
+                "distraction_prob": 0.03,
+                "voiceover_fitness": 4.8,
+                "tags": [cat_key, stag, p.stem.lower()],
+                "url": f"/api/music/audio/{rel}",
+                "license": {
+                    "license_type": "YouTube Audio Library License",
+                    "name": "YouTube Studio Audio Library Royalty-Free License",
+                    "attribution_required": False,
+                    "attribution_text": f"Music: '{clean_name}' - YouTube Audio Library",
+                    "artist": "YouTube Audio Library",
+                    "source": "YouTube Audio Library",
+                    "source_url": "https://studio.youtube.com/channel/UC3ONvFTxvV9jtL6TYmIm4dA/music",
+                    "commercial_use_allowed": True,
+                    "redistribution_allowed": False,
+                    "api_accessible": False,
+                    "restrictions": [
+                        "Monetization permitted on YouTube videos",
+                        "No standalone audio redistribution or API scraping"
+                    ],
+                    "terms_url": "https://support.google.com/youtube/answer/3376882"
+                }
+            }
+            catalog_data.setdefault("tracks", []).append(entry)
+            changed = True
+
+    if changed:
+        try:
+            cat_file.write_text(json.dumps(catalog_data, indent=2, ensure_ascii=False), encoding="utf-8")
+            log.info("Synchronized music catalog with on-disk library: %d tracks", len(catalog_data.get("tracks", [])))
+        except Exception as e:
+            log.warning("Could not persist updated catalog.json: %s", e)
+
+    return catalog_data
 
 
 def list_tracks(
@@ -384,6 +470,12 @@ def pick_track(
         p_clean = preferred.strip().lower()
         if p_clean in ("none", "off", "disable", "disabled", "false", "no_music"):
             return None
+        if p_clean in ("auto", "default"):
+            preferred = None
+            p_clean = ""
+
+    if preferred:
+        p_clean = preferred.strip().lower()
 
         # Check if preference matches style override
         p_norm_style = normalize_style(p_clean)
@@ -458,6 +550,18 @@ def pick_track(
                 fallback_candidates.append(p)
 
     candidates = style_matched_candidates or fallback_candidates
+
+    if target_style == "ambient":
+        ambient_candidates = [
+            p for p in (candidates or safe_candidates)
+            if "ambient" in p.parent.name.lower()
+            or "ambient" in p.stem.lower()
+            or normalize_style(cat_meta_map.get(p.name, {}).get("style")) == "ambient"
+            or normalize_style(cat_meta_map.get((p.relative_to(ROOT / directory).as_posix() if (ROOT / directory) in p.parents else p.name), {}).get("style")) == "ambient"
+        ]
+        if ambient_candidates:
+            candidates = ambient_candidates
+
     if not candidates:
         # Never weaken the vocal/distraction/licence gates merely because the
         # desired mood has no exact match.  Silence is safer than unsafe music.
@@ -580,10 +684,27 @@ def plan_music_timeline(
     pref = preferred or m.get("track")
     if pref and str(pref).strip().lower() in ("none", "off", "disable", "disabled", "false", "no_music"):
         return []
+    if pref and str(pref).strip().lower() in ("auto", "default"):
+        pref = None
 
     all_tracks = list_tracks(directory)
     if not all_tracks:
         return []
+
+    preferred_track: Path | None = None
+    if pref:
+        p_clean = str(pref).strip().lower()
+        for t in all_tracks:
+            rel = t.relative_to(ROOT / directory).as_posix() if (ROOT / directory) in t.parents else t.name
+            if (
+                t.name.lower() == p_clean
+                or t.stem.lower() == p_clean
+                or rel.lower() == p_clean
+                or p_clean in t.name.lower()
+                or p_clean in rel.lower()
+            ):
+                preferred_track = t
+                break
 
     chosen_style = normalize_style(m.get("style", DEFAULT_STYLE))
 
@@ -602,7 +723,7 @@ def plan_music_timeline(
     fade_in = float(m.get("fade_in", 1.5))
     fade_out = float(m.get("fade_out", 2.0))
 
-    cat_data = load_catalog(directory)
+    cat_data = sync_catalog(directory)
     cat_meta_map = {t.get("filename"): t for t in cat_data.get("tracks", [])}
     for t in cat_data.get("tracks", []):
         if t.get("basename"):
@@ -618,7 +739,14 @@ def plan_music_timeline(
     # 1. Identify narrative mood transitions across timeline
     mood_blocks: list[dict[str, Any]] = []
 
-    if scenes and slots and len(scenes) == len(slots) and total_duration >= 30.0:
+    is_single_loop = (
+        m.get("progression") == "single_loop"
+        or not m.get("dynamic_music", True)
+    )
+
+    if is_single_loop:
+        mood_blocks = [{"tag": "explanation", "start": 0.0, "end": total_duration}]
+    elif scenes and slots and len(scenes) == len(slots) and total_duration >= 30.0:
         # Step A: Tag each scene
         scene_tags = []
         for sc in scenes:
@@ -732,7 +860,7 @@ def plan_music_timeline(
         if item_id in path_by_catalog_id or str(item.get("basename") or "") in path_by_catalog_id:
             catalog_tracks.append(dict(item))
     optimized = []
-    autonomous_matching = bool(m.get("autonomous_matching", True)) and not (pref and len(mood_blocks) == 1)
+    autonomous_matching = bool(m.get("autonomous_matching", True)) and not (preferred_track and len(mood_blocks) == 1)
     semantic_scores: list[dict[str, float]] = []
     if autonomous_matching and bool(m.get("typesafe_rerank", True)):
         try:
@@ -776,20 +904,25 @@ def plan_music_timeline(
         if dur <= 0.5:
             continue
 
-        selected_meta = optimized[i] if i < len(optimized) else {}
-        selected_id = str(selected_meta.get("filename") or selected_meta.get("id") or selected_meta.get("basename") or "")
-        trk = path_by_catalog_id.get(selected_id) or path_by_catalog_id.get(str(selected_meta.get("basename") or ""))
-        if trk is None:
-            trk = pick_track(
-                directory=directory,
-                key=f"{key}_{stag}_{i}",
-                preferred=pref if len(mood_blocks) == 1 else None,
-                topic=topic,
-                context_text=context_text,
-                scene_tag=stag,
-                style=chosen_style,
-                exclude=used_tracks if len(all_tracks) >= len(mood_blocks) else None,
-            )
+        if i == 0 and preferred_track:
+            trk = preferred_track
+            rel_trk = trk.relative_to(ROOT / directory).as_posix() if (ROOT / directory) in trk.parents else trk.name
+            selected_meta = cat_meta_map.get(rel_trk) or cat_meta_map.get(trk.name) or {}
+        else:
+            selected_meta = optimized[i] if i < len(optimized) else {}
+            selected_id = str(selected_meta.get("filename") or selected_meta.get("id") or selected_meta.get("basename") or "")
+            trk = path_by_catalog_id.get(selected_id) or path_by_catalog_id.get(str(selected_meta.get("basename") or ""))
+            if trk is None or (preferred_track and trk == preferred_track and len(mood_blocks) > 1):
+                trk = pick_track(
+                    directory=directory,
+                    key=f"{key}_{stag}_{i}",
+                    preferred=None,
+                    topic=topic,
+                    context_text=context_text,
+                    scene_tag=stag,
+                    style=chosen_style,
+                    exclude=used_tracks if len(all_tracks) >= len(mood_blocks) else None,
+                )
 
         if not trk:
             log.warning(

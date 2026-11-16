@@ -2312,16 +2312,31 @@ class DocumentaryPipeline(BasePipeline):
         self.p.activity("Stage 7/10: Planning multi-movement ambient soundtrack & matching tracks...")
 
         try:
-            from generators.music import plan_music_timeline
+            from generators.music import plan_music_timeline, sync_catalog
             from rendering.ffmpeg_renderer import project_timeline
             from rendering.transitions import total_length
 
             scenes, slots = project_timeline(self.p)
             total = total_length(slots)
             m = dict(self.p.settings.get("music", {}))
-            if not m.get("style") or m.get("style") == "auto":
+            music_dir = m.get("directory", "data/music")
+            sync_catalog(music_dir)
+
+            cat_pref = m.get("category") or self.p.settings.get("music_category")
+            if cat_pref and cat_pref not in ("auto", "default", "none"):
+                if not m.get("style") or m.get("style") == "auto":
+                    m["style"] = cat_pref
+            elif not m.get("style") or m.get("style") == "auto":
                 m["style"] = "ambient"
-            pref = self.p.settings.get("music_preference") or m.get("track")
+
+            pref = (
+                self.p.settings.get("music_preference")
+                or self.p.settings.get("music_track")
+                or m.get("track")
+            )
+            if pref and str(pref).strip().lower() in ("auto", "default"):
+                pref = None
+
             topic = getattr(self.p, "topic", None) or (self.p.data.topic if hasattr(self.p, "data") and self.p.data else None)
 
             chapters = None

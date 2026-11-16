@@ -477,3 +477,47 @@ def test_ambient_music_default_selection():
         assert "ambient" in Path(seg.track).parts or "ambient" in str(seg.track).replace("\\", "/").lower()
 
 
+def test_ambient_music_multi_movement_selection():
+    """Verify that a longer video (60s) with ambient style selects ambient tracks for all movements."""
+    plan = plan_music_timeline(
+        directory="data/music",
+        key="test_ambient_multi",
+        total_duration=60.0,
+        music_settings={"enabled": True, "style": "ambient"},
+    )
+    assert len(plan) >= 3
+    for seg in plan:
+        assert seg.style == "ambient"
+        assert "ambient" in Path(seg.track).parts or "ambient" in str(seg.track).replace("\\", "/").lower()
+
+
+def test_preferred_track_honored_in_music_timeline():
+    """Verify that an explicitly preferred track is assigned to Movement 0."""
+    preferred_name = "Ocean_Breeze_Soundscape.mp3"
+    plan = plan_music_timeline(
+        directory="data/music",
+        key="test_pref_timeline",
+        total_duration=60.0,
+        preferred=preferred_name,
+        music_settings={"enabled": True, "style": "ambient"},
+    )
+    assert len(plan) >= 1
+    assert plan[0].name == preferred_name
+
+
+def test_single_loop_progression():
+    """Verify that progression='single_loop' produces 1 movement spanning 100% of the video duration."""
+    plan = plan_music_timeline(
+        directory="data/music",
+        key="test_single_loop",
+        total_duration=75.0,
+        preferred="Calm_Ambient_Pad.mp3",
+        music_settings={"enabled": True, "progression": "single_loop"},
+    )
+    assert len(plan) == 1
+    assert plan[0].name == "Calm_Ambient_Pad.mp3"
+    assert plan[0].start_time == 0.0
+    assert plan[0].end_time == 75.0
+
+
+

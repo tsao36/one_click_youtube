@@ -77,7 +77,31 @@ def is_safe_candidate(meta: dict[str, Any], require_commercial: bool = False) ->
 def score_candidate(meta: dict[str, Any], intent: MusicIntent, style: str) -> tuple[float, dict[str, float]]:
     tags = set(meta.get("scene_tags") or [meta.get("scene_tag") or meta.get("category")])
     semantic = 1.0 if intent.scene_tag in tags else (0.45 if "explanation" in tags else 0.18)
-    style_score = 1.0 if str(meta.get("style", "")).lower() == style.lower() else 0.55
+    track_style = str(meta.get("style", "")).lower()
+    track_cat = str(meta.get("category", "")).lower()
+    target_style = (style or "").lower()
+    if target_style in ("ambient", "default"):
+        is_ambient = (
+            track_style == "ambient"
+            or track_cat == "ambient"
+            or "ambient" in str(meta.get("filename", "")).lower()
+            or "ambient" in str(meta.get("id", "")).lower()
+        )
+        if is_ambient:
+            style_score = 1.0
+        elif track_cat in (
+            "ambient", "calm_focus", "cinematic_documentary", "documentary_cinematic",
+            "mystery_cosmic", "tech_futuristic", "dramatic_tension", "uplifting_inspirational", "custom"
+        ):
+            style_score = 0.70
+        else:
+            style_score = 0.55
+    elif target_style in (track_style, track_cat):
+        style_score = 1.0
+    elif track_style == "ambient":
+        style_score = 0.85
+    else:
+        style_score = 0.55
     track_energy = ENERGY.get(str(meta.get("energy_level", "mid")).lower(), 0.55)
     energy_fit = 1.0 - min(1.0, abs(track_energy - intent.energy))
     fitness = min(1.0, max(0.0, float(meta.get("voiceover_fitness", 3.5) or 3.5) / 5.0))
@@ -123,7 +147,31 @@ def optimize_soundtrack(
     penalised to prevent monotonous or accidental repetition.
     """
     safe = [m for m in candidates if is_safe_candidate(m)[0]]
-    style_safe = [m for m in safe if str(m.get("style", "")).lower() == style.lower()]
+    target_style = (style or "").lower()
+    if target_style in ("ambient", "default"):
+        ambient_only = [
+            m for m in safe
+            if str(m.get("style", "")).lower() == "ambient"
+            or str(m.get("category", "")).lower() == "ambient"
+            or "ambient" in str(m.get("filename", "")).lower()
+            or "ambient" in str(m.get("id", "")).lower()
+        ]
+        if ambient_only:
+            style_safe = ambient_only
+        else:
+            style_safe = [
+                m for m in safe
+                if str(m.get("category", "")).lower() in (
+                    "ambient", "calm_focus", "cinematic_documentary", "documentary_cinematic",
+                    "mystery_cosmic", "tech_futuristic", "dramatic_tension", "uplifting_inspirational", "custom"
+                )
+            ]
+    else:
+        style_safe = [
+            m for m in safe
+            if str(m.get("style", "")).lower() == target_style
+            or str(m.get("category", "")).lower() == target_style
+        ]
     if style_safe:
         safe = style_safe
     if not intents or not safe:
@@ -188,7 +236,7 @@ def validate_music_plan(segments: list[Any], total_duration: float, min_score: f
         trk = Path(seg.track)
         if not trk.exists():
             errors.append(f"missing_track:{seg.name}")
-        elif trk.is_file() and trk.stat().st_size < 1000:
+        elif trk.is_file() and trk.stat().st_size == 0:
             errors.append(f"empty_track:{seg.name}")
         if seg.end_time <= seg.start_time:
             errors.append(f"invalid_range:{i}")
