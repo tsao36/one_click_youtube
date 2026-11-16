@@ -374,18 +374,21 @@ class BasePipeline:
 
 
     def _track_llm_request(self, provider: LLMProvider) -> None:
-
         with self.p.lock:
-
             self.p.data.usage.llm_requests += 1
-
             if provider.is_cloud:
-
                 self.p.data.usage.llm_cloud_requests += 1
-
                 rate = float(load_providers().get("pricing", {}).get("llm_request_usd", 0.0))
-
                 self.p.data.usage.estimated_cost_usd += rate
+
+            usage = getattr(provider, "last_usage", {}) or {}
+            p_tok = usage.get("prompt_tokens", 0)
+            c_tok = usage.get("completion_tokens", 0)
+            t_tok = usage.get("total_tokens", p_tok + c_tok)
+            if t_tok > 0:
+                self.p.data.usage.prompt_tokens += p_tok
+                self.p.data.usage.completion_tokens += c_tok
+                self.p.data.usage.total_tokens += t_tok
 
             self.p.save()
 

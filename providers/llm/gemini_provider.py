@@ -82,6 +82,26 @@ class GeminiProvider(LLMProvider):
         except (KeyError, IndexError) as e:
             raise LLMError(f"Unexpected Gemini response: {str(data)[:300]}") from e
 
+    def _record_tokens(self, data: dict, prompt: str, text: str) -> None:
+        usage = data.get("usageMetadata", {}) or {}
+        p_tok = usage.get("promptTokenCount")
+        c_tok = usage.get("candidatesTokenCount")
+        t_tok = usage.get("totalTokenCount")
+
+        if p_tok is None or p_tok <= 0:
+            p_tok = self.estimate_tokens(prompt)
+        if c_tok is None or c_tok <= 0:
+            c_tok = self.estimate_tokens(text)
+        if t_tok is None or t_tok <= 0:
+            t_tok = p_tok + c_tok
+
+        self.last_usage = {
+            "prompt_tokens": p_tok,
+            "completion_tokens": c_tok,
+            "total_tokens": t_tok,
+            "model": self.model or "gemini",
+        }
+
     def generate(self, prompt, system="", json_mode=False, temperature=0.7, max_tokens=8192) -> str:
         # Thinking models (e.g. Gemini 2.0+ Flash) count internal reasoning tokens toward maxOutputTokens.
         # Ensure a generous output budget (minimum 8192 tokens) so reasoning never starves JSON output.
@@ -94,7 +114,10 @@ class GeminiProvider(LLMProvider):
             body["systemInstruction"] = {"parts": [{"text": system}]}
         if json_mode:
             body["generationConfig"]["responseMimeType"] = "application/json"
-        return self._text(self._call(body))
+        raw_res = self._call(body)
+        res_text = self._text(raw_res)
+        self._record_tokens(raw_res, prompt, res_text)
+        return res_text
 
     def generate_with_search(self, prompt, system="", json_mode: bool = False, temperature: float = 0.7, max_tokens: int = 8192) -> str:
         effective_sys = system or (
@@ -113,7 +136,10 @@ class GeminiProvider(LLMProvider):
         if json_mode:
             body["generationConfig"]["responseMimeType"] = "application/json"
         try:
-            return self._text(self._call(body))
+            raw_res = self._call(body)
+            res_text = self._text(raw_res)
+            self._record_tokens(raw_res, prompt, res_text)
+            return res_text
         except LLMError as e:
             # If Google Search grounding hits quota or tool restrictions, fall back to standard generation
             log.warning("Google search grounding unavailable (%s); falling back to direct LLM generation", e)

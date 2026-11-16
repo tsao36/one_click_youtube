@@ -40,11 +40,13 @@ class LLMClient:
     """Resolves the provider for a job (research/script/...) and handles fallback + JSON parsing."""
 
     def __init__(self, job: str, on_request: Callable[[LLMProvider], None] | None = None,
-                 json_retries: int = 3, provider_override: str | None = None):
+                 json_retries: int = 3, provider_override: str | None = None,
+                 project_id: str | None = None):
         self.job = job
         self.on_request = on_request
         self.json_retries = json_retries
         self.provider_override = provider_override
+        self.project_id = project_id or ""
         self.provider = self._resolve()
 
     def _resolve(self) -> LLMProvider:
@@ -74,9 +76,37 @@ class LLMClient:
         if self.on_request:
             self.on_request(self.provider)
 
+    def _record_tokens(self, is_failure: bool = False, wasted_tokens: int = 0) -> None:
+        try:
+            from core.token_tracker import record_usage
+            usage = getattr(self.provider, "last_usage", {}) or {}
+            p_tok = usage.get("prompt_tokens", 0)
+            c_tok = usage.get("completion_tokens", 0)
+            m_name = usage.get("model") or getattr(self.provider, "model", "") or self.provider.name
+            record_usage(
+                stage=self.job,
+                model=m_name,
+                prompt_tokens=p_tok,
+                completion_tokens=c_tok,
+                wasted_tokens=wasted_tokens,
+                is_failure=is_failure,
+                provider_name=self.provider.name,
+                project_id=self.project_id,
+            )
+        except Exception as e:
+            log.debug("Token usage recording bypassed: %s", e)
+
     def text(self, prompt: str, system: str = "", temperature: float = 0.7, max_tokens: int = 4096) -> str:
         self._track()
-        return self.provider.generate(prompt, system, json_mode=False, temperature=temperature, max_tokens=max_tokens)
+        try:
+            res = self.provider.generate(prompt, system, json_mode=False, temperature=temperature, max_tokens=max_tokens)
+            self._record_tokens(is_failure=False, wasted_tokens=0)
+            return res
+        except Exception:
+            usage = getattr(self.provider, "last_usage", {}) or {}
+            attempt_tok = usage.get("total_tokens", 0) or (self.provider.estimate_tokens(prompt) if hasattr(self.provider, "estimate_tokens") else 0)
+            self._record_tokens(is_failure=True, wasted_tokens=attempt_tok)
+            raise
 
     def json(self, prompt: str, system: str = "", temperature: float = 0.6, max_tokens: int = 4096,
              validate: Callable[[Any], Any] | None = None, search: bool = False) -> Any:
@@ -93,18 +123,30 @@ class LLMClient:
                         prompt, system, json_mode=True, temperature=temperature, max_tokens=max_tokens
                     )
                 data = extract_json(raw)
-                return validate(data) if validate else data
+                val_data = validate(data) if validate else data
+                self._record_tokens(is_failure=False, wasted_tokens=0)
+                return val_data
             except Exception as e:  # parse or validation error -> retry
                 last = e
-                log.warning("LLM JSON attempt %d/%d for %s failed: %s", attempt, self.json_retries, self.job, str(e)[:200])
+                usage = getattr(self.provider, "last_usage", {}) or {}
+                attempt_tok = usage.get("total_tokens", 0) or (self.provider.estimate_tokens(prompt) if hasattr(self.provider, "estimate_tokens") else 0)
+                self._record_tokens(is_failure=True, wasted_tokens=attempt_tok)
+                log.warning("LLM JSON attempt %d/%d for %s failed: %s (wasted ~%d tokens)", attempt, self.json_retries, self.job, str(e)[:200], attempt_tok)
                 temperature = max(0.2, temperature - 0.15)
         raise LLMError(f"LLM failed to return valid JSON for {self.job}: {last}")
 
     def search_json(self, prompt: str, system: str = "", temperature: float = 0.2, max_tokens: int = 8192,
                     validate: Callable[[Any], Any] | None = None) -> Any:
-        self._track()
         return self.json(prompt, system=system, temperature=temperature, max_tokens=max_tokens, validate=validate, search=True)
 
     def search(self, prompt: str, system: str = "") -> str:
         self._track()
-        return self.provider.generate_with_search(prompt, system)
+        try:
+            res = self.provider.generate_with_search(prompt, system)
+            self._record_tokens(is_failure=False, wasted_tokens=0)
+            return res
+        except Exception:
+            usage = getattr(self.provider, "last_usage", {}) or {}
+            attempt_tok = usage.get("total_tokens", 0) or (self.provider.estimate_tokens(prompt) if hasattr(self.provider, "estimate_tokens") else 0)
+            self._record_tokens(is_failure=True, wasted_tokens=attempt_tok)
+            raise

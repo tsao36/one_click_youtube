@@ -40,3 +40,22 @@ def unload_gpu_memory():
 
     log.info("Manual memory unload requested: %s", results)
     return results
+
+
+@router.get("/token-usage")
+def get_token_usage_summary(date: str | None = None):
+    """
+    Get API token and cost usage report.
+    If `date` is provided (YYYY-MM-DD), returns that day's statistics;
+    otherwise returns all-time cumulative statistics with stage rankings.
+    """
+    from core.token_tracker import get_token_summary
+    return get_token_summary(date=date)
+
+
+@router.get("/token-usage/history")
+def get_token_usage_history(days: int = 14):
+    """Get day-to-day token consumption and cost history."""
+    from core.token_tracker import get_daily_history
+    return {"history": get_daily_history(days=days)}
+

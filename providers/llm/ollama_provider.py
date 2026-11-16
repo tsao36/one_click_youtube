@@ -59,7 +59,22 @@ class OllamaProvider(LLMProvider):
             raise LLMError(f"Ollama request failed: {e}") from e
         if r.status_code != 200:
             raise LLMError(f"Ollama HTTP {r.status_code}: {r.text[:300]}")
-        return strip_think(r.json().get("message", {}).get("content", ""))
+        res_data = r.json()
+        content = strip_think(res_data.get("message", {}).get("content", ""))
+        p_tok = res_data.get("prompt_eval_count")
+        c_tok = res_data.get("eval_count")
+        if p_tok is None or p_tok <= 0:
+            p_tok = self.estimate_tokens(prompt + (" " + system if system else ""))
+        if c_tok is None or c_tok <= 0:
+            c_tok = self.estimate_tokens(content)
+        t_tok = p_tok + c_tok
+        self.last_usage = {
+            "prompt_tokens": p_tok,
+            "completion_tokens": c_tok,
+            "total_tokens": t_tok,
+            "model": self.model or "ollama",
+        }
+        return content
 
     def unload(self) -> None:
         try:

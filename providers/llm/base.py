@@ -18,6 +18,19 @@ class LLMProvider(ABC):
     def __init__(self, cfg: dict, model: str | None = None):
         self.cfg = cfg
         self.model = model or cfg.get("model", "")
+        self.last_usage: dict[str, Any] = {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0,
+            "model": self.model,
+        }
+
+    @staticmethod
+    def estimate_tokens(text: str) -> int:
+        """Heuristic character-based token estimator (~4 chars per token)."""
+        if not text:
+            return 0
+        return max(1, len(text) // 4)
 
     @abstractmethod
     def generate(self, prompt: str, system: str = "", json_mode: bool = False,

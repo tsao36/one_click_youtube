@@ -122,6 +122,11 @@ class Usage(BaseModel):
     presenter_clips_local: int = 0
     tts_cloud_chars: int = 0
     estimated_cost_usd: float = 0.0
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+    total_tokens: int = 0
+    wasted_tokens: int = 0
+    stage_tokens: dict[str, int] = Field(default_factory=dict)
     stage_costs: dict[str, float] = Field(default_factory=dict)
     stage_details: dict[str, dict[str, Any]] = Field(default_factory=dict)
 
