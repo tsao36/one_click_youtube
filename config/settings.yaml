@@ -29,7 +29,7 @@ scenes:
   llm_batch_size: 8
 images:
   provider: nano-banana-2.1
-  fallback_provider: placeholder
+  fallback_provider: fal-ai/flux-1/schnell
   auto_stock_mode: balanced
   workflow: workflows/default_image.json
   checkpoint: nano-banana-2.1

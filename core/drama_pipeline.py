@@ -1908,10 +1908,44 @@ class DramaPipeline(BasePipeline):
 
 
                 except Exception as ge:
-
-
-
-                    log.warning("Actor portrait generation failed (%s); generating stylized 9:16 fallback portrait", ge)
+                    from providers.images import is_gemini_credit_error, is_flux_credit_error
+                    if is_gemini_credit_error(ge):
+                        log.warning("Actor portrait generation for '%s' failed due to Gemini credit depletion (%s); falling back to Flux API...", char_id, ge)
+                        self.p.activity(f"Stage 5/9: Gemini credit depleted → falling back to Flux API for actor portrait...")
+                        flux_prov = get_image_provider("fal-ai/flux-1/schnell", self.p.settings)
+                        flux_avail, flux_reason = flux_prov.available()
+                        if not flux_avail:
+                            alert_msg = f"Drama video generation stopped: Gemini API credit depleted, and Flux API is unavailable ({flux_reason}). Please top up credits."
+                            self.p.activity(f"STOPPED: {alert_msg}")
+                            with self.p.lock:
+                                self.p.data.state = "failed"
+                                self.p.data.error = alert_msg
+                                self.p.save()
+                            raise RuntimeError(alert_msg)
+                        try:
+                            res = flux_prov.generate(req)
+                            cached_portraits[char_id] = img_path
+                            img_generated = True
+                        except Exception as fe:
+                            if is_flux_credit_error(fe) or "TOP_UP" in str(fe) or "credit" in str(fe).lower() or "balance" in str(fe).lower():
+                                alert_msg = f"Drama video generation stopped: Gemini API credit depleted, and Flux API credit also depleted ({fe}). Please top up credits."
+                                self.p.activity(f"STOPPED: {alert_msg}")
+                                with self.p.lock:
+                                    self.p.data.state = "failed"
+                                    self.p.data.error = alert_msg
+                                    self.p.save()
+                                raise RuntimeError(alert_msg)
+                            log.warning("Flux fallback portrait generation failed: %s", fe)
+                    elif is_flux_credit_error(ge):
+                        alert_msg = f"Drama video generation stopped: Flux API credit is depleted ({ge}). Please top up credits at https://fal.ai/dashboard/billing."
+                        self.p.activity(f"STOPPED: {alert_msg}")
+                        with self.p.lock:
+                            self.p.data.state = "failed"
+                            self.p.data.error = alert_msg
+                            self.p.save()
+                        raise RuntimeError(alert_msg)
+                    else:
+                        log.warning("Actor portrait generation failed (%s); generating stylized 9:16 fallback portrait", ge)
 
 
 

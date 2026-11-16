@@ -28,6 +28,71 @@ from agents.prompts_common import (
 
 from providers.comfy_client import ComfyClient
 
+class ImageCreditDepletedError(RuntimeError):
+    """Raised when an image provider's billing credits or quota are depleted."""
+    def __init__(self, message: str, provider: str = "", status_code: int | None = None):
+        super().__init__(message)
+        self.provider = provider
+        self.status_code = status_code
+
+class GeminiCreditDepletedError(ImageCreditDepletedError):
+    """Google Gemini API prepayment credit or quota depleted."""
+    def __init__(self, message: str, status_code: int = 402):
+        super().__init__(message, provider="gemini", status_code=status_code)
+
+class FluxCreditDepletedError(ImageCreditDepletedError):
+    """Flux (Fal.ai) API credit or quota depleted / account locked."""
+    def __init__(self, message: str, status_code: int | None = None):
+        super().__init__(message, provider="flux", status_code=status_code)
+
+def is_gemini_credit_error(err: Any) -> bool:
+    """Check if an error corresponds to Gemini credit exhaustion or quota depletion."""
+    if isinstance(err, GeminiCreditDepletedError):
+        return True
+    msg = str(err).lower()
+    if "prepayment credits are depleted" in msg or "ai studio" in msg or "ai.studio" in msg:
+        return True
+    has_depleted = any(k in msg for k in [
+        "credits are depleted",
+        "credit depleted",
+        "credits depleted",
+        "quota limit reached or billing required",
+        "free tier quota limit is 0",
+        "rate limit exceeded or quota exhausted",
+        "billing required",
+        "resource_exhausted",
+        "402",
+    ])
+    has_gemini = any(k in msg for k in [
+        "gemini", "banana", "imagen", "google", "ai studio", "ai.studio"
+    ])
+    return (has_depleted and has_gemini) or ("402" in msg and "depleted" in msg)
+
+def is_flux_credit_error(err: Any) -> bool:
+    """Check if an error corresponds to Fal/Flux credit exhaustion or account lock."""
+    if isinstance(err, FluxCreditDepletedError):
+        return True
+    msg = str(err).lower()
+    has_depleted = any(k in msg for k in [
+        "top_up",
+        "top-up",
+        "$0 credit balance",
+        "credit balance",
+        "credit depleted",
+        "credits depleted",
+        "no credit",
+        "fal_key not set",
+        "fal_key is not set",
+        "insufficient funds",
+        "insufficient credit",
+        "account is locked",
+        "balance is 0",
+    ])
+    has_flux = any(k in msg for k in [
+        "fal", "flux", "schnell"
+    ])
+    return (has_depleted and has_flux) or ("top_up" in msg)
+
 @dataclass
 
 class ImageRequest:
@@ -518,12 +583,14 @@ class Imagen302ImageProvider(ImageProvider):
 
                     }
 
+            elif r.status_code == 402 or "depleted" in r.text.lower() or "prepayment credits" in r.text.lower():
+                raise GeminiCreditDepletedError(
+                    f"Google Imagen 3 prepayment credits are depleted (HTTP {r.status_code}): {r.text[:200]}",
+                    status_code=r.status_code,
+                )
             elif r.status_code == 429:
-
-                raise RuntimeError("Google Imagen 3 API failed: quota limit reached or billing required.")
-
+                raise GeminiCreditDepletedError("Google Imagen 3 API failed: quota limit reached or billing required.", status_code=429)
             else:
-
                 last_error = f"{m} failed ({r.status_code}): {r.text[:200]}"
 
         # 2. Fallback to Gemini native image generation if :predict endpoint is unavailable on key tier
@@ -568,7 +635,16 @@ class Imagen302ImageProvider(ImageProvider):
                             "is_ai": True,
                             "ai_imprinted": True,
                         }
+                elif r.status_code == 402 or "depleted" in r.text.lower() or "prepayment credits" in r.text.lower():
+                    raise GeminiCreditDepletedError(
+                        f"Google Imagen 3 fallback prepayment credits are depleted (HTTP {r.status_code}): {r.text[:200]}",
+                        status_code=r.status_code,
+                    )
+                elif r.status_code == 429:
+                    raise GeminiCreditDepletedError("Google Gemini image API failed: rate limit exceeded or quota exhausted.", status_code=429)
 
+            except GeminiCreditDepletedError:
+                raise
             except Exception as ex:
 
                 last_error = str(ex)
@@ -828,12 +904,19 @@ class NanoBanana21ImageProvider(ImageProvider):
 
                     last_error = f"Failed to parse image from {m}: {ex}"
 
+            elif r.status_code == 402 or "depleted" in r.text.lower() or "prepayment credits" in r.text.lower():
+                raise GeminiCreditDepletedError(
+                    f"Google Gemini prepayment credits are depleted (HTTP {r.status_code}): {r.text[:200]}",
+                    status_code=r.status_code,
+                )
             elif r.status_code == 429:
-
+                if "quota" in r.text.lower() or "credit" in r.text.lower() or "billing" in r.text.lower():
+                    raise GeminiCreditDepletedError(
+                        f"Google Gemini API failed: rate limit exceeded or quota exhausted (HTTP 429): {r.text[:200]}",
+                        status_code=429,
+                    )
                 raise RuntimeError("Google Gemini API failed: rate limit exceeded or quota exhausted.")
-
             else:
-
                 last_error = f"{m} failed ({r.status_code}): {r.text[:200]}"
 
         raise RuntimeError(f"Google Nano Banana 2.1 generation failed: {last_error}")
@@ -951,12 +1034,14 @@ class Imagen3ImageProvider(ImageProvider):
 
                     last_error = f"Failed to parse image from {m}: {ex}"
 
+            elif r.status_code == 402 or "depleted" in r.text.lower() or "prepayment credits" in r.text.lower():
+                raise GeminiCreditDepletedError(
+                    f"Google Gemini prepayment credits are depleted (HTTP {r.status_code}): {r.text[:200]}",
+                    status_code=r.status_code,
+                )
             elif r.status_code == 429:
-
-                raise RuntimeError("Google Gemini image API failed: free tier quota limit is 0 (requires paid billing).")
-
+                raise GeminiCreditDepletedError("Google Gemini image API failed: free tier quota limit is 0 (requires paid billing).", status_code=429)
             else:
-
                 last_error = f"{m} failed ({r.status_code}): {r.text[:200]}"
 
         raise RuntimeError(f"Google Gemini image generation failed: {last_error}")
@@ -1236,7 +1321,7 @@ class FalFluxSchnellImageProvider(ImageProvider):
 
         if not key:
 
-            raise RuntimeError("FAL_KEY not set in Settings or .env (required for fal-ai/flux-1/schnell)")
+            raise FluxCreditDepletedError("FAL_KEY not set in Settings or .env (required for fal-ai/flux-1/schnell)")
 
         headers = {
 
@@ -1293,14 +1378,13 @@ class FalFluxSchnellImageProvider(ImageProvider):
 
                 continue
 
-            if r.status_code == 403 and "TOP_UP" in r.text:
-
-                raise RuntimeError(
-
-                    "Fal.ai account is locked (Reason: TOP_UP — $0 credit balance). "
-
-                    "Please add credits at https://fal.ai/dashboard/billing"
-
+            if (r.status_code == 403 and "TOP_UP" in r.text) or r.status_code == 402 or (
+                r.status_code in (402, 403) and any(w in r.text.lower() for w in ["credit", "balance", "top_up", "top-up", "payment", "funds", "quota", "limit", "billing", "unpaid", "insufficient"])
+            ):
+                raise FluxCreditDepletedError(
+                    f"Fal.ai account has no credit left (Reason: TOP_UP / $0 credit balance, HTTP {r.status_code}): {r.text[:200]}. "
+                    "Please add credits at https://fal.ai/dashboard/billing",
+                    status_code=r.status_code,
                 )
 
             if r.status_code >= 400:

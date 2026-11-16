@@ -1686,99 +1686,135 @@ class DocumentaryPipeline(BasePipeline):
 
 
 
+                gemini_depleted = False
+                flux_depleted = False
                 for attempt in range(1, retries + 1):
-
-
-
                     if generated:
-
-
-
                         break
-
-
-
                     s.image.attempts = attempt
-
-
-
                     try:
-
-
-
                         meta = provider.generate(req, cancel=self.is_cancelled)
-
-
-
                         merged_meta = dict(existing_img_meta)
-
-
-
                         merged_meta.update(meta)
-
-
-
                         merged_meta["takes"] = prev_img_takes
-
-
-
                         s.image.status = Status.COMPLETED
-
-
-
                         s.image.path = self.p.rel(img_path)
-
-
-
                         s.image.meta = merged_meta
-
-
-
                         s.image.error = None
-
-
-
                         generated = True
-
-
-
                         break
-
-
-
                     except Exception as e:
-
-
-
                         log.warning("Image gen attempt %d for scene %d failed: %s", attempt, s.scene_id, e)
-
-
-
+                        s.image.error = str(e)
+                        from providers.images import is_gemini_credit_error, is_flux_credit_error
+                        if is_gemini_credit_error(e):
+                            log.warning("Gemini API credit depleted detected at scene %d: %s", s.scene_id, e)
+                            gemini_depleted = True
+                            break
+                        if is_flux_credit_error(e):
+                            log.warning("Flux API credit depleted detected at scene %d: %s", s.scene_id, e)
+                            flux_depleted = True
+                            break
                         if attempt == retries:
-
-
-
                             s.image.error = str(e)
 
-
-
-
-
-
-
                 if self._cancel_flag:
-
-
-
                     s.image.status = Status.PENDING
-
-
-
                     self.p.save_scenes()
-
-
-
                     raise PipelineCancelled()
+
+                from providers.images import is_gemini_credit_error, is_flux_credit_error
+                if not gemini_depleted:
+                    gemini_depleted = is_gemini_credit_error(s.image.error or "")
+                if not flux_depleted:
+                    flux_depleted = is_flux_credit_error(s.image.error or "")
+
+                # If Flux credit is depleted: STOP video generation immediately and alert the user
+                if not generated and flux_depleted:
+                    alert_msg = (
+                        f"Image generation stopped at scene {s.scene_id}: Flux API credit is depleted ({s.image.error}). "
+                        "Please top up your Fal.ai credits at https://fal.ai/dashboard/billing to continue video generation."
+                    )
+                    log.error(alert_msg)
+                    self.p.activity(f"STOPPED: {alert_msg}")
+                    with self.p.lock:
+                        self.p.data.state = "failed"
+                        self.p.data.error = alert_msg
+                        if "images" in self.p.data.stages:
+                            self.p.data.stages["images"].status = Status.FAILED
+                            self.p.data.stages["images"].error = alert_msg
+                        s.image.status = Status.FAILED
+                        s.image.error = alert_msg
+                        self.p.save_scenes()
+                        self.p.save()
+                    raise RuntimeError(alert_msg)
+
+                # Fallback mechanism: if Gemini credit is depleted, fall back to Flux API
+                if not generated and gemini_depleted:
+                    log.warning("Scene %d Gemini API credit depleted (%s); automatically falling back to Flux API (fal-ai/flux-1/schnell)...",
+                                s.scene_id, s.image.error)
+                    self.p.activity(f"Stage 5/10: Scene {s.scene_id} Gemini credit depleted → falling back to Flux API...")
+                    flux_prov = get_image_provider("fal-ai/flux-1/schnell", self.p.settings)
+                    flux_avail, flux_reason = flux_prov.available()
+                    if not flux_avail:
+                        alert_msg = (
+                            f"Image generation stopped at scene {s.scene_id}: Gemini API credit is depleted, "
+                            f"and Flux API is unavailable / has no credit ({flux_reason}). "
+                            "Please top up Gemini or Fal.ai (Flux) credits to continue video generation."
+                        )
+                        log.error(alert_msg)
+                        self.p.activity(f"STOPPED: {alert_msg}")
+                        with self.p.lock:
+                            self.p.data.state = "failed"
+                            self.p.data.error = alert_msg
+                            if "images" in self.p.data.stages:
+                                self.p.data.stages["images"].status = Status.FAILED
+                                self.p.data.stages["images"].error = alert_msg
+                            s.image.status = Status.FAILED
+                            s.image.error = alert_msg
+                            self.p.save_scenes()
+                            self.p.save()
+                        raise RuntimeError(alert_msg)
+
+                    try:
+                        meta = flux_prov.generate(req, cancel=self.is_cancelled)
+                        merged_meta = dict(existing_img_meta)
+                        merged_meta.update(meta)
+                        merged_meta["takes"] = prev_img_takes
+                        s.image.status = Status.COMPLETED
+                        s.image.path = self.p.rel(img_path)
+                        s.image.meta = merged_meta
+                        s.image.error = None
+                        generated = True
+
+                        # Switch image engine for subsequent scenes in this run
+                        current_model_name = "fal-ai/flux-1/schnell"
+                        provider = flux_prov
+                        self.update_stage_models({"images": "fal-ai/flux-1/schnell"})
+                        log.info("Scene %d successfully generated with Flux API fallback. Future scenes switched to Flux.", s.scene_id)
+                    except Exception as flux_err:
+                        log.error("Scene %d Flux API fallback failed: %s", s.scene_id, flux_err)
+                        if is_flux_credit_error(flux_err) or "TOP_UP" in str(flux_err) or "credit" in str(flux_err).lower() or "balance" in str(flux_err).lower() or "402" in str(flux_err) or "403" in str(flux_err):
+                            alert_msg = (
+                                f"Image generation stopped at scene {s.scene_id}: Gemini API credit is depleted, "
+                                f"and Flux API credit is also depleted ({flux_err}). "
+                                "Please top up your Gemini or Fal.ai credits to continue video generation."
+                            )
+                            log.error(alert_msg)
+                            self.p.activity(f"STOPPED: {alert_msg}")
+                            with self.p.lock:
+                                self.p.data.state = "failed"
+                                self.p.data.error = alert_msg
+                                if "images" in self.p.data.stages:
+                                    self.p.data.stages["images"].status = Status.FAILED
+                                    self.p.data.stages["images"].error = alert_msg
+                                s.image.status = Status.FAILED
+                                s.image.error = alert_msg
+                                self.p.save_scenes()
+                                self.p.save()
+                            raise RuntimeError(alert_msg)
+                        else:
+                            s.image.error = f"Gemini credit depleted; Flux fallback failed: {flux_err}"
 
 
 
@@ -1878,15 +1914,10 @@ class DocumentaryPipeline(BasePipeline):
 
 
 
-                # If cloud model failed and ComfyUI is unavailable, try Gemini nano-banana-2.1 or stock before placeholder
-
-
-
-                if not generated and current_model_name not in ("nano-banana-2.1", "stock", "stock_photos", "placeholder"):
-
-
-
-                    for candidate in ["nano-banana-2.1", "stock"]:
+                # If cloud model failed and ComfyUI is unavailable, try Gemini nano-banana-2.1 (if not depleted) or stock before placeholder
+                if not generated and current_model_name not in ("stock", "stock_photos", "placeholder"):
+                    candidates = (["nano-banana-2.1", "stock"] if not gemini_depleted else ["stock"])
+                    for candidate in candidates:
 
 
 
@@ -1979,30 +2010,13 @@ class DocumentaryPipeline(BasePipeline):
 
 
                 if self._cancel_flag:
-
-
-
                     s.image.status = Status.PENDING
-
-
-
                     self.p.save_scenes()
-
-
-
                     raise PipelineCancelled()
 
-
-
-
-
-
-
                 # Only if all real image generation engines failed, fall back to placeholder
-
-
-
-                if not generated and fallback_name and fallback_name != provider.name:
+                # CRITICAL: Never fall back to placeholder if image failure was due to depleted credits!
+                if not generated and not gemini_depleted and not flux_depleted and fallback_name and fallback_name != provider.name:
 
 
 

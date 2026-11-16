@@ -4069,6 +4069,50 @@ def regenerate_scene_image(project_id: str, scene_id: int, req_body: Optional[Re
         return {"status": "regenerated", "meta": s.image.meta, "scene": s.model_dump(mode="json")}
     except Exception as e:
         log.error("Image generation failed for scene %d: %s", scene_id, e)
+        from providers.images import is_gemini_credit_error, is_flux_credit_error
+        if is_gemini_credit_error(e):
+            log.warning("Scene %d Gemini API credit depleted, falling back to Flux API...", scene_id)
+            flux_prov = get_image_provider("fal-ai/flux-1/schnell", cfg)
+            flux_avail, flux_reason = flux_prov.available()
+            if not flux_avail:
+                raise HTTPException(status_code=402, detail=f"Gemini API credit depleted, and Flux API is unavailable ({flux_reason}). Please top up credits.")
+            try:
+                meta = flux_prov.generate(req)
+                merged_meta = dict(existing_img_meta)
+                merged_meta.update(meta)
+                from core.image_utils import is_ai_created_image
+                if is_ai_created_image(merged_meta):
+                    merged_meta["is_ai"] = True
+                    merged_meta["ai_imprinted"] = True
+                merged_meta["visual_style"] = chosen_style
+                merged_meta["takes"] = prev_img_takes
+                s.image.status = Status.COMPLETED
+                s.image.path = p.rel(img_path)
+                s.image.meta = merged_meta
+                s.seed = chosen_seed
+                if s.media_source in ("youtube_snippet", "youtube_screenshot"):
+                    s.media_source = "ai"
+                if s.animation and s.animation.status == Status.COMPLETED:
+                    old_anim = p.path(s.animation.path)
+                    if old_anim.exists():
+                        try:
+                            old_anim.unlink()
+                        except Exception:
+                            pass
+                    s.animation.status = Status.PENDING
+                p.save_scenes()
+                try:
+                    record_scene_image_take(p, scene_id, p.rel(img_path), "fal-ai/flux-1/schnell", s.prompt or "", chosen_style)
+                except Exception as ex:
+                    log.warning("Could not record scene image take: %s", ex)
+                p.set_stage("render", Status.PENDING)
+                return {"status": "regenerated", "meta": s.image.meta, "scene": s.model_dump(mode="json")}
+            except Exception as fe:
+                if is_flux_credit_error(fe):
+                    raise HTTPException(status_code=402, detail=f"Gemini API credit depleted, and Flux API credit also depleted ({fe}). Please top up credits.")
+                raise HTTPException(status_code=500, detail=f"Gemini API credit depleted; Flux fallback failed: {fe}")
+        elif is_flux_credit_error(e):
+            raise HTTPException(status_code=402, detail=f"Flux API credit depleted ({e}). Please top up credits at https://fal.ai/dashboard/billing.")
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         live_image_status["active"] = False

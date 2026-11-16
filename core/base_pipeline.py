@@ -217,7 +217,7 @@ class BasePipeline:
                 and self.p.abs(scene.image.path).exists()
                 and not (scene.image.meta and scene.image.meta.get("provider") == "placeholder")
             ) or (
-                self.p.is_avatar_enabled()
+                (getattr(self.p, "is_avatar_enabled", None)() if callable(getattr(self.p, "is_avatar_enabled", None)) else False)
                 and is_avatar_overlapping_scene(self.p, scene)
                 and scene.image.status == Status.COMPLETED
             )
