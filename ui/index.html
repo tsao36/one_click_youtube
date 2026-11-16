@@ -2211,7 +2211,17 @@
   <!-- TAB: SETTINGS -->
   <div id="tab-settings" class="tab-content">
     <div class="card">
-      <div class="card-title">API Keys & Cloud Providers</div>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+        <div>
+          <div class="card-title" style="margin-bottom: 2px;">API Keys & Token Management</div>
+          <div style="font-size: 12px; color: var(--text-muted);">
+            配置雲端模型金鑰與監控各階段 Token 累計消耗與浪費分析
+          </div>
+        </div>
+        <button type="button" class="btn-sec" id="btn-open-token-usage-modal" onclick="openTokenUsageModal()" style="display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; font-weight: 700; color: #38bdf8; border-color: rgba(56, 189, 248, 0.5); background: rgba(56, 189, 248, 0.12); cursor: pointer; border-radius: 6px;" title="檢視各階段累計 Token 消耗量、浪費佔比與成本統計">
+          📊 檢視 Token 消耗分析 (View Token Usage)
+        </button>
+      </div>
       <div class="form-grid">
         <div class="form-group">
           <label>Gemini API Key</label>
@@ -4360,6 +4370,58 @@
             🔄 執行跨階段同步取代 (Replace in All Stages)
           </button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: API TOKEN USAGE & WASTE ANALYTICS -->
+  <div id="token-usage-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); backdrop-filter:blur(4px); z-index:10070; justify-content:center; align-items:center; padding:20px;">
+    <div style="background:#09111e; border:1px solid #0284c7; border-radius:12px; width:100%; max-width:880px; max-height:90vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 24px 64px rgba(0,0,0,0.9);">
+      <!-- Header -->
+      <div style="padding:16px 20px; border-bottom:1px solid #1e293b; display:flex; justify-content:space-between; align-items:center; background:linear-gradient(135deg, rgba(14, 116, 144, 0.45) 0%, #060a12 100%);">
+        <div>
+          <div style="font-size:16px; font-weight:800; color:#fff; display:flex; align-items:center; gap:8px;">
+            <span>📊 API Token 消耗與累計分析 (Token Usage Analytics)</span>
+          </div>
+          <div style="font-size:12px; color:#7dd3fc; margin-top:2px;">
+            逐階段計算 Token 累計消耗排行、重試與失敗浪費分析 (Wasted Tokens) 及每日花費數據庫
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <button type="button" class="btn-sec" onclick="loadTokenUsageData()" style="padding:5px 12px; font-size:12px; display:inline-flex; align-items:center; gap:4px; cursor:pointer;" title="重新整理資料">
+            🔄 重新整理
+          </button>
+          <button type="button" class="btn-sec" onclick="closeTokenUsageModal()" style="padding:5px 12px; font-size:13px; font-weight:700; cursor:pointer;">✕</button>
+        </div>
+      </div>
+
+      <!-- Controls Tab Bar -->
+      <div style="padding:10px 20px; background:#060d19; border-bottom:1px solid #1e293b; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+        <div style="display:flex; gap:6px;">
+          <button type="button" id="tab-btn-token-cumul" class="btn-primary" onclick="switchTokenModalTab('cumulative')" style="font-size:12px; padding:6px 14px; font-weight:700; cursor:pointer;">
+            🏆 累計總覽排行 (Cumulative)
+          </button>
+          <button type="button" id="tab-btn-token-today" class="btn-sec" onclick="switchTokenModalTab('today')" style="font-size:12px; padding:6px 14px; font-weight:600; cursor:pointer;">
+            📅 今日統計 (Today)
+          </button>
+          <button type="button" id="tab-btn-token-history" class="btn-sec" onclick="switchTokenModalTab('history')" style="font-size:12px; padding:6px 14px; font-weight:600; cursor:pointer;">
+            📈 每日歷史趨勢 (Daily History)
+          </button>
+        </div>
+        <div id="token-last-updated-text" style="font-size:11px; color:#94a3b8;">
+          資料庫: data/api_usage.json
+        </div>
+      </div>
+
+      <!-- Body -->
+      <div id="token-usage-modal-body" style="padding:20px; overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:16px;">
+        <div style="text-align:center; padding:40px; color:#94a3b8;">載入中...</div>
+      </div>
+
+      <!-- Footer -->
+      <div style="padding:12px 20px; border-top:1px solid #1e293b; display:flex; justify-content:space-between; align-items:center; background:#060a12; font-size:12px; color:#94a3b8;">
+        <span>💡 系統每次調用 LLM 與重試失敗皆會即時寫入 JSON 資料庫，重試與解析失敗被標記為<b>浪費 Token</b>。</span>
+        <button type="button" class="btn-sec" onclick="closeTokenUsageModal()" style="padding:5px 14px; cursor:pointer;">關閉 (Close)</button>
       </div>
     </div>
   </div>

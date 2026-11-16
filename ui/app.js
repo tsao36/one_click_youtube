@@ -21100,3 +21100,249 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
     window.onPresenterAvatarChange = onPresenterAvatarChange;
     window.syncVoiceProfileWithActivePresenter = syncVoiceProfileWithActivePresenter;
     window.isAvatarPresenterActive = isAvatarPresenterActive;
+
+    // ---------- API TOKEN USAGE & WASTE MODAL ----------
+    let currentTokenTab = 'cumulative';
+
+    function openTokenUsageModal() {
+      const modal = document.getElementById('token-usage-modal');
+      if (modal) {
+        modal.style.display = 'flex';
+        loadTokenUsageData();
+      }
+    }
+
+    function closeTokenUsageModal() {
+      const modal = document.getElementById('token-usage-modal');
+      if (modal) {
+        modal.style.display = 'none';
+      }
+    }
+
+    function switchTokenModalTab(tab) {
+      currentTokenTab = tab;
+      const btnCumul = document.getElementById('tab-btn-token-cumul');
+      const btnToday = document.getElementById('tab-btn-token-today');
+      const btnHist = document.getElementById('tab-btn-token-history');
+
+      if (btnCumul) btnCumul.className = tab === 'cumulative' ? 'btn-primary' : 'btn-sec';
+      if (btnToday) btnToday.className = tab === 'today' ? 'btn-primary' : 'btn-sec';
+      if (btnHist) btnHist.className = tab === 'history' ? 'btn-primary' : 'btn-sec';
+
+      loadTokenUsageData();
+    }
+
+    async function loadTokenUsageData() {
+      const body = document.getElementById('token-usage-modal-body');
+      const updatedText = document.getElementById('token-last-updated-text');
+      if (!body) return;
+
+      body.innerHTML = '<div style="text-align:center; padding:40px; color:#94a3b8;"><span style="font-size:24px;">⏳</span><br>資料載入中 (Loading token analytics)...</div>';
+
+      try {
+        if (currentTokenTab === 'history') {
+          const res = await fetch('/api/token-usage/history?days=14');
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = await res.json();
+          renderTokenHistoryView(data.history || [], body);
+        } else {
+          const isToday = currentTokenTab === 'today';
+          const todayStr = new Date().toISOString().split('T')[0];
+          const url = isToday ? `/api/token-usage?date=${todayStr}` : '/api/token-usage';
+          const res = await fetch(url);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = await res.json();
+          if (updatedText && data.updated_at) {
+            updatedText.textContent = `最後更新: ${data.updated_at.replace('T', ' ').substring(0, 19)} · data/api_usage.json`;
+          }
+          renderTokenSummaryView(data, body, isToday);
+        }
+      } catch (err) {
+        body.innerHTML = `<div style="text-align:center; padding:30px; color:#ef4444; background:rgba(239,68,68,0.1); border:1px solid #ef4444; border-radius:8px;">
+          ❌ 無法載入 Token 數據庫: ${err.message}<br>
+          <button class="btn-sec" onclick="loadTokenUsageData()" style="margin-top:10px; padding:4px 12px; cursor:pointer;">重試</button>
+        </div>`;
+      }
+    }
+
+    function renderTokenSummaryView(summary, container, isToday) {
+      const stages = summary.stages || [];
+      const totalTokens = summary.total_tokens || 0;
+      const wastedTokens = summary.wasted_tokens || 0;
+      const wastePct = summary.waste_pct || 0;
+      const costUsd = Number(summary.cost_usd || 0).toFixed(4);
+      const topStage = summary.top_consumer || 'None';
+
+      const STAGE_LABELS = {
+        'research': { name: 'Stage 1: 研究資料 (Research)', icon: '🔬', color: '#38bdf8' },
+        'script': { name: 'Stage 2: 旁白腳本 (Script)', icon: '📜', color: '#a78bfa' },
+        'scenes': { name: 'Stage 3: 分鏡台詞 (Scenes)', icon: '🎬', color: '#f472b6' },
+        'prompts': { name: 'Stage 4: 圖像提示詞 (Prompts)', icon: '🎨', color: '#fb923c' },
+        'images': { name: 'Stage 5: 圖像擴散 (Images)', icon: '🖼️', color: '#34d399' },
+        'voice': { name: 'Stage 6: 語音合成 (TTS)', icon: '🎙️', color: '#60a5fa' },
+        'subtitles': { name: 'Stage 8: 字幕軌道 (Subtitles)', icon: '📝', color: '#facc15' },
+        'drama': { name: '短劇創作 (Drama)', icon: '🎭', color: '#c084fc' }
+      };
+
+      let html = `
+        <!-- Top Stats Row -->
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:12px;">
+          <div style="background:#050d1a; border:1px solid #1e3a5f; border-radius:8px; padding:12px;">
+            <div style="font-size:11px; color:#94a3b8; font-weight:700;">總消耗 TOKEN</div>
+            <div style="font-size:20px; font-weight:900; color:#38bdf8; margin:4px 0;">${totalTokens.toLocaleString()}</div>
+            <div style="font-size:10.5px; color:#64748b;">Prompt: ${(summary.prompt_tokens||0).toLocaleString()} · Comp: ${(summary.completion_tokens||0).toLocaleString()}</div>
+          </div>
+          <div style="background:#050d1a; border:1px solid ${wastedTokens > 0 ? '#b45309' : '#1e3a5f'}; border-radius:8px; padding:12px;">
+            <div style="font-size:11px; color:${wastedTokens > 0 ? '#fbbf24' : '#94a3b8'}; font-weight:700;">浪費 TOKEN (重試/失敗)</div>
+            <div style="font-size:20px; font-weight:900; color:${wastedTokens > 0 ? '#f59e0b' : '#34d399'}; margin:4px 0;">
+              ${wastedTokens.toLocaleString()} <span style="font-size:13px; font-weight:600;">(${wastePct}%)</span>
+            </div>
+            <div style="font-size:10.5px; color:#64748b;">重試/語法錯誤: ${summary.total_failed_requests || 0} 次</div>
+          </div>
+          <div style="background:#050d1a; border:1px solid #1e3a5f; border-radius:8px; padding:12px;">
+            <div style="font-size:11px; color:#94a3b8; font-weight:700;">預估 API 費用</div>
+            <div style="font-size:20px; font-weight:900; color:#10b981; margin:4px 0;">$${costUsd}</div>
+            <div style="font-size:10.5px; color:#64748b;">USD (依定價目錄計算)</div>
+          </div>
+          <div style="background:#050d1a; border:1px solid #1e3a5f; border-radius:8px; padding:12px;">
+            <div style="font-size:11px; color:#94a3b8; font-weight:700;">消耗最高階段</div>
+            <div style="font-size:18px; font-weight:900; color:#f472b6; margin:4px 0; text-transform:uppercase;">${topStage}</div>
+            <div style="font-size:10.5px; color:#64748b;">共 ${summary.total_requests || 0} 次 LLM 請求</div>
+          </div>
+        </div>
+      `;
+
+      if (stages.length === 0) {
+        html += `
+          <div style="text-align:center; padding:50px 20px; background:#050a14; border:1px dashed #1e3a5f; border-radius:8px; color:#94a3b8;">
+            <span style="font-size:28px;">📭</span><br>
+            <b style="color:#cbd5e1; font-size:14px;">尚未有 API Token 消耗記錄</b><br>
+            <span style="font-size:12px;">執行工作流程或生成階段後，即會在此自動累計並分析。</span>
+          </div>
+        `;
+      } else {
+        html += `
+          <div style="background:#050a14; border:1px solid #1e293b; border-radius:8px; overflow:hidden;">
+            <div style="padding:10px 14px; background:#070f1e; border-bottom:1px solid #1e293b; font-size:12px; font-weight:700; color:#93c5fd; display:flex; justify-content:space-between; align-items:center;">
+              <span>🏆 各階段 Token 消耗排行與浪費率 (Ranked by Token Consumption)</span>
+              <span style="font-size:11px; color:#64748b;">按總 Token 由高至低排序</span>
+            </div>
+            <div style="overflow-x:auto;">
+              <table style="width:100%; border-collapse:collapse; font-size:12px; text-align:left;">
+                <thead>
+                  <tr style="border-bottom:1px solid #1e293b; color:#94a3b8; font-size:11px; background:#060d19;">
+                    <th style="padding:8px 12px;">排行</th>
+                    <th style="padding:8px 12px;">階段名稱</th>
+                    <th style="padding:8px 12px;">總消耗 Tokens</th>
+                    <th style="padding:8px 12px;">Prompt / Output</th>
+                    <th style="padding:8px 12px;">浪費 Tokens (佔比)</th>
+                    <th style="padding:8px 12px;">預估費用 (USD)</th>
+                    <th style="padding:8px 12px;">請求數 (重試失敗)</th>
+                  </tr>
+                </thead>
+                <tbody>
+        `;
+
+        stages.forEach((s, idx) => {
+          const meta = STAGE_LABELS[s.stage] || { name: s.stage, icon: '⚡', color: '#94a3b8' };
+          const stageWasted = s.wasted_tokens || 0;
+          const wasteRatio = s.waste_pct || 0;
+          const wasteBadge = stageWasted > 0 
+            ? `<span style="background:rgba(245,158,11,0.15); color:#fbbf24; border:1px solid rgba(245,158,11,0.3); padding:1px 6px; border-radius:4px; font-weight:700;">${stageWasted.toLocaleString()} (${wasteRatio}%)</span>`
+            : `<span style="color:#10b981; font-weight:600;">0 (0%)</span>`;
+
+          const rankBadge = idx === 0 
+            ? `<span style="background:#e11d48; color:#fff; font-weight:900; padding:2px 7px; border-radius:4px; font-size:10px;">TOP 1</span>`
+            : `<span style="color:#64748b; font-weight:700;">#${idx + 1}</span>`;
+
+          html += `
+            <tr style="border-bottom:1px solid #0c1626; transition:background 0.15s;" onmouseover="this.style.background='#081224'" onmouseout="this.style.background='transparent'">
+              <td style="padding:10px 12px;">${rankBadge}</td>
+              <td style="padding:10px 12px; font-weight:700; color:${meta.color};">
+                <span style="margin-right:6px;">${meta.icon}</span>${meta.name}
+              </td>
+              <td style="padding:10px 12px; font-weight:800; color:#fff;">${(s.total_tokens || 0).toLocaleString()}</td>
+              <td style="padding:10px 12px; color:#94a3b8; font-size:11px;">
+                In: ${(s.prompt_tokens || 0).toLocaleString()} <br> Out: ${(s.completion_tokens || 0).toLocaleString()}
+              </td>
+              <td style="padding:10px 12px;">${wasteBadge}</td>
+              <td style="padding:10px 12px; color:#34d399; font-weight:700;">$${Number(s.cost_usd || 0).toFixed(4)}</td>
+              <td style="padding:10px 12px; color:#cbd5e1;">${s.requests || 0} <span style="color:#64748b; font-size:11px;">(${s.failed_requests || 0} 失敗)</span></td>
+            </tr>
+          `;
+        });
+
+        html += `
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      }
+
+      container.innerHTML = html;
+    }
+
+    function renderTokenHistoryView(history, container) {
+      if (history.length === 0) {
+        container.innerHTML = `
+          <div style="text-align:center; padding:50px 20px; background:#050a14; border:1px dashed #1e3a5f; border-radius:8px; color:#94a3b8;">
+            <span style="font-size:28px;">📅</span><br>
+            <b style="color:#cbd5e1; font-size:14px;">尚無每日歷史記錄</b>
+          </div>
+        `;
+        return;
+      }
+
+      let html = `
+        <div style="background:#050a14; border:1px solid #1e293b; border-radius:8px; overflow:hidden;">
+          <div style="padding:10px 14px; background:#070f1e; border-bottom:1px solid #1e293b; font-size:12px; font-weight:700; color:#93c5fd;">
+            📈 每日 API Token 消耗歷史趨勢 (Daily History)
+          </div>
+          <div style="overflow-x:auto;">
+            <table style="width:100%; border-collapse:collapse; font-size:12px; text-align:left;">
+              <thead>
+                <tr style="border-bottom:1px solid #1e293b; color:#94a3b8; font-size:11px; background:#060d19;">
+                  <th style="padding:8px 12px;">日期 (Date)</th>
+                  <th style="padding:8px 12px;">總消耗 Tokens</th>
+                  <th style="padding:8px 12px;">浪費 Tokens (佔比)</th>
+                  <th style="padding:8px 12px;">每日費用 (USD)</th>
+                  <th style="padding:8px 12px;">API 呼叫次數</th>
+                  <th style="padding:8px 12px;">涵蓋階段數</th>
+                </tr>
+              </thead>
+              <tbody>
+      `;
+
+      history.forEach(h => {
+        const wasteRatio = h.waste_pct || 0;
+        const wasteBadge = (h.wasted_tokens || 0) > 0
+          ? `<span style="background:rgba(245,158,11,0.15); color:#fbbf24; border:1px solid rgba(245,158,11,0.3); padding:1px 6px; border-radius:4px; font-weight:700;">${(h.wasted_tokens || 0).toLocaleString()} (${wasteRatio}%)</span>`
+          : `<span style="color:#10b981; font-weight:600;">0 (0%)</span>`;
+
+        html += `
+          <tr style="border-bottom:1px solid #0c1626;">
+            <td style="padding:10px 12px; font-weight:700; color:#38bdf8;">📅 ${h.date}</td>
+            <td style="padding:10px 12px; font-weight:800; color:#fff;">${(h.total_tokens || 0).toLocaleString()}</td>
+            <td style="padding:10px 12px;">${wasteBadge}</td>
+            <td style="padding:10px 12px; color:#34d399; font-weight:700;">$${Number(h.cost_usd || 0).toFixed(4)}</td>
+            <td style="padding:10px 12px; color:#cbd5e1;">${h.requests || 0}</td>
+            <td style="padding:10px 12px; color:#94a3b8;">${h.stages_count || 0} 個階段</td>
+          </tr>
+        `;
+      });
+
+      html += `
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+
+      container.innerHTML = html;
+    }
+
+    window.openTokenUsageModal = openTokenUsageModal;
+    window.closeTokenUsageModal = closeTokenUsageModal;
+    window.switchTokenModalTab = switchTokenModalTab;
+    window.loadTokenUsageData = loadTokenUsageData;

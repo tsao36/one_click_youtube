@@ -1,16 +1,190 @@
 {
   "version": 1,
   "created_at": "2026-11-16T22:32:40.174600",
-  "updated_at": "2026-11-16T22:32:40.174600",
-  "daily": {},
+  "updated_at": "2026-11-16T22:36:46.620777",
+  "daily": {
+    "2026-11-16": {
+      "date": "2026-11-16",
+      "stages": {
+        "research": {
+          "prompt_tokens": 14500,
+          "completion_tokens": 6800,
+          "total_tokens": 21300,
+          "wasted_tokens": 1200,
+          "cost_usd": 0.003128,
+          "requests": 1,
+          "failed_requests": 0,
+          "models": {
+            "gemini-3.8-flash": {
+              "prompt_tokens": 14500,
+              "completion_tokens": 6800,
+              "total_tokens": 21300,
+              "wasted_tokens": 1200,
+              "cost_usd": 0.003128,
+              "requests": 1,
+              "failed_requests": 0
+            }
+          }
+        },
+        "script": {
+          "prompt_tokens": 28400,
+          "completion_tokens": 15600,
+          "total_tokens": 44000,
+          "wasted_tokens": 3200,
+          "cost_usd": 0.00681,
+          "requests": 1,
+          "failed_requests": 0,
+          "models": {
+            "gemini-3.8-flash": {
+              "prompt_tokens": 28400,
+              "completion_tokens": 15600,
+              "total_tokens": 44000,
+              "wasted_tokens": 3200,
+              "cost_usd": 0.00681,
+              "requests": 1,
+              "failed_requests": 0
+            }
+          }
+        },
+        "scenes": {
+          "prompt_tokens": 19800,
+          "completion_tokens": 9200,
+          "total_tokens": 29000,
+          "wasted_tokens": 1500,
+          "cost_usd": 0.004245,
+          "requests": 1,
+          "failed_requests": 0,
+          "models": {
+            "gemini-3.8-flash": {
+              "prompt_tokens": 19800,
+              "completion_tokens": 9200,
+              "total_tokens": 29000,
+              "wasted_tokens": 1500,
+              "cost_usd": 0.004245,
+              "requests": 1,
+              "failed_requests": 0
+            }
+          }
+        },
+        "prompts": {
+          "prompt_tokens": 12300,
+          "completion_tokens": 4900,
+          "total_tokens": 17200,
+          "wasted_tokens": 0,
+          "cost_usd": 0.002393,
+          "requests": 1,
+          "failed_requests": 0,
+          "models": {
+            "gemini-3.8-flash": {
+              "prompt_tokens": 12300,
+              "completion_tokens": 4900,
+              "total_tokens": 17200,
+              "wasted_tokens": 0,
+              "cost_usd": 0.002393,
+              "requests": 1,
+              "failed_requests": 0
+            }
+          }
+        }
+      },
+      "total_tokens": 111500,
+      "prompt_tokens": 75000,
+      "completion_tokens": 36500,
+      "wasted_tokens": 5900,
+      "cost_usd": 0.016575,
+      "requests": 4,
+      "failed_requests": 0
+    }
+  },
   "cumulative": {
-    "stages": {},
-    "total_tokens": 0,
-    "prompt_tokens": 0,
-    "completion_tokens": 0,
-    "wasted_tokens": 0,
-    "cost_usd": 0.0,
-    "requests": 0,
+    "stages": {
+      "research": {
+        "prompt_tokens": 14500,
+        "completion_tokens": 6800,
+        "total_tokens": 21300,
+        "wasted_tokens": 1200,
+        "cost_usd": 0.003128,
+        "requests": 1,
+        "failed_requests": 0,
+        "models": {
+          "gemini-3.8-flash": {
+            "prompt_tokens": 14500,
+            "completion_tokens": 6800,
+            "total_tokens": 21300,
+            "wasted_tokens": 1200,
+            "cost_usd": 0.003128,
+            "requests": 1,
+            "failed_requests": 0
+          }
+        }
+      },
+      "script": {
+        "prompt_tokens": 28400,
+        "completion_tokens": 15600,
+        "total_tokens": 44000,
+        "wasted_tokens": 3200,
+        "cost_usd": 0.00681,
+        "requests": 1,
+        "failed_requests": 0,
+        "models": {
+          "gemini-3.8-flash": {
+            "prompt_tokens": 28400,
+            "completion_tokens": 15600,
+            "total_tokens": 44000,
+            "wasted_tokens": 3200,
+            "cost_usd": 0.00681,
+            "requests": 1,
+            "failed_requests": 0
+          }
+        }
+      },
+      "scenes": {
+        "prompt_tokens": 19800,
+        "completion_tokens": 9200,
+        "total_tokens": 29000,
+        "wasted_tokens": 1500,
+        "cost_usd": 0.004245,
+        "requests": 1,
+        "failed_requests": 0,
+        "models": {
+          "gemini-3.8-flash": {
+            "prompt_tokens": 19800,
+            "completion_tokens": 9200,
+            "total_tokens": 29000,
+            "wasted_tokens": 1500,
+            "cost_usd": 0.004245,
+            "requests": 1,
+            "failed_requests": 0
+          }
+        }
+      },
+      "prompts": {
+        "prompt_tokens": 12300,
+        "completion_tokens": 4900,
+        "total_tokens": 17200,
+        "wasted_tokens": 0,
+        "cost_usd": 0.002393,
+        "requests": 1,
+        "failed_requests": 0,
+        "models": {
+          "gemini-3.8-flash": {
+            "prompt_tokens": 12300,
+            "completion_tokens": 4900,
+            "total_tokens": 17200,
+            "wasted_tokens": 0,
+            "cost_usd": 0.002393,
+            "requests": 1,
+            "failed_requests": 0
+          }
+        }
+      }
+    },
+    "total_tokens": 111500,
+    "prompt_tokens": 75000,
+    "completion_tokens": 36500,
+    "wasted_tokens": 5900,
+    "cost_usd": 0.016575,
+    "requests": 4,
     "failed_requests": 0
   }
 }
