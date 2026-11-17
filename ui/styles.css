@@ -641,6 +641,30 @@ pre {
   100% { opacity: 1; }
 }
 
+/* Centered preview cards must retain their translateX(-50%) while animating. */
+@keyframes overlayMotion_fade_drift_centered {
+  0% { opacity: 0; transform: translateX(-50%) translateY(18px); }
+  100% { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+@keyframes overlayMotion_slide_up_centered {
+  0% { opacity: 0; transform: translateX(-50%) translateY(46px); }
+  72% { transform: translateX(-50%) translateY(-4px); }
+  100% { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+@keyframes overlayMotion_scale_punch_centered {
+  0% { opacity: 0; transform: translateX(-50%) scale(0.8); }
+  70% { transform: translateX(-50%) scale(1.08); }
+  100% { opacity: 1; transform: translateX(-50%) scale(1); }
+}
+@keyframes overlayMotion_slide_horizontal_centered {
+  0% { opacity: 0; transform: translateX(calc(-50% - 45px)); }
+  100% { opacity: 1; transform: translateX(-50%); }
+}
+@keyframes overlayMotion_subtle_fade_centered {
+  0% { opacity: 0; transform: translateX(-50%); }
+  100% { opacity: 1; transform: translateX(-50%); }
+}
+
 .overlay-motion-animated {
   animation-fill-mode: both;
 }

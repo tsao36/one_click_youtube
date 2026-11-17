@@ -814,8 +814,10 @@ def apply_stage3_import(
 
     # Invalidate downstream stages if changes occurred
     if modified_scene_ids:
+        from rendering.ffmpeg_renderer import all_scenes_have_real_images
         project.set_scenes(updated_scene_objs)
-        project.invalidate("prompts")
+        if not all_scenes_have_real_images(project):
+            project.invalidate("prompts")
         # Check if any narration changed
         narr_changed = any(d.get("narration_changed") for d in diff_result.get("diffs", []))
         if narr_changed:
@@ -830,6 +832,8 @@ def apply_stage3_import(
                 project.invalidate("animation")
                 project.set_stage("presenter", Status.PENDING)
                 project.set_stage("animation", Status.PENDING)
+        else:
+            project.invalidate("render")
         project.save()
 
     return {

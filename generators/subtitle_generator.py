@@ -451,6 +451,55 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                         anim_tag = f"{{\\an5\\move({mid_x},{center_y + round(16 * scale)},{mid_x},{center_y},0,{ov_entrance_ms}){fade}}}"
                     event_style = "NeutralMessage"
 
+                elif b_style in ("comparison_badge", "compare_badge"):
+                    # Compact comparison badge: dark panel, thin red frame, and short red underline.
+                    fade = f"\\fad({max(80, ov_entrance_ms - 60)},260)"
+                    x1 = round(80 * scale * width / 1920)
+                    y1 = round(70 * scale * height / 1080)
+                    badge_title = title or clean_tag
+                    badge_sub = subtitle if subtitle else (clean_tag if title else "")
+                    badge_fs = round((int(ov_title_size) if ov_title_size else 58) * scale)
+                    badge_sub_fs = round((int(ov_sub_size) if ov_sub_size else 28) * scale)
+                    text_w = max(
+                        round(len(badge_title) * badge_fs * 0.9),
+                        round(len(badge_sub) * badge_sub_fs * 0.9) if badge_sub else 0,
+                        round(250 * scale),
+                    )
+                    pad_x = round(24 * scale)
+                    pad_y = round(18 * scale)
+                    accent_w = round(10 * scale)
+                    card_w = accent_w + pad_x * 2 + text_w
+                    card_h = pad_y * 2 + badge_fs + (round(8 * scale) + badge_sub_fs if badge_sub else 0)
+                    x2 = min(width - round(40 * scale), x1 + card_w)
+                    y2 = y1 + card_h
+                    bg_col = hex_to_ass_color(ov_bg_color, "&H000C0A08&")
+                    accent_col = hex_to_ass_color(ov_accent_color, "&H001C1CB9&")
+                    text_col = hex_to_ass_color(ov_text_color, "&H00F8F8F8&")
+                    box = f"m {x1} {y1} l {x2} {y1} l {x2} {y2} l {x1} {y2}"
+                    raw_events.append((
+                        c_start,
+                        f"Dialogue: 1,{_ts_ass(c_start)},{_ts_ass(c_end)},FoxCalloutBox,,0,0,0,,"
+                        f"{{\\an7\\pos(0,0)\\p1\\bord{max(1, round(2 * scale))}\\shad0\\1c{bg_col}\\3c{accent_col}\\1a&H18&\\3a&H00&{fade}}}{box}",
+                    ))
+                    underline_h = max(3, round(5 * scale))
+                    underline_w = min(round(110 * scale), card_w - accent_w - pad_x * 2)
+                    underline = f"m {x1 + accent_w + pad_x} {y2 - underline_h} l {x1 + accent_w + pad_x + underline_w} {y2 - underline_h} l {x1 + accent_w + pad_x + underline_w} {y2} l {x1 + accent_w + pad_x} {y2}"
+                    raw_events.append((
+                        c_start,
+                        f"Dialogue: 2,{_ts_ass(c_start)},{_ts_ass(c_end)},FoxCalloutBox,,0,0,0,,"
+                        f"{{\\an7\\pos(0,0)\\p1\\bord0\\shad0\\1c{accent_col}\\1a&H00&{fade}}}{underline}",
+                    ))
+                    text_x = x1 + accent_w + pad_x
+                    lines = [f"{{\\fs{badge_fs}\\b1\\c{text_col}\\3c&H00000000&\\bord0\\shad1}}{badge_title}"]
+                    if badge_sub:
+                        lines.append(f"{{\\fs{badge_sub_fs}\\b0\\c{text_col}\\3c&H00000000&\\bord0\\shad1}}{badge_sub}")
+                    raw_events.append((
+                        c_start,
+                        f"Dialogue: 3,{_ts_ass(c_start)},{_ts_ass(c_end)},FoxCalloutCard,,0,0,0,,"
+                        f"{{\\an7\\pos({text_x},{y1 + pad_y - round(4 * scale)}){fade}}}" + "\\N".join(lines),
+                    ))
+                    continue
+
                 elif b_style in ("historical_timeline", "timeline_badge"):
                     # Historical Timeline Banner: Top-left giant outline year/tag + dark translucent card with crimson red bottom accent line
                     fade = r"\fad(220,260)"

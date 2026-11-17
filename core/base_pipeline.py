@@ -1924,6 +1924,20 @@ class BasePipeline:
     def _run_scenes(self) -> None:
         raise NotImplementedError
 
+    def _ensure_stub_prompt_for_scene(self, sc: Scene) -> str:
+        """Preserve existing prompt on scene, or assign a descriptive stub if empty."""
+        existing = (sc.prompt or sc.visual_prompt or "").strip()
+        if existing:
+            sc.prompt = existing
+            sc.visual_prompt = existing
+            return existing
+        meta = (sc.image.meta or {}) if sc.image else {}
+        filename = meta.get("filename") or meta.get("title") or ""
+        stub = f"[Manual image asset: {filename}]" if filename else f"[Manual image asset: {sc.tag}]"
+        sc.prompt = stub
+        sc.visual_prompt = stub
+        return stub
+
     def _run_prompts(self) -> None:
         raise NotImplementedError
 
@@ -2007,6 +2021,12 @@ class BasePipeline:
             for s in scenes:
                 if self._cancel_flag: raise PipelineCancelled()
                 audio_path = self.p.path("audio", f"{s.tag}.wav")
+                if not isinstance(s.narration, str) or not s.narration.strip():
+                    log.warning("Skipping TTS for Scene %s because narration is empty", s.scene_id)
+                    s.audio.status = Status.SKIPPED
+                    s.audio.error = None
+                    self.p.save_scenes()
+                    continue
                 is_drama = getattr(self.p, "project_mode", "documentary") == "short_drama"
                 if not is_drama and avatar_is_used and default_p_name:
                     s.voice_profile = default_p_name

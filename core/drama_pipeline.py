@@ -1000,92 +1000,53 @@ class DramaPipeline(BasePipeline):
     # ---------------- Stage 4: Actor Action & Framing Prompts ----------------
 
     def _run_prompts(self) -> None:
-
-
-
         st = self.p.stage("prompts")
-
-
-
         if st.status == Status.COMPLETED and self.p.path("prompts", "image_prompts.json").exists():
-
-
-
             return
-
-
-
-        if self._cancel_flag: raise PipelineCancelled()
-
-
-
-
-
-
+        if self._cancel_flag:
+            raise PipelineCancelled()
 
         t0 = time.perf_counter()
-
-
-
         self.p.activity("Stage 4/9: Creating image generation prompts...")
-
-
-
         self.p.set_stage("prompts", Status.RUNNING)
 
-
-
-        cfg = self.p.settings
-
-
-
         scenes = self.p.scenes
-
-
-
         if not scenes:
-
-
-
             raise RuntimeError("No scenes available to prompt")
 
+        from rendering.ffmpeg_renderer import scene_has_real_image
 
+        existing_map = self.p.read_json("prompts/image_prompts.json", {})
+        if not isinstance(existing_map, dict):
+            existing_map = {}
 
-
-
-
-
-
+        scenes_needing_prompts = [s for s in scenes if not scene_has_real_image(self.p, s)]
+        if not scenes_needing_prompts:
+            prompts_map = {}
+            for s in scenes:
+                prompt_text = self._ensure_stub_prompt_for_scene(s)
+                prompts_map[s.tag] = existing_map.get(s.tag) or prompt_text
+            self.p.write_json("prompts/image_prompts.json", prompts_map)
+            self.p.save_scenes()
+            self.p.set_stage("prompts", Status.COMPLETED, done=len(scenes), total=len(scenes), duration_override=0.0)
+            log.info("Skipped Drama Stage 4 prompts: all %d scenes already have real images.", len(scenes))
+            return
 
         self.p.activity("Stage 4/9: Creating character action, emotion & camera framing prompts...")
-
-
-
         drama_pkg = self.p.read_json("research/drama_plan.json", {})
-
-
-
         shots = drama_pkg.get("shots", [])
-
-
-
         roster = self.p.settings.get("drama_characters", []) or drama_pkg.get("characters", []) or self.p.read_json("research/character_roster.json", [])
 
-
-
         prompts_map = {}
-
-
-
+        from core.action_registry import assign_gesture_to_scene, get_gesture_by_tag
         for i, s in enumerate(scenes):
-
-
+            if scene_has_real_image(self.p, s):
+                prompt_text = self._ensure_stub_prompt_for_scene(s)
+                prompts_map[s.tag] = existing_map.get(s.tag) or prompt_text
+                self.p.progress("prompts", i + 1, len(scenes))
+                continue
 
             shot = shots[i] if i < len(shots) else {}
-
-
-
-            from core.action_registry import assign_gesture_to_scene, get_gesture_by_tag
             spk = s.speaker or shot.get("speaker", "主角")
             c_info = None
             if getattr(s, "character_id", None):
@@ -1123,32 +1084,11 @@ class DramaPipeline(BasePipeline):
             prompts_map[s.tag] = prompt_str
             self.p.progress("prompts", i + 1, len(scenes))
 
-
-
-
-
-
-
         self.p.write_json("prompts/image_prompts.json", prompts_map)
-
-
-
         self.p.save_scenes()
-
-
-
         elapsed = round(max(0.1, time.perf_counter() - t0), 1)
-
-
-
         self.p.set_stage("prompts", Status.COMPLETED, done=len(scenes), total=len(scenes), duration_override=elapsed)
-
-
-
         log.info("Drama action prompts generated: %d scenes in %.1fs", len(scenes), elapsed)
-
-
-
         return
 
 

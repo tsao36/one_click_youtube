@@ -1,7 +1,7 @@
 {
   "version": 1,
   "created_at": "2026-11-16T22:32:40.174600",
-  "updated_at": "2026-11-17T15:22:28.640977",
+  "updated_at": "2026-11-17T23:03:32.923390",
   "daily": {
     "2026-11-16": {
       "date": "2026-11-16",
@@ -155,14 +155,34 @@
               "failed_requests": 0
             }
           }
+        },
+        "prompts": {
+          "prompt_tokens": 29681,
+          "completion_tokens": 10234,
+          "total_tokens": 39915,
+          "wasted_tokens": 0,
+          "cost_usd": 0.005297,
+          "requests": 11,
+          "failed_requests": 0,
+          "models": {
+            "gemini-flash-latest": {
+              "prompt_tokens": 29681,
+              "completion_tokens": 10234,
+              "total_tokens": 39915,
+              "wasted_tokens": 0,
+              "cost_usd": 0.005297,
+              "requests": 11,
+              "failed_requests": 0
+            }
+          }
         }
       },
-      "total_tokens": 10087,
-      "prompt_tokens": 6695,
-      "completion_tokens": 3392,
+      "total_tokens": 50002,
+      "prompt_tokens": 36376,
+      "completion_tokens": 13626,
       "wasted_tokens": 0,
-      "cost_usd": 0.001457,
-      "requests": 9,
+      "cost_usd": 0.006754,
+      "requests": 20,
       "failed_requests": 0
     }
   },
@@ -256,12 +276,12 @@
         }
       },
       "prompts": {
-        "prompt_tokens": 12300,
-        "completion_tokens": 4900,
-        "total_tokens": 17200,
+        "prompt_tokens": 41981,
+        "completion_tokens": 15134,
+        "total_tokens": 57115,
         "wasted_tokens": 0,
-        "cost_usd": 0.002393,
-        "requests": 1,
+        "cost_usd": 0.00769,
+        "requests": 12,
         "failed_requests": 0,
         "models": {
           "gemini-3.8-flash": {
@@ -272,16 +292,25 @@
             "cost_usd": 0.002393,
             "requests": 1,
             "failed_requests": 0
+          },
+          "gemini-flash-latest": {
+            "prompt_tokens": 29681,
+            "completion_tokens": 10234,
+            "total_tokens": 39915,
+            "wasted_tokens": 0,
+            "cost_usd": 0.005297,
+            "requests": 11,
+            "failed_requests": 0
           }
         }
       }
     },
-    "total_tokens": 122135,
-    "prompt_tokens": 82164,
-    "completion_tokens": 39971,
+    "total_tokens": 162050,
+    "prompt_tokens": 111845,
+    "completion_tokens": 50205,
     "wasted_tokens": 5900,
-    "cost_usd": 0.018031,
-    "requests": 14,
+    "cost_usd": 0.023328,
+    "requests": 25,
     "failed_requests": 0
   }
 }

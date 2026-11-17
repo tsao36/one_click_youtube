@@ -6,7 +6,7 @@ from fastapi import APIRouter, BackgroundTasks
 
 from core.pipeline_jobs import get_project, queue_pipeline_job
 from core.project_manager import Project
-from rendering.ffmpeg_renderer import render_project, scene_has_real_image, RenderError
+from rendering.ffmpeg_renderer import all_scenes_have_real_images, render_project, scene_has_real_image, RenderError
 
 
 router = APIRouter()
@@ -108,10 +108,15 @@ def fast_rerender_video_endpoint(project_id: str, background_tasks: BackgroundTa
             )
             for sc in pipeline.p.scenes
         )
-        if has_pending_anim or has_pending_presenter or pipeline.p.stages.get("animation") != Status.COMPLETED or pipeline.p.stages.get("presenter") != Status.COMPLETED:
+        if has_pending_anim or has_pending_presenter or pipeline.p.stage("animation").status != Status.COMPLETED or pipeline.p.stage("presenter").status != Status.COMPLETED:
             pipeline._run_animation()
         pipeline._run_subtitles()
         pipeline._run_render()
+        if all_scenes_have_real_images(pipeline.p):
+            total_active = len(pipeline.p.active_scenes())
+            for st_key in ("prompts", "images"):
+                if pipeline.p.stage(st_key).status == Status.PENDING:
+                    pipeline.p.set_stage(st_key, Status.COMPLETED, done=total_active, total=total_active)
         project.data.activity = "Final 1080p video successfully updated! Replaced modified scenes."
 
     if not queue_pipeline_job(project, background_tasks, do_render, prepare=prepare):

@@ -111,7 +111,9 @@ class EdgeTTS(TTSProvider):
 
     def generate_speech(self, text, profile, output_file):
         import edge_tts
-        voice = profile.get("voice")
+        # A fallback provider must not interpret another provider's display name
+        # (for example VoAI's 明達) as an Edge voice identifier.
+        voice = profile.get("voice") if profile.get("provider") == "edge" else None
         if not voice:
             lang = (profile.get("language") or "").lower()
             if "chinese" in lang or "tw" in lang or any("\u4e00" <= ch <= "\u9fff" for ch in text):
@@ -666,7 +668,12 @@ class ElevenLabsTTS(TTSProvider):
         if not key:
             raise TTSError("ElevenLabs API key is not configured. Please add ELEVENLABS_API_KEY in the Settings tab.")
 
-        voice_id = profile.get("voice_id") or profile.get("voice") or self.cfg.get("voice_id")
+        # Only consume profile voice fields when this profile belongs to
+        # ElevenLabs; other providers commonly use human-readable names here.
+        voice_id = None
+        if profile.get("provider") == "elevenlabs":
+            voice_id = profile.get("voice_id") or profile.get("voice")
+        voice_id = voice_id or self.cfg.get("voice_id")
         if not voice_id:
             try:
                 from generators.voice_generator import list_profiles

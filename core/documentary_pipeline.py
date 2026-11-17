@@ -618,100 +618,62 @@ class DocumentaryPipeline(BasePipeline):
     # ---------------- Stage 4: Prompts ----------------
 
     def _run_prompts(self) -> None:
-
-
-
         st = self.p.stage("prompts")
-
-
-
         if st.status == Status.COMPLETED and self.p.path("prompts", "image_prompts.json").exists():
-
-
-
             return
-
-
-
-        if self._cancel_flag: raise PipelineCancelled()
-
-
-
-
-
-
+        if self._cancel_flag:
+            raise PipelineCancelled()
 
         t0 = time.perf_counter()
-
-
-
         self.p.activity("Stage 4/10: Creating image generation prompts...")
-
-
-
         self.p.set_stage("prompts", Status.RUNNING)
 
-
-
         cfg = self.p.settings
-
-
-
         scenes = self.p.scenes
-
-
-
         if not scenes:
-
-
-
             raise RuntimeError("No scenes available to prompt")
 
+        from rendering.ffmpeg_renderer import scene_has_real_image
 
+        scenes_needing_prompts = [s for s in scenes if not scene_has_real_image(self.p, s)]
+        existing_raw = self.p.read_json("prompts/image_prompts.json", [])
+        existing_by_id = (
+            {item["scene_id"]: item for item in existing_raw if isinstance(item, dict) and "scene_id" in item}
+            if isinstance(existing_raw, list)
+            else {}
+        )
 
+        if not scenes_needing_prompts:
+            out_prompts = []
+            for s in scenes:
+                prompt_text = self._ensure_stub_prompt_for_scene(s)
+                entry = existing_by_id.get(s.scene_id) or {
+                    "scene_id": s.scene_id,
+                    "prompt": prompt_text,
+                    "visual_prompt": prompt_text,
+                    "negative": s.negative_prompt or "",
+                    "seed": s.seed,
+                    "parts": {"subject": prompt_text},
+                }
+                entry["prompt"] = entry.get("prompt") or prompt_text
+                entry["visual_prompt"] = entry.get("visual_prompt") or entry["prompt"]
+                out_prompts.append(entry)
 
-
-
+            self.p.write_json("prompts/image_prompts.json", out_prompts)
+            self.p.save_scenes()
+            self.p.set_stage("prompts", Status.COMPLETED, done=len(scenes), total=len(scenes), duration_override=0.0)
+            log.info("Skipped Stage 4 LLM prompts: all %d scenes already have real images.", len(scenes))
+            return
 
         seed = int(self.p.data.settings.get("seed", 12345))
-
-
-
         style = project_style(cfg, seed)
-
-
-
         self.p.data.style = style
-
-
-
         self.p.save()
 
-
-
-
-
-
-
         bible = self.p.read_json("scenes/visual_bible.json", {"entities": []})
-
-
-
         from providers.llm import LLMClient
-
-
-
         prompts_prov = self.get_stage_model("prompts")
-
-
-
         client = LLMClient("prompt_generation", self._track_llm_request, provider_override=prompts_prov)
-
-
-
-
-
-
 
         def on_prog(done, total):
             self.p.progress("prompts", done, total)
@@ -720,38 +682,49 @@ class DocumentaryPipeline(BasePipeline):
         world_setting = res_data.get("world_setting") if isinstance(res_data, dict) else None
 
         try:
-            prompts = generate_prompts(scenes, style, bible, client, batch=int(cfg.get("scenes", {}).get("llm_batch_size", 8)), progress=on_prog, topic=self.p.data.topic, world_setting=world_setting)
+            generated = generate_prompts(
+                scenes_needing_prompts,
+                style,
+                bible,
+                client,
+                batch=int(cfg.get("scenes", {}).get("llm_batch_size", 8)),
+                progress=on_prog,
+                topic=self.p.data.topic,
+                world_setting=world_setting,
+            )
+            generated_by_id = {item["scene_id"]: item for item in generated if isinstance(item, dict) and "scene_id" in item}
 
+            out_prompts = []
+            for s in scenes:
+                if s.scene_id in generated_by_id:
+                    out_prompts.append(generated_by_id[s.scene_id])
+                else:
+                    prompt_text = self._ensure_stub_prompt_for_scene(s)
+                    entry = existing_by_id.get(s.scene_id) or {
+                        "scene_id": s.scene_id,
+                        "prompt": prompt_text,
+                        "visual_prompt": prompt_text,
+                        "negative": s.negative_prompt or "",
+                        "seed": s.seed,
+                        "parts": {"subject": prompt_text},
+                    }
+                    entry["prompt"] = entry.get("prompt") or prompt_text
+                    entry["visual_prompt"] = entry.get("visual_prompt") or entry["prompt"]
+                    out_prompts.append(entry)
 
-
-            self.p.write_json("prompts/image_prompts.json", prompts)
-
-
-
+            self.p.write_json("prompts/image_prompts.json", out_prompts)
             self.p.save_scenes()
-
-
-
             elapsed = round(max(0.1, time.perf_counter() - t0), 1)
-
-
-
-            self.p.set_stage("prompts", Status.COMPLETED, done=len(prompts), total=len(prompts), duration_override=elapsed)
-
-
-
-            log.info("Visual prompts complete for %d scenes in %.1fs", len(prompts), elapsed)
-
-
-
+            self.p.set_stage("prompts", Status.COMPLETED, done=len(out_prompts), total=len(out_prompts), duration_override=elapsed)
+            log.info(
+                "Visual prompts complete for %d/%d scenes (%d skipped with existing images) in %.1fs",
+                len(scenes_needing_prompts),
+                len(scenes),
+                len(scenes) - len(scenes_needing_prompts),
+                elapsed,
+            )
         except Exception as e:
-
-
-
             self.p.set_stage("prompts", Status.FAILED, error=str(e))
-
-
-
             raise
 
 

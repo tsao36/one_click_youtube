@@ -376,6 +376,8 @@ def prepare_text(text: str) -> str:
 
 def synthesize(text: str, profile: dict, out_wav: Path, settings: dict, provider_override: str | None = None) -> dict:
     """Generate speech, then normalise to target LUFS / -1.5 dBTP, mono 48 kHz. Returns metadata incl. duration."""
+    if not isinstance(text, str) or not text.strip():
+        raise TTSError("Cannot generate speech: narration text is empty")
     vs = settings.get("voice", {})
     is_cjk = any("\u4e00" <= ch <= "\u9fff" for ch in text)
 

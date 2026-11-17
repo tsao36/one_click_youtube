@@ -2379,7 +2379,9 @@ def update_stage_data_endpoint(project_id: str, stage_name: str, payload: dict[s
                 incoming_scenes.append(sc)
             p.set_scenes(incoming_scenes)
             if stage_name == "scenes":
-                p.invalidate("prompts")
+                from rendering.ffmpeg_renderer import all_scenes_have_real_images
+                if not all_scenes_have_real_images(p):
+                    p.invalidate("prompts")
                 if modified_text_scenes:
                     log.info("Scenes %s narration text modified; invalidating voice, subtitles, and render stages", modified_text_scenes)
                     p.invalidate("voice")

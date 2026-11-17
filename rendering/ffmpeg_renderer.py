@@ -150,6 +150,12 @@ def scene_has_real_image(project: Project, sc: Scene) -> bool:
     return True
 
 
+def all_scenes_have_real_images(project: Project) -> bool:
+    """Return True if project has active scenes and every active scene has a valid real image."""
+    scenes = project.active_scenes()
+    return bool(scenes) and all(scene_has_real_image(project, sc) for sc in scenes)
+
+
 def project_timeline(project: Project) -> tuple[list[Scene], list[Slot]]:
     scenes = project.active_scenes()
     missing = [sc.scene_id for sc in scenes if sc.audio.status != Status.COMPLETED or not sc.audio_duration]

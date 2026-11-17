@@ -133,6 +133,30 @@ def test_write_ass_neutral_centered_with_custom_overlay_config(tmp_path):
     assert "\\fscx115\\fscy115" in content  # scale punch 1.15x
 
 
+def test_write_ass_comparison_badge_overlay(tmp_path):
+    ass_path = tmp_path / "test_comparison_badge.ass"
+    write_ass(
+        cues=[Cue(start=0.0, end=3.0, text="比較重點")],
+        path=ass_path,
+        style="youtube_standard",
+        width=1920,
+        height=1080,
+        callouts=[{
+            "start": 0.2,
+            "end": 2.8,
+            "tag": "比較",
+            "title": "比一比",
+            "subtitle": "兩種方案",
+            "style": "FoxCalloutCard",
+            "banner_style": "comparison_badge",
+        }],
+    )
+    content = ass_path.read_text(encoding="utf-8")
+    assert "比一比" in content
+    assert "\\3c&H001C1CB9&" in content
+    assert "\\p1" in content
+
+
 def test_extract_motion_callouts_custom_duration():
     sc = Scene(
         scene_id=1,

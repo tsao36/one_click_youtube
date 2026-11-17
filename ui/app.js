@@ -9073,6 +9073,28 @@
         defaultDisplaySec: 3.0,
         defaultMotionScale: 1.08
       },
+      comparison_badge: {
+        key: 'comparison_badge',
+        name: '比一比徽章',
+        en: 'Comparison Badge',
+        badge: '左上角 · 紅框短標題',
+        desc: '仿照比較型資訊卡：深色半透明底、細紅框與短紅色底線，適合「比一比」或雙方案對照。',
+        tag: '比較',
+        title: '比一比',
+        subtitle: '兩種方案的關鍵差異',
+        tags: ['比較重點', '紅框字卡', '左上角'],
+        chipLabel: '🔴 比一比徽章',
+        accent: '#ef4444',
+        defaultTitlePt: 58,
+        defaultSubPt: 28,
+        defaultText: '#FFFFFF',
+        defaultBg: '#0C0A08',
+        defaultBgOpacity: 0.90,
+        defaultMotion: 'fade_drift',
+        defaultEntranceMs: 320,
+        defaultDisplaySec: 3.0,
+        defaultMotionScale: 1.04
+      },
       none: {
         key: 'none',
         name: '停用場景訊息',
@@ -9362,9 +9384,12 @@
       if (!el) return;
       const effect = document.getElementById('set-overlay-motion-effect')?.value || 'fade_drift';
       const dur = (parseInt(document.getElementById('set-overlay-entrance-duration')?.value) || 320) + 'ms';
+      const styleKey = document.getElementById('set-callout-banner-style')?.value || 'corner_metric';
+      const centeredPreview = ['modern_pill', 'archival_parchment', 'minimal_clean', 'broadcast_news'].includes(styleKey);
+      const previewMotion = centeredPreview ? `${effect}_centered` : effect;
       el.style.animation = 'none';
       el.offsetHeight; // trigger reflow
-      el.style.animation = `overlayMotion_${effect} ${dur} cubic-bezier(0.16, 1, 0.3, 1) both`;
+      el.style.animation = `overlayMotion_${previewMotion} ${dur} cubic-bezier(0.16, 1, 0.3, 1) both`;
     }
     window.triggerOverlayMotionPreviewAnimation = triggerOverlayMotionPreviewAnimation;
 
@@ -9386,7 +9411,9 @@
 
       const titleSize = isMini ? Math.round(titlePt * 0.13) + 'px' : Math.round(titlePt * 0.25) + 'px';
       const subSize = isMini ? Math.round(subPt * 0.13) + 'px' : Math.round(subPt * 0.25) + 'px';
-      const animStyle = isMini ? '' : `animation: overlayMotion_${motionEffect} ${entranceMs}ms cubic-bezier(0.16, 1, 0.3, 1) both;`;
+      const centeredPreview = ['modern_pill', 'archival_parchment', 'minimal_clean', 'broadcast_news'].includes(styleKey);
+      const previewMotion = centeredPreview ? `${motionEffect}_centered` : motionEffect;
+      const animStyle = isMini ? '' : `animation: overlayMotion_${previewMotion} ${entranceMs}ms cubic-bezier(0.16, 1, 0.3, 1) both;`;
       const animId = isMini ? '' : 'id="callout-preview-animated-element"';
 
       if (styleKey === 'neutral_centered') {
@@ -9462,9 +9489,21 @@
         const pad = isMini ? '3px 8px' : '5px 14px';
         overlayHtml = `
           <div ${animId} class="overlay-motion-animated" style="position:absolute; top:${topPos}; left:50%; transform:translateX(-50%); z-index:2; width:92%; max-width:${isMini ? '250px' : '400px'}; pointer-events:none; ${animStyle}">
-            <div style="background:linear-gradient(90deg, ${hexToRgba(bgColor, bgOpacity)} 0%, ${hexToRgba(bgColor, Math.max(0, bgOpacity - 0.1))} 100%); border-left:4px solid ${accentColor}; border-top:1px solid ${hexToRgba(accentColor, 0.35)}; border-right:1px solid ${hexToRgba(accentColor, 0.35)}; border-bottom:1px solid ${hexToRgba(accentColor, 0.35)}; border-radius:4px; padding:${pad}; box-shadow:0 4px 18px rgba(0,0,0,0.8); display:flex; align-items:center; justify-content:center; gap:${isMini ? '4px' : '8px'};">
-              <span style="color:${accentColor}; font-size:${subSize}; font-weight:900; white-space:nowrap;">▶ ${info.tag}</span>
-              <span style="color:${textColor}; font-size:${titleSize}; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${info.title}</span>
+            <div style="box-sizing:border-box; width:100%; min-width:0; background:linear-gradient(90deg, ${hexToRgba(bgColor, bgOpacity)} 0%, ${hexToRgba(bgColor, Math.max(0, bgOpacity - 0.1))} 100%); border-left:4px solid ${accentColor}; border-top:1px solid ${hexToRgba(accentColor, 0.35)}; border-right:1px solid ${hexToRgba(accentColor, 0.35)}; border-bottom:1px solid ${hexToRgba(accentColor, 0.35)}; border-radius:4px; padding:${pad}; box-shadow:0 4px 18px rgba(0,0,0,0.8); display:flex; align-items:center; justify-content:center; gap:${isMini ? '4px' : '8px'};">
+              <span style="color:${accentColor}; font-size:${subSize}; font-weight:900; white-space:nowrap; flex:0 0 auto;">▶ ${info.tag}</span>
+              <span style="color:${textColor}; font-size:${titleSize}; font-weight:700; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${info.title}</span>
+            </div>
+          </div>
+        `;
+      } else if (styleKey === 'comparison_badge') {
+        const pos = isMini ? '8px' : '14px';
+        const pad = isMini ? '4px 8px 5px 0' : '8px 14px 9px 0';
+        overlayHtml = `
+          <div ${animId} class="overlay-motion-animated" style="box-sizing:border-box; position:absolute; top:${pos}; left:${pos}; z-index:2; max-width:88%; overflow:hidden; border:1px solid ${accentColor}; border-radius:2px; background:${hexToRgba(bgColor, bgOpacity)}; box-shadow:0 5px 16px rgba(0,0,0,0.7); padding:${pad}; pointer-events:none; ${animStyle}">
+            <div style="width:${isMini ? '4px' : '6px'}; align-self:stretch; background:${accentColor}; margin-right:${isMini ? '8px' : '12px'}; flex:0 0 auto;"></div>
+            <div style="min-width:0;">
+              <div style="color:${textColor}; font-size:${titleSize}; font-weight:800; line-height:1.05; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${info.title}</div>
+              <div style="height:${isMini ? '2px' : '3px'}; width:${isMini ? '34px' : '58px'}; margin-top:${isMini ? '4px' : '6px'}; background:${accentColor};"></div>
             </div>
           </div>
         `;
@@ -14434,6 +14473,8 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
               <span style="font-size: 12px; color: #94a3b8; font-weight: 600;">Gallery View:</span>
               <button class="btn-sec" id="btn-gallery-grid" style="padding: 3px 8px; font-size: 12px; font-weight: 600; ${imagesGalleryLayout !== 'strip' ? 'background: #1e3a8a; border-color: #3b82f6; color: #fff;' : ''}" onclick="toggleImagesGalleryLayout('grid')" title="Wrap cards in a responsive grid">🔲 Grid View</button>
               <button class="btn-sec" id="btn-gallery-strip" style="padding: 3px 8px; font-size: 12px; font-weight: 600; ${imagesGalleryLayout === 'strip' ? 'background: #1e3a8a; border-color: #3b82f6; color: #fff;' : ''}" onclick="toggleImagesGalleryLayout('strip')" title="Horizontal scroll bar across all scene images">↔️ Horizontal Scroll View</button>
+              <button class="btn-primary" style="padding: 4px 10px; font-size: 12px; background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); border-color: #a855f7;" onclick="triggerBatchSceneImageUpload()" title="Upload images named Scene #N from a folder">📁 Batch Upload Folder</button>
+              <input type="file" id="studio-batch-scene-upload" accept="image/jpeg,image/png,image/webp,image/gif,image/bmp,image/tiff,image/avif,.jpg,.jpeg,.png,.webp,.gif,.bmp,.tif,.tiff,.avif" webkitdirectory directory multiple style="display:none;" onchange="handleBatchSceneImageFolder(this.files)">
             </div>
           </div>
           ${(() => {
@@ -16210,6 +16251,135 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
 
     async function deleteTakeFromModal(sceneId, takeNum) {
       return deleteSceneMediaTake(sceneId, takeNum, 'image', { fromModal: true });
+    }
+
+    const BATCH_SCENE_IMAGE_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'tif', 'tiff', 'avif']);
+    let batchSceneImageUploadCancelled = false;
+
+    function triggerBatchSceneImageUpload() {
+      const input = document.getElementById('studio-batch-scene-upload');
+      if (input) { input.value = ''; input.click(); }
+    }
+
+    function batchSceneImageRecordKey(file, sceneId) {
+      return `${sceneId}|${file.name}|${file.size}|${file.lastModified || 0}`;
+    }
+
+    function batchSceneImageMetadataKey() {
+      return `youtube_video_batch_scene_images_${currentProjectId || 'unknown'}`;
+    }
+
+    function getBatchSceneImageMetadata() {
+      try { return JSON.parse(localStorage.getItem(batchSceneImageMetadataKey()) || '{}') || {}; } catch (_) { return {}; }
+    }
+
+    function setBatchSceneImageMetadata(metadata) {
+      try { localStorage.setItem(batchSceneImageMetadataKey(), JSON.stringify(metadata)); } catch (_) { /* storage may be unavailable */ }
+    }
+
+    function parseBatchSceneImageFile(file) {
+      const filename = String(file && file.name || '');
+      const extMatch = filename.match(/\.([^.]+)$/);
+      const extension = extMatch ? extMatch[1].toLowerCase() : '';
+      const sceneMatch = filename.match(/^scene\s*#\s*(\d+)\b/i);
+      return {
+        file,
+        filename,
+        extension,
+        sceneId: sceneMatch ? Number(sceneMatch[1]) : null,
+        validExtension: BATCH_SCENE_IMAGE_EXTENSIONS.has(extension),
+      };
+    }
+
+    function batchSceneImageSetProgress(state, message) {
+      const progress = document.getElementById('batch-scene-upload-progress');
+      const bar = document.getElementById('batch-scene-upload-progress-bar');
+      const status = document.getElementById('batch-scene-upload-status');
+      const counts = document.getElementById('batch-scene-upload-counts');
+      if (!progress || !bar || !status || !counts) return;
+      const percent = state.total ? Math.round((state.completed / state.total) * 100) : (state.finished ? 100 : 0);
+      bar.style.width = `${percent}%`;
+      bar.textContent = `${percent}%`;
+      status.textContent = message || (state.current ? `Uploading ${state.current}` : 'Preparing...');
+      counts.textContent = `${state.completed} / ${state.total} completed · ${state.success} successful · ${state.replaced} replaced · ${state.failed} failed`;
+    }
+
+    function showBatchSceneImageUploadDialog(state) {
+      const old = document.getElementById('batch-scene-upload-dialog');
+      if (old) old.remove();
+      const dialog = document.createElement('div');
+      dialog.id = 'batch-scene-upload-dialog';
+      dialog.style.cssText = 'position:fixed;inset:0;background:rgba(2,6,23,.78);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;';
+      dialog.innerHTML = `<div style="width:min(680px,100%);max-height:85vh;overflow:auto;background:#0f172a;border:1px solid #475569;border-radius:10px;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.5);color:#e2e8f0;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;"><h3 style="margin:0;color:#c4b5fd;">📁 Batch Scene Image Upload</h3><button class="btn-sec" onclick="batchSceneImageUploadCancelled=true; this.disabled=true; this.textContent='Stopping…';">Cancel New Uploads</button></div>
+        <div id="batch-scene-upload-status" style="margin:16px 0 8px;color:#cbd5e1;">Preparing...</div>
+        <div style="height:22px;background:#020617;border:1px solid #334155;border-radius:6px;overflow:hidden;"><div id="batch-scene-upload-progress-bar" style="height:100%;width:0;background:linear-gradient(90deg,#7c3aed,#a855f7);color:#fff;text-align:center;font-size:11px;line-height:20px;transition:width .2s;">0%</div></div>
+        <div id="batch-scene-upload-counts" style="margin-top:8px;font-size:12px;color:#94a3b8;"></div>
+        <div id="batch-scene-upload-summary" style="margin-top:14px;font-size:12px;line-height:1.5;"></div>
+        <div style="display:flex;justify-content:flex-end;margin-top:18px;"><button class="btn-primary" onclick="document.getElementById('batch-scene-upload-dialog').remove()">Close</button></div>
+      </div>`;
+      document.body.appendChild(dialog);
+      batchSceneImageSetProgress(state);
+    }
+
+    async function handleBatchSceneImageFolder(fileList) {
+      if (!currentProjectId || !fileList || !fileList.length) return;
+      const allScenes = (studioStageData?.scenes || inspectedStageData?.scenes || currentScenes || []);
+      const sceneById = new Map(allScenes.map(scene => [Number(scene.scene_id), scene]));
+      const metadata = getBatchSceneImageMetadata();
+      const parsed = Array.from(fileList).map(parseBatchSceneImageFile);
+      const candidates = parsed.filter(item => item.validExtension && item.sceneId !== null);
+      const invalid = parsed.filter(item => !item.validExtension || item.sceneId === null);
+      const grouped = new Map();
+      candidates.forEach(item => { if (!grouped.has(item.sceneId)) grouped.set(item.sceneId, []); grouped.get(item.sceneId).push(item); });
+      const conflicts = [];
+      const work = [];
+      grouped.forEach((items, sceneId) => {
+        if (!sceneById.has(sceneId)) { items.forEach(item => invalid.push({...item, reason: `Scene #${sceneId} does not exist`})); return; }
+        if (items.length > 1) conflicts.push({ sceneId, files: items.map(item => item.filename) });
+        const item = items[0];
+        const key = batchSceneImageRecordKey(item.file, sceneId);
+        if (metadata[key]) return;
+        work.push({ ...item, sceneId, replacing: Boolean(sceneById.get(sceneId).image && sceneById.get(sceneId).image.path), key });
+      });
+
+      const state = { total: work.length, completed: 0, success: 0, replaced: 0, failed: 0, current: '' };
+      batchSceneImageUploadCancelled = false;
+      showBatchSceneImageUploadDialog(state);
+      if (!work.length) {
+        state.finished = true;
+        batchSceneImageSetProgress(state, 'No new images to upload.');
+        document.getElementById('batch-scene-upload-summary').innerHTML = '<b>No new matching images found.</b> Existing unchanged files were skipped.';
+        return;
+      }
+      const failures = [];
+      let cursor = 0;
+      const worker = async () => {
+        while (cursor < work.length && !batchSceneImageUploadCancelled) {
+          const item = work[cursor++];
+          state.current = item.filename;
+          batchSceneImageSetProgress(state);
+          try {
+            const fd = new FormData(); fd.append('file', item.file);
+            await apiJson(`/api/projects/${currentProjectId}/scenes/${item.sceneId}/upload_image`, { method: 'POST', body: fd });
+            metadata[item.key] = { uploadedAt: Date.now(), filename: item.filename, sceneId: item.sceneId };
+            state.success++; if (item.replacing) state.replaced++;
+          } catch (err) { state.failed++; failures.push(`${item.filename}: ${err.message}`); }
+          state.completed++; batchSceneImageSetProgress(state);
+        }
+      };
+      await Promise.all([worker(), worker(), worker()]);
+      setBatchSceneImageMetadata(metadata);
+      if (typeof loadStageStudio === 'function' && activeStudioStage === 'images') await loadStageStudio('images');
+      const summary = document.getElementById('batch-scene-upload-summary');
+      const details = [];
+      if (batchSceneImageUploadCancelled) details.push('<b style="color:#fbbf24;">Cancelled: no new uploads were started.</b>');
+      if (invalid.length) details.push(`<div><b>Skipped files (${invalid.length}):</b> ${invalid.map(item => escapeHtml(item.filename)).join(', ')}</div>`);
+      if (conflicts.length) details.push(`<div style="color:#fbbf24;"><b>Conflicts:</b> ${conflicts.map(c => `Scene #${c.sceneId}: ${c.files.map(escapeHtml).join(', ')} (uploaded first match)`).join('; ')}</div>`);
+      if (failures.length) details.push(`<div style="color:#fca5a5;"><b>Failures:</b> ${failures.map(escapeHtml).join('<br>')}</div>`);
+      if (summary) summary.innerHTML = details.join('') || '<b style="color:#34d399;">Batch upload completed successfully.</b>';
+      state.finished = true;
+      batchSceneImageSetProgress(state, batchSceneImageUploadCancelled ? 'Batch stopped.' : 'Batch upload finished.');
     }
 
     function triggerSceneImageUpload(sceneId) {
