@@ -3702,6 +3702,13 @@ def delete_project_endpoint(project_id: str):
 @app.put("/api/projects/{project_id}/scenes")
 def update_scenes(project_id: str, scenes: list[Scene]):
     p = get_project(project_id)
+    from rendering.ffmpeg_renderer import validate_active_scene_narration
+    missing_narration = validate_active_scene_narration(scenes)
+    if missing_narration:
+        raise HTTPException(
+            status_code=400,
+            detail=f"每一幕都必須填寫台詞/旁白；以下啟用中的分鏡沒有台詞：{missing_narration} (Every active scene requires narration.)"
+        )
     p.set_scenes(scenes)
     p.sync_avatar_disabled_state()
     p.clear_clips_cache()
@@ -3720,6 +3727,11 @@ def patch_scene(project_id: str, scene_id: int, payload: dict[str, Any]):
         if sc.scene_id == scene_id:
             if "narration" in payload:
                 new_narr = str(payload["narration"])
+                if getattr(sc, "enabled", True) and not new_narr.strip():
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Scene {scene_id} 必須填寫台詞/旁白；不可儲存空白台詞 (Narration is required.)"
+                    )
                 if sc.narration.strip() != new_narr.strip():
                     sc.narration = new_narr
                     sc.audio.status = Status.PENDING

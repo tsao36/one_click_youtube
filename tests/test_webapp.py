@@ -436,6 +436,22 @@ class TestProjectLifecycle:
 # =====================================================================
 # 4. Pipeline Execution & Concurrency
 # =====================================================================
+    def test_scene_save_rejects_empty_narration(self, webapp_env):
+        client = webapp_env["client"]
+        create_res = client.post("/api/projects", json={"topic": "Narration Validation", "start_now": False})
+        project_id = create_res.json()["project_id"]
+
+        res = client.put(
+            f"/api/projects/{project_id}/scenes",
+            json=[
+                {"scene_id": 1, "narration": "有台詞。", "estimated_duration": 2.0},
+                {"scene_id": 2, "narration": "", "estimated_duration": 2.0},
+            ],
+        )
+        assert res.status_code == 400
+        assert "Scene" in res.json()["detail"] or "分鏡" in res.json()["detail"]
+
+
 class TestPipelineExecution:
     def test_pipeline_start_and_already_running(self, webapp_env, monkeypatch):
         client = webapp_env["client"]

@@ -5855,6 +5855,12 @@
     }
 
     async function saveScenesToServer(showConfirmation = true) {
+      const missingNarration = (currentScenes || [])
+        .filter(s => s && s.enabled !== false && !(s.narration || '').trim())
+        .map(s => s.scene_id);
+      if (missingNarration.length) {
+        throw new Error(`每一幕都必須填寫台詞/旁白；請先補上 Scene #${missingNarration.join(', Scene #')} 的內容。`);
+      }
       await apiRequest(`/api/projects/${currentProjectId}/scenes`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },

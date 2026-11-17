@@ -156,8 +156,19 @@ def all_scenes_have_real_images(project: Project) -> bool:
     return bool(scenes) and all(scene_has_real_image(project, sc) for sc in scenes)
 
 
+def validate_active_scene_narration(scenes: list[Scene]) -> list[int]:
+    """Return active scene IDs that have no dialogue/narration."""
+    return [sc.scene_id for sc in scenes if getattr(sc, "enabled", True) and not (sc.narration or "").strip()]
+
+
 def project_timeline(project: Project) -> tuple[list[Scene], list[Slot]]:
     scenes = project.active_scenes()
+    missing_narration = validate_active_scene_narration(scenes)
+    if missing_narration:
+        raise RenderError(
+            f"Dialogue/narration is required for every active scene; missing scenes: {missing_narration}. "
+            "Please add 台詞/旁白 before rendering."
+        )
     missing = [sc.scene_id for sc in scenes if sc.audio.status != Status.COMPLETED or not sc.audio_duration]
     if missing:
         raise RenderError(f"Narration missing for scenes {missing}; run the voice stage first")

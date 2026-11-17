@@ -6,7 +6,7 @@ from fastapi import APIRouter, BackgroundTasks
 
 from core.pipeline_jobs import get_project, queue_pipeline_job
 from core.project_manager import Project
-from rendering.ffmpeg_renderer import all_scenes_have_real_images, render_project, scene_has_real_image, RenderError
+from rendering.ffmpeg_renderer import all_scenes_have_real_images, render_project, scene_has_real_image, validate_active_scene_narration, RenderError
 
 
 router = APIRouter()
@@ -43,6 +43,12 @@ def fast_rerender_video_endpoint(project_id: str, background_tasks: BackgroundTa
         target.data.activity = "Fast re-render: Updating modified scenes & re-stitching 1080p video..."
 
     def do_render(pipeline):
+        missing_narration = validate_active_scene_narration(pipeline.p.active_scenes())
+        if missing_narration:
+            from core.models import Status
+            err_msg = f"Cannot render video: every active scene requires dialogue/narration. Missing scenes: {missing_narration}. Please add 台詞/旁白 before rendering."
+            pipeline.p.set_stage("render", Status.FAILED, error=err_msg)
+            raise RenderError(err_msg)
         from core.models import Status
         for sc in pipeline.p.scenes:
             img_p = pipeline.p.abs(sc.image.path) if (sc.image and sc.image.status == Status.COMPLETED) else None
@@ -132,6 +138,12 @@ def render_final(project_id: str, background_tasks: BackgroundTasks):
         target.data.activity = "Starting final video assembly & rendering..."
 
     def do_render(pipeline):
+        missing_narration = validate_active_scene_narration(pipeline.p.active_scenes())
+        if missing_narration:
+            from core.models import Status
+            err_msg = f"Cannot render video: every active scene requires dialogue/narration. Missing scenes: {missing_narration}. Please add 台詞/旁白 before rendering."
+            pipeline.p.set_stage("render", Status.FAILED, error=err_msg)
+            raise RenderError(err_msg)
         missing_images = [sc.scene_id for sc in pipeline.p.active_scenes() if not scene_has_real_image(pipeline.p, sc)]
         if missing_images:
             from core.models import Status

@@ -2,6 +2,7 @@
 import os
 import sys
 from pathlib import Path
+import pytest
 
 # Add project root to sys.path
 ROOT = Path(__file__).resolve().parents[1]
@@ -314,6 +315,20 @@ def test_timeline_phase_turn_expansion(tmp_path):
         assert expanded_scenes[1].visual_type == "phase_turn_card"
         assert slots[1].length == 3.0
         assert slots[1].audio_length == 0.0
+    finally:
+        Project.delete_project(p.id)
+
+
+def test_timeline_rejects_scene_without_narration(tmp_path):
+    from rendering.ffmpeg_renderer import project_timeline, RenderError
+    p = Project.create("test_timeline_missing_narration")
+    try:
+        scene = Scene(scene_id=21, section="Core", narration="", audio_duration=2.0)
+        scene.audio.status = Status.SKIPPED
+        p.set_scenes([scene])
+
+        with pytest.raises(RenderError, match=r"missing scenes: \[21\]"):
+            project_timeline(p)
     finally:
         Project.delete_project(p.id)
 
