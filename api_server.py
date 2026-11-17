@@ -760,24 +760,25 @@ def get_stage_models_catalogue():
             "research": [
                 {"id": "gemini_search", "name": "Google Gemini (Search Grounding)", "type": "cloud", "available": has_gemini, "desc": "Live web grounding via Google Search"},
                 {"id": "gemini_4_carbon", "name": "Google Gemini 4 Carbon (Search Grounding & Reasoning)", "type": "cloud", "available": has_gemini, "desc": "Frontier long-horizon reasoning & web research"},
+                {"id": "gemini_4_hydrogen", "name": "Google Gemini 4 Hydrogen (Search Grounding)", "type": "cloud", "available": has_gemini, "desc": "High-throughput web research & grounding"},
                 {"id": "ollama", "name": "Ollama (qwen3:8b Local GPU)", "type": "local", "available": True, "desc": "Local offline LLM synthesis"},
                 {"id": "none", "name": "Disabled", "type": "local", "available": True, "desc": "Skip research phase"},
             ],
             "script": [
                 {"id": "ollama", "name": "Ollama (qwen3:8b Local GPU)", "type": "local", "available": True, "desc": "Local GPU/CPU scriptwriter"},
-                {"id": "gemini", "name": "Google Gemini 2.5 Flash", "type": "cloud", "available": has_gemini, "desc": "Fast, high-quality script generation"},
+                {"id": "gemini", "name": "Google Gemini 3.8 Flash", "type": "cloud", "available": has_gemini, "desc": "Fast, high-quality script generation"},
                 {"id": "gemini_4_hydrogen", "name": "Google Gemini 4 Hydrogen", "type": "cloud", "available": has_gemini, "desc": "High-throughput, fast script generation"},
                 {"id": "openai_compat", "name": "OpenAI GPT-4o-mini", "type": "cloud", "available": has_openai, "desc": "High quality documentary pacing"},
             ],
             "scenes": [
                 {"id": "ollama", "name": "Ollama (qwen3:8b Local GPU)", "type": "local", "available": True, "desc": "Local scene segmentation and visual bible"},
-                {"id": "gemini", "name": "Google Gemini 2.5 Flash", "type": "cloud", "available": has_gemini, "desc": "Cinematic visual storytelling breakdown"},
+                {"id": "gemini", "name": "Google Gemini 3.8 Flash", "type": "cloud", "available": has_gemini, "desc": "Cinematic visual storytelling breakdown"},
                 {"id": "gemini_4_hydrogen", "name": "Google Gemini 4 Hydrogen", "type": "cloud", "available": has_gemini, "desc": "High-efficiency cinematic scene breakdown"},
                 {"id": "openai_compat", "name": "OpenAI GPT-4o-mini", "type": "cloud", "available": has_openai, "desc": "Precise cinematic scene planning"},
             ],
             "prompts": [
                 {"id": "ollama", "name": "Ollama (qwen3:8b Local GPU)", "type": "local", "available": True, "desc": "Local SDXL prompt generator"},
-                {"id": "gemini", "name": "Google Gemini 2.5 Flash", "type": "cloud", "available": has_gemini, "desc": "Cinematic photorealistic prompt composer"},
+                {"id": "gemini", "name": "Google Gemini 3.8 Flash", "type": "cloud", "available": has_gemini, "desc": "Cinematic photorealistic prompt composer"},
                 {"id": "gemini_4_hydrogen", "name": "Google Gemini 4 Hydrogen", "type": "cloud", "available": has_gemini, "desc": "Fast, high-efficiency visual prompt composer"},
                 {"id": "openai_compat", "name": "OpenAI GPT-4o-mini", "type": "cloud", "available": has_openai, "desc": "Detailed photographic lighting & lens prompts"},
             ],

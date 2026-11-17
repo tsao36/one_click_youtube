@@ -243,6 +243,11 @@ def calculate_project_costs(project: Any) -> dict[str, Any]:
             search_grounding = PRICING["search"]["gemini_search"]
             res_cost = base_cost + search_grounding
             res_desc = "Gemini 4 Carbon + Google Search Grounding"
+        elif mode == "gemini_4_hydrogen" or res_model == "gemini_4_hydrogen":
+            base_cost, _ = estimate_llm_cost("gemini-4-hydrogen", prompt_tokens=1500, completion_tokens=2000, requests=1)
+            search_grounding = PRICING["search"]["gemini_search"]
+            res_cost = base_cost + search_grounding
+            res_desc = "Gemini 4 Hydrogen + Google Search Grounding"
         elif mode == "gemini_search" or res_model == "gemini_search" or cloud_enabled:
             # Gemini search grounding + LLM generation
             base_cost, _ = estimate_llm_cost("gemini-3.8-flash", prompt_tokens=1200, completion_tokens=1500, requests=1)

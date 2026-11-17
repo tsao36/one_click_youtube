@@ -356,7 +356,7 @@ class DramaPipeline(BasePipeline):
 
 
 
-        enabled = bool(cfg.get("script", {}).get("research_enabled", False)) or (res_prov in ("gemini_search", "gemini_4_carbon", "gemini"))
+        enabled = bool(cfg.get("script", {}).get("research_enabled", False)) or (res_prov in ("gemini_search", "gemini_4_carbon", "gemini", "gemini_4_hydrogen"))
 
 
 

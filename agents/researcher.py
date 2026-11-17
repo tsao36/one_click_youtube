@@ -165,11 +165,12 @@ def research(
         mode = "user_submitted"
 
     is_carbon = (provider_override in ("gemini_4_carbon", "gemini-4-carbon"))
+    is_hydrogen = (provider_override in ("gemini_4_hydrogen", "gemini-4-hydrogen"))
     is_gemini_search = (provider_override == "gemini_search" or load_providers().get("research", {}).get("provider") == "gemini_search")
 
-    if enabled and (is_carbon or is_gemini_search):
+    if enabled and (is_carbon or is_hydrogen or is_gemini_search):
         try:
-            prov_to_build = "gemini_4_carbon" if is_carbon else "gemini"
+            prov_to_build = "gemini_4_carbon" if is_carbon else ("gemini_4_hydrogen" if is_hydrogen else "gemini")
             g = build_provider(prov_to_build)
             ok, msg = g.available()
             if not ok:
@@ -191,7 +192,7 @@ def research(
                 if not is_prc:
                     clean_note_lines.append(line)
             notes = "\n".join(clean_note_lines)
-            mode = "hybrid" if has_user_research else ("gemini_4_carbon" if is_carbon else "gemini_search")
+            mode = "hybrid" if has_user_research else ("gemini_4_carbon" if is_carbon else ("gemini_4_hydrogen" if is_hydrogen else "gemini_search"))
         except Exception as e:
             log.warning("Research provider failed (%s); continuing with LLM knowledge only", e)
     elif enabled:
@@ -201,10 +202,12 @@ def research(
     elif has_user_research:
         mode = "user_submitted"
 
-    # When gemini_search or gemini_4_carbon is chosen for research, use that cloud LLM for structured JSON analysis
+    # When gemini_search, gemini_4_carbon, or gemini_4_hydrogen is chosen for research, use that cloud LLM for structured JSON analysis
     # instead of falling back to local Ollama.
     if is_carbon:
         llm_prov = "gemini_4_carbon"
+    elif is_hydrogen:
+        llm_prov = "gemini_4_hydrogen"
     elif provider_override == "gemini_search" or (mode in ("gemini_search", "hybrid") and has_user_research):
         llm_prov = "gemini"
     else:

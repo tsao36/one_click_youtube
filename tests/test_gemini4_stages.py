@@ -60,11 +60,14 @@ def test_stage_models_catalogue_api():
     catalogue = get_stage_models_catalogue()
     stages = catalogue["stages"]
 
-    # Stage 1 research has gemini_4_carbon
+    # Stage 1 research has gemini_4_carbon and gemini_4_hydrogen
     res_ids = [m["id"] for m in stages["research"]]
     assert "gemini_4_carbon" in res_ids
+    assert "gemini_4_hydrogen" in res_ids
 
-    # Stage 3 scenes and Stage 4 prompts have gemini_4_hydrogen
+    # Stage 2 script, Stage 3 scenes and Stage 4 prompts have gemini_4_hydrogen
+    script_ids = [m["id"] for m in stages["script"]]
+    assert "gemini_4_hydrogen" in script_ids
     scene_ids = [m["id"] for m in stages["scenes"]]
     assert "gemini_4_hydrogen" in scene_ids
 
