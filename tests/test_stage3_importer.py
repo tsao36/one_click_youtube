@@ -129,6 +129,24 @@ def test_parse_and_diff_narration_only_and_json():
     assert parsed_narr[0]["speaker"] == "主持人"
     assert parsed_narr[1]["narration"] == "這是第二幕。"
 
+
+def test_narration_only_section_headers_are_not_scene_narration():
+    narr_text = """【Stage 3 旁白純台詞朗讀稿】測試
+
+【Hook】
+[Scene #6] (1.8s) 才從地獄死而復生。
+
+【Introduction】
+[Scene #7] (1.1s) 1974 年初，
+"""
+
+    parsed = parse_stage3_script(narr_text, filename="stage3_narration_only.txt")
+
+    assert parsed[0]["narration"] == "才從地獄死而復生。"
+    assert "Introduction" not in parsed[0]["narration"]
+    assert parsed[1]["narration"] == "1974 年初，"
+    assert parsed[1]["section"] == "Introduction"
+
     # JSON format
     json_text = json.dumps({
         "scenes": [

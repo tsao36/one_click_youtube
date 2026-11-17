@@ -342,11 +342,26 @@ def _parse_clean_narration_script(text: str) -> list[dict[str, Any]]:
     if not matches:
         return []
 
+    pending_section = ""
     for idx, match in enumerate(matches):
         scene_id = int(match.group(1))
+        current_section = pending_section
+        pending_section = ""
         start_idx = match.end()
         end_idx = matches[idx + 1].start() if idx + 1 < len(matches) else len(text)
         block = text[start_idx:end_idx].strip()
+
+        # The narration-only export places chapter labels between scenes, e.g.
+        #   [Scene #6] ...
+        #   【Introduction】
+        #   [Scene #7] ...
+        # Since this parser consumes the whole interval up to the next scene
+        # marker, the label would otherwise become part of Scene 6 narration.
+        # Carry the label forward as metadata for the following scene.
+        section_matches = list(re.finditer(r"^\s*[【\[]([^】\]]+)[】\]]\s*$", block, re.MULTILINE))
+        if section_matches:
+            pending_section = section_matches[-1].group(1).strip()
+            block = re.sub(r"^\s*[【\[]([^】\]]+)[】\]]\s*$", "", block, flags=re.MULTILINE).strip()
 
         # Check for duration (e.g. `(5.0s)`) and speaker (e.g. `[Speaker]`)
         dur = None
@@ -369,6 +384,8 @@ def _parse_clean_narration_script(text: str) -> list[dict[str, Any]]:
             "scene_id": scene_id,
             "narration": block,
         }
+        if current_section:
+            sc["section"] = current_section
         if dur is not None:
             sc["estimated_duration"] = dur
         if speaker:
