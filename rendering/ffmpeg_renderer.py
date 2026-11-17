@@ -89,6 +89,67 @@ class RenderError(RuntimeError):
     pass
 
 
+def scene_has_real_image(project: Project, sc: Scene) -> bool:
+    """Check whether a scene has a real, valid image on disk (not missing, not empty, and not a placeholder fallback)."""
+    if getattr(sc, "visual_type", "") == "phase_turn_card":
+        return True
+
+    # If the scene is a completed Remotion composition clip, a static image is not expected
+    if (
+        sc.animation
+        and sc.animation.status == Status.COMPLETED
+        and sc.animation.path
+        and (sc.animation.meta or {}).get("provider") == "remotion"
+    ):
+        vid_p = project.abs(sc.animation.path)
+        if vid_p and vid_p.exists() and vid_p.is_file() and vid_p.stat().st_size > 0:
+            return True
+
+    # Resolve image path
+    img: Path | None = None
+    if sc.image and sc.image.status == Status.COMPLETED and sc.image.path:
+        p = project.abs(sc.image.path)
+        if p and p.exists() and p.is_file() and p.stat().st_size > 0:
+            img = p
+    elif sc.image and sc.image.path and sc.image.status != Status.FAILED:
+        p = project.abs(sc.image.path)
+        if p and p.exists() and p.is_file() and p.stat().st_size > 0:
+            img = p
+    else:
+        def_p = project.path("images", f"{sc.tag}.png")
+        if def_p.exists() and def_p.is_file() and def_p.stat().st_size > 0:
+            if not sc.image or sc.image.status != Status.FAILED:
+                img = def_p
+
+    # For presenter avatar scenes, fallback to avatar portrait image if available
+    if not img or not img.exists() or img.stat().st_size == 0:
+        s = project.settings
+        avatar_allowed = project.is_avatar_enabled() if hasattr(project, "is_avatar_enabled") else bool(
+            s.get("avatar_enabled", True) and s.get("presenter_placement") not in ("none", "off", "disabled", False)
+        )
+        if avatar_allowed and (getattr(sc, "is_presenter", False) or getattr(sc, "visual_type", "") in ("talking_head", "talking_actor")):
+            from generators.avatar_generator import AVATARS_DIR, load_avatar
+            av = load_avatar(getattr(sc, "avatar_profile", None))
+            if av and av.get("name"):
+                av_img = AVATARS_DIR / av["name"] / av.get("image_filename", "portrait.png")
+                if av_img.exists() and av_img.is_file() and av_img.stat().st_size > 0:
+                    img = av_img
+
+    if not img or not img.exists() or not img.is_file() or img.stat().st_size == 0:
+        return False
+
+    # Check for placeholder / fallback indicators
+    meta = (sc.image.meta or {}) if sc.image else {}
+    if meta.get("provider") == "placeholder":
+        return False
+    if meta.get("is_placeholder") is True or meta.get("fallback") is True:
+        return False
+    if img.name.endswith("_fallback.png") or "_fallback" in img.stem.lower():
+        return False
+
+    return True
+
+
 def project_timeline(project: Project) -> tuple[list[Scene], list[Slot]]:
     scenes = project.active_scenes()
     missing = [sc.scene_id for sc in scenes if sc.audio.status != Status.COMPLETED or not sc.audio_duration]
@@ -244,7 +305,7 @@ def render_scene_clip(project: Project, sc: Scene, slot: Slot, w: int, h: int, f
             return out
 
         if not img or not img.exists():
-            if avatar_allowed and (getattr(sc, "is_presenter", False) or sc.visual_type == "talking_head"):
+            if avatar_allowed and (getattr(sc, "is_presenter", False) or getattr(sc, "visual_type", "") in ("talking_head", "talking_actor")):
                 from generators.avatar_generator import AVATARS_DIR, load_avatar
                 av = load_avatar(getattr(sc, "avatar_profile", None))
                 if av and av.get("name"):
@@ -252,12 +313,9 @@ def render_scene_clip(project: Project, sc: Scene, slot: Slot, w: int, h: int, f
                     if av_img.exists():
                         img = av_img
             if not img or not img.exists():
-                # never block the render on a failed image: synthesize a neutral card
-                img = project.path("temp", f"{sc.tag}_fallback.png")
-                PlaceholderImageProvider(s).generate(ImageRequest(prompt=sc.visual_description or sc.narration[:120], negative="",
-                                                                  seed=sc.scene_id, width=1024, height=576, output=img,
-                                                                  extra={"description": sc.visual_description}))
-                log.warning("Scene %d has no generated image; using fallback card", sc.scene_id)
+                raise RenderError(f"Cannot render clip: Scene {sc.scene_id} does not have a real image.")
+        if (sc.image and sc.image.meta and sc.image.meta.get("provider") == "placeholder") or (img and img.name.endswith("_fallback.png")):
+            raise RenderError(f"Cannot render clip: Scene {sc.scene_id} has a placeholder image instead of a real image.")
         try:
             ken_burns.render_ken_burns(img, tmp_out, seconds, sc.camera_motion, w, h, fps, zoom, oversample, INTERMEDIATE)
         except FFmpegError as e:
@@ -671,6 +729,13 @@ def render_project(project: Project, draft: bool = False, progress: Callable[[in
     w, h = (int(r.get("draft_width", 854)), int(r.get("draft_height", 480))) if draft else \
         (int(s["video"]["width"]), int(s["video"]["height"]))
     scenes, slots = project_timeline(project)
+
+    # Check that all scenes have a real image before rendering; stop rendering if any scene lacks a real image
+    missing_images = [sc.scene_id for sc in scenes if not scene_has_real_image(project, sc)]
+    if missing_images:
+        msg = f"Cannot render video: Scene(s) {missing_images} do not have a real image. Please ensure all scenes have real images before rendering."
+        log.error(msg)
+        raise RenderError(msg)
     total = total_length(slots)
     steps = len(scenes) + 4
     say = progress or (lambda d, t, m: None)

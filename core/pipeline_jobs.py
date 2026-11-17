@@ -1,6 +1,7 @@
 """Thread-safe project lookup and background pipeline job scheduling."""
 from __future__ import annotations
 
+from pathlib import Path
 import threading
 from typing import Any, Callable
 

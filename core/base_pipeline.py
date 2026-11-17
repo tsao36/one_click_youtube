@@ -20,7 +20,7 @@ from generators.voice_generator import (default_profile_name, load_profile, synt
                                        audio_is_current, narration_fingerprint, voice_fingerprint)
 from providers.llm.base import LLMProvider
 from providers.images import get_image_provider
-from rendering.ffmpeg_renderer import project_timeline, render_project
+from rendering.ffmpeg_renderer import project_timeline, render_project, scene_has_real_image, RenderError
 
 
 class PipelineCancelled(Exception):
@@ -2160,6 +2160,13 @@ class BasePipeline:
 
     def _run_render(self) -> None:
         if self._cancel_flag: raise PipelineCancelled()
+        # Verify all active scenes have a real image before proceeding with render stage
+        missing_images = [sc.scene_id for sc in self.p.active_scenes() if not scene_has_real_image(self.p, sc)]
+        if missing_images:
+            err_msg = f"Cannot render video: Scene(s) {missing_images} do not have a real image. Please ensure all scenes have real images before rendering."
+            log.error(err_msg)
+            self.p.set_stage("render", Status.FAILED, error=err_msg)
+            raise RenderError(err_msg)
         if getattr(self.p, "project_mode", "documentary") != "short_drama":
             self.ensure_consistent_project_voice()
         t0 = time.perf_counter()

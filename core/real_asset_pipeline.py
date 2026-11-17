@@ -1,4 +1,4 @@
-﻿"""Real-asset-first image sourcing.
+"""Real-asset-first image sourcing.
 
 Pipeline (all steps cache to <project>/assets/real and research/real_assets.json):
 

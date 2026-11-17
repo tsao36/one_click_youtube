@@ -6,7 +6,7 @@ from fastapi import APIRouter, BackgroundTasks
 
 from core.pipeline_jobs import get_project, queue_pipeline_job
 from core.project_manager import Project
-from rendering.ffmpeg_renderer import render_project
+from rendering.ffmpeg_renderer import render_project, scene_has_real_image, RenderError
 
 
 router = APIRouter()
@@ -127,6 +127,12 @@ def render_final(project_id: str, background_tasks: BackgroundTasks):
         target.data.activity = "Starting final video assembly & rendering..."
 
     def do_render(pipeline):
+        missing_images = [sc.scene_id for sc in pipeline.p.active_scenes() if not scene_has_real_image(pipeline.p, sc)]
+        if missing_images:
+            from core.models import Status
+            err_msg = f"Cannot render video: Scene(s) {missing_images} do not have a real image. Please ensure all scenes have real images before rendering."
+            pipeline.p.set_stage("render", Status.FAILED, error=err_msg)
+            raise RenderError(err_msg)
         pipeline._run_subtitles()
         pipeline._run_render()
         project.data.activity = "Final 1080p video render complete!"
