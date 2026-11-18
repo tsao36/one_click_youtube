@@ -4824,17 +4824,14 @@
         currentProject = { ...(currentProject || {}), ...p };
 
         const isRunning = p.state === 'running';
-        const isPausedAtStage3 = (p.state === 'paused') && (p.stages?.scenes?.status === 'COMPLETED') && (p.stages?.prompts?.status !== 'COMPLETED');
         const banner = document.getElementById('global-hero-banner');
         banner.style.display = 'block';
-        const heroShareStage3Btn = document.getElementById('hero-btn-share-stage3-review');
         if (isRunning) {
           banner.classList.add('is-running');
           document.getElementById('hero-spinner').style.display = 'inline-block';
           document.getElementById('hero-pulse-dot').className = 'pulse-dot running';
           document.getElementById('hero-btn-stop').style.display = 'inline-block';
           document.getElementById('hero-btn-resume').style.display = 'none';
-          if (heroShareStage3Btn) heroShareStage3Btn.style.display = 'none';
         } else {
           banner.classList.remove('is-running');
           document.getElementById('hero-spinner').style.display = 'none';
@@ -4844,9 +4841,6 @@
             document.getElementById('hero-btn-resume').style.display = 'inline-block';
           } else {
             document.getElementById('hero-btn-resume').style.display = 'none';
-          }
-          if (heroShareStage3Btn) {
-            heroShareStage3Btn.style.display = isPausedAtStage3 ? 'inline-flex' : 'none';
           }
         }
 
