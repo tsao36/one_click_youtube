@@ -1,5 +1,23 @@
 [
   {
+    "topic": "關羽根本沒用過青龍偃月刀？三國歷史冷知識：那些被《三國演義》騙了六百年的真實戰場",
+    "logline": "考證東漢末年實戰兵器環首刀與長矛馬槊，還原真實官渡之戰與赤壁之戰的後勤真相與武將單挑迷思。",
+    "category": "三國歷史翻案與軍事考證",
+    "recommended_duration": 5.0,
+    "recommended_style": "cinematic_documentary",
+    "proof": {
+      "platform": "正史記載與漢魏考古出土（《三國志》裴松之注）",
+      "metrics": "陳壽《三國志》正史原文 / 漢魏洛陽城考古出土環首刀",
+      "headline": "《三國志·關羽傳》：「羽望見良麾蓋，策馬刺良於萬眾之中」——刺即是用矛或槊，非劈砍大刀",
+      "url": "https://ctext.org/sanguozhi/shu-shu-guan-zhang-ma-huang-zhao-zhuan/zh",
+      "source_name": "陳壽《三國志·蜀書·關羽傳》 / 中國軍事考古學報",
+      "why_popular": "三國題材自帶龐大受眾，打破演義神話還原真實戰場細節，兼具文史深度與男兒熱血。"
+    },
+    "type": "dynasty_trivia",
+    "id": "tq_1794933438245",
+    "created_at": "2026-11-18T00:37:18.245241"
+  },
+  {
     "topic": "AI 算力大塞車！台積電埃米時代 GAA 奈米片與次世代 HBM4 記憶體，如何成為全球 AI 霸權生死線？",
     "logline": "解密記憶體牆（Memory Wall）瓶頸，拆解 3D IC、台積電 CoWoS 先進封裝與三星/SK海力士 16 層堆疊 HBM4 如何決定下一代人工智慧的生死極限。",
     "category": "半導體製程與先進封裝",
