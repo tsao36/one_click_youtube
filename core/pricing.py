@@ -40,6 +40,7 @@ PRICING = {
         "gemini": {"input_1m": 0.075, "output_1m": 0.30, "default_req": 0.0006, "is_cloud": True},
         "gpt-4o-mini": {"input_1m": 0.15, "output_1m": 0.60, "default_req": 0.0012, "is_cloud": True},
         "gpt-4o": {"input_1m": 2.50, "output_1m": 10.00, "default_req": 0.0150, "is_cloud": True},
+        "gpt-6-luna": {"input_1m": 0.0, "output_1m": 0.0, "default_req": 0.0, "is_cloud": True},
         "openai_compat": {"input_1m": 0.15, "output_1m": 0.60, "default_req": 0.0012, "is_cloud": True},
         "ollama": {"input_1m": 0.0, "output_1m": 0.0, "default_req": 0.0, "is_cloud": False},
         "local": {"input_1m": 0.0, "output_1m": 0.0, "default_req": 0.0, "is_cloud": False},

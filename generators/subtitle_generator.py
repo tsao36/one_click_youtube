@@ -431,8 +431,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                     center_band = f"m 0 {band_top} l {width} {band_top} l {width} {band_bottom} l 0 {band_bottom}"
 
                     nc_bg_col = hex_to_ass_color(ov_bg_color, "&H00000000&")
-                    nc_full_alpha = opacity_to_ass_alpha(float(ov_bg_opacity) * 0.65 if ov_bg_opacity is not None else 0.58, "&H98&")
-                    nc_band_alpha = opacity_to_ass_alpha(ov_bg_opacity if ov_bg_opacity is not None else 0.85, "&H55&")
+                    nc_full_alpha = "&H98&" if ov_bg_opacity is None else opacity_to_ass_alpha(float(ov_bg_opacity) * 0.65, "&H98&")
+                    nc_band_alpha = "&H55&" if ov_bg_opacity is None else opacity_to_ass_alpha(float(ov_bg_opacity), "&H55&")
 
                     raw_events.append((
                         c_start,
@@ -464,7 +464,9 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                     elif ov_motion_effect == "subtle_fade":
                         anim_tag = f"{{\\an5\\pos({mid_x},{center_y}){fade}}}"
                     else: # fade_drift
-                        anim_tag = f"{{\\an5\\move({mid_x},{center_y + round(16 * scale)},{mid_x},{center_y},0,{ov_entrance_ms}){fade}}}"
+                        anim_tag = f"{{\\an5\\pos({mid_x},{center_y}){fade}}}"
+                    if not ov_motion_effect:
+                        anim_tag = f"{{\\an5\\pos({mid_x},{center_y}){fade}}}"
                     event_style = "NeutralMessage"
 
                 elif b_style in ("comparison_badge", "compare_badge"):

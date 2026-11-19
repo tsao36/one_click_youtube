@@ -344,6 +344,20 @@ class DocumentaryPipeline(BasePipeline):
 
 
             self.p.path("script", "script.md").write_text(script_markdown(scr), encoding="utf-8")
+            self.p.write_json("script/script_original.json", scr)
+            self.p.path("script", "script_original.md").write_text(script_markdown(scr), encoding="utf-8")
+            self.p.activity("Stage 2/10: Reviewing script for information density...")
+            from core.script_reviewer import review_script
+            review = review_script(self.p, scr, res, on_request=self._track_llm_request)
+            self.p.write_json("script/script_review_report.json", review)
+            self.p.path("script", "script_review_report.md").write_text(str(review), encoding="utf-8")
+            if review.get("high_risk"):
+                raise RuntimeError("Script review requires user confirmation: " + "; ".join(review.get("risk_reasons", [])))
+            scr = review["final_script"]
+            self.p.write_json("script/script_final.json", scr)
+            self.p.path("script", "script_final.md").write_text(script_markdown(scr), encoding="utf-8")
+            self.p.write_json("script/script.json", scr)
+            self.p.path("script", "script.md").write_text(script_markdown(scr), encoding="utf-8")
 
             # Stage 2: Fact check script against research dossier to catch hallucinations and invalid multipliers
             try:

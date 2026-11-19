@@ -62,7 +62,7 @@ subtitles:
   font_size: 55
   motion_graphics_callouts: true
   callouts_enabled: true
-  callout_style: corner_metric
+  callout_style: neutral_centered
   max_chars_per_line: 42
   max_lines: 2
   overlay:

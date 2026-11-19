@@ -544,7 +544,8 @@ def build_project_settings(
             target_av = req.default_avatar or settings.get("default_avatar")
             av_obj = load_avatar(target_av)
             if av_obj:
-                settings["default_avatar"] = av_obj.get("name")
+                if not req.default_avatar:
+                    settings["default_avatar"] = av_obj.get("name")
                 av_voice = av_obj.get("voice_profile")
                 if av_voice:
                     settings["voice_profile"] = av_voice
@@ -769,6 +770,7 @@ def get_stage_models_catalogue():
                 {"id": "gemini", "name": "Google Gemini 3.8 Flash", "type": "cloud", "available": has_gemini, "desc": "Fast, high-quality script generation"},
                 {"id": "gemini_4_hydrogen", "name": "Google Gemini 4 Hydrogen", "type": "cloud", "available": has_gemini, "desc": "High-throughput, fast script generation"},
                 {"id": "openai_compat", "name": "OpenAI GPT-4o-mini", "type": "cloud", "available": has_openai, "desc": "High quality documentary pacing"},
+                {"id": "gpt-6-luna", "name": "OpenAI-compatible GPT-6 Luna", "type": "cloud", "available": has_openai, "desc": "High-density script review"},
             ],
             "scenes": [
                 {"id": "ollama", "name": "Ollama (qwen3:8b Local GPU)", "type": "local", "available": True, "desc": "Local scene segmentation and visual bible"},

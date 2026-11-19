@@ -165,7 +165,9 @@ def apply_presenter_placement(
             sc.visual_type = "talking_head"
             if default_avatar:
                 sc.avatar_profile = default_avatar
-            if avatar_voice:
+            if project_voice_profile:
+                sc.voice_profile = None
+            elif avatar_voice:
                 sc.voice_profile = avatar_voice
             elif project_voice_profile and not sc.voice_profile:
                 sc.voice_profile = project_voice_profile

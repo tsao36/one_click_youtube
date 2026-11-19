@@ -217,7 +217,10 @@ class ComfyUIImageProvider(ImageProvider):
 
         req.output.write_bytes(files[0][1])
 
-        imprint_ai_image_label(req.output, req.output)
+        try:
+            imprint_ai_image_label(req.output, req.output)
+        except Exception as exc:
+            log.warning("Could not imprint AI image label: %s", exc)
 
         _check_not_blank(req.output)
 
@@ -280,7 +283,10 @@ def _generate_openai_image(req: ImageRequest, attempts: list[dict], key: str,
             continue
         req.output.parent.mkdir(parents=True, exist_ok=True)
         req.output.write_bytes(image_bytes)
-        imprint_ai_image_label(req.output, req.output)
+        try:
+            imprint_ai_image_label(req.output, req.output)
+        except Exception as exc:
+            log.warning("Could not imprint AI image label: %s", exc)
         _check_not_blank(req.output)
         return {
             "provider": provider, "model": model, "seed": req.seed,
@@ -309,7 +315,10 @@ def _decode_inline_image(data: dict) -> bytes | None:
 def _write_generated_image(req: ImageRequest, image_bytes: bytes) -> None:
     req.output.parent.mkdir(parents=True, exist_ok=True)
     req.output.write_bytes(image_bytes)
-    imprint_ai_image_label(req.output, req.output)
+    try:
+        imprint_ai_image_label(req.output, req.output)
+    except Exception as exc:
+        log.warning("Could not imprint AI image label: %s", exc)
     _check_not_blank(req.output)
 
 

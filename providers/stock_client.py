@@ -503,7 +503,7 @@ def format_stock_image(
     from core.image_utils import adjust_image_orientation
 
     is_low, w, h = is_image_low_resolution(input_path)
-    if is_low and target_w >= 1280 and target_h >= 720:
+    if is_low and target_w >= 1280 and target_h >= 720 and not (auto_detect_orientation and h > w):
         # Automatically upscale low-resolution image to 1920x1080
         try:
             upscale_image_to_1080p(

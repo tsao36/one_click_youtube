@@ -2229,7 +2229,8 @@
             { val: 'gemini_4_hydrogen', label: 'Cloud: Gemini 4 Hydrogen' },
             { val: 'gemini_4_carbon', label: 'Cloud: Gemini 4 Carbon' },
             { val: 'ollama', label: 'Local: Ollama (qwen3:8b)' },
-            { val: 'openai_compat', label: 'Cloud: GPT-4o-mini' }
+            { val: 'openai_compat', label: 'Cloud: GPT-4o-mini' },
+            { val: 'gpt-6-luna', label: 'Cloud: GPT-6 Luna' }
           ];
         }
         if (stName === 'animation') {
@@ -2259,7 +2260,8 @@
             { val: 'ollama', label: 'Local GPU: Ollama' },
             { val: 'gemini', label: 'Cloud: Gemini Flash' },
             { val: 'gemini_4_hydrogen', label: 'Cloud: Gemini 4 Hydrogen' },
-            { val: 'openai_compat', label: 'Cloud: GPT-4o-mini' }
+            { val: 'openai_compat', label: 'Cloud: GPT-4o-mini' },
+            { val: 'gpt-6-luna', label: 'Cloud: GPT-6 Luna' }
           ];
         case 'images':
           return CANONICAL_IMAGE_ENGINES;

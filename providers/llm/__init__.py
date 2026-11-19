@@ -82,7 +82,17 @@ class LLMClient:
             usage = getattr(self.provider, "last_usage", {}) or {}
             p_tok = usage.get("prompt_tokens", 0)
             c_tok = usage.get("completion_tokens", 0)
-            m_name = usage.get("model") or getattr(self.provider, "model", "") or self.provider.name
+            if not isinstance(p_tok, (int, float)):
+                p_tok = 0
+            if not isinstance(c_tok, (int, float)):
+                c_tok = 0
+            m_name = usage.get("model")
+            if not isinstance(m_name, str) or not m_name:
+                m_name = getattr(self.provider, "model", "")
+                if not isinstance(m_name, str) or not m_name:
+                    m_name = getattr(self.provider, "name", "llm")
+                if not isinstance(m_name, str):
+                    m_name = "llm"
             record_usage(
                 stage=self.job,
                 model=m_name,
@@ -104,7 +114,10 @@ class LLMClient:
             return res
         except Exception:
             usage = getattr(self.provider, "last_usage", {}) or {}
-            attempt_tok = usage.get("total_tokens", 0) or (self.provider.estimate_tokens(prompt) if hasattr(self.provider, "estimate_tokens") else 0)
+            attempt_tok = usage.get("total_tokens", 0)
+            if not isinstance(attempt_tok, (int, float)):
+                attempt_tok = 0
+            attempt_tok = attempt_tok or 0
             self._record_tokens(is_failure=True, wasted_tokens=attempt_tok)
             raise
 
@@ -129,7 +142,10 @@ class LLMClient:
             except Exception as e:  # parse or validation error -> retry
                 last = e
                 usage = getattr(self.provider, "last_usage", {}) or {}
-                attempt_tok = usage.get("total_tokens", 0) or (self.provider.estimate_tokens(prompt) if hasattr(self.provider, "estimate_tokens") else 0)
+                attempt_tok = usage.get("total_tokens", 0)
+                if not isinstance(attempt_tok, (int, float)):
+                    attempt_tok = 0
+                attempt_tok = attempt_tok or 0
                 self._record_tokens(is_failure=True, wasted_tokens=attempt_tok)
                 log.warning("LLM JSON attempt %d/%d for %s failed: %s (wasted ~%d tokens)", attempt, self.json_retries, self.job, str(e)[:200], attempt_tok)
                 temperature = max(0.2, temperature - 0.15)
@@ -147,6 +163,9 @@ class LLMClient:
             return res
         except Exception:
             usage = getattr(self.provider, "last_usage", {}) or {}
-            attempt_tok = usage.get("total_tokens", 0) or (self.provider.estimate_tokens(prompt) if hasattr(self.provider, "estimate_tokens") else 0)
+            attempt_tok = usage.get("total_tokens", 0)
+            if not isinstance(attempt_tok, (int, float)):
+                attempt_tok = 0
+            attempt_tok = attempt_tok or 0
             self._record_tokens(is_failure=True, wasted_tokens=attempt_tok)
             raise
