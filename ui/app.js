@@ -1152,7 +1152,9 @@
           const remaining = b.remaining !== null && b.remaining !== undefined;
           const value = b.status === 'ok' && remaining
             ? `${Number(b.remaining).toLocaleString()} ${b.unit || ''}`.trim()
-            : b.status === 'ok' ? 'Connected' : 'Unavailable';
+            : b.status === 'ok' ? 'Connected'
+            : b.status === 'unsupported' ? 'Balance not exposed'
+            : 'Key rejected';
           const state = b.status === 'ok' ? (remaining ? 'available' : 'connected') : 'unknown';
           return `<span class="api-credit-item api-credit-${state}" title="${b.message || ''}"><b>${b.provider}</b> <span>${value}</span></span>`;
         }).join('') : '<span class="api-credit-muted">No cloud API keys configured</span>';
@@ -1176,6 +1178,7 @@
       if (provider === 'http_clone' || provider === 'f5') return 'Local: F5-TTS Clone';
       if (provider === 'elevenlabs') return 'Cloud: ElevenLabs';
       if (provider === 'voai') return 'Cloud: VoAI 絕好聲創';
+      if (provider === 'ming_tts') return 'Local: Ming-3.0 TTS';
       if (provider === 'edge') return 'Cloud: Edge TTS';
       if (provider === 'sapi') return 'Local: Windows SAPI';
       return (provider || 'Local').toUpperCase();
@@ -6892,7 +6895,7 @@
         if (hintBox) hintBox.style.display = 'block';
       }
       const refTextBox = document.getElementById('v-ref-text-group');
-      if (refTextBox) refTextBox.style.display = ['cosyvoice', 'bluemagpie', 'http_clone'].includes(prov) ? 'block' : 'none';
+      if (refTextBox) refTextBox.style.display = ['cosyvoice', 'bluemagpie', 'ming_tts', 'http_clone'].includes(prov) ? 'block' : 'none';
     }
 
     async function loadElevenLabsVoices() {
@@ -6977,6 +6980,9 @@
         const shortTag = edgeVoice.replace('zh-TW-', '').replace('Neural', '').toLowerCase();
         if (!name) name = `edge_tw_${shortTag}_${Date.now().toString().slice(-4)}`;
         if (!disp) disp = `Edge-TTS 臺灣國語 (${edgeVoice})`;
+      } else if (prov === 'ming_tts') {
+        if (!name) name = `ming_tts_${Date.now().toString().slice(-4)}`;
+        if (!disp) disp = 'Ming-3.0 TTS (Local)';
       }
 
       if (!name || !disp) {
