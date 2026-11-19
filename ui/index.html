@@ -20,6 +20,12 @@
     </div>
   </header>
 
+  <div id="api-credit-strip" class="api-credit-strip" role="status" aria-live="polite">
+    <span class="api-credit-strip-title">☁️ API credits</span>
+    <span id="api-credit-list" class="api-credit-list">Loading…</span>
+    <button type="button" class="api-credit-refresh" onclick="loadApiCredits()" title="Refresh API credit balances">↻</button>
+  </div>
+
   <!-- PERSISTENT GLOBAL PIPELINE STATUS BANNER (ALWAYS VISIBLE) -->
   <div id="global-hero-banner" class="hero-banner" style="display: none;">
     <div class="hero-header-row">

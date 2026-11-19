@@ -1141,6 +1141,26 @@
       }
     }
 
+    async function loadApiCredits() {
+      const list = document.getElementById('api-credit-list');
+      if (!list) return;
+      list.textContent = 'Loading…';
+      try {
+        const data = await apiJson('/api/provider-balances');
+        const providers = data.providers || [];
+        list.innerHTML = providers.length ? providers.map(b => {
+          const remaining = b.remaining !== null && b.remaining !== undefined;
+          const value = b.status === 'ok' && remaining
+            ? `${Number(b.remaining).toLocaleString()} ${b.unit || ''}`.trim()
+            : b.status === 'ok' ? 'Connected' : 'Unavailable';
+          const state = b.status === 'ok' ? (remaining ? 'available' : 'connected') : 'unknown';
+          return `<span class="api-credit-item api-credit-${state}" title="${b.message || ''}"><b>${b.provider}</b> <span>${value}</span></span>`;
+        }).join('') : '<span class="api-credit-muted">No cloud API keys configured</span>';
+      } catch (err) {
+        list.innerHTML = '<span class="api-credit-error">Balance lookup unavailable</span>';
+      }
+    }
+
     async function unloadVRAM() {
       const d = await apiJson('/api/memory/unload', { method: 'POST' });
 
@@ -20006,6 +20026,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
 
     // Initialize application
     window.addEventListener('DOMContentLoaded', () => {
+      loadApiCredits();
       loadStatus();
       loadVoices();
       loadMusicTracks();
