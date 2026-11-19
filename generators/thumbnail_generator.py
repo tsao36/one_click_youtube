@@ -121,6 +121,11 @@ TEMPLATES = {
         "name": "電影海報極簡風 (Poster Center Hook)",
         "description": "置中巨型視覺主標 ＋ 上下對稱副標與電影暗角質感",
     },
+    "youtube_editorial": {
+        "id": "youtube_editorial",
+        "name": "YouTube 編輯白紅標題風 (YouTube Editorial)",
+        "description": "左下角白紅高對比人物／觀點大標 ＋ 細英文字眉標 ＋ 右下角片長角標",
+    },
 }
 
 
@@ -872,6 +877,41 @@ def _render_editorial_chill(
         p_draw.rounded_rectangle([bx, by, bx + bw, by + bh], radius=12, fill=(15, 18, 20, 215))
         p_draw.text((bx + 18, by + 8), badge_text, font=b_font, fill=(255, 255, 255, 255))
         canvas.alpha_composite(pill)
+
+
+def _render_youtube_editorial(canvas: Image.Image, bg_processed: Image.Image, config: dict[str, Any]) -> None:
+    """Render a lower-left white/red YouTube editorial headline."""
+    primary = _hex_to_rgba(config.get("primary_color", "#FF4215"), 255)
+    secondary = _hex_to_rgba(config.get("secondary_color", "#FFFFFF"), 255)
+    font_family = config.get("font_family")
+    kicker = (config.get("top_kicker") or "MONOPOLISTS PRETEND TO COMPETE").strip()
+    title = (config.get("main_title") or "假裝自己很小").strip()
+    subtitle = (config.get("left_line1") or config.get("right_line1") or "Peter Thiel").strip()
+    wash = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
+    ImageDraw.Draw(wash).rectangle([0, 390, 900, THUMB_H], fill=(0, 0, 0, 105))
+    canvas.alpha_composite(wash)
+    if kicker:
+        _draw_tracked_text(canvas, kicker, y=24, font=_find_zh_bold_font(14, font_family=font_family), fill_rgba=secondary,
+                           align="left", x_left=52, x_right=760, tracking=4, stroke_width=0, shadow_alpha=180, shadow_offset=(0, 2))
+    draw = ImageDraw.Draw(canvas)
+    title_font = _find_zh_bold_font(102, font_family=font_family)
+    split = max(1, min(len(title) - 1, len(title) // 2))
+    x, y = 48, 440
+    for part, color in ((title[:split], secondary), (title[split:], primary)):
+        draw.text((x + 3, y + 5), part, font=title_font, fill=(0, 0, 0, 210), stroke_width=2, stroke_fill=(0, 0, 0, 180))
+        draw.text((x, y), part, font=title_font, fill=color, stroke_width=1, stroke_fill=(0, 0, 0, 220))
+        x = draw.textbbox((x, y), part, font=title_font)[2]
+    if subtitle:
+        _draw_tracked_text(canvas, subtitle, y=570, font=_find_zh_bold_font(30, font_family=font_family), fill_rgba=primary,
+                           align="left", x_left=52, x_right=850, tracking=1, stroke_width=0, shadow_alpha=220, shadow_offset=(0, 2))
+    badge_text = (config.get("duration_badge") or "").strip()
+    if badge_text:
+        b_font = _find_zh_bold_font(34)
+        bbox = draw.textbbox((0, 0), badge_text, font=b_font)
+        bw, bh = (bbox[2] - bbox[0]) + 36, (bbox[3] - bbox[1]) + 24
+        bx, by = THUMB_W - bw - 22, THUMB_H - bh - 18
+        draw.rounded_rectangle([bx, by, bx + bw, by + bh], radius=8, fill=(15, 18, 20, 225))
+        draw.text((bx + 18, by + 8), badge_text, font=b_font, fill=(255, 255, 255, 255))
 
 
 def _render_cinema_impact(
@@ -2121,7 +2161,9 @@ def render_project_thumbnail(
     canvas = processed_bg.convert("RGBA")
 
     if not is_clear_text:
-        if template_id == "cinema_impact":
+        if template_id == "youtube_editorial":
+            _render_youtube_editorial(canvas, processed_bg, opts)
+        elif template_id == "cinema_impact":
             _render_cinema_impact(canvas, processed_bg, opts)
         elif template_id == "minimal_poster":
             _render_minimal_poster(canvas, processed_bg, opts)
@@ -2257,7 +2299,9 @@ def render_sample_thumbnail(
         opts["contrast_palette_name"] = palette_name
 
     canvas = processed_bg.convert("RGBA")
-    if template_id == "cinema_impact":
+    if template_id == "youtube_editorial":
+        _render_youtube_editorial(canvas, processed_bg, opts)
+    elif template_id == "cinema_impact":
         _render_cinema_impact(canvas, processed_bg, opts)
     elif template_id == "minimal_poster":
         _render_minimal_poster(canvas, processed_bg, opts)

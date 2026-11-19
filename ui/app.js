@@ -9121,6 +9121,28 @@
         defaultDisplaySec: 3.0,
         defaultMotionScale: 1.04
       },
+      youtube_editorial: {
+        key: 'youtube_editorial',
+        name: 'YouTube 編輯標題卡',
+        en: 'YouTube Editorial',
+        badge: '左下角 · 白紅大標題',
+        desc: '仿 YouTube 紀錄片縮圖的左下角大標題：白紅高對比字色、低調暗部漸層，適合人物訪談與觀點影片。',
+        tag: 'MONOPOLISTS PRETEND TO COMPETE',
+        title: '假裝自己很小',
+        subtitle: 'Peter Thiel',
+        tags: ['YouTube 縮圖', '人物訪談', '白紅標題'],
+        chipLabel: '🎥 YouTube 編輯',
+        accent: '#FF4215',
+        defaultTitlePt: 76,
+        defaultSubPt: 25,
+        defaultText: '#FFFFFF',
+        defaultBg: '#000000',
+        defaultBgOpacity: 0.75,
+        defaultMotion: 'fade_drift',
+        defaultEntranceMs: 320,
+        defaultDisplaySec: 3.5,
+        defaultMotionScale: 1.02
+      },
       none: {
         key: 'none',
         name: '停用場景訊息',
@@ -9519,6 +9541,15 @@
               <span style="color:${accentColor}; font-size:${subSize}; font-weight:900; white-space:nowrap; flex:0 0 auto;">▶ ${info.tag}</span>
               <span style="color:${textColor}; font-size:${titleSize}; font-weight:700; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${info.title}</span>
             </div>
+          </div>
+        `;
+      } else if (styleKey === 'youtube_editorial') {
+        const bottom = isMini ? '20px' : '38px';
+        overlayHtml = `
+          <div ${animId} class="overlay-motion-animated" style="position:absolute; left:${isMini ? '8px' : '18px'}; bottom:${bottom}; z-index:2; max-width:72%; pointer-events:none; text-align:left; ${animStyle}">
+            <div style="color:${accentColor}; font-size:${isMini ? '8px' : '11px'}; font-weight:800; letter-spacing:.12em; text-transform:uppercase; text-shadow:0 1px 3px #000;">${info.tag}</div>
+            <div style="color:${accentColor}; font-size:${titleSize}; font-weight:900; line-height:.98; text-shadow:2px 2px 0 #000, 0 3px 8px rgba(0,0,0,.8);">${info.title}</div>
+            <div style="color:${textColor}; font-size:${subSize}; font-weight:800; margin-top:3px; text-shadow:1px 1px 3px #000;">${info.subtitle}</div>
           </div>
         `;
       } else if (styleKey === 'comparison_badge') {

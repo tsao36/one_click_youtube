@@ -402,6 +402,22 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                     anim_tag = f"{{\\an8\\move({mid_x},{y_top_start},{mid_x},{y_top_target},0,{ov_entrance_ms})\\fad({fade_in_def},{fade_out_def})}}"
                 has_metric = bool(re.search(r"(\d|[一二三四五六七八九十百千萬兩]+\s*[尊枚把件座名位人戶個條份公釐公厘毫米公分公尺公里倍成%])", title))
 
+                if b_style == "youtube_editorial":
+                    # YouTube editorial title card: lower-left white/red headline over a subtle dark wash.
+                    fade = f"\\fad({max(80, ov_entrance_ms - 60)},260)"
+                    x1 = round(width * 0.045)
+                    y2 = round(height * 0.78)
+                    title_fs = round((int(ov_title_size) if ov_title_size else 76) * scale)
+                    sub_fs = round((int(ov_sub_size) if ov_sub_size else 25) * scale)
+                    title_col = hex_to_ass_color(ov_accent_color, "&H001F5AFF&")
+                    bg_col = hex_to_ass_color(ov_bg_color, "&H00000000&")
+                    wash = f"m 0 {round(height * 0.58)} l {round(width * 0.70)} {round(height * 0.58)} l {round(width * 0.70)} {height} l 0 {height}"
+                    raw_events.append((c_start, f"Dialogue: 1,{_ts_ass(c_start)},{_ts_ass(c_end)},FoxCalloutBox,,0,0,0,,{{\\an7\\pos(0,0)\\p1\\bord0\\shad0\\1c{bg_col}\\1a&H42&{fade}}}{wash}"))
+                    raw_events.append((c_start, f"Dialogue: 2,{_ts_ass(c_start)},{_ts_ass(c_end)},FoxCalloutCard,,0,0,0,,{{\\an7\\pos({x1},{y2})\\fs{title_fs}\\b1\\c{title_col}\\3c&H00000000&\\bord1\\shad3{fade}}}{title}"))
+                    if subtitle:
+                        raw_events.append((c_start, f"Dialogue: 2,{_ts_ass(c_start)},{_ts_ass(c_end)},FoxCalloutCard,,0,0,0,,{{\\an7\\pos({x1},{y2 + round(title_fs * 1.12)})\\fs{sub_fs}\\b1\\c{title_col}\\3c&H00000000&\\bord1\\shad2{fade}}}{subtitle}"))
+                    continue
+
                 if b_style in ("neutral_centered", "fox_kinetic"):
                     # Neutral editorial message. The legacy fox_kinetic value is
                     # intentionally migrated here so existing projects stop using

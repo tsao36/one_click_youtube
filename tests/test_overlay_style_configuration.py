@@ -157,6 +157,31 @@ def test_write_ass_comparison_badge_overlay(tmp_path):
     assert "\\p1" in content
 
 
+def test_write_ass_youtube_editorial_overlay(tmp_path):
+    ass_path = tmp_path / "test_youtube_editorial.ass"
+    write_ass(
+        cues=[Cue(start=0.0, end=3.0, text="人物觀點")],
+        path=ass_path,
+        style="youtube_standard",
+        width=1920,
+        height=1080,
+        callouts=[{
+            "start": 0.2,
+            "end": 2.8,
+            "tag": "MONOPOLISTS PRETEND TO COMPETE",
+            "title": "假裝自己很小",
+            "subtitle": "Peter Thiel",
+            "style": "FoxCalloutCard",
+            "banner_style": "youtube_editorial",
+        }],
+    )
+    content = ass_path.read_text(encoding="utf-8")
+    assert "假裝自己很小" in content
+    assert "Peter Thiel" in content
+    assert "\\pos(86,842)" in content
+    assert "\\1a&H42&" in content
+
+
 def test_extract_motion_callouts_custom_duration():
     sc = Scene(
         scene_id=1,

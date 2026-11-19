@@ -249,6 +249,64 @@ class OpenAITTS(TTSProvider):
         return {"provider": "openai_tts", "voice": body["voice"], "cloud_chars": len(text) if self.is_cloud else 0}
 
 
+class MingTTS(TTSProvider):
+    """InclusionAI Ming-3.0 local multilingual TTS and zero-shot cloning."""
+    name = "ming_tts"
+    supports_cloning = True
+
+    def available(self):
+        try:
+            import ming_tts  # noqa: F401
+            return True, f"Ming-3.0 ({self.cfg.get('model', 'inclusionAI/Ming-3.0-tts-0.5B')})"
+        except ImportError:
+            return False, "ming_tts is not installed (clone https://github.com/inclusionAI/Ming-3.0-tts and install its requirements)"
+
+    def generate_speech(self, text, profile, output_file):
+        try:
+            from ming_tts import MingTTS as MingModel
+        except ImportError as exc:
+            raise TTSError("Ming-3.0 requires the upstream ming_tts package") from exc
+
+        # Keep the model lazy and shared: loading the 0.5B checkpoint is expensive.
+        model_key = self.cfg.get("model", "inclusionAI/Ming-3.0-tts-0.5B")
+        cache = getattr(self, "_model_cache", None)
+        if cache is None or cache[0] != model_key:
+            self._model_cache = (model_key, MingModel(model_key))
+        model = self._model_cache[1]
+        ref = profile.get("reference_wav") or None
+        ref_abs = str((ROOT / ref).resolve()) if ref and not os.path.isabs(ref) else ref
+        language = (profile.get("language_code") or profile.get("language") or "").lower()
+        language_id = "zh" if ("zh" in language or "chinese" in language or "中文" in language or any("\u4e00" <= c <= "\u9fff" for c in text)) else "en"
+        kwargs = {
+            "task": "TTS",
+            "language_id": language_id,
+            "text": text,
+            "output_path": str(output_file),
+        }
+        if ref_abs:
+            kwargs["prompt_wav_path"] = ref_abs
+            if profile.get("reference_text"):
+                kwargs["prompt_text"] = profile["reference_text"]
+            kwargs["use_spk_emb"] = True
+        else:
+            # Ming's built-in voices are used when no cloning clip is supplied.
+            # Gender is profile metadata elsewhere, so map it explicitly here.
+            built_in_voice = profile.get("voice")
+            if not built_in_voice:
+                gender = str(profile.get("gender") or "").lower()
+                built_in_voice = "灵小柔" if gender == "female" else ("灵楷" if gender == "male" else "灵小柔")
+            kwargs["controls"] = {"ip": built_in_voice}
+        output_file.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            model.synthesize(**kwargs)
+        except Exception as exc:
+            raise TTSError(f"Ming-3.0 synthesis failed: {exc}") from exc
+        if not output_file.exists() or output_file.stat().st_size < 500:
+            raise TTSError("Ming-3.0 produced no audio")
+        actual_voice = "reference" if ref_abs else (profile.get("voice") or built_in_voice)
+        return {"provider": "ming_tts", "model": model_key, "voice": actual_voice}
+
+
 _BM_START_LOCK = None
 _BM_PROC = None
 
@@ -950,6 +1008,7 @@ TYPES = {
     "edge": EdgeTTS,
     "http_clone": HttpCloneTTS,
     "openai_tts": OpenAITTS,
+    "ming_tts": MingTTS,
     "bluemagpie": BlueMagpieTTS,
     "cosyvoice": CosyVoiceTTS,
     "cozyvoice": CosyVoiceTTS,
