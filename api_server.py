@@ -5991,6 +5991,15 @@ class ThumbnailRenderRequest(BaseModel):
     clear_text: Optional[bool] = None
 
 
+class ThumbnailCandidatesRequest(BaseModel):
+    provider: str = "fal-ai/flux-1/schnell"
+    count: int = 3
+
+
+class ThumbnailCandidateApplyRequest(BaseModel):
+    index: int
+
+
 @app.get("/api/settings/thumbnail-defaults")
 def get_thumbnail_default_settings():
     from generators.thumbnail_generator import (
@@ -6099,6 +6108,29 @@ def generate_project_thumbnail_copy(project_id: str):
     p = get_project(project_id)
     copy_zh = generate_thumbnail_copy_zh_tw(p, use_llm=True)
     return {"status": "ok", "copy": copy_zh}
+
+
+@app.post("/api/projects/{project_id}/thumbnail/ai-candidates")
+def generate_project_thumbnail_candidates(project_id: str, req: ThumbnailCandidatesRequest):
+    from generators.thumbnail_generator import generate_ai_thumbnail_candidates
+    p = get_project(project_id)
+    candidates = generate_ai_thumbnail_candidates(p, req.provider, req.count)
+    return {"status": "ok", "provider": req.provider, "candidates": candidates}
+
+
+@app.post("/api/projects/{project_id}/thumbnail/ai-candidates/apply")
+def apply_project_thumbnail_candidate(project_id: str, req: ThumbnailCandidateApplyRequest):
+    from shutil import copyfile
+    p = get_project(project_id)
+    if req.index not in (1, 2, 3):
+        raise HTTPException(status_code=400, detail="縮圖候選版本必須是 1、2 或 3")
+    source = p.path("output", "thumbnails", f"ai_thumbnail_{req.index}.png")
+    if not source.exists():
+        raise HTTPException(status_code=404, detail="找不到這個縮圖候選版本，請先生成三個版本")
+    target = p.path("output", "thumbnail.png")
+    target.parent.mkdir(parents=True, exist_ok=True)
+    copyfile(source, target)
+    return {"status": "ok", "index": req.index, "thumbnail_url": f"/media/{project_id}/output/thumbnail.png?t={int(time.time() * 1000)}"}
 
 
 @app.post("/api/projects/{project_id}/thumbnail/render")

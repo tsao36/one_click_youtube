@@ -3819,6 +3819,22 @@
             </a>
           </div>
 
+          <div style="margin-top:14px; background:#101827; border:1px solid #2563eb; border-radius:8px; padding:12px;">
+            <div style="font-size:12px; font-weight:800; color:#93c5fd; margin-bottom:6px;">✨ 獨立 AI 縮圖候選（不使用場景圖片）</div>
+            <div style="font-size:11px; color:#94a3b8; margin-bottom:8px;">根據本影片標題、旁白與場景內容生成 3 個版本；圖片中的文字限定台灣繁體中文。</div>
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+              <select id="ts-ai-provider" style="flex:1; min-width:220px; font-size:12px; padding:7px 8px; background:#0f172a; color:#fff; border:1px solid #334155; border-radius:6px;">
+                <option value="fal-ai/flux-1/schnell">Fal.ai FLUX Schnell</option>
+                <option value="nano-banana-2.1">Google Gemini Nano Banana</option>
+                <option value="imagen3">Google Gemini Image</option>
+                <option value="gpt-image-1">OpenAI GPT Image</option>
+                <option value="dalle3">OpenAI DALL·E 3</option>
+              </select>
+              <button type="button" class="btn-sec" id="btn-ts-ai-candidates" style="padding:8px 12px; border-color:#3b82f6; color:#bfdbfe; font-weight:800;">🎲 生成 3 個版本</button>
+            </div>
+            <div id="ts-ai-candidates" style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:10px;"></div>
+          </div>
+
           <!-- Background Source & Visual Effects -->
           <div style="margin-top:14px; background:#080d16; border:1px solid #1e293b; border-radius:8px; padding:12px;">
             <div style="font-size:12px; font-weight:700; color:#93c5fd; margin-bottom:8px;">🎞️ 底圖來源與視覺特效 (Background & Depth Effects)</div>

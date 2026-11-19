@@ -19082,6 +19082,11 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       }
       const modal = document.getElementById('thumbnail-studio-modal');
       modal.style.display = 'flex';
+      const candidateBtn = document.getElementById('btn-ts-ai-candidates');
+      if (candidateBtn && !candidateBtn.dataset.bound) {
+        candidateBtn.addEventListener('click', generateAIThumbnailCandidates);
+        candidateBtn.dataset.bound = '1';
+      }
       document.getElementById('ts-render-status').textContent = '載入縮圖中...';
 
       try {
@@ -19171,6 +19176,48 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
     function closeThumbnailStudioModal() {
       const modal = document.getElementById('thumbnail-studio-modal');
       if (modal) modal.style.display = 'none';
+    }
+
+    async function generateAIThumbnailCandidates() {
+      if (!currentProjectId) return;
+      const btn = document.getElementById('btn-ts-ai-candidates');
+      const grid = document.getElementById('ts-ai-candidates');
+      const provider = document.getElementById('ts-ai-provider').value;
+      btn.disabled = true;
+      btn.textContent = '⏳ 生成中...';
+      grid.innerHTML = '<div style="grid-column:1/-1;color:#93c5fd;font-size:11px;">正在根據影片內容生成 3 個獨立版本，請稍候...</div>';
+      try {
+        const data = await apiJson(`/api/projects/${currentProjectId}/thumbnail/ai-candidates`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ provider, count: 3 }),
+        });
+        grid.innerHTML = (data.candidates || []).map(c => `
+          <div style="border:1px solid #334155;border-radius:6px;padding:5px;background:#080d16;">
+            <img src="${c.url}" alt="AI 縮圖候選 ${c.index}" style="width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:4px;display:block;">
+            <button type="button" class="btn-sec" style="width:100%;margin-top:5px;padding:5px;font-size:11px;" onclick="applyAIThumbnailCandidate(${c.index})">套用版本 ${c.index}</button>
+          </div>`).join('');
+        document.getElementById('ts-render-status').textContent = '✓ 已生成 3 個獨立 AI 縮圖版本，請選擇套用';
+      } catch (e) {
+        grid.innerHTML = `<div style="grid-column:1/-1;color:#fca5a5;font-size:11px;">生成失敗：${e.message}</div>`;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '🎲 生成 3 個版本';
+      }
+    }
+
+    async function applyAIThumbnailCandidate(index) {
+      try {
+        const data = await apiJson(`/api/projects/${currentProjectId}/thumbnail/ai-candidates/apply`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ index }),
+        });
+        const url = data.thumbnail_url;
+        document.getElementById('ts-preview-img').src = url;
+        document.getElementById('btn-ts-download').href = url;
+        document.getElementById('ts-render-status').textContent = `✓ 已套用 AI 縮圖版本 ${index}`;
+      } catch (e) {
+        alert('套用縮圖失敗：' + e.message);
+      }
     }
 
     async function autoGenerateThumbnailCopy() {

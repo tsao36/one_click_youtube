@@ -178,6 +178,41 @@ DEFAULT_THUMBNAIL_CONFIG: dict[str, Any] = {
     "default_top_kicker": "",
 }
 
+def generate_ai_thumbnail_candidates(project, provider_name: str, count: int = 3) -> list[dict[str, Any]]:
+    """Generate independent 16:9 thumbnail candidates from the video's own content."""
+    from providers.images import ImageRequest, get_image_provider
+
+    topic = (getattr(project.data, "title", None) or getattr(project.data, "topic", None) or project.id).strip()
+    scenes = project.active_scenes()
+    content = "\n".join(f"Scene {s.scene_id}: {(s.narration or s.visual_description or '')[:260]}" for s in scenes[:12])
+    if not content:
+        raise ValueError("影片目前沒有可用的場景旁白內容，無法製作內容相關縮圖")
+    prompt = (
+        f"YouTube thumbnail for the video titled「{topic}」. Use ONLY the people, subjects, places, events and ideas "
+        "described in the video content below; do not invent unrelated characters. Create a compelling cinematic "
+        "documentary composition, landscape 16:9, clear focal subject, strong contrast, and clean space for overlay text. "
+        "All visible text must be Traditional Chinese used in Taiwan (繁體中文), based on the video content. "
+        "Do not use Simplified Chinese, English filler text, gibberish, watermarks, or logos.\nVideo content:\n" + content
+    )
+    provider = get_image_provider(provider_name, project.settings)
+    available, reason = provider.available()
+    if not available:
+        raise RuntimeError(f"{provider_name} 不可用：{reason}")
+    out_dir = project.path("output", "thumbnails")
+    out_dir.mkdir(parents=True, exist_ok=True)
+    candidates = []
+    for idx in range(1, max(1, min(count, 3)) + 1):
+        output = out_dir / f"ai_thumbnail_{idx}.png"
+        req = ImageRequest(
+            prompt=f"{prompt}\nThis is candidate {idx}; use a distinct composition and color mood.",
+            negative="simplified Chinese, unrelated people, unrelated subjects, illegible text, English words, watermark, logo, duplicate faces",
+            seed=int(time.time() * 1000) + idx, width=1280, height=720, output=output,
+            extra={"description": topic},
+        )
+        metadata = provider.generate(req)
+        candidates.append({"index": idx, "path": project.rel(output), "url": f"/media/{project.id}/{project.rel(output)}?t={int(time.time() * 1000)}", "provider": metadata.get("provider", provider_name), "prompt": req.prompt})
+    return candidates
+
 
 def get_default_thumbnail_config() -> dict[str, Any]:
     """Return global default thumbnail configuration from settings.yaml merged with built-in defaults."""
