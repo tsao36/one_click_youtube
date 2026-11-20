@@ -29,12 +29,18 @@ class OpenAICompatProvider(LLMProvider):
             return False, "Invalid OpenAI API key format in .env (OpenAI keys must start with 'sk-')"
         return True, self.base_url
 
+    def _token_limit_key(self) -> str:
+        """Use the parameter required by newer OpenAI completion models."""
+        model = (self.model or "").lower()
+        return "max_completion_tokens" if model.startswith(("gpt-5", "gpt-6")) else "max_tokens"
+
     def generate(self, prompt, system="", json_mode=False, temperature=0.7, max_tokens=4096) -> str:
         messages = []
         if system:
             messages.append({"role": "system", "content": system})
         messages.append({"role": "user", "content": prompt})
-        body: dict = {"model": self.model, "messages": messages, "temperature": temperature, "max_tokens": max_tokens}
+        body: dict = {"model": self.model, "messages": messages, "temperature": temperature,
+                      self._token_limit_key(): max_tokens}
         if json_mode:
             body["response_format"] = {"type": "json_object"}
         headers = {"Authorization": f"Bearer {self.key}"} if self.key else {}

@@ -156,6 +156,22 @@ def test_openai_compat_token_extraction():
         assert prov.last_usage["total_tokens"] == 150
 
 
+def test_openai_compat_newer_models_use_max_completion_tokens():
+    prov = OpenAICompatProvider({"base_url": "http://localhost:8000"}, model="gpt-6-luna")
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {
+        "choices": [{"message": {"content": "{}"}}],
+        "usage": {},
+    }
+    with patch("requests.post", return_value=mock_resp) as mock_post:
+        prov.generate("Review this script", max_tokens=12000)
+
+    body = mock_post.call_args.kwargs["json"]
+    assert body["max_completion_tokens"] == 12000
+    assert "max_tokens" not in body
+
+
 def test_ollama_provider_token_extraction():
     prov = OllamaProvider({"base_url": "http://localhost:11434"}, model="llama3")
     mock_resp = MagicMock()
