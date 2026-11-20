@@ -15,11 +15,25 @@ def _validate(data: Any) -> dict[str, Any]:
     data.setdefault("sources", [])
     return data
 
+
+def _is_ancient_story(research: dict[str, Any]) -> bool:
+    """Ancient-story reviews do not block generation on unresolved fact checks."""
+    research_type = str(research.get("type", "")).lower()
+    if research_type in {"dynasty_trivia", "dynasty", "ancient_history", "ancient_story"}:
+        return True
+    world_setting = research.get("world_setting") or {}
+    era = str(world_setting.get("temporal_era", "")).lower() if isinstance(world_setting, dict) else ""
+    return any(term in era for term in ("ancient", "dynasty", "bc", "bce", "han", "tang", "song", "ming", "qing"))
+
 def review_script(project, script: dict[str, Any], research: dict[str, Any], on_request=None) -> dict[str, Any]:
+    ancient_story = _is_ancient_story(research)
     system = ("You are a ruthless documentary script editor. Maximize information density: "
               "remove repetition, filler, vague adjectives, generic transitions and unsupported claims. "
               "Preserve essential context, caveats and meaningful opposing views. Never invent facts or sources. Return only JSON.")
-    prompt = {"task": "Review and finalize this script; fact-check claims against research and cite reliable sources.",
+    task = "Review and finalize this script; fact-check claims against research and cite reliable sources."
+    if ancient_story:
+        task += " This is an ancient/historical story: unresolved historical evidence must not set high_risk or block generation; preserve uncertainty as a caveat instead."
+    prompt = {"task": task,
               "rules": ["Mark every paragraph keep, rewrite, delete, or verify.",
                         "Set high_risk if a core conclusion changes, a key claim lacks support, or a high-impact topic remains uncertain.",
                         "Preserve the exact script schema and section order."],
@@ -28,6 +42,9 @@ def review_script(project, script: dict[str, Any], research: dict[str, Any], on_
               "research": research, "script": script}
     client = LLMClient("script_review", on_request=on_request, json_retries=3, project_id=getattr(project, "id", ""))
     result = client.json(str(prompt), system=system, temperature=0.2, max_tokens=12000, validate=_validate)
+    if ancient_story and result.get("high_risk"):
+        result["high_risk"] = False
+        result["fact_check_confirmation_skipped"] = True
     usage = getattr(client.provider, "last_usage", {}) or {}
     model = usage.get("model") or getattr(client.provider, "model", "gpt-6-luna")
     result["metadata"] = {"model": model, "checked_at": datetime.now(timezone.utc).isoformat(),

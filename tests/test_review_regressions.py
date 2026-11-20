@@ -16,7 +16,14 @@ from core.documentary_pipeline import DocumentaryPipeline
 from core.drama_pipeline import DramaPipeline
 from core.models import Scene, Status
 from core.project_manager import Project
+from core.script_reviewer import _is_ancient_story
 from providers.llm import LLMClient
+
+
+def test_ancient_story_review_classification():
+    assert _is_ancient_story({"type": "dynasty_trivia"})
+    assert _is_ancient_story({"world_setting": {"temporal_era": "Song Dynasty"}})
+    assert not _is_ancient_story({"type": "ai_technology", "world_setting": {"temporal_era": "2026"}})
 
 
 @pytest.fixture
