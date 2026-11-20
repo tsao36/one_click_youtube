@@ -97,7 +97,10 @@ def _split_long(sentence: str, max_units: int) -> list[str]:
     open_quotes = {"「": "」", "『": "』", "“": "”", '"': '"', "（": "）", "(": ")", "《": "》", "【": "】"}
     close_quotes = {v: k for k, v in open_quotes.items()}
     quote_stack = []
-    delims = set("，、,;:—–")
+    # Include full-width Chinese clause punctuation.  In particular, treating
+    # `：` as ordinary text can push a perfectly valid clause into the hard
+    # split fallback below (e.g. `殺人祭鬼者` -> `殺` + `人祭鬼者`).
+    delims = set("，、：,;:；—–")
 
     clauses = []
     cur = []
@@ -145,10 +148,11 @@ def _split_long(sentence: str, max_units: int) -> list[str]:
             final.append(o)
         else:
             if re.search(r"[\u4e00-\u9fff]", o):
-                for k in range(0, len(o), max(1, max_units)):
-                    part = o[k:k + max_units].strip()
-                    if part:
-                        final.append(part)
+                # Never slice CJK text by character count: without a
+                # tokenizer that can cut a lexical unit in half.  Preserve
+                # the clause as one scene unit; pacing may be longer, but the
+                # narration remains semantically and grammatically intact.
+                final.append(o)
             else:
                 w = o.split()
                 while len(w) > max_units:
@@ -893,6 +897,12 @@ def direct_scenes(topic: str, raw: list[dict], bible: dict, settings: dict, clie
         auto_stock_mode = settings.get("images", {}).get("auto_stock_mode") or settings.get("auto_stock_mode", "balanced")
         search_kw = (d.get("search_keyword") or "").strip()
         media_src = (d.get("media_source") or "ai").strip()
+        # A storyboard LLM may emit a stale URL/keyword without declaring a
+        # real-media source.  Do not silently reinterpret that as YouTube;
+        # only explicit source assignments or deterministic auto-detection may
+        # opt a scene into external reference media.
+        if search_kw and media_src == "ai":
+            search_kw = ""
         if not search_kw and auto_stock_mode != "disabled":
             auto_kw, auto_src = detect_real_world_footage_target(
                 s["narration"],

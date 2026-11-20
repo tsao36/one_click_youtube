@@ -348,15 +348,10 @@ def extract_stock_search_keywords(text: str) -> list[str]:
     if not text or not text.strip():
         return ["technology", "modern vehicle", "city skyline", "nature landscape"]
 
+    # Keep the user's/native-language query intact.  This is a retrieval query,
+    # not an image-model prompt: translating Chinese to English can change
+    # names and historical terms enough to return unrelated media.
     cleaned = text.strip()
-    if re.search(r"[\u4e00-\u9fff]", cleaned):
-        try:
-            from agents.prompt_generator import translate_to_english_for_sdxl
-            en_q = translate_to_english_for_sdxl(cleaned)
-            if en_q:
-                cleaned = en_q
-        except Exception:
-            pass
 
     # Strip camera angles, AI formatting boilerplate and diffusion jargon
     cleaned = re.sub(
@@ -372,6 +367,14 @@ def extract_stock_search_keywords(text: str) -> list[str]:
         r"true|truly|real|really|actual|actually|another|other|each|every|some|any|all)\b"
     )
     candidates: list[str] = []
+
+    # Chinese search indexes work best with the original phrase.  Preserve
+    # CJK clauses before the English-token fallback below; never manufacture
+    # an English query by translating the Chinese input.
+    for clause in re.split(r"[,.;，。；：:\n]", cleaned):
+        clause = clause.strip()
+        if re.search(r"[\u4e00-\u9fff]", clause) and clause:
+            candidates.append(clause[:80])
 
     # 1. First clause before punctuation (usually contains the main subject)
     first_clause = re.split(r"[,.;\n]", cleaned)[0].strip()
@@ -414,15 +417,8 @@ def search_stock_media(query: str, media_type: str = "all", source: str = "auto"
     if not cleaned_query:
         return []
 
-    # If Chinese/Japanese characters in query, try transliterating or extracting English keywords
-    if re.search(r"[\u4e00-\u9fff]", cleaned_query):
-        try:
-            from agents.prompt_generator import translate_to_english_for_sdxl
-            en_q = translate_to_english_for_sdxl(cleaned_query)
-            if en_q:
-                cleaned_query = en_q
-        except Exception:
-            pass
+    # Retrieval must use the supplied language.  In particular, never
+    # translate Chinese into English before querying Wikimedia/Pexels/Pixabay.
 
     def _execute_search(q: str) -> list[dict[str, Any]]:
         if source == "pexels":
