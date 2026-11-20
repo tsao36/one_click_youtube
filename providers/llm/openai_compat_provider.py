@@ -39,8 +39,9 @@ class OpenAICompatProvider(LLMProvider):
         if system:
             messages.append({"role": "system", "content": system})
         messages.append({"role": "user", "content": prompt})
-        body: dict = {"model": self.model, "messages": messages, "temperature": temperature,
-                      self._token_limit_key(): max_tokens}
+        body: dict = {"model": self.model, "messages": messages, self._token_limit_key(): max_tokens}
+        if not (self.model or "").lower().startswith(("gpt-5", "gpt-6")):
+            body["temperature"] = temperature
         if json_mode:
             body["response_format"] = {"type": "json_object"}
         headers = {"Authorization": f"Bearer {self.key}"} if self.key else {}

@@ -170,6 +170,7 @@ def test_openai_compat_newer_models_use_max_completion_tokens():
     body = mock_post.call_args.kwargs["json"]
     assert body["max_completion_tokens"] == 12000
     assert "max_tokens" not in body
+    assert "temperature" not in body
 
 
 def test_ollama_provider_token_extraction():
