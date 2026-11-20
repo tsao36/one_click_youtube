@@ -416,3 +416,34 @@ def test_rve_donut_chart_30_frame_smoke_render(tmp_path):
     assert result.exists()
     assert out_mp4.exists()
     assert out_mp4.stat().st_size > 10_000
+
+
+def test_rve_community_template_catalog_is_exposed_to_auto_planner():
+    from generators.remotion_cards import REMOTION_STYLES, plan_100_percent_remotion_scenes
+    from generators.rve_template_catalog import RVE_TEMPLATE_IDS
+
+    assert len(RVE_TEMPLATE_IDS) == 81
+    assert set(RVE_TEMPLATE_IDS).issubset({item["id"] for item in REMOTION_STYLES})
+
+    scenes = plan_100_percent_remotion_scenes(
+        "第一段說明系統如何運作。\n\n第二段比較兩種架構的差異。",
+        style_pack="rve_templates",
+    )
+
+    assert scenes
+    assert all(scene["composition"] in RVE_TEMPLATE_IDS for scene in scenes)
+
+
+def test_rve_community_template_smoke_render(tmp_path):
+    from generators.remotion_cards import render_card
+
+    output = render_card(
+        props={},
+        out_path=tmp_path / "rve-community-template.mp4",
+        seconds=1.0,
+        fps=30,
+        composition="RveTemplateAnimatedText",
+    )
+
+    assert output.exists()
+    assert output.stat().st_size > 10_000

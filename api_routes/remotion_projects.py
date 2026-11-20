@@ -22,6 +22,7 @@ from pydantic import BaseModel, Field
 from core.config import DATA_DIR, PROJECTS_DIR
 from core.models import Asset, Scene, Status
 from core.pipeline_jobs import get_project, queue_pipeline_job
+from core.remotion_video import SCENE_PLAN_VERSION, build_timeline, validate_scene_specs
 
 router = APIRouter()
 PRESETS_DIR = DATA_DIR / "remotion_presets"
@@ -59,6 +60,7 @@ def _read_json(path: Path, default: Any) -> Any:
 
 
 class RemotionDraftRequest(BaseModel):
+    title: str = ""
     topic: str = ""
     script: str = ""
     parameters: dict[str, Any] = Field(default_factory=dict)
@@ -299,9 +301,21 @@ def delete_remotion_reference(project_id: str, reference_id: str):
 @router.put("/api/projects/{project_id}/remotion/draft")
 def save_remotion_draft(project_id: str, req: RemotionDraftRequest):
     project = get_project(project_id)
+    if req.title.strip():
+        project.data.title = req.title.strip()
+    parameters = dict(req.parameters)
+    timeline = build_timeline(
+        req.scenes,
+        fps=int(parameters.get("fps") or 30),
+        audio_durations=parameters.get("audio_durations") or {},
+        measured_audio_duration=parameters.get("audio_duration_seconds"),
+    )
+    draft = req.model_dump(mode="json")
+    draft["scene_plan_version"] = SCENE_PLAN_VERSION
+    draft["timeline"] = timeline.model_dump(mode="json", by_alias=True)
     project.data.settings["remotion"] = {
         **(project.data.settings.get("remotion") or {}),
-        "draft": req.model_dump(mode="json"),
+        "draft": draft,
         "reference_images": (project.data.settings.get("remotion") or {}).get("reference_images", []),
         "updated_at": _now(),
     }
@@ -383,9 +397,43 @@ def validate_remotion_project(project_id: str, req: RemotionValidationRequest):
     for scene in req.scenes:
         if scene.get("fallback_detected"):
             errors.append(f"Scene {scene.get('scene_id')} 發生未預期 fallback，Render 已阻止")
+    strict_scene_plan = any(scene.get("scene_plan_version") or scene.get("scenePlanVersion") for scene in req.scenes)
+    scene_plan_errors = validate_scene_specs(req.scenes, strict=strict_scene_plan)
+    errors.extend(scene_plan_errors)
+    timeline = None
+    if not scene_plan_errors:
+        try:
+            timeline = build_timeline(
+                req.scenes,
+                fps=int(req.parameters.get("fps") or 30),
+                audio_durations=req.parameters.get("audio_durations") or {},
+                measured_audio_duration=req.parameters.get("audio_duration_seconds"),
+            ).model_dump(mode="json", by_alias=True)
+        except (TypeError, ValueError) as exc:
+            errors.append(f"Timeline validation failed: {exc}")
     if configured_ratio < 100:
         warnings.append("此 project 為 Remotion-first 混合模式，不是 100% Remotion")
-    return {"valid": not errors, "errors": errors, "warnings": warnings, "actual_remotion_ratio": actual_ratio}
+    return {"valid": not errors, "errors": errors, "warnings": warnings, "actual_remotion_ratio": actual_ratio, "timeline": timeline}
+
+
+@router.get("/api/projects/{project_id}/remotion/timeline")
+def get_remotion_timeline(project_id: str):
+    project = get_project(project_id)
+    draft = (project.data.settings.get("remotion") or {}).get("draft") or {}
+    timeline = draft.get("timeline")
+    if timeline:
+        return timeline
+    result = validate_remotion_project(
+        project_id,
+        RemotionValidationRequest(
+            script=draft.get("script", ""),
+            parameters=draft.get("parameters", {}),
+            scenes=draft.get("scenes", []),
+        ),
+    )
+    if result.get("timeline") is None:
+        raise HTTPException(status_code=400, detail="Remotion draft has no valid timeline")
+    return result["timeline"]
 
 
 @router.post("/api/projects/{project_id}/remotion/start")
@@ -469,12 +517,16 @@ def start_remotion_project(project_id: str, background_tasks: BackgroundTasks):
         or "16:9"
     )
     fps = int(parameters.get("fps") or (project.data.settings.get("video") or {}).get("fps") or 30)
+    resolution = str(parameters.get("resolution") or "1080p").lower()
+    if resolution not in {"1080p", "4k"}:
+        raise HTTPException(status_code=400, detail="resolution must be 1080p or 4k")
+    long_edge = 3840 if resolution == "4k" else 1920
     if aspect_ratio == "9:16":
-        width, height = 1080, 1920
+        width, height = (2160, 3840) if resolution == "4k" else (1080, 1920)
     elif aspect_ratio == "1:1":
-        width, height = 1080, 1080
+        width = height = 3840 if resolution == "4k" else 1080
     else:
-        width, height = 1920, 1080
+        width, height = long_edge, 2160 if resolution == "4k" else 1080
 
     video_settings = project.data.settings.setdefault("video", {})
     video_settings.update(
@@ -485,6 +537,7 @@ def start_remotion_project(project_id: str, background_tasks: BackgroundTasks):
             "width": width,
             "height": height,
             "fps": fps,
+            "resolution": resolution,
         }
     )
     project.data.settings["aspect_ratio"] = aspect_ratio

@@ -134,6 +134,7 @@ def serve_project_file(project_id: str, file_path: str):
 # ---------------- Models ----------------
 class CreateProjectRequest(BaseModel):
     topic: str
+    title: Optional[str] = None
     duration_minutes: float = 10.0
     language: str = "Traditional Chinese"
     voice_profile: str = "default_local"
@@ -644,6 +645,7 @@ def create_project(req: CreateProjectRequest, background_tasks: BackgroundTasks)
             pass
     settings = build_project_settings(req, profiles, resolved_voice_profile)
     p = Project.create(topic=req.topic, overrides=settings)
+    p.data.title = (req.title or req.topic).strip()
     persist_project_inputs(p, req)
     p.save()
 

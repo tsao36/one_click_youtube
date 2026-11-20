@@ -119,14 +119,17 @@
       <div class="card-title">⚛️ Remotion Video <span style="font-size:12px;color:#94a3b8;font-weight:400;">Gemini Script + LLM Remotion Director + TTS / Avatar / Subtitles / Render</span></div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;">
         <label>主題 / Topic<input id="remotion-project-topic" type="text" placeholder="輸入影片主題（可直接一鍵生成並渲染）" style="width:100%;box-sizing:border-box;margin-top:5px;"></label>
+        <label>影片標題 / Title<input id="remotion-project-title" type="text" placeholder="可留白，預設使用主題" style="width:100%;box-sizing:border-box;margin-top:5px;"></label>
         <label>目標時長 / Length<select id="remotion-project-duration" style="width:100%;margin-top:5px;"><option value="0.5" selected>30 秒 · 0.5 min</option><option value="1">1 分鐘 · 1 min</option><option value="5">5 分鐘 · 5 min</option><option value="10">10 分鐘 · 10 min</option></select></label>
         <label>旁白語言 / Language<select id="remotion-project-language" style="width:100%;margin-top:5px;"><option value="Traditional Chinese" selected>Traditional Chinese (台灣繁體中文)</option><option value="English">English</option><option value="Japanese">Japanese</option><option value="Spanish">Spanish</option></select></label>
-        <label>Remotion 風格套件 / Style Pack<select id="remotion-style-pack" style="width:100%;margin-top:5px;"><option value="auto_all" selected>🤖 Auto All 全庫智能匹配</option><option value="rve">📊 RVE 動態圖表套件</option><option value="modern_tech_explainer">✨ Gary Chen 現代科技解說</option><option value="coordinate_zero">🧭 座標零 桌面實驗室</option><option value="finance_market">📈 金融市場與財報</option><option value="archival_history">📜 歷史檔案與編年</option><option value="vox_journalism">🗞️ Vox 深度調查</option><option value="fox_documentary">📌 fOx 紀錄片資訊卡</option></select></label>
+        <label>Remotion 風格套件 / Style Pack<select id="remotion-style-pack" style="width:100%;margin-top:5px;"><option value="auto_all" selected>🤖 Auto All 全庫智能匹配</option><option value="rve_templates">🧩 RVE Community 81 Templates</option><option value="rve">📊 RVE 動態圖表套件</option><option value="modern_tech_explainer">✨ Gary Chen 現代科技解說</option><option value="coordinate_zero">🧭 座標零 桌面實驗室</option><option value="finance_market">📈 金融市場與財報</option><option value="archival_history">📜 歷史檔案與編年</option><option value="vox_journalism">🗞️ Vox 深度調查</option><option value="fox_documentary">📌 fOx 紀錄片資訊卡</option></select></label>
         <label>聲音形象 / Voice Profile<select id="remotion-voice-select" style="width:100%;margin-top:5px;"><option value="">載入音色中...</option></select></label>
         <label>虛擬講者 / Avatar Presenter<select id="remotion-avatar-select" style="width:100%;margin-top:5px;"><option value="">(不使用虛擬講者)</option></select></label>
         <label>講者出鏡位置 / Placement<select id="remotion-presenter-placement" onchange="onRemotionPresenterPlacementChange()" style="width:100%;margin-top:5px;"><option value="none" selected>🚫 不出鏡 Pure Remotion</option><option value="intro">🎬 僅開頭 Scene 1</option><option value="intro_outro">🎯 開頭 + 結尾</option><option value="intro_middle_outro">⭐ 開頭 + 中間 + 結尾</option><option value="chapters">📑 各章節開頭</option><option value="all">🎙️ 全片講者</option></select></label>
         <label>輸出比例<select id="remotion-project-ratio" style="width:100%;margin-top:5px;"><option>16:9</option><option>9:16</option><option>1:1</option></select></label>
+        <label>輸出解析度<select id="remotion-project-resolution" style="width:100%;margin-top:5px;"><option value="1080p" selected>1080p</option><option value="4k">4K（需環境支援）</option></select></label>
         <label>FPS<input id="remotion-project-fps" type="number" value="30" min="1" max="120" style="width:100%;box-sizing:border-box;margin-top:5px;"></label>
+        <label>AI 自動化程度<select id="remotion-automation-level" style="width:100%;margin-top:5px;"><option value="auto" selected>Auto · 自動決策</option><option value="guided">Guided · 可編輯場景決策</option><option value="custom">Custom · 覆寫動畫參數</option></select></label>
         <label>Remotion 比例 <output id="remotion-ratio-value">100%</output><input id="remotion-render-ratio" type="range" min="0" max="100" value="100" oninput="document.getElementById('remotion-ratio-value').value=this.value+'%'" style="width:100%;margin-top:8px;"></label>
       </div>
       <div style="margin-top:12px;">
@@ -137,7 +140,7 @@
         <textarea id="remotion-project-script" rows="6" placeholder="輸入上方主題與時長後，點擊「🤖 用 Gemini 生成 Script」或直接點擊「建立並 Render Remotion Video」一鍵自動生成；也可手動貼上完整腳本" style="width:100%;box-sizing:border-box;margin-top:6px;"></textarea>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center;">
-        <select id="remotion-preset-select" style="min-width:220px;"><option value="">選擇 preset</option></select>
+        <select id="remotion-preset-select" style="min-width:220px;"><option value="">選擇 preset</option><option value="ai-auto">✨ AI Auto · 依旁白內容自動選模板</option></select>
         <button type="button" class="btn-sec" onclick="loadRemotionPresetIntoForm()">載入 preset</button>
         <button type="button" class="btn-sec" onclick="saveRemotionPresetFromForm()">另存為 preset</button>
         <button type="button" class="btn-sec" onclick="updateSelectedRemotionPreset()">更新 preset</button>

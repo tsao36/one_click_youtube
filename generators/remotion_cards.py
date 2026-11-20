@@ -16,6 +16,7 @@ from typing import Any, Callable, Dict, List, Optional
 from core.config import ROOT
 from core.logging_setup import log
 from core.models import Scene, Status
+from generators.rve_template_catalog import RVE_TEMPLATE_IDS, RVE_TEMPLATE_PRESETS
 
 REMOTION_DIR = ROOT / "remotion-video"
 RENDERS_DIR = REMOTION_DIR / "out" / "renders"
@@ -577,6 +578,10 @@ REMOTION_STYLES = [
         "type": "scene",
     },
 ]
+
+# Community templates are vendored as standalone compositions and exposed to
+# the same structured director catalog as the built-in scenes.
+REMOTION_STYLES.extend(RVE_TEMPLATE_PRESETS)
 
 _DIRECT_COMPOSITION_IDS: set[str] = {s["id"] for s in REMOTION_STYLES}
 _EXTENDED_STYLE_ACCENTS: dict[str, str] = {
@@ -1443,7 +1448,7 @@ def _normalize_extended_composition_props(
 
 
 REMOTION_STYLE_PACKS: dict[str, list[str]] = {
-    "auto_all": [
+    "auto_all": list(RVE_TEMPLATE_IDS) + [
         "RveChapterTitleScene",
         "RveBarChartScene",
         "RveTrendLineScene",
@@ -1487,6 +1492,7 @@ REMOTION_STYLE_PACKS: dict[str, list[str]] = {
         "RveCardFlipScene",
         "RveImageComparisonScene",
     ],
+    "rve_templates": list(RVE_TEMPLATE_IDS),
     "modern_tech_explainer": [
         "FrameworkMatrixScene",
         "PromptComparisonScene",

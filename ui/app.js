@@ -21012,7 +21012,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
         _populateRemotionVoiceAndAvatarSelectors();
         remotionStyles = styles;
         const select = document.getElementById('remotion-preset-select');
-        if (select) select.innerHTML = '<option value="">選擇 preset</option>' + presets.map(p => `<option value="${escapeHtml(p.id)}" ${p.schema_valid === false ? 'disabled' : ''}>${escapeHtml(p.name)} · v${p.version || 1}${p.schema_valid === false ? ' · schema 不相容' : ''}</option>`).join('');
+        if (select) select.innerHTML = '<option value="">選擇 preset</option><option value="ai-auto">✨ AI Auto · 依旁白內容自動選模板</option>' + presets.map(p => `<option value="${escapeHtml(p.id)}" ${p.schema_valid === false ? 'disabled' : ''}>${escapeHtml(p.name)} · v${p.version || 1}${p.schema_valid === false ? ' · schema 不相容' : ''}</option>`).join('');
         if (currentProjectId) {
           const refs = await apiJson(`/api/projects/${currentProjectId}/remotion/references`);
           remotionReferences = refs;
@@ -21021,11 +21021,14 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
           if (draft && Object.keys(draft).length) {
             const p = draft.parameters || {};
             if (draft.topic) document.getElementById('remotion-project-topic').value = draft.topic;
+            if (draft.title) document.getElementById('remotion-project-title').value = draft.title;
             if (draft.script) document.getElementById('remotion-project-script').value = draft.script;
             if (p.duration_minutes != null) document.getElementById('remotion-project-duration').value = String(p.duration_minutes);
             if (p.language) document.getElementById('remotion-project-language').value = p.language;
             if (p.style_pack) document.getElementById('remotion-style-pack').value = p.style_pack;
             if (p.aspect_ratio) document.getElementById('remotion-project-ratio').value = p.aspect_ratio;
+            if (p.resolution) document.getElementById('remotion-project-resolution').value = p.resolution;
+            if (p.automation_level) document.getElementById('remotion-automation-level').value = p.automation_level;
             if (p.fps) document.getElementById('remotion-project-fps').value = p.fps;
             if (p.presenter_placement) document.getElementById('remotion-presenter-placement').value = p.presenter_placement;
             if (p.voice_profile || p.default_avatar) _populateRemotionVoiceAndAvatarSelectors(p.voice_profile, p.default_avatar);
@@ -21076,6 +21079,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       let advancedProps = {};
       try { advancedProps = JSON.parse(document.getElementById('remotion-advanced-props')?.value || '{}'); } catch (_) { throw new Error('進階 props JSON 格式錯誤'); }
       return {
+        title: document.getElementById('remotion-project-title')?.value.trim() || '',
         density: 'full',
         aspect_ratio: document.getElementById('remotion-project-ratio')?.value || '16:9',
         duration_minutes: Number(document.getElementById('remotion-project-duration')?.value || 0.5),
@@ -21085,6 +21089,8 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
         default_avatar: document.getElementById('remotion-avatar-select')?.value || null,
         presenter_placement: document.getElementById('remotion-presenter-placement')?.value || 'none',
         fps: Number(document.getElementById('remotion-project-fps')?.value || 30),
+        resolution: document.getElementById('remotion-project-resolution')?.value || '1080p',
+        automation_level: document.getElementById('remotion-automation-level')?.value || 'auto',
         remotion_ratio: Number(document.getElementById('remotion-render-ratio')?.value || 100),
         advanced_props: advancedProps,
       };
@@ -21133,6 +21139,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       }
       const payload = {
         topic,
+        title: parameters.title || topic,
         user_research: script,
         project_mode: 'remotion',
         start_now: false,
@@ -21150,7 +21157,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       document.getElementById('remotion-draft-status').textContent = `已建立 draft：${result.project_id}`;
       const validation = await apiJson(`/api/projects/${currentProjectId}/remotion/validate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ script, parameters, scenes: remotionDraftScenes }) });
       if (!validation.valid) { document.getElementById('remotion-draft-status').textContent = validation.errors.join('；'); return showToast('Render 驗證失敗'); }
-      await apiJson(`/api/projects/${currentProjectId}/remotion/draft`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ topic, script, parameters, scenes: remotionDraftScenes, preset_id: document.getElementById('remotion-preset-select')?.value || null, validation }) });
+      await apiJson(`/api/projects/${currentProjectId}/remotion/draft`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: parameters.title || topic, topic, script, parameters, scenes: remotionDraftScenes, preset_id: document.getElementById('remotion-preset-select')?.value || null, validation }) });
       await apiRequest(`/api/projects/${currentProjectId}/remotion/start`, { method: 'POST' });
       showToast('✓ Remotion Video 已排程：TTS → 講者/Remotion → 字幕 → Render');
     }
@@ -21180,8 +21187,17 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
     }
     async function loadRemotionPresetIntoForm() {
       const id = document.getElementById('remotion-preset-select')?.value; if (!id) return;
+      if (id === 'ai-auto') {
+        document.getElementById('remotion-style-pack').value = 'auto_all';
+        document.getElementById('remotion-automation-level').value = 'auto';
+        showToast('✨ AI Auto 已啟用：將依每段旁白內容選擇最佳模板');
+        return;
+      }
       const p = await apiJson(`/api/remotion/presets/${id}`); const params = p.parameters || {};
       if (params.aspect_ratio) document.getElementById('remotion-project-ratio').value = params.aspect_ratio;
+      if (params.title) document.getElementById('remotion-project-title').value = params.title;
+      if (params.resolution) document.getElementById('remotion-project-resolution').value = params.resolution;
+      if (params.automation_level) document.getElementById('remotion-automation-level').value = params.automation_level;
       if (params.duration_minutes != null) document.getElementById('remotion-project-duration').value = String(params.duration_minutes);
       if (params.language) document.getElementById('remotion-project-language').value = params.language;
       if (params.style_pack) document.getElementById('remotion-style-pack').value = params.style_pack;
@@ -21249,8 +21265,11 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
         const composition = parts.length >= 3 && i === 0 ? 'RveChapterTitleScene' : fallbackPool[(i + 1) % fallbackPool.length];
         return {
           scene_id: i + 1,
+          id: `scene_${String(i + 1).padStart(3, '0')}`,
           narration,
+          visualType: lower.includes('%') || lower.includes('數據') ? 'bar_chart' : 'fact_card',
           composition,
+          animationPreset: lower.includes('%') || lower.includes('數據') ? 'bars_grow' : 'fade',
           renderer: 'remotion',
           renderer_confirmed: true,
           props: {},
@@ -21297,7 +21316,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
         const action = prompt('Scene list 已有手動設定。輸入 replace 取代、merge 合併，或 cancel 取消。', 'replace');
         if (!action || action.toLowerCase() === 'cancel') return;
         if (action.toLowerCase() === 'merge') {
-          remotionDraftScenes = generated.map((scene, i) => ({ ...scene, ...(remotionDraftScenes[i] || {}), narration: scene.narration, scene_id: i + 1 }));
+          remotionDraftScenes = generated.map((scene, i) => ({ ...scene, ...(remotionDraftScenes[i] || {}), narration: scene.narration, scene_id: i + 1, id: `scene_${String(i + 1).padStart(3, '0')}` }));
         } else if (action.toLowerCase() === 'replace') remotionDraftScenes = generated;
         else return showToast('請輸入 replace、merge 或 cancel');
       } else remotionDraftScenes = generated;
@@ -21339,14 +21358,14 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
     }
     function updateRemotionScene(index, key, value) { remotionDraftScenes[index][key] = value; if (key === 'renderer') remotionDraftScenes[index].renderer_confirmed = true; }
     function updateRemotionSceneReferences(index, select) { remotionDraftScenes[index].reference_ids = Array.from(select.selectedOptions).map(option => option.value); }
-    function addRemotionScene() { remotionDraftScenes.push({ scene_id: remotionDraftScenes.length + 1, narration: '', composition: 'FoxHeaderScene', renderer: 'remotion', renderer_confirmed: true, props: {} }); renderRemotionSceneList(); }
-    function removeRemotionScene(index) { remotionDraftScenes.splice(index, 1); remotionDraftScenes.forEach((s, i) => s.scene_id = i + 1); renderRemotionSceneList(); }
-    function moveRemotionScene(index, delta) { const target = index + delta; if (target < 0 || target >= remotionDraftScenes.length) return; [remotionDraftScenes[index], remotionDraftScenes[target]] = [remotionDraftScenes[target], remotionDraftScenes[index]]; remotionDraftScenes.forEach((s, i) => s.scene_id = i + 1); renderRemotionSceneList(); }
+    function addRemotionScene() { const index = remotionDraftScenes.length + 1; remotionDraftScenes.push({ scene_id: index, id: `scene_${String(index).padStart(3, '0')}`, narration: '', visualType: 'fact_card', composition: 'FoxHeaderScene', animationPreset: 'fade', renderer: 'remotion', renderer_confirmed: true, props: {} }); renderRemotionSceneList(); }
+    function removeRemotionScene(index) { remotionDraftScenes.splice(index, 1); remotionDraftScenes.forEach((s, i) => { s.scene_id = i + 1; s.id = `scene_${String(i + 1).padStart(3, '0')}`; }); renderRemotionSceneList(); }
+    function moveRemotionScene(index, delta) { const target = index + delta; if (target < 0 || target >= remotionDraftScenes.length) return; [remotionDraftScenes[index], remotionDraftScenes[target]] = [remotionDraftScenes[target], remotionDraftScenes[index]]; remotionDraftScenes.forEach((s, i) => { s.scene_id = i + 1; s.id = `scene_${String(i + 1).padStart(3, '0')}`; }); renderRemotionSceneList(); }
     function editRemotionSceneProps(index) {
       const scene = remotionDraftScenes[index];
-      const raw = prompt(`Scene #${index + 1} props JSON`, JSON.stringify({ estimated_duration: scene.estimated_duration || 6, ...(scene.props || {}) }, null, 2));
+      const raw = prompt(`Scene #${index + 1} timing / animation / props JSON`, JSON.stringify({ estimated_duration: scene.estimated_duration || 6, animation_preset: scene.animationPreset || 'fade', visual_type: scene.visualType || 'fact_card', ...(scene.props || {}) }, null, 2));
       if (raw == null) return;
-      try { const value = JSON.parse(raw); scene.estimated_duration = Number(value.estimated_duration || 6); delete value.estimated_duration; scene.props = value; renderRemotionSceneList(); } catch (_) { showToast('Scene props JSON 格式錯誤'); }
+      try { const value = JSON.parse(raw); scene.estimated_duration = Number(value.estimated_duration || 6); scene.animationPreset = String(value.animation_preset || 'fade'); scene.visualType = String(value.visual_type || 'fact_card'); delete value.estimated_duration; delete value.animation_preset; delete value.visual_type; scene.props = value; renderRemotionSceneList(); } catch (_) { showToast('Scene props JSON 格式錯誤'); }
     }
     async function previewRemotionScene(index) {
       const scene = remotionDraftScenes[index]; if (!scene || scene.renderer !== 'remotion') return showToast('只有 Remotion scene 可預覽');

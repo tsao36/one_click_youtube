@@ -85,6 +85,7 @@ import { RveProgressStepsScene } from "./RveProgressStepsScene";
 import { RveCardFlipScene } from "./RveCardFlipScene";
 import { RveImageComparisonScene } from "./RveImageComparisonScene";
 import { RveChapterTitleScene } from "./RveChapterTitleScene";
+import { RVE_TEMPLATE_REGISTRY } from "./rveTemplateRegistry";
 
 
 const videoDimensions = { fps: 30, width: 1920, height: 1080 };
@@ -1071,6 +1072,19 @@ export const RemotionRoot: React.FC = () => {
             source: "",
           }}
         />
+      </Folder>
+
+      <Folder name="RVE-Community-Templates">
+        {RVE_TEMPLATE_REGISTRY.map(({ id, component: Component }) => (
+          <Composition
+            key={id}
+            id={id}
+            component={Component}
+            durationInFrames={150}
+            {...videoDimensions}
+            defaultProps={{}}
+          />
+        ))}
       </Folder>
 
 
