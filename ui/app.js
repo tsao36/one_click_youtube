@@ -305,7 +305,7 @@
 
     async function fastRerenderUpdatedVideo() {
       if (!currentProjectId) return alert("Please select a project first.");
-      if (!confirm("確定將所有已變更的設定（包含聲音模型、虛擬主播、字卡字幕風格或修改過的分鏡）一次性重新算繪合成完整 1080p 影片？\n\n其餘未修改的分鏡將直接命中快取，極速完成！")) {
+      if (!confirm("確定將所有已變更的設定（包含聲音模型、虛擬主播、字卡字幕風格、修改過的 Stage 3 腳本／旁白或分鏡）一次性重新算繪合成完整 1080p 影片？\n\n其餘未修改的分鏡將直接命中快取，極速完成！")) {
         return;
       }
       try {

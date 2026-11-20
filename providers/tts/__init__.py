@@ -236,7 +236,7 @@ class OpenAITTS(TTSProvider):
 
     def generate_speech(self, text, profile, output_file):
         key = get_secret(self.cfg.get("api_key_env"))
-        body = {"model": self.cfg.get("model", "gpt-4o-mini-tts"), "voice": profile.get("voice") or "alloy",
+        body = {"model": self.cfg.get("model", "gpt-4-hydrogen-tts"), "voice": profile.get("voice") or "alloy",
                 "input": text, "response_format": "wav", "speed": float(profile.get("speech_rate", 1.0))}
         if profile.get("style"):
             body["instructions"] = profile["style"]

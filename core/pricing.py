@@ -38,7 +38,7 @@ PRICING = {
         "gemini-1.5-flash": {"input_1m": 0.075, "output_1m": 0.30, "default_req": 0.0006, "is_cloud": True},
         "gemini-1.5-pro": {"input_1m": 1.25, "output_1m": 5.00, "default_req": 0.0040, "is_cloud": True},
         "gemini": {"input_1m": 0.075, "output_1m": 0.30, "default_req": 0.0006, "is_cloud": True},
-        "gpt-4o-mini": {"input_1m": 0.15, "output_1m": 0.60, "default_req": 0.0012, "is_cloud": True},
+        "gpt-4-hydrogen": {"input_1m": 1.50, "output_1m": 7.50, "default_req": 0.0040, "is_cloud": True},
         "gpt-4o": {"input_1m": 2.50, "output_1m": 10.00, "default_req": 0.0150, "is_cloud": True},
         "gpt-6-luna": {"input_1m": 0.0, "output_1m": 0.0, "default_req": 0.0, "is_cloud": True},
         "openai_compat": {"input_1m": 0.15, "output_1m": 0.60, "default_req": 0.0012, "is_cloud": True},
@@ -257,8 +257,8 @@ def calculate_project_costs(project: Any) -> dict[str, Any]:
             res_desc = "Gemini 3.8 Flash + Google Search Grounding"
         elif "gemini" in res_model.lower():
             res_cost, res_desc = estimate_llm_cost("gemini-3.8-flash", prompt_tokens=800, completion_tokens=1200, requests=1)
-        elif "openai" in res_model.lower() or "gpt" in res_model.lower():
-            res_cost, res_desc = estimate_llm_cost("gpt-4o-mini", prompt_tokens=800, completion_tokens=1200, requests=1)
+        elif "openai" in res_model.lower() or "gpt-4-hydrogen" in res_model.lower():
+            res_cost, res_desc = estimate_llm_cost("gpt-4-hydrogen", prompt_tokens=800, completion_tokens=1200, requests=1)
         else:
             res_desc = f"{res_model} (Local Compute)"
     stage_costs["research"] = round(res_cost, 5)

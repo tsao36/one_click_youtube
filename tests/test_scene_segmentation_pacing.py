@@ -107,6 +107,20 @@ def test_segment_cjk_micro_documentary_pacing():
         assert 2.0 <= s["estimated_duration"] <= 6.0
 
 
+def test_segment_does_not_split_cjk_lexical_unit_at_scene_boundary():
+    sections = [{
+        "name": "Hook",
+        "text": "\u5f6d\u4e58\u7684\u5317\u5b8b\u7b46\u8a18\u300a\u58a8\u5ba2\u63ee\u7280\u300b\uff0c\u8a18\u4e0b\u4e00\u5247\u4ee4\u4eba\u4e0d\u5b89\u7684\u6545\u4e8b\uff1a\u4e00\u540d\u5112\u751f\u5728\u6e56\u5357\u9047\u4e0a\u6bba\u4eba\u796d\u9b3c\u8005\u3002",
+    }]
+
+    scenes = segment(sections, wpm=150, avg=4.0, mn=3.0, mx=5.0, seed=42)
+    narrations = [scene["narration"] for scene in scenes]
+
+    assert any(n.endswith("\u6bba\u4eba\u796d\u9b3c\u8005\u3002") for n in narrations)
+    assert "\u6bba" not in narrations
+    assert "\u4eba\u796d\u9b3c\u8005\u3002" not in narrations
+
+
 def test_direct_scenes_populates_all_structured_fields():
     raw_scenes = [
         {
