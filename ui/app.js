@@ -13795,6 +13795,22 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       render: { num: 9, name: "最終渲染", icon: "🎥", title: "Stage 9/9: 母帶混音與最終渲染 (Master Rendering)", desc: "以 1.0x 原始唇形速率合成垂直 1080x1920 60/30fps MP4 母帶影片（無章節過場黑屏）。", runBtn: "▶ 渲染 9:16 短劇母帶" }
     };
 
+    // Remotion's creator flow plans scenes as Remotion compositions and then
+    // runs narration, music, motion graphics, subtitles and final rendering.
+    // It does not use the documentary prompt/image-generation stages for a
+    // 100% Remotion project.
+    const REMOTION_STAGE_ORDER = ["research", "script", "scenes", "voice", "music", "animation", "subtitles", "render"];
+    const STAGE_META_REMOTION = {
+      research: { num: 1, name: "Research", icon: "🔬", title: "Stage 1/8: Topic Research & Knowledge Base", desc: "Research notes used to ground the Remotion script.", runBtn: "▶ Run Topic Research Only" },
+      script: { num: 2, name: "Script", icon: "📝", title: "Stage 2/8: Narration Scriptwriting", desc: "Review and refine the narration script before scene planning.", runBtn: "▶ Run Scriptwriting Only" },
+      scenes: { num: 3, name: "Scenes", icon: "🎬", title: "Stage 3/8: Remotion Scene Plan", desc: "Review Remotion compositions, timing and scene props.", runBtn: "▶ Run Scene Planning Only" },
+      voice: { num: 4, name: "Voice TTS", icon: "🎙️", title: "Stage 4/8: Voiceover Synthesis", desc: "Synthesizes narration audio for the Remotion timeline.", runBtn: "▶ Synthesize Full Voiceover" },
+      music: { num: 5, name: "Ambient Music", icon: "🎶", title: "Stage 5/8: Ambient Music", desc: "Plans and mixes the background music bed.", runBtn: "▶ Plan & Mix Ambient Music" },
+      animation: { num: 6, name: "Animation", icon: "🎞️", title: "Stage 6/8: Remotion Motion Graphics", desc: "Renders the configured Remotion compositions and motion graphics.", runBtn: "▶ Run Remotion Animation" },
+      subtitles: { num: 7, name: "Subtitles", icon: "💬", title: "Stage 7/8: Subtitles & Timed Captions", desc: "Generates timed captions and callouts aligned with narration.", runBtn: "▶ Generate Subtitles Only" },
+      render: { num: 8, name: "Render", icon: "🎥", title: "Stage 8/8: Final Remotion Video", desc: "Composes the Remotion scenes, audio, music and subtitles into the final MP4.", runBtn: "▶ Render Final Video" }
+    };
+
     // Which Stage Studio is open: 'documentary' | 'short_drama' | 'remotion'
     let studioMode = 'documentary';
     let allProjectsCache = [];
@@ -13807,6 +13823,20 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       return 'documentary';
     }
 
+    function studioStageOrderFor(project) {
+      const mode = projectModeOf(project);
+      if (mode === 'remotion' || studioMode === 'remotion') return REMOTION_STAGE_ORDER;
+      if (mode === 'short_drama' || studioMode === 'short_drama') return STAGE_ORDER.filter(s => s !== 'music');
+      return STAGE_ORDER;
+    }
+
+    function studioStageMetaFor(project) {
+      const mode = projectModeOf(project);
+      if (mode === 'remotion' || studioMode === 'remotion') return STAGE_META_REMOTION;
+      if (mode === 'short_drama' || studioMode === 'short_drama') return STAGE_META_DRAMA;
+      return STAGE_META;
+    }
+
     function applyStudioModeChrome() {
       const drama = (studioMode === 'short_drama');
       const remotion = (studioMode === 'remotion');
@@ -13817,7 +13847,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       set('studio-mode-desc', drama
         ? 'Work on each short-drama stage independently: storyboard, character dialogue, scene casting, action prompts, actor video, voices, lip-sync, subtitles and master render.'
         : (remotion
-          ? 'Review and correct each Remotion project stage independently: research, script, scenes, prompts, images, voice, music, animation, subtitles and render.'
+          ? 'Review and correct the actual Remotion creator flow: research, script, scenes, voice, music, motion graphics, subtitles and render.'
           : 'Play around with each documentary stage independently: research, script, scenes, prompts, images, voice, ambient music, animation, subtitles and render.'));
       const card = document.getElementById('tab-studio') && document.querySelector('#tab-studio > .card');
       if (card) card.style.borderColor = drama ? '#7c3aed' : (remotion ? '#a855f7' : '#2b456b');
@@ -13880,10 +13910,16 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       if (stageName) activeStudioStage = stageName;
       const cur = allProjectsCache.find(p => p.id === currentProjectId);
       const mode = projectModeOf(cur);
+      if (mode === 'remotion' && !REMOTION_STAGE_ORDER.includes(activeStudioStage)) {
+        activeStudioStage = REMOTION_STAGE_ORDER[0];
+      }
       switchTab(mode === 'short_drama' ? 'dramastudio' : (mode === 'remotion' ? 'remotionstudio' : 'studio'));
     }
 
     function switchStudioStage(stKey) {
+      if (studioMode === 'remotion' && !REMOTION_STAGE_ORDER.includes(stKey)) {
+        return showToast('此 stage 不屬於純 Remotion creator 流程');
+      }
       activeStudioStage = stKey;
       loadStageStudio(stKey);
     }
@@ -13925,9 +13961,11 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
         console.error("Failed to load project for studio stepper", e);
       }
 
+      const allowedStageOrder = studioStageOrderFor(studioProject);
+      if (!allowedStageOrder.includes(activeStudioStage)) activeStudioStage = allowedStageOrder[0];
+
       // Show loading in workspace
-      const isDramaProj = isDramaStudioProject(studioProject);
-      const activeMetaMap = isDramaProj ? STAGE_META_DRAMA : STAGE_META;
+      const activeMetaMap = studioStageMetaFor(studioProject);
       const meta = activeMetaMap[activeStudioStage] || STAGE_META[activeStudioStage] || {};
       if (wsEl) {
         wsEl.innerHTML = `
@@ -13957,10 +13995,9 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
 
       let html = '';
       const isDramaProj = isDramaStudioProject(project);
-      const activeStageOrder = isDramaProj ? STAGE_ORDER.filter(s => s !== 'music') : STAGE_ORDER;
+      const activeStageOrder = studioStageOrderFor(project);
       activeStageOrder.forEach((stKey, idx) => {
-        const isDrama = isDramaStudioProject(project);
-        const activeMetaMap = isDrama ? STAGE_META_DRAMA : STAGE_META;
+        const activeMetaMap = studioStageMetaFor(project);
         const meta = activeMetaMap[stKey] || STAGE_META[stKey];
         const st = project.stages ? project.stages[stKey] : null;
         const isActive = (stKey === activeStudioStage);
@@ -14000,7 +14037,8 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       if (!wsEl) return;
 
       const isDrama = isDramaStudioProject(project);
-      const activeMetaMap = isDrama ? STAGE_META_DRAMA : STAGE_META;
+      const isRemotion = projectModeOf(project) === 'remotion' || studioMode === 'remotion';
+      const activeMetaMap = studioStageMetaFor(project);
       const meta = activeMetaMap[stKey] || STAGE_META[stKey] || {};
       const st = project && project.stages ? project.stages[stKey] : null;
       const isProjectActive = project && (project.state === 'running');
@@ -21136,6 +21174,8 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
             if (draft.script) document.getElementById('remotion-project-script').value = draft.script;
             if (p.duration_minutes != null) document.getElementById('remotion-project-duration').value = String(p.duration_minutes);
             if (p.language) document.getElementById('remotion-project-language').value = p.language;
+            if (p.research_provider) document.getElementById('remotion-research-provider').value = p.research_provider;
+            if (p.script_provider) document.getElementById('remotion-script-provider').value = p.script_provider;
             if (p.style_pack) document.getElementById('remotion-style-pack').value = p.style_pack;
             if (p.aspect_ratio) document.getElementById('remotion-project-ratio').value = p.aspect_ratio;
             if (p.resolution) document.getElementById('remotion-project-resolution').value = p.resolution;
@@ -21195,6 +21235,8 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
         aspect_ratio: document.getElementById('remotion-project-ratio')?.value || '16:9',
         duration_minutes: Number(document.getElementById('remotion-project-duration')?.value || 0.5),
         language: document.getElementById('remotion-project-language')?.value || 'Traditional Chinese',
+        research_provider: document.getElementById('remotion-research-provider')?.value || 'gemini_search',
+        script_provider: document.getElementById('remotion-script-provider')?.value || 'openai_compat',
         style_pack: document.getElementById('remotion-style-pack')?.value || 'auto_all',
         voice_profile: document.getElementById('remotion-voice-select')?.value || null,
         default_avatar: document.getElementById('remotion-avatar-select')?.value || null,
@@ -21211,24 +21253,26 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       if (!topic) { showToast('請先輸入影片主題'); return null; }
       const duration_minutes = Number(document.getElementById('remotion-project-duration')?.value || 0.5);
       const language = document.getElementById('remotion-project-language')?.value || 'Traditional Chinese';
+      const research_provider = document.getElementById('remotion-research-provider')?.value || 'gemini_search';
+      const script_provider = document.getElementById('remotion-script-provider')?.value || 'openai_compat';
       const btn = document.getElementById('btn-remotion-gen-script');
       const statusEl = document.getElementById('remotion-draft-status');
       if (btn) btn.disabled = true;
-      if (statusEl) statusEl.textContent = '🤖 正在使用 Gemini 檢索資料並生成腳本...';
+      if (statusEl) statusEl.textContent = '🤖 正在使用選定模型研究並生成腳本...';
       try {
         const res = await apiJson('/api/remotion/generate-script', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ topic, duration_minutes, language, llm_provider: 'gemini' }),
+          body: JSON.stringify({ topic, duration_minutes, language, llm_provider: research_provider, script_provider }),
         });
         const scriptEl = document.getElementById('remotion-project-script');
         if (scriptEl && res.script) scriptEl.value = res.script;
-        if (statusEl) statusEl.textContent = `✓ Gemini 已生成腳本（約 ${duration_minutes} 分鐘）`;
-        showToast('✓ Gemini 已生成腳本');
+        if (statusEl) statusEl.textContent = `✓ 已生成腳本（研究：${research_provider}；腳本：${script_provider}；約 ${duration_minutes} 分鐘）`;
+        showToast('✓ 已使用選定模型生成腳本');
         return res.script || '';
       } catch (err) {
-        if (statusEl) statusEl.textContent = `❌ Gemini 生成腳本失敗：${err.message}`;
-        showToast(`Gemini 生成腳本失敗：${err.message}`);
+        if (statusEl) statusEl.textContent = `❌ 腳本生成失敗：${err.message}`;
+        showToast(`腳本生成失敗：${err.message}`);
         return null;
       } finally {
         if (btn) btn.disabled = false;
@@ -21323,6 +21367,8 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       if (params.automation_level) document.getElementById('remotion-automation-level').value = params.automation_level;
       if (params.duration_minutes != null) document.getElementById('remotion-project-duration').value = String(params.duration_minutes);
       if (params.language) document.getElementById('remotion-project-language').value = params.language;
+      if (params.research_provider) document.getElementById('remotion-research-provider').value = params.research_provider;
+      if (params.script_provider) document.getElementById('remotion-script-provider').value = params.script_provider;
       if (params.style_pack) document.getElementById('remotion-style-pack').value = params.style_pack;
       if (params.presenter_placement) document.getElementById('remotion-presenter-placement').value = params.presenter_placement;
       if (params.voice_profile || params.default_avatar) _populateRemotionVoiceAndAvatarSelectors(params.voice_profile, params.default_avatar);

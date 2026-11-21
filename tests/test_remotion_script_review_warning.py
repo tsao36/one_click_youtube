@@ -33,9 +33,21 @@ def test_remotion_stage_studio_reuses_shared_workspace_with_dedicated_mode():
 
 def test_remotion_stage_studio_has_static_navigation_handler():
     events_js = (ROOT / "ui" / "events.js").read_text(encoding="utf-8")
+    index_html = (ROOT / "ui" / "index.html").read_text(encoding="utf-8")
 
     assert "static_300" in events_js
     assert "switchTab('remotionstudio')" in events_js
+    assert 'src="/events.js?v=20261121_remotion_stage_studio_fix_v2"' in index_html
+    assert 'src="/app.js?v=20261121_remotion_stage_studio_fix_v2"' in index_html
+
+
+def test_remotion_stage_studio_matches_remotion_creator_stage_order_without_image_stages():
+    app_js = (ROOT / "ui" / "app.js").read_text(encoding="utf-8")
+
+    assert 'const REMOTION_STAGE_ORDER = ["research", "script", "scenes", "voice", "music", "animation", "subtitles", "render"];' in app_js
+    assert 'if (mode === \'remotion\' || studioMode === \'remotion\') return REMOTION_STAGE_ORDER;' in app_js
+    assert 'title: "Stage 6/8: Remotion Motion Graphics"' in app_js
+    assert 'title: "Stage 5/10: AI Image Generation (ComfyUI DirectML)"' in app_js
 
 
 def test_script_stage_renders_review_failure_reason_and_ai_fix_button():
@@ -45,7 +57,7 @@ def test_script_stage_renders_review_failure_reason_and_ai_fix_button():
     assert "showRemotionReviewError" in app_js
     assert "scriptReviewReason" in app_js
     assert 'id="btn-remotion-ai-fix-script"' in app_js
-    assert "AI will regenerate the script and run the safety review again." in app_js
+    assert "The corrected script will be applied automatically" in app_js
 
 
 def test_remotion_review_warning_preserves_supplied_explanation_text():

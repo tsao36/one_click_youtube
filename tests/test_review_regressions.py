@@ -26,6 +26,41 @@ def test_ancient_story_review_classification():
     assert not _is_ancient_story({"type": "ai_technology", "world_setting": {"temporal_era": "2026"}})
 
 
+def test_high_risk_script_review_applies_final_script_and_continues(project, monkeypatch):
+    generated = {
+        "title": "Draft",
+        "topic": "Test topic",
+        "sections": [{"name": "Hook", "text": "Unsupported draft claim."}],
+        "word_count": 3,
+        "target_words": 3,
+    }
+    corrected = {
+        **generated,
+        "title": "Corrected",
+        "sections": [{"name": "Hook", "text": "Caveated claim with source."}],
+    }
+    monkeypatch.setattr("core.documentary_pipeline.write_script", Mock(return_value=generated))
+    monkeypatch.setattr(
+        "core.script_reviewer.review_script",
+        Mock(return_value={
+            "high_risk": True,
+            "risk_reasons": ["core claim needs review"],
+            "final_script": corrected,
+            "items": [],
+            "sources": [{"title": "Source"}],
+        }),
+    )
+    monkeypatch.setattr("core.fact_checker.verify_script_facts", Mock())
+
+    DocumentaryPipeline(project)._run_script()
+
+    assert project.stage("script").status == Status.COMPLETED
+    assert project.read_json("script/script.json") == corrected
+    report = project.read_json("script/script_review_report.json")
+    assert report["review_status"] == "pending_user_review"
+    assert report["pipeline_continued_after_high_risk"] is True
+
+
 @pytest.fixture
 def project(tmp_path, monkeypatch):
     monkeypatch.setattr(project_manager, "PROJECTS_DIR", tmp_path)

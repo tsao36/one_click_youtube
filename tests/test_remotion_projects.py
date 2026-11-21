@@ -152,6 +152,7 @@ def test_generate_remotion_script_endpoint_uses_gemini(monkeypatch):
                 duration_minutes=dur,
                 language="Traditional Chinese",
                 llm_provider="gemini",
+                script_provider="openai_compat",
             )
         )
         assert res["duration_minutes"] == dur
@@ -163,7 +164,7 @@ def test_generate_remotion_script_endpoint_uses_gemini(monkeypatch):
     assert [c["settings"]["video"]["duration_minutes"] for c in writer_calls] == [0.5, 5.0]
     assert all(c["settings"]["video"]["language"] == "Traditional Chinese" for c in writer_calls)
     assert all(c["provider_override"] == "gemini" for c in research_calls)
-    assert all(c["provider_override"] == "gemini" for c in writer_calls)
+    assert all(c["provider_override"] == "openai_compat" for c in writer_calls)
 
 
 def test_llm_remotion_scene_planner_selects_compositions_and_props(monkeypatch):

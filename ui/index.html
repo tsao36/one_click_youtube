@@ -117,12 +117,14 @@
 
   <div id="tab-remotion" class="tab-content">
     <div class="card">
-      <div class="card-title">⚛️ Remotion Video <span style="font-size:12px;color:#94a3b8;font-weight:400;">Gemini Script + LLM Remotion Director + TTS / Avatar / Subtitles / Render</span></div>
+      <div class="card-title">⚛️ Remotion Video <span style="font-size:12px;color:#94a3b8;font-weight:400;">Selectable Cloud Research + Script LLM + Remotion Director + TTS / Avatar / Subtitles / Render</span></div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;">
         <label>主題 / Topic<input id="remotion-project-topic" type="text" placeholder="輸入影片主題（可直接一鍵生成並渲染）" style="width:100%;box-sizing:border-box;margin-top:5px;"></label>
         <label>影片標題 / Title<input id="remotion-project-title" type="text" placeholder="可留白，預設使用主題" style="width:100%;box-sizing:border-box;margin-top:5px;"></label>
         <label>目標時長 / Length<select id="remotion-project-duration" style="width:100%;margin-top:5px;"><option value="0.5" selected>30 秒 · 0.5 min</option><option value="1">1 分鐘 · 1 min</option><option value="5">5 分鐘 · 5 min</option><option value="10">10 分鐘 · 10 min</option></select></label>
         <label>旁白語言 / Language<select id="remotion-project-language" style="width:100%;margin-top:5px;"><option value="Traditional Chinese" selected>Traditional Chinese (台灣繁體中文)</option><option value="English">English</option><option value="Japanese">Japanese</option><option value="Spanish">Spanish</option></select></label>
+        <label>研究模型 / Research LLM<select id="remotion-research-provider" style="width:100%;margin-top:5px;"><option value="gemini_search" selected>Cloud: Gemini Search Grounding</option><option value="gemini_4_carbon">Cloud: Gemini 4 Carbon</option><option value="gemini_4_hydrogen">Cloud: Gemini 4 Hydrogen</option><option value="openai_compat">Cloud: GPT-6 Luna</option><option value="ollama">Local fallback: qwen3:8b</option><option value="none">Disabled</option></select></label>
+        <label>腳本模型 / Script LLM<select id="remotion-script-provider" style="width:100%;margin-top:5px;"><option value="openai_compat" selected>Cloud: GPT-6 Luna</option><option value="gemini">Cloud: Gemini Flash</option><option value="gemini_4_hydrogen">Cloud: Gemini 4 Hydrogen</option><option value="ollama">Local fallback: qwen3:8b</option></select></label>
         <label>Remotion 風格套件 / Style Pack<select id="remotion-style-pack" style="width:100%;margin-top:5px;"><option value="auto_all" selected>🤖 Auto All 全庫智能匹配</option><option value="rve_templates">🧩 RVE Community 81 Templates</option><option value="rve">📊 RVE 動態圖表套件</option><option value="modern_tech_explainer">✨ Gary Chen 現代科技解說</option><option value="coordinate_zero">🧭 座標零 桌面實驗室</option><option value="finance_market">📈 金融市場與財報</option><option value="archival_history">📜 歷史檔案與編年</option><option value="vox_journalism">🗞️ Vox 深度調查</option><option value="fox_documentary">📌 fOx 紀錄片資訊卡</option></select></label>
         <label>聲音形象 / Voice Profile<select id="remotion-voice-select" style="width:100%;margin-top:5px;"><option value="">載入音色中...</option></select></label>
         <label>虛擬講者 / Avatar Presenter<select id="remotion-avatar-select" style="width:100%;margin-top:5px;"><option value="">(不使用虛擬講者)</option></select></label>
@@ -135,10 +137,10 @@
       </div>
       <div style="margin-top:12px;">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
-          <label for="remotion-project-script" style="font-weight:600;">完整 Script <span style="font-size:11px;color:#94a3b8;font-weight:400;">（可手動貼上，或由 Gemini 依主題與時長自動研究生成）</span></label>
-          <button type="button" id="btn-remotion-gen-script" class="btn-sec" onclick="generateRemotionScriptWithGemini()">🤖 用 Gemini 生成 Script</button>
+          <label for="remotion-project-script" style="font-weight:600;">完整 Script <span style="font-size:11px;color:#94a3b8;font-weight:400;">（可手動貼上，或依上方研究與腳本模型自動生成）</span></label>
+          <button type="button" id="btn-remotion-gen-script" class="btn-sec" onclick="generateRemotionScriptWithGemini()">🤖 生成 Script</button>
         </div>
-        <textarea id="remotion-project-script" rows="6" placeholder="輸入上方主題與時長後，點擊「🤖 用 Gemini 生成 Script」或直接點擊「建立並 Render Remotion Video」一鍵自動生成；也可手動貼上完整腳本" style="width:100%;box-sizing:border-box;margin-top:6px;"></textarea>
+        <textarea id="remotion-project-script" rows="6" placeholder="輸入上方主題與時長後，點擊「🤖 生成 Script」或直接點擊「建立並 Render Remotion Video」一鍵自動生成；也可手動貼上完整腳本" style="width:100%;box-sizing:border-box;margin-top:6px;"></textarea>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center;">
         <select id="remotion-preset-select" style="min-width:220px;"><option value="">選擇 preset</option><option value="ai-auto">✨ AI Auto · 依旁白內容自動選模板</option></select>
@@ -4814,8 +4816,8 @@
   </div>
 
   <script src="/api.js"></script>
-  <script src="/events.js?v=20261115_avatar_voice_sync_v1"></script>
-  <script src="/app.js?v=20261120_remotion_toast_fix_v1"></script>
+  <script src="/events.js?v=20261121_remotion_stage_studio_fix_v2"></script>
+  <script src="/app.js?v=20261121_remotion_stage_studio_fix_v2"></script>
 
   <!-- Formula Manager Modal -->
   <div id="formula-manager-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 99999; align-items: center; justify-content: center; backdrop-filter: blur(4px);">

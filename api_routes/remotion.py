@@ -59,6 +59,7 @@ class RemotionGenerateScriptRequest(BaseModel):
     language: str = "Traditional Chinese"
     user_research: str = ""
     llm_provider: str = "gemini"
+    script_provider: str | None = None
 
 
 def generate_remotion_script_data(
@@ -67,6 +68,7 @@ def generate_remotion_script_data(
     language: str = "Traditional Chinese",
     user_research: str = "",
     llm_provider: str = "gemini",
+    script_provider: str | None = None,
 ) -> dict[str, Any]:
     """Generate a duration-calibrated script using Stage 1 research and Stage 2 script writer."""
     clean_topic = (topic or "").strip()
@@ -74,7 +76,7 @@ def generate_remotion_script_data(
         raise HTTPException(status_code=400, detail="請輸入影片主題")
 
     duration_val = float(duration_minutes or 0.5)
-    provider = (llm_provider or "gemini").strip() or "gemini"
+    research_provider = (llm_provider or "gemini").strip() or "gemini"
 
     from agents.researcher import research as run_research
     from agents.scene_planner import segment
@@ -87,7 +89,7 @@ def generate_remotion_script_data(
             True,
             lambda _p: None,
             duration_minutes=duration_val,
-            provider_override=provider,
+            provider_override=research_provider,
             user_research=user_research.strip() or None,
         )
     except Exception as exc:
@@ -105,6 +107,7 @@ def generate_remotion_script_data(
     settings = {
         "video": {"duration_minutes": duration_val, "language": language},
         "script": {"speech_rate_wpm": 150},
+        "stage_models": {"script": script_provider} if script_provider else {},
     }
     try:
         scr = write_script(
@@ -112,11 +115,13 @@ def generate_remotion_script_data(
             res_data,
             settings,
             lambda _p: None,
-            provider_override=provider,
+            # Match documentary/short-drama stage logic: script writing uses
+            # the configured script-stage provider, not the research provider.
+            provider_override=script_provider,
         )
     except Exception as exc:
         log.error("Remotion script generation failed: %s", exc)
-        raise HTTPException(status_code=502, detail=f"Gemini 生成腳本失敗：{exc}") from exc
+        raise HTTPException(status_code=502, detail=f"腳本生成失敗：{exc}") from exc
 
     sections = scr.get("sections") or []
     try:
@@ -145,6 +150,7 @@ def generate_remotion_script(req: RemotionGenerateScriptRequest):
         language=req.language,
         user_research=req.user_research,
         llm_provider=req.llm_provider,
+        script_provider=req.script_provider,
     )
 
 

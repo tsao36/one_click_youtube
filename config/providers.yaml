@@ -23,18 +23,18 @@ llm:
     openai_compat:
       type: openai_compat
       base_url: https://api.openai.com/v1
-      model: gpt-4o-mini
+      model: gpt-6-luna
       api_key_env: OPENAI_API_KEY
   # which provider (and optional model override) to use for each job
   jobs:
-    research:          {provider: gemini}
-    script:            {provider: ollama}
-    scene_planning:    {provider: ollama}
-    prompt_generation: {provider: ollama}
+    research:          {provider: openai_compat}
+    script:            {provider: openai_compat}
+    scene_planning:    {provider: openai_compat}
+    prompt_generation: {provider: openai_compat}
     prompt_translation: {provider: openai_compat}
     script_review: {provider: openai_compat, model: gpt-6-luna}
   # used automatically when the configured provider is not reachable
-  fallback_order: [ollama, gemini, openai_compat]
+  fallback_order: [ollama]
 
 research:
   provider: none             # none | gemini_search (Gemini + Google Search grounding)

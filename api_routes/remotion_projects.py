@@ -470,7 +470,8 @@ def start_remotion_project(project_id: str, background_tasks: BackgroundTasks):
             topic=topic,
             duration_minutes=duration_minutes,
             language=language,
-            llm_provider="gemini",
+            llm_provider=str(parameters.get("research_provider") or "gemini"),
+            script_provider=parameters.get("script_provider"),
         )
         script = script_res["script"]
         draft["script"] = script
