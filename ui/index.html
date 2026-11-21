@@ -147,7 +147,7 @@
         <button type="button" class="btn-sec btn-danger" onclick="deleteSelectedRemotionPreset()">刪除 preset</button>
         <button type="button" class="btn-sec" onclick="exportSelectedRemotionPreset()">匯出 preset</button>
         <label class="btn-sec" style="cursor:pointer;">匯入 preset<input type="file" accept=".remotion-preset,.zip" onchange="importRemotionPreset(this.files[0])" style="display:none;"></label>
-        <button type="button" class="btn-primary" onclick="createRemotionProject()">建立並 Render Remotion Video</button>
+        <button id="btn-create-remotion-project" type="button" class="btn-primary" onclick="createRemotionProject()">建立並 Render Remotion Video</button>
       </div>
       <details style="margin-top:14px;"><summary style="cursor:pointer;font-weight:700;color:#38bdf8;">進階 Remotion props</summary><textarea id="remotion-advanced-props" rows="7" style="width:100%;box-sizing:border-box;font-family:monospace;margin-top:8px;">{
   "accentColor": "#38BDF8",
@@ -4813,7 +4813,7 @@
 
   <script src="/api.js"></script>
   <script src="/events.js?v=20261115_avatar_voice_sync_v1"></script>
-  <script src="/app.js?v=20261115_avatar_voice_sync_v1"></script>
+  <script src="/app.js?v=20261120_remotion_toast_fix_v1"></script>
 
   <!-- Formula Manager Modal -->
   <div id="formula-manager-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 99999; align-items: center; justify-content: center; backdrop-filter: blur(4px);">

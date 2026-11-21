@@ -1,7 +1,7 @@
 {
   "version": 1,
   "created_at": "2026-11-16T22:32:40.174600",
-  "updated_at": "2026-11-20T10:06:21.481592",
+  "updated_at": "2026-11-21T07:55:58.212923",
   "daily": {
     "2026-11-16": {
       "date": "2026-11-16",
@@ -409,13 +409,13 @@
       "date": "2026-11-20",
       "stages": {
         "script": {
-          "prompt_tokens": 85484,
-          "completion_tokens": 2019,
-          "total_tokens": 87503,
-          "wasted_tokens": 0,
-          "cost_usd": 0.132457,
-          "requests": 16,
-          "failed_requests": 0,
+          "prompt_tokens": 286757,
+          "completion_tokens": 8970,
+          "total_tokens": 295727,
+          "wasted_tokens": 24585,
+          "cost_usd": 0.149641,
+          "requests": 49,
+          "failed_requests": 3,
           "models": {
             "qwen3:8b": {
               "prompt_tokens": 3944,
@@ -434,25 +434,34 @@
               "cost_usd": 0.132457,
               "requests": 8,
               "failed_requests": 0
+            },
+            "gemini-flash-latest": {
+              "prompt_tokens": 201273,
+              "completion_tokens": 6951,
+              "total_tokens": 208224,
+              "wasted_tokens": 24585,
+              "cost_usd": 0.017184,
+              "requests": 33,
+              "failed_requests": 3
             }
           }
         },
         "research": {
-          "prompt_tokens": 63751,
-          "completion_tokens": 33030,
-          "total_tokens": 96781,
+          "prompt_tokens": 77682,
+          "completion_tokens": 52312,
+          "total_tokens": 129994,
           "wasted_tokens": 0,
-          "cost_usd": 0.090086,
-          "requests": 50,
+          "cost_usd": 0.096916,
+          "requests": 58,
           "failed_requests": 0,
           "models": {
             "gemini-flash-latest": {
-              "prompt_tokens": 53225,
-              "completion_tokens": 24641,
-              "total_tokens": 77866,
+              "prompt_tokens": 67156,
+              "completion_tokens": 43923,
+              "total_tokens": 111079,
               "wasted_tokens": 0,
-              "cost_usd": 0.011382,
-              "requests": 47,
+              "cost_usd": 0.018212,
+              "requests": 55,
               "failed_requests": 0
             },
             "gemini-4-hydrogen": {
@@ -491,9 +500,9 @@
           "completion_tokens": 11061,
           "total_tokens": 23818,
           "wasted_tokens": 0,
-          "cost_usd": 0.102094,
-          "requests": 7,
-          "failed_requests": 0,
+          "cost_usd": 0.118294,
+          "requests": 34,
+          "failed_requests": 27,
           "models": {
             "gemini-4-hydrogen": {
               "prompt_tokens": 12757,
@@ -503,6 +512,15 @@
               "cost_usd": 0.102094,
               "requests": 7,
               "failed_requests": 0
+            },
+            "gemini-flash-latest": {
+              "prompt_tokens": 0,
+              "completion_tokens": 0,
+              "total_tokens": 0,
+              "wasted_tokens": 0,
+              "cost_usd": 0.0162,
+              "requests": 27,
+              "failed_requests": 27
             }
           }
         },
@@ -527,25 +545,57 @@
           }
         }
       },
-      "total_tokens": 279178,
-      "prompt_tokens": 220712,
-      "completion_tokens": 58466,
-      "wasted_tokens": 0,
-      "cost_usd": 0.385668,
-      "requests": 89,
-      "failed_requests": 9
+      "total_tokens": 520615,
+      "prompt_tokens": 435916,
+      "completion_tokens": 84699,
+      "wasted_tokens": 24585,
+      "cost_usd": 0.425881,
+      "requests": 157,
+      "failed_requests": 39
+    },
+    "2026-11-21": {
+      "date": "2026-11-21",
+      "stages": {
+        "research": {
+          "prompt_tokens": 13248,
+          "completion_tokens": 920,
+          "total_tokens": 14168,
+          "wasted_tokens": 10626,
+          "cost_usd": 0.0,
+          "requests": 4,
+          "failed_requests": 3,
+          "models": {
+            "qwen3:8b": {
+              "prompt_tokens": 13248,
+              "completion_tokens": 920,
+              "total_tokens": 14168,
+              "wasted_tokens": 10626,
+              "cost_usd": 0.0,
+              "requests": 4,
+              "failed_requests": 3
+            }
+          }
+        }
+      },
+      "total_tokens": 14168,
+      "prompt_tokens": 13248,
+      "completion_tokens": 920,
+      "wasted_tokens": 10626,
+      "cost_usd": 0.0,
+      "requests": 4,
+      "failed_requests": 3
     }
   },
   "cumulative": {
     "stages": {
       "research": {
-        "prompt_tokens": 119412,
-        "completion_tokens": 68102,
-        "total_tokens": 187514,
-        "wasted_tokens": 1200,
-        "cost_usd": 0.261128,
-        "requests": 76,
-        "failed_requests": 0,
+        "prompt_tokens": 146591,
+        "completion_tokens": 88304,
+        "total_tokens": 234895,
+        "wasted_tokens": 11826,
+        "cost_usd": 0.267958,
+        "requests": 88,
+        "failed_requests": 3,
         "models": {
           "gemini-3.8-flash": {
             "prompt_tokens": 14500,
@@ -557,12 +607,12 @@
             "failed_requests": 0
           },
           "gemini-flash-latest": {
-            "prompt_tokens": 75560,
-            "completion_tokens": 34925,
-            "total_tokens": 110485,
+            "prompt_tokens": 89491,
+            "completion_tokens": 54207,
+            "total_tokens": 143698,
             "wasted_tokens": 0,
-            "cost_usd": 0.016145,
-            "requests": 66,
+            "cost_usd": 0.022975,
+            "requests": 74,
             "failed_requests": 0
           },
           "gemini-4-hydrogen": {
@@ -573,17 +623,26 @@
             "cost_usd": 0.241855,
             "requests": 9,
             "failed_requests": 0
+          },
+          "qwen3:8b": {
+            "prompt_tokens": 13248,
+            "completion_tokens": 920,
+            "total_tokens": 14168,
+            "wasted_tokens": 10626,
+            "cost_usd": 0.0,
+            "requests": 4,
+            "failed_requests": 3
           }
         }
       },
       "script": {
-        "prompt_tokens": 247030,
-        "completion_tokens": 20931,
-        "total_tokens": 267961,
-        "wasted_tokens": 3200,
-        "cost_usd": 0.35427,
-        "requests": 40,
-        "failed_requests": 0,
+        "prompt_tokens": 448303,
+        "completion_tokens": 27882,
+        "total_tokens": 476185,
+        "wasted_tokens": 27785,
+        "cost_usd": 0.371452,
+        "requests": 73,
+        "failed_requests": 3,
         "models": {
           "gemini-3.8-flash": {
             "prompt_tokens": 28400,
@@ -604,13 +663,13 @@
             "failed_requests": 0
           },
           "gemini-flash-latest": {
-            "prompt_tokens": 586,
-            "completion_tokens": 94,
-            "total_tokens": 680,
-            "wasted_tokens": 0,
-            "cost_usd": 7.2e-05,
-            "requests": 1,
-            "failed_requests": 0
+            "prompt_tokens": 201859,
+            "completion_tokens": 7045,
+            "total_tokens": 208904,
+            "wasted_tokens": 24585,
+            "cost_usd": 0.017255,
+            "requests": 34,
+            "failed_requests": 3
           },
           "gemini-4-hydrogen": {
             "prompt_tokens": 211222,
@@ -628,9 +687,9 @@
         "completion_tokens": 59590,
         "total_tokens": 131074,
         "wasted_tokens": 1500,
-        "cost_usd": 0.459697,
-        "requests": 30,
-        "failed_requests": 0,
+        "cost_usd": 0.475897,
+        "requests": 57,
+        "failed_requests": 27,
         "models": {
           "gemini-3.8-flash": {
             "prompt_tokens": 19800,
@@ -649,6 +708,15 @@
             "cost_usd": 0.45545,
             "requests": 29,
             "failed_requests": 0
+          },
+          "gemini-flash-latest": {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0,
+            "wasted_tokens": 0,
+            "cost_usd": 0.0162,
+            "requests": 27,
+            "failed_requests": 27
           }
         }
       },
@@ -720,12 +788,12 @@
         }
       }
     },
-    "total_tokens": 778146,
-    "prompt_tokens": 585372,
-    "completion_tokens": 192774,
-    "wasted_tokens": 5900,
-    "cost_usd": 1.338714,
-    "requests": 191,
-    "failed_requests": 9
+    "total_tokens": 1033751,
+    "prompt_tokens": 813824,
+    "completion_tokens": 219927,
+    "wasted_tokens": 41111,
+    "cost_usd": 1.378925,
+    "requests": 263,
+    "failed_requests": 42
   }
 }

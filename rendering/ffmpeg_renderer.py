@@ -5,6 +5,7 @@ import hashlib
 import os
 import random
 import threading
+import uuid
 from pathlib import Path
 from typing import Callable
 
@@ -384,8 +385,14 @@ def build_narration(project: Project, scenes: list[Scene], slots: list[Slot], ou
                          f"afade=t=out:st={slot_fade_st:.3f}:d=0.010:curve=hsin,atrim=0:{sl.length:.4f}[a{i}]")
             in_idx += 1
     parts.append("".join(f"[a{i}]" for i in range(len(scenes))) + f"concat=n={len(scenes)}:v=0:a=1[out]")
-    args += ["-filter_complex", ";".join(parts), "-map", "[out]", "-ar", str(sr), "-ac", "1", "-c:a", "pcm_s16le", str(out)]
-    run_ffmpeg(args, cancel=cancel)
+    filter_script = project.path("temp", f"narration_filter_{uuid.uuid4().hex[:10]}.txt")
+    filter_script.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        filter_script.write_text(";".join(parts), encoding="utf-8")
+        args += ["-filter_complex_script", str(filter_script), "-map", "[out]", "-ar", str(sr), "-ac", "1", "-c:a", "pcm_s16le", str(out)]
+        run_ffmpeg(args, cancel=cancel)
+    finally:
+        filter_script.unlink(missing_ok=True)
 
 
 def measure_audio_loudness(audio_path: Path) -> dict[str, float]:

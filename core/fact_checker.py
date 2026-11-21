@@ -173,6 +173,8 @@ def double_check_facts(
         if client is None:
             # Prioritize search-capable provider (gemini) for real-time news and fact verification
             preferred_prov = provider_override or "gemini"
+            if preferred_prov == "ollama":
+                preferred_prov = "gemini"
             try:
                 client = LLMClient("research", on_request=on_request, provider_override=preferred_prov, json_retries=2)
             except Exception as e:
@@ -631,6 +633,8 @@ def verify_script_facts(
 
     if client is None or client is False:
         preferred_prov = provider_override or "gemini"
+        if preferred_prov == "ollama":
+            preferred_prov = "gemini"
         try:
             client = LLMClient("research", on_request=on_request, provider_override=preferred_prov, json_retries=2)
         except Exception as e:

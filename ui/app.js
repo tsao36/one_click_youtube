@@ -40,6 +40,41 @@
       };
     }
 
+    // Shared feedback surface used by the existing UI actions.  Keep this
+    // lightweight so feature tabs can report async failures without relying
+    // on a framework-specific notification component.
+    if (!window.showToast) {
+      window.showToast = function showToast(message, duration = 4000) {
+        let toast = document.getElementById('global-toast');
+        if (!toast) {
+          toast = document.createElement('div');
+          toast.id = 'global-toast';
+          Object.assign(toast.style, {
+            position: 'fixed',
+            right: '22px',
+            bottom: '22px',
+            zIndex: '10000',
+            maxWidth: 'min(560px, calc(100vw - 44px))',
+            padding: '11px 15px',
+            border: '1px solid #475569',
+            borderRadius: '8px',
+            background: '#0f172a',
+            color: '#e2e8f0',
+            boxShadow: '0 8px 30px rgba(0,0,0,.35)',
+            fontSize: '13px',
+            lineHeight: '1.45',
+            display: 'none',
+          });
+          document.body.appendChild(toast);
+        }
+        if (toast._hideTimer) clearTimeout(toast._hideTimer);
+        toast.textContent = String(message ?? '');
+        toast.style.display = 'block';
+        toast._hideTimer = setTimeout(() => { toast.style.display = 'none'; }, Number(duration) || 4000);
+      };
+    }
+    var showToast = window.showToast;
+
     function toggleStepMode(enabled) {
       const toggle = document.getElementById('step-mode-toggle');
       if (toggle && typeof enabled === 'boolean') toggle.checked = enabled;
@@ -21124,42 +21159,54 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       }
     }
     async function createRemotionProject() {
-      const topic = document.getElementById('remotion-project-topic')?.value.trim();
-      if (!topic) return showToast('請先輸入影片主題');
-      let parameters;
-      try { parameters = _collectRemotionFormParameters(); } catch (err) { return showToast(err.message); }
-      let script = document.getElementById('remotion-project-script')?.value.trim();
-      if (!script) {
-        script = await generateRemotionScriptWithGemini();
-        if (!script) return;
+      const button = document.getElementById('btn-create-remotion-project');
+      if (button) button.disabled = true;
+      try {
+        const topic = document.getElementById('remotion-project-topic')?.value.trim();
+        if (!topic) return showToast('請先輸入影片主題');
+        let parameters;
+        try { parameters = _collectRemotionFormParameters(); } catch (err) { return showToast(err.message); }
+        let script = document.getElementById('remotion-project-script')?.value.trim();
+        if (!script) {
+          script = await generateRemotionScriptWithGemini();
+          if (!script) return;
+        }
+        if (!remotionDraftScenes.length) {
+          await generateRemotionScenesFromScript({ forceReplace: true });
+          if (!remotionDraftScenes.length) return;
+        }
+        const payload = {
+          topic,
+          title: parameters.title || topic,
+          user_research: script,
+          project_mode: 'remotion',
+          start_now: false,
+          duration_minutes: parameters.duration_minutes,
+          language: parameters.language,
+          voice_profile: parameters.voice_profile,
+          default_avatar: parameters.default_avatar,
+          presenter_placement: parameters.presenter_placement,
+          aspect_ratio: parameters.aspect_ratio,
+          ai_video_percentage: Math.max(0, 100 - parameters.remotion_ratio),
+          remotion: parameters,
+        };
+        const result = await apiJson('/api/projects', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        currentProjectId = result.project_id;
+        document.getElementById('remotion-draft-status').textContent = `已建立 draft：${result.project_id}`;
+        const validation = await apiJson(`/api/projects/${currentProjectId}/remotion/validate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ script, parameters, scenes: remotionDraftScenes }) });
+        if (!validation.valid) { document.getElementById('remotion-draft-status').textContent = validation.errors.join('；'); return showToast('Render 驗證失敗'); }
+        await apiJson(`/api/projects/${currentProjectId}/remotion/draft`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: parameters.title || topic, topic, script, parameters, scenes: remotionDraftScenes, preset_id: document.getElementById('remotion-preset-select')?.value || null, validation }) });
+        await apiRequest(`/api/projects/${currentProjectId}/remotion/start`, { method: 'POST' });
+        showToast('✓ Remotion Video 已排程：TTS → 講者/Remotion → 字幕 → Render');
+      } catch (err) {
+        const message = err?.message || String(err);
+        const statusEl = document.getElementById('remotion-draft-status');
+        if (statusEl) statusEl.textContent = `❌ Remotion 建立失敗：${message}`;
+        showToast(`❌ Remotion 建立失敗：${message}`);
+        console.error('createRemotionProject failed', err);
+      } finally {
+        if (button) button.disabled = false;
       }
-      if (!remotionDraftScenes.length) {
-        await generateRemotionScenesFromScript({ forceReplace: true });
-        if (!remotionDraftScenes.length) return;
-      }
-      const payload = {
-        topic,
-        title: parameters.title || topic,
-        user_research: script,
-        project_mode: 'remotion',
-        start_now: false,
-        duration_minutes: parameters.duration_minutes,
-        language: parameters.language,
-        voice_profile: parameters.voice_profile,
-        default_avatar: parameters.default_avatar,
-        presenter_placement: parameters.presenter_placement,
-        aspect_ratio: parameters.aspect_ratio,
-        ai_video_percentage: Math.max(0, 100 - parameters.remotion_ratio),
-        remotion: parameters,
-      };
-      const result = await apiJson('/api/projects', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-      currentProjectId = result.project_id;
-      document.getElementById('remotion-draft-status').textContent = `已建立 draft：${result.project_id}`;
-      const validation = await apiJson(`/api/projects/${currentProjectId}/remotion/validate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ script, parameters, scenes: remotionDraftScenes }) });
-      if (!validation.valid) { document.getElementById('remotion-draft-status').textContent = validation.errors.join('；'); return showToast('Render 驗證失敗'); }
-      await apiJson(`/api/projects/${currentProjectId}/remotion/draft`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: parameters.title || topic, topic, script, parameters, scenes: remotionDraftScenes, preset_id: document.getElementById('remotion-preset-select')?.value || null, validation }) });
-      await apiRequest(`/api/projects/${currentProjectId}/remotion/start`, { method: 'POST' });
-      showToast('✓ Remotion Video 已排程：TTS → 講者/Remotion → 字幕 → Render');
     }
     async function saveRemotionPresetFromForm() {
       const name = prompt('請輸入 preset 名稱'); if (!name) return;
