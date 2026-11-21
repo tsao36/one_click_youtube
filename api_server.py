@@ -1964,6 +1964,41 @@ def get_stage_data_endpoint(project_id: str, stage_name: str):
     return ret
 
 
+@app.post("/api/projects/{project_id}/scene-prompt-alignment")
+def check_scene_prompt_alignment(project_id: str, payload: dict[str, Any]):
+    """Independently judge whether one scene's image prompt depicts its narration."""
+    scene_id = payload.get("scene_id")
+    narration = str(payload.get("narration") or "").strip()
+    image_prompt = str(payload.get("image_prompt") or "").strip()
+    if not scene_id or not narration or not image_prompt:
+        raise HTTPException(status_code=400, detail="Scene ID, narration, and image prompt are required.")
+
+    from providers.llm import LLMClient
+
+    def validate_alignment(data: Any) -> dict[str, Any]:
+        if not isinstance(data, dict) or not isinstance(data.get("score"), (int, float)) or not isinstance(data.get("explanation"), str):
+            raise ValueError("Alignment response must include a numeric score and explanation")
+        data["score"] = max(0, min(100, int(data["score"])))
+        data.setdefault("suggestion", "")
+        return data
+
+    client = LLMClient("script_review", json_retries=2, project_id=project_id)
+    result = client.json(
+        json.dumps({"scene_id": scene_id, "narration": narration, "image_prompt": image_prompt}, ensure_ascii=False),
+        system=("You are an independent visual relevance auditor. Compare the scene narration with the image prompt. "
+                "Judge whether the prompt would create an image that clearly represents the specific events, subjects, "
+                "and meaning in the narration. Ignore generic style and camera details. Do not reward vague thematic "
+                "similarity as a strong match. Return only JSON with score (integer 0-100), explanation (one concise "
+                "sentence identifying concrete matches or gaps), and suggestion (a concise prompt correction, or empty "
+                "when none is needed). A score of 100 means a direct, specific match, not a guarantee about the generated image."),
+        temperature=0.1,
+        max_tokens=500,
+        validate=validate_alignment,
+    )
+    result["scene_id"] = scene_id
+    return result
+
+
 
 @app.post("/api/projects/{project_id}/generate_world_setting")
 def generate_world_setting_endpoint(project_id: str):

@@ -10263,6 +10263,29 @@
     let inspectedStageName = null;
     let inspectedStageData = null;
 
+    async function checkScenePromptAlignment(sceneId, sceneIndex) {
+      const scene = inspectedStageData?.scenes?.[sceneIndex];
+      const resultEl = document.getElementById(`insp-alignment-${sceneIndex}`);
+      if (!scene || !resultEl || !currentProjectId) return;
+      const button = document.getElementById(`insp-alignment-button-${sceneIndex}`);
+      if (button) button.disabled = true;
+      resultEl.textContent = 'Checking narration against image prompt…';
+      try {
+        const result = await apiJson(`/api/projects/${currentProjectId}/scene-prompt-alignment`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ scene_id: sceneId, narration: scene.narration, image_prompt: scene.prompt })
+        });
+        const color = result.score >= 90 ? '#86efac' : result.score >= 70 ? '#fcd34d' : '#fca5a5';
+        resultEl.innerHTML = `<b style="color:${color}">Relevance ${result.score}/100</b> — ${escapeHtml(result.explanation)}${result.suggestion ? `<div style="margin-top:4px;color:#cbd5e1;">Suggestion: ${escapeHtml(result.suggestion)}</div>` : ''}<div style="font-size:10px;color:#94a3b8;margin-top:3px;">Prompt relevance estimate; the generated image still needs visual review.</div>`;
+      } catch (error) {
+        resultEl.textContent = `Check failed: ${error.message}`;
+      } finally {
+        if (button) button.disabled = false;
+      }
+    }
+    window.checkScenePromptAlignment = checkScenePromptAlignment;
+
     async function runSingleStage(stName) {
       if (!currentProjectId) return alert("Please select or create a project first.");
       if (stName === 'presenter') {
@@ -10578,8 +10601,12 @@
                 <span style="font-size: 12px; color:var(--text-muted);">${s.visual_type || 'image'}</span>
               </div>
               <div style="margin-bottom:6px;">
-                <label style="font-size: 12px; color:var(--text-muted);">Positive Image Prompt:</label>
-                <textarea rows="2" style="width:100%; font-size:12px; margin-top:2px;" onchange="inspectedStageData.scenes[${idx}].prompt=this.value">${s.prompt || ''}</textarea>
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                  <label style="font-size: 12px; color:var(--text-muted);">Positive Image Prompt:</label>
+                  <button id="insp-alignment-button-${idx}" class="btn-sec" style="font-size:11px;padding:4px 8px;" onclick="checkScenePromptAlignment('${escapeHtml(s.scene_id)}',${idx})">🔎 Check Script Match</button>
+                </div>
+                <textarea rows="2" style="width:100%; font-size:12px; margin-top:2px;" onchange="inspectedStageData.scenes[${idx}].prompt=this.value; document.getElementById('insp-alignment-${idx}').textContent=''">${s.prompt || ''}</textarea>
+                <div id="insp-alignment-${idx}" aria-live="polite" style="font-size:11px;margin-top:5px;"></div>
               </div>
               <div>
                 <label style="font-size: 12px; color:var(--text-muted);">Negative Prompt:</label>
