@@ -41,12 +41,20 @@ def strip_filler_words(text: str) -> str:
     return cleaned.strip()
 
 
+def strip_narration_citation_markers(text: str) -> str:
+    """Remove numeric source citations that must not be spoken by the narrator."""
+    if not text:
+        return text
+    return re.sub(r"\[\s*\d+(?:\s*[,;]\s*\d+)*\s*\]", "", text).strip()
+
+
 def _clean(text: str) -> str:
     text = re.sub(r"^\s*#+.*$", "", text, flags=re.M)            # markdown headings
     text = re.sub(r"\*\*|__|\*", "", text)
     text = re.sub(r"^\s*[-•]\s+", "", text, flags=re.M)
     text = re.sub(r"^\s*(narrator|voiceover|vo)\s*:\s*", "", text, flags=re.I | re.M)
     text = re.sub(r"\[[^\]]*\]|\([^)]*(music|pause|sfx)[^)]*\)", "", text, flags=re.I)
+    text = strip_narration_citation_markers(text)
     text = strip_filler_words(text)
     return re.sub(r"\n{3,}", "\n\n", text).strip()
 

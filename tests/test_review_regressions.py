@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 import api_server
 import core.project_manager as project_manager
 from agents.prompt_generator import generate_prompts
+from agents.script_writer import strip_narration_citation_markers
 from agents.prompts_common import UNIVERSAL_QUALITY_NEGATIVE, merge_negative_prompts
 from agents.researcher import research, translate_world_setting_to_english
 from core.base_pipeline import PipelineCancelled
@@ -24,6 +25,25 @@ def test_ancient_story_review_classification():
     assert _is_ancient_story({"type": "dynasty_trivia"})
     assert _is_ancient_story({"world_setting": {"temporal_era": "Song Dynasty"}})
     assert not _is_ancient_story({"type": "ai_technology", "world_setting": {"temporal_era": "2026"}})
+
+
+def test_manual_script_parser_removes_numeric_citation_markers():
+    _, sections, _ = api_server.parse_script_markdown_to_sections(
+        "# Title\n\n## 結論\n\n[1] 至於研究資料所稱 18A 良率達 70%、[2] 這項數據仍需持續觀察。"
+    )
+
+    assert sections[0]["text"] == "至於研究資料所稱 18A 良率達 70%、 這項數據仍需持續觀察。"
+    assert strip_narration_citation_markers("證據[1, 2]與後續資料[3]") == "證據與後續資料"
+
+
+def test_existing_scene_citation_markers_are_migrated_to_pending_voice(project):
+    project.write_json("scenes/scenes.json", [Scene(scene_id=11, narration="[1] 至於研究資料所稱 18A 良率達 70%、").model_dump(mode="json")])
+    project.reload()
+
+    scene = project.scenes[0]
+    assert scene.narration == "至於研究資料所稱 18A 良率達 70%、"
+    assert scene.audio.status == Status.PENDING
+    assert scene.audio.meta["text_outdated"] is True
 
 
 def test_high_risk_script_review_applies_final_script_and_continues(project, monkeypatch):

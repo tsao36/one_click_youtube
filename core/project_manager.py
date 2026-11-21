@@ -157,6 +157,22 @@ class Project:
             if self._scenes is None:
                 raw = read_json(self.path("scenes", "scenes.json"), [])
                 self._scenes = [Scene(**s) for s in raw]
+                from agents.script_writer import strip_narration_citation_markers
+
+                migrated = False
+                for scene in self._scenes:
+                    cleaned = strip_narration_citation_markers(scene.narration)
+                    if cleaned != scene.narration:
+                        previous = scene.narration
+                        scene.narration = cleaned
+                        scene.audio.status = Status.PENDING
+                        scene.audio.error = None
+                        scene.audio.meta = scene.audio.meta or {}
+                        scene.audio.meta["text_outdated"] = True
+                        scene.audio.meta["previous_narration"] = previous
+                        migrated = True
+                if migrated:
+                    self.save_scenes()
             return self._scenes
 
     def is_avatar_enabled(self) -> bool:

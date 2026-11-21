@@ -2291,6 +2291,8 @@ def join_lines_smart(lines: list[str]) -> str:
 
 def parse_script_markdown_to_sections(md_text: str) -> tuple[str, list[dict], int]:
     """Parse Markdown script into (title, sections, word_count) respecting section headers."""
+    from agents.script_writer import strip_narration_citation_markers
+
     title = ""
     sections = []
     cur_name = "Hook"
@@ -2305,11 +2307,11 @@ def parse_script_markdown_to_sections(md_text: str) -> tuple[str, list[dict], in
                 cur_lines = []
             cur_name = line[3:].strip()
         elif not line_s.startswith("*Topic:*") and not line_s.startswith("*Words:*") and line_s:
-            cur_lines.append(line_s)
+            cur_lines.append(strip_narration_citation_markers(line_s).strip())
     if cur_lines:
         sections.append({"name": cur_name, "text": join_lines_smart(cur_lines)})
     if not sections and md_text.strip():
-        sections = [{"name": "Narration", "text": md_text.strip()}]
+        sections = [{"name": "Narration", "text": strip_narration_citation_markers(md_text.strip())}]
     from agents.script_writer import words
     word_count = sum(words(s["text"]) for s in sections)
     return title, sections, word_count

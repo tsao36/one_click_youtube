@@ -6,6 +6,7 @@ import re
 
 from core.logging_setup import log
 from core.models import CAMERA_MOTIONS, Scene
+from agents.script_writer import strip_narration_citation_markers
 from providers.llm import LLMClient
 from rendering.ken_burns import choose_motions
 
@@ -350,7 +351,7 @@ def segment(sections: list[dict], wpm: float, avg: float, mn: float, mx: float, 
     rnd = random.Random(seed)
     scenes = []
     for sec in sections:
-        raw_text = sec.get("text", "")
+        raw_text = strip_narration_citation_markers(sec.get("text", ""))
         has_cjk = bool(re.search(r"[\u4e00-\u9fff]", raw_text))
         # Micro-documentary pacing: ~250-265 CJK chars/min corresponds to 4.2 chars/sec
         wps = 4.2 if has_cjk else (wpm / 60.0)
@@ -411,6 +412,7 @@ def segment(sections: list[dict], wpm: float, avg: float, mn: float, mx: float, 
     for i, s in enumerate(scenes):
         s["scene_id"] = i + 1
         has_cjk = bool(re.search(r"[\u4e00-\u9fff]", s["narration"]))
+        s["narration"] = strip_narration_citation_markers(s["narration"])
         s["narration"] = strip_filler_words(s["narration"]) if has_cjk else s["narration"]
         wps = 4.2 if has_cjk else (wpm / 60.0)
         s["estimated_duration"] = round(count_units(s["narration"]) / wps, 2)

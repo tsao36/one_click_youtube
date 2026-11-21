@@ -24,6 +24,22 @@ def test_strip_filler_words():
     assert "產能已經滿載" in cleaned
 
 
+def test_segment_removes_numeric_citation_markers_from_narration():
+    scenes = segment(
+        [{"name": "Core", "text": "[1] 至於研究資料所稱 18A 良率達 70%、[2] 仍待核實。"}],
+        wpm=150,
+        avg=8.0,
+        mn=4.0,
+        mx=14.0,
+        seed=1,
+    )
+
+    narration = " ".join(scene["narration"] for scene in scenes)
+    assert "[1]" not in narration
+    assert "[2]" not in narration
+    assert "至於研究資料所稱" in narration
+
+
 def test_is_data_heavy():
     assert is_data_heavy("每年沉約2公分") is True
     assert is_data_heavy("資本支出高達300億美元") is True
