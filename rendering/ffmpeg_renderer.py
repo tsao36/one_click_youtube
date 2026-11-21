@@ -365,12 +365,23 @@ def build_narration(project: Project, scenes: list[Scene], slots: list[Slot], ou
     args: list[str] = []
     parts = []
     in_idx = 0
+    audio_manifest: Path | None = None
+    audio_files: list[Path] = []
+    audio_cursor = 0.0
+
+    def _concat_manifest_path(path: Path) -> str:
+        """Quote a path for an FFmpeg concat-demuxer manifest."""
+        # The concat demuxer accepts POSIX separators on Windows.  Its single
+        # quote escaping is intentionally different from shell quoting.
+        value = str(path.resolve()).replace("\\", "/")
+        return "'" + value.replace("'", "'\\''") + "'"
+
     for i, (sc, sl) in enumerate(zip(scenes, slots)):
         if sc.visual_type == "phase_turn_card":
             parts.append(f"anullsrc=r={sr}:cl=mono,atrim=0:{sl.length:.4f}[a{i}]")
         else:
             wav_file = project.abs(sc.audio.path) if (sc.audio and sc.audio.path) else project.path("audio", f"{sc.tag}.wav")
-            args += ["-i", str(wav_file)]
+            audio_files.append(wav_file)
             lead_ms = int(round((sl.audio_start - sl.start) * 1000))
             is_avatar = is_drama or (avatar_allowed and (getattr(sc, "is_presenter", False) or sc.visual_type in ("talking_head", "talking_actor")))
             if is_avatar:
@@ -381,18 +392,42 @@ def build_narration(project: Project, scenes: list[Scene], slots: list[Slot], ou
             # Anti-pop: remove DC offset, soft half-sine onset & offset envelopes, and boundary micro-fade
             anti_pop = f"highpass=f=35,afade=t=in:st=0:d=0.040:curve=hsin,afade=t=out:st={fade_out_st:.3f}:d=0.045:curve=hsin,"
             slot_fade_st = max(0.0, sl.length - 0.010)
-            parts.append(f"[{in_idx}:a]aresample={sr},aformat=channel_layouts=mono,{anti_pop}{delay}apad=whole_dur={sl.length:.4f},"
+            # Use one concatenated input instead of one `-i` per scene.  A
+            # long Remotion project can have hundreds of scenes; on Windows
+            # the old argument list exceeded CreateProcess's command limit
+            # and surfaced as WinError 206.
+            start = audio_cursor
+            end = start + max(0.0, adur)
+            parts.append(f"[0:a]atrim=start={start:.4f}:end={end:.4f},asetpts=PTS-STARTPTS,"
+                         f"aresample={sr},aformat=channel_layouts=mono,{anti_pop}{delay}apad=whole_dur={sl.length:.4f},"
                          f"afade=t=out:st={slot_fade_st:.3f}:d=0.010:curve=hsin,atrim=0:{sl.length:.4f}[a{i}]")
+            audio_cursor = end
             in_idx += 1
     parts.append("".join(f"[a{i}]" for i in range(len(scenes))) + f"concat=n={len(scenes)}:v=0:a=1[out]")
     filter_script = project.path("temp", f"narration_filter_{uuid.uuid4().hex[:10]}.txt")
+    if audio_files:
+        audio_manifest = project.path("temp", f"narration_audio_{uuid.uuid4().hex[:10]}.ffconcat")
     filter_script.parent.mkdir(parents=True, exist_ok=True)
     try:
+        if audio_manifest:
+            audio_manifest.write_text(
+                "ffconcat version 1.0\n"
+                + "\n".join(f"file {_concat_manifest_path(path)}" for path in audio_files)
+                + "\n",
+                encoding="utf-8",
+            )
         filter_script.write_text(";".join(parts), encoding="utf-8")
-        args += ["-filter_complex_script", str(filter_script), "-map", "[out]", "-ar", str(sr), "-ac", "1", "-c:a", "pcm_s16le", str(out)]
+        if audio_manifest:
+            args += ["-f", "concat", "-safe", "0", "-i", str(audio_manifest)]
+        # FFmpeg 9 removed -filter_complex_script.  The slash-prefixed form
+        # reads the filter graph from a file and also avoids putting a large
+        # 151-scene graph on Windows' command line.
+        args += ["-/filter_complex", str(filter_script), "-map", "[out]", "-ar", str(sr), "-ac", "1", "-c:a", "pcm_s16le", str(out)]
         run_ffmpeg(args, cancel=cancel)
     finally:
         filter_script.unlink(missing_ok=True)
+        if audio_manifest:
+            audio_manifest.unlink(missing_ok=True)
 
 
 def measure_audio_loudness(audio_path: Path) -> dict[str, float]:

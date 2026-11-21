@@ -349,10 +349,20 @@ class DocumentaryPipeline(BasePipeline):
             self.p.activity("Stage 2/10: Reviewing script for information density...")
             from core.script_reviewer import review_script
             review = review_script(self.p, scr, res, on_request=self._track_llm_request)
+            if review.get("high_risk"):
+                review["review_status"] = "pending_user_review"
+                review["pipeline_continued_after_high_risk"] = True
+                review["review_note"] = (
+                    "The AI-applied final_script was used to continue generation. "
+                    "Review the recorded findings and sources before publication."
+                )
+                log.warning(
+                    "Script review marked high risk for %s; applying final_script and continuing: %s",
+                    self.p.id,
+                    "; ".join(review.get("risk_reasons", [])),
+                )
             self.p.write_json("script/script_review_report.json", review)
             self.p.path("script", "script_review_report.md").write_text(str(review), encoding="utf-8")
-            if review.get("high_risk"):
-                raise RuntimeError("Script review requires user confirmation: " + "; ".join(review.get("risk_reasons", [])))
             scr = review["final_script"]
             self.p.write_json("script/script_final.json", scr)
             self.p.path("script", "script_final.md").write_text(script_markdown(scr), encoding="utf-8")

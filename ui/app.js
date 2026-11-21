@@ -1845,6 +1845,7 @@
       { value: 'anime_ghibli', localLabel: 'Anime / Studio Ghibli', cloudLabel: 'Anime / Studio Ghibli' },
       { value: 'cyberpunk_neon', localLabel: 'Cyberpunk Sci-Fi Neon', cloudLabel: 'Cyberpunk Sci-Fi' },
       { value: 'watercolor_art', localLabel: 'Watercolor Illustration', cloudLabel: 'Watercolor Illustration' },
+      { value: 'parisian_storybook', localLabel: 'Parisian Storybook Illustration (巴黎童話街景)', cloudLabel: 'Parisian Storybook Illustration' },
       { value: 'digital_painting', localLabel: 'Digital Concept Painting', cloudLabel: 'Digital Concept Painting' },
       { value: 'clean_explainer', localLabel: 'Clean 3D Isometric Explainer', cloudLabel: 'Clean 3D Explainer' },
       { value: 'retro_comic', localLabel: 'Retro Comic Book / Pop Art', cloudLabel: 'Retro Comic Book' },
@@ -14352,12 +14353,12 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
             <div style="background:linear-gradient(135deg, rgba(127,29,29,0.32), rgba(120,53,15,0.2)); border:1.5px solid #f59e0b; border-radius:10px; padding:14px 16px; margin-bottom:16px; box-shadow:0 0 18px rgba(245,158,11,0.12);">
               <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
                 <div style="flex:1; min-width:240px;">
-                  <div style="font-size:14px; font-weight:800; color:#fde68a; margin-bottom:6px;">⚠️ Script review blocked this Remotion project</div>
+                  <div style="font-size:14px; font-weight:800; color:#fde68a; margin-bottom:6px;">⚠️ Script review findings recorded</div>
                   <div style="font-size:12.5px; color:#f8fafc; line-height:1.6; white-space:pre-wrap; word-break:break-word;">${escapeHtml(scriptReviewReason || 'The AI reviewer identified claims that require confirmation before continuing.')}</div>
                 </div>
-                <button id="btn-remotion-ai-fix-script" type="button" class="btn-primary" onclick="fixRemotionScriptWithAI()" style="padding:8px 14px; font-size:12px; font-weight:800; background:linear-gradient(135deg,#d97706,#b45309); border:1px solid #f59e0b; color:#fff; white-space:nowrap; cursor:pointer;">🤖 AI Fix Script</button>
+                <button id="btn-remotion-ai-fix-script" type="button" class="btn-primary" onclick="fixRemotionScriptWithAI()" style="padding:8px 14px; font-size:12px; font-weight:800; background:linear-gradient(135deg,#d97706,#b45309); border:1px solid #f59e0b; color:#fff; white-space:nowrap; cursor:pointer;">🤖 Apply AI Fix &amp; Continue</button>
               </div>
-              <div style="font-size:11.5px; color:#cbd5e1; margin-top:9px;">AI will regenerate the script and run the safety review again. Review the updated text before continuing.</div>
+              <div style="font-size:11.5px; color:#cbd5e1; margin-top:9px;">The corrected script will be applied automatically; review the saved findings and sources before publication.</div>
             </div>
           ` : ''}
           <!-- Author's Take / What's My Take in Stage Studio -->

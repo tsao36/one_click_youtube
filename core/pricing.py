@@ -232,7 +232,7 @@ def calculate_project_costs(project: Any) -> dict[str, Any]:
     scene_count = len(scenes)
 
     # 1. RESEARCH
-    res_model = stage_models.get("research") or ("gemini_search" if cloud_enabled else "ollama")
+    res_model = stage_models.get("research") or ("gemini_search" if cloud_enabled else "gemini")
     res_data = project.read_json("research/research.json", {}) if hasattr(project, "read_json") else {}
     has_res = bool(res_data)
     res_cost = 0.0
