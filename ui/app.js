@@ -1133,12 +1133,12 @@
         || Array.from(document.querySelectorAll('.nav-tab')).find(t => (t.getAttribute('onclick') || '').includes(`switchTab('${name}')`));
       if (foundTab) foundTab.classList.add('active');
       // Both Stage Studios share one workspace DOM; each mode has its own tab, header and project list.
-      const isStudioTab = (name === 'studio' || name === 'dramastudio');
+      const isStudioTab = (name === 'studio' || name === 'dramastudio' || name === 'remotionstudio');
       const targetContent = document.getElementById('tab-' + (isStudioTab ? 'studio' : name));
       if (targetContent) targetContent.classList.add('active');
 
       if (isStudioTab) {
-        studioMode = (name === 'dramastudio') ? 'short_drama' : 'documentary';
+        studioMode = name === 'dramastudio' ? 'short_drama' : (name === 'remotionstudio' ? 'remotion' : 'documentary');
         applyStudioModeChrome();
         loadStageStudio();
       }
@@ -1164,6 +1164,48 @@
         updatePreviewMedia();
       }
     }
+
+    function isRemotionProjectStatus(project) {
+      const settings = project?.data?.settings || project?.settings || {};
+      const remotion = project?.remotion || settings.remotion;
+      return settings.project_mode === 'remotion'
+        || project?.project_mode === 'remotion'
+        || settings?.stage_models?.animation === 'remotion'
+        || settings?.animation?.provider === 'remotion'
+        || Boolean(remotion);
+    }
+
+    function showRemotionScriptReviewWarning(errorText, projectId) {
+      const modal = document.getElementById('remotion-script-review-warning-modal');
+      const reasonEl = document.getElementById('remotion-script-review-warning-reason');
+      if (!modal || !reasonEl) return;
+      const prefix = 'Script review requires user confirmation:';
+      const reason = String(errorText || '').replace(/^\[Stage:\s*[^\]]+\]\s*/i, '').replace(prefix, '').trim();
+      reasonEl.textContent = reason || 'The script review identified claims that require confirmation before video creation can continue.';
+      modal.dataset.projectId = projectId || '';
+      modal.style.display = 'flex';
+    }
+
+    function closeRemotionScriptReviewWarning() {
+      const modal = document.getElementById('remotion-script-review-warning-modal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    function openRemotionReviewPage() {
+      closeRemotionScriptReviewWarning();
+      activeStudioStage = 'script';
+      switchTab('remotionstudio');
+    }
+
+    function fixRemotionScriptWithAI() {
+      activeStudioStage = 'script';
+      return runStudioStageOnly('script');
+    }
+
+    window.showRemotionScriptReviewWarning = showRemotionScriptReviewWarning;
+    window.closeRemotionScriptReviewWarning = closeRemotionScriptReviewWarning;
+    window.openRemotionReviewPage = openRemotionReviewPage;
+    window.fixRemotionScriptWithAI = fixRemotionScriptWithAI;
 
     async function loadStatus() {
       try {
@@ -4976,6 +5018,13 @@
         }
         window.lastProjectErrorText = detectedError;
         const hasError = Boolean(detectedError);
+        const isScriptReviewConfirmation = /^\[Stage:\s*[^\]]+\]\s*Script review requires user confirmation:/i.test(detectedError)
+          || /^Script review requires user confirmation:/i.test(detectedError);
+        const warningKey = `${projectId}:${detectedError}`;
+        if (isScriptReviewConfirmation && isRemotionProjectStatus(p) && window.remotionScriptReviewWarningKey !== warningKey) {
+          window.remotionScriptReviewWarningKey = warningKey;
+          showRemotionScriptReviewWarning(detectedError, projectId);
+        }
 
         // Update Hero Banner (only mutate textContent when changed so user text selection is preserved)
         const heroStageEl = document.getElementById('hero-stage-text');
@@ -13745,7 +13794,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       render: { num: 9, name: "最終渲染", icon: "🎥", title: "Stage 9/9: 母帶混音與最終渲染 (Master Rendering)", desc: "以 1.0x 原始唇形速率合成垂直 1080x1920 60/30fps MP4 母帶影片（無章節過場黑屏）。", runBtn: "▶ 渲染 9:16 短劇母帶" }
     };
 
-    // Which Stage Studio is open: 'documentary' | 'short_drama'
+    // Which Stage Studio is open: 'documentary' | 'short_drama' | 'remotion'
     let studioMode = 'documentary';
     let allProjectsCache = [];
 
@@ -13759,24 +13808,27 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
 
     function applyStudioModeChrome() {
       const drama = (studioMode === 'short_drama');
+      const remotion = (studioMode === 'remotion');
       const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-      set('studio-mode-icon', drama ? '🎭' : '🛠️');
-      set('studio-mode-title', drama ? 'Short Drama Stage Studio' : 'Documentary Stage Studio');
-      set('studio-mode-badge', drama ? '9:16 Short Drama' : '16:9 Documentary');
+      set('studio-mode-icon', drama ? '🎭' : (remotion ? '⚛️' : '🛠️'));
+      set('studio-mode-title', drama ? 'Short Drama Stage Studio' : (remotion ? 'Remotion Stage Studio' : 'Documentary Stage Studio'));
+      set('studio-mode-badge', drama ? '9:16 Short Drama' : (remotion ? 'Remotion · 16:9 / 9:16 / 1:1' : '16:9 Documentary'));
       set('studio-mode-desc', drama
         ? 'Work on each short-drama stage independently: storyboard, character dialogue, scene casting, action prompts, actor video, voices, lip-sync, subtitles and master render.'
-        : 'Play around with each documentary stage independently: research, script, scenes, prompts, images, voice, ambient music, animation, subtitles and render.');
+        : (remotion
+          ? 'Review and correct each Remotion project stage independently: research, script, scenes, prompts, images, voice, music, animation, subtitles and render.'
+          : 'Play around with each documentary stage independently: research, script, scenes, prompts, images, voice, ambient music, animation, subtitles and render.'));
       const card = document.getElementById('tab-studio') && document.querySelector('#tab-studio > .card');
-      if (card) card.style.borderColor = drama ? '#7c3aed' : '#2b456b';
+      if (card) card.style.borderColor = drama ? '#7c3aed' : (remotion ? '#a855f7' : '#2b456b');
       const badge = document.getElementById('studio-mode-badge');
-      if (badge) badge.className = drama ? 'badge badge-warn' : 'badge badge-blue';
+      if (badge) badge.className = drama ? 'badge badge-warn' : (remotion ? 'badge' : 'badge badge-blue');
     }
 
     function renderStudioProjectBar() {
       const bar = document.getElementById('studio-project-bar');
       if (!bar) return;
       const mine = allProjectsCache.filter(p => projectModeOf(p) === studioMode);
-      const label = studioMode === 'short_drama' ? 'Drama projects' : 'Documentary projects';
+      const label = studioMode === 'short_drama' ? 'Drama projects' : (studioMode === 'remotion' ? 'Remotion projects' : 'Documentary projects');
       if (!mine.length) { bar.innerHTML = `<span>No ${label.toLowerCase()} yet.</span>`; return; }
       bar.innerHTML = `<span>${label}:</span><select style="font-size:12px; padding:4px 8px; max-width:420px;" onchange="selectProject(this.value)">${mine.map(p => `<option value="${p.id}" ${p.id === currentProjectId ? 'selected' : ''}>[${p.id}] ${(p.title || p.topic || p.id).toString().replace(/</g, '&lt;')}</option>`).join('')}</select>`;
     }
@@ -13787,18 +13839,20 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       if (stepperEl) stepperEl.innerHTML = '';
       if (!wsEl) return;
       const projMode = projectModeOf(project);
-      const otherTab = projMode === 'short_drama' ? 'dramastudio' : 'studio';
-      const otherName = projMode === 'short_drama' ? 'Drama Stage Studio' : 'Documentary Stage Studio';
+      const otherTab = projMode === 'short_drama' ? 'dramastudio' : (projMode === 'remotion' ? 'remotionstudio' : 'studio');
+      const otherName = projMode === 'short_drama' ? 'Drama Stage Studio' : (projMode === 'remotion' ? 'Remotion Stage Studio' : 'Documentary Stage Studio');
       const mine = allProjectsCache.filter(p => projectModeOf(p) === studioMode);
-      const myName = studioMode === 'short_drama' ? 'short drama' : 'documentary';
+      const myName = studioMode === 'short_drama' ? 'short drama' : (studioMode === 'remotion' ? 'Remotion' : 'documentary');
+      const modeIcon = studioMode === 'short_drama' ? '🎭' : (studioMode === 'remotion' ? '⚛️' : '🛠️');
+      const projectType = projMode === 'short_drama' ? 'short drama' : (projMode === 'remotion' ? 'Remotion' : 'documentary');
       wsEl.innerHTML = `
         <div style="text-align:center; padding:50px 20px; color:var(--text-muted);">
-          <div style="font-size:36px; margin-bottom:12px;">${studioMode === 'short_drama' ? '🎭' : '🛠️'}</div>
-          <h3 style="color:#fff; margin-bottom:8px;">Selected project is a ${projMode === 'short_drama' ? 'short drama' : 'documentary'} project</h3>
+          <div style="font-size:36px; margin-bottom:12px;">${modeIcon}</div>
+          <h3 style="color:#fff; margin-bottom:8px;">Selected project is a ${projectType} project</h3>
           <p style="font-size:13px; max-width:520px; margin:0 auto 18px auto;">This studio only works on ${myName} projects because the stages differ by nature.</p>
           <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
             <button class="btn-primary" onclick="switchTab('${otherTab}')">Open in ${otherName}</button>
-            ${mine.length ? `<button class="btn-sec" onclick="selectProject('${mine[0].id}')">Switch to latest ${myName} project</button>` : `<button class="btn-sec" onclick="switchTab('${studioMode === 'short_drama' ? 'drama' : 'creator'}')">Create a ${myName} project</button>`}
+            ${mine.length ? `<button class="btn-sec" onclick="selectProject('${mine[0].id}')">Switch to latest ${myName} project</button>` : `<button class="btn-sec" onclick="switchTab('${studioMode === 'short_drama' ? 'drama' : (studioMode === 'remotion' ? 'remotion' : 'creator')}')">Create a ${myName} project</button>`}
           </div>
         </div>`;
     }
@@ -13824,7 +13878,8 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
     function openStudioStage(stageName) {
       if (stageName) activeStudioStage = stageName;
       const cur = allProjectsCache.find(p => p.id === currentProjectId);
-      switchTab(projectModeOf(cur) === 'short_drama' ? 'dramastudio' : 'studio');
+      const mode = projectModeOf(cur);
+      switchTab(mode === 'short_drama' ? 'dramastudio' : (mode === 'remotion' ? 'remotionstudio' : 'studio'));
     }
 
     function switchStudioStage(stKey) {
@@ -14284,7 +14339,27 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
         const scriptMd = data.script_md || '';
         const activeProj = currentProject || studioProject;
         const authorConcl = (data.settings && data.settings.author_conclusion) || (activeProj && activeProj.data && activeProj.data.settings && activeProj.data.settings.author_conclusion) || '';
+        const scriptStage = project && project.stages ? project.stages.script : null;
+        const scriptReviewError = scriptStage && String(scriptStage.error || '').trim();
+        const showRemotionReviewError = isRemotionProjectStatus(project) && /^\[Stage:\s*[^\]]+\]\s*Script review requires user confirmation:/i.test(scriptReviewError || '')
+          || isRemotionProjectStatus(project) && /^Script review requires user confirmation:/i.test(scriptReviewError || '');
+        const scriptReviewReason = (scriptReviewError || '')
+          .replace(/^\[Stage:\s*[^\]]+\]\s*/i, '')
+          .replace(/^Script review requires user confirmation:\s*/i, '')
+          .trim();
         bodyHtml += `
+          ${showRemotionReviewError ? `
+            <div style="background:linear-gradient(135deg, rgba(127,29,29,0.32), rgba(120,53,15,0.2)); border:1.5px solid #f59e0b; border-radius:10px; padding:14px 16px; margin-bottom:16px; box-shadow:0 0 18px rgba(245,158,11,0.12);">
+              <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
+                <div style="flex:1; min-width:240px;">
+                  <div style="font-size:14px; font-weight:800; color:#fde68a; margin-bottom:6px;">⚠️ Script review blocked this Remotion project</div>
+                  <div style="font-size:12.5px; color:#f8fafc; line-height:1.6; white-space:pre-wrap; word-break:break-word;">${escapeHtml(scriptReviewReason || 'The AI reviewer identified claims that require confirmation before continuing.')}</div>
+                </div>
+                <button id="btn-remotion-ai-fix-script" type="button" class="btn-primary" onclick="fixRemotionScriptWithAI()" style="padding:8px 14px; font-size:12px; font-weight:800; background:linear-gradient(135deg,#d97706,#b45309); border:1px solid #f59e0b; color:#fff; white-space:nowrap; cursor:pointer;">🤖 AI Fix Script</button>
+              </div>
+              <div style="font-size:11.5px; color:#cbd5e1; margin-top:9px;">AI will regenerate the script and run the safety review again. Review the updated text before continuing.</div>
+            </div>
+          ` : ''}
           <!-- Author's Take / What's My Take in Stage Studio -->
           <div style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(20, 25, 40, 0.7) 100%); border: 1.5px solid rgba(245, 158, 11, 0.45); border-radius: 8px; padding: 12px 14px; margin-bottom: 16px; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.1);">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 8px;">

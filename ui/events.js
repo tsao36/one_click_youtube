@@ -22,6 +22,7 @@
     "static_018": function(event) { switchTab('drama') },
     "static_019": function(event) { switchTab('studio') },
     "static_020": function(event) { switchTab('dramastudio') },
+    "static_300": function(event) { switchTab('remotionstudio') },
     "static_021": function(event) { switchTab('preview') },
     "static_022": function(event) { switchTab('voices') },
     "static_023": function(event) { switchTab('music') },
