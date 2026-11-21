@@ -1845,7 +1845,7 @@
       { value: 'anime_ghibli', localLabel: 'Anime / Studio Ghibli', cloudLabel: 'Anime / Studio Ghibli' },
       { value: 'cyberpunk_neon', localLabel: 'Cyberpunk Sci-Fi Neon', cloudLabel: 'Cyberpunk Sci-Fi' },
       { value: 'watercolor_art', localLabel: 'Watercolor Illustration', cloudLabel: 'Watercolor Illustration' },
-      { value: 'parisian_storybook', localLabel: 'Parisian Storybook Illustration (巴黎童話街景)', cloudLabel: 'Parisian Storybook Illustration' },
+      { value: 'parisian_storybook', localLabel: 'Parisian Storybook Illustration (巴黎童話繪本風)', cloudLabel: 'Parisian Storybook Illustration' },
       { value: 'digital_painting', localLabel: 'Digital Concept Painting', cloudLabel: 'Digital Concept Painting' },
       { value: 'clean_explainer', localLabel: 'Clean 3D Isometric Explainer', cloudLabel: 'Clean 3D Explainer' },
       { value: 'retro_comic', localLabel: 'Retro Comic Book / Pop Art', cloudLabel: 'Retro Comic Book' },
@@ -10537,11 +10537,17 @@
         const scenes = data.scenes || [];
         const styles = data.available_styles || {};
         const curStyle = data.current_style || 'cinematic_documentary';
+        const imageModels = data.available_models || [];
+        const curModel = data.current_model || 'nano-banana-2.1';
 
         let styleOptionsHtml = '';
         for (const [sKey, sObj] of Object.entries(styles)) {
           styleOptionsHtml += `<option value="${sKey}" ${sKey === curStyle ? 'selected' : ''}>${sObj.label || sKey}</option>`;
         }
+        let modelOptionsHtml = '';
+        imageModels.forEach(m => {
+          modelOptionsHtml += `<option value="${m}" ${m === curModel ? 'selected' : ''}>${formatModelLabel(m)}</option>`;
+        });
 
         bodyHtml = `
           <div style="background: linear-gradient(135deg, #0e1e38 0%, #0a1324 100%); border: 1px solid #1e3a8a; border-radius: 8px; padding: 14px; margin-bottom: 16px;">
@@ -10552,7 +10558,13 @@
                   ${styleOptionsHtml}
                 </select>
               </div>
-              <button class="btn-sec" style="font-size:12px; padding:6px 12px; background:#1e3a8a; border-color:#3b82f6; color:#fff;" onclick="applyStyleFromPromptsTab()">🎨 Apply Style to All Prompts</button>
+              <div style="flex:1; min-width:220px;">
+                <label style="font-size:12px; color:#cbd5e1; display:block; margin-bottom:4px;">Image Engine / Checkpoint:</label>
+                <select id="insp-prompt-model" style="width:100%; font-size:12px; padding:6px; background:#080d16; color:#fff; border:1px solid #2b456b; border-radius:4px;">
+                  ${modelOptionsHtml}
+                </select>
+              </div>
+              <button class="btn-sec" style="font-size:12px; padding:6px 12px; background:#1e3a8a; border-color:#3b82f6; color:#fff;" onclick="applyStyleFromPromptsTab()">🎨 Apply Style & Provider to All Prompts</button>
             </div>
           </div>
           <div style="font-size:12px; color:var(--text-muted); margin-bottom:10px;">Tune ComfyUI image prompts per scene. Keyword changes directly guide SDXL generation.</div>
@@ -10640,7 +10652,7 @@
             </div>
             <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
               <button class="btn-sec" style="font-size:12px; padding:5px 12px;" onclick="saveImageSettings(false)">💾 Save Style & Model</button>
-              <button class="btn-sec" style="font-size:12px; padding:5px 12px; background:#1e3a8a; border-color:#3b82f6; color:#fff;" onclick="saveImageSettings(true)">🎨 Apply Style to All Prompts</button>
+              <button class="btn-sec" style="font-size:12px; padding:5px 12px; background:#1e3a8a; border-color:#3b82f6; color:#fff;" onclick="saveImageSettings(true)">🎨 Apply Style & Provider to All Prompts</button>
               <button class="btn-primary" style="font-size:12px; padding:5px 12px;" onclick="saveAndRunFullImages(false)">▶ Save & Generate All Images</button>
             </div>
           </div>
@@ -10728,7 +10740,7 @@
 
           let perSceneModelOptions = '';
           allModels.forEach(m => {
-            perSceneModelOptions += `<option value="${m}" ${m === renderedModel ? 'selected' : ''}>${formatModelLabel(m)}</option>`;
+            perSceneModelOptions += `<option value="${m}" ${m === curModel ? 'selected' : ''}>${formatModelLabel(m)}</option>`;
           });
 
           let perSceneStyleOptions = '';
@@ -12920,9 +12932,11 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
     async function applyStyleFromPromptsTab() {
       if (!currentProjectId) return;
       const styleEl = document.getElementById('insp-prompt-style');
-      if (!styleEl) return;
+      const modelEl = document.getElementById('insp-prompt-model');
+      if (!styleEl || !modelEl) return;
       const payload = {
         visual_style: styleEl.value,
+        checkpoint: modelEl.value,
         apply_to_prompts: true
       };
       try {
@@ -12932,7 +12946,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
           body: JSON.stringify(payload)
         })
 
-        alert("Visual style applied to all scene prompts!");
+        alert("Image style and provider saved and applied to all scene prompts!");
         openStageInspector('prompts');
       } catch (e) {
         alert("Error: " + e.message);
@@ -14557,11 +14571,17 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
         const scenes = data.scenes || [];
         const styles = data.available_styles || {};
         const curStyle = data.current_style || 'cinematic_documentary';
+        const imageModels = data.available_models || [];
+        const curModel = data.current_model || 'nano-banana-2.1';
 
         let styleOptionsHtml = '';
         for (const [sKey, sObj] of Object.entries(styles)) {
           styleOptionsHtml += `<option value="${sKey}" ${sKey === curStyle ? 'selected' : ''}>${sObj.label || sKey}</option>`;
         }
+        let modelOptionsHtml = '';
+        imageModels.forEach(m => {
+          modelOptionsHtml += `<option value="${m}" ${m === curModel ? 'selected' : ''}>${formatModelLabel(m)}</option>`;
+        });
 
         bodyHtml += `
           <!-- Visual Style Preset Selector -->
@@ -14573,7 +14593,13 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
                   ${styleOptionsHtml}
                 </select>
               </div>
-              <button class="btn-sec" style="font-size: 12px; padding: 8px 16px; background: #1e3a8a; border-color: #3b82f6; color: #fff;" onclick="applyStudioStyleFromPromptsTab()">🎨 Apply Style to All Prompts</button>
+              <div style="flex: 1; min-width: 240px;">
+                <label style="font-size: 12px; color: #cbd5e1; display: block; margin-bottom: 4px;">Image Engine / Checkpoint:</label>
+                <select id="studio-prompt-model" style="width: 100%; font-size: 13px; padding: 8px; background: #080d16; color: #fff; border: 1px solid #2b456b; border-radius: 6px;">
+                  ${modelOptionsHtml}
+                </select>
+              </div>
+              <button class="btn-sec" style="font-size: 12px; padding: 8px 16px; background: #1e3a8a; border-color: #3b82f6; color: #fff;" onclick="applyStudioStyleFromPromptsTab()">🎨 Apply Style & Provider to All Prompts</button>
             </div>
           </div>
 
@@ -14668,7 +14694,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
             </div>
             <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
               <button class="btn-sec" style="font-size: 12px; padding: 6px 14px;" onclick="saveStudioImageSettings(false)">💾 Save Style & Model</button>
-              <button class="btn-sec" style="font-size: 12px; padding: 6px 14px; background: #1e3a8a; border-color: #3b82f6; color: #fff;" onclick="saveStudioImageSettings(true)">🎨 Apply Style to All Prompts</button>
+              <button class="btn-sec" style="font-size: 12px; padding: 6px 14px; background: #1e3a8a; border-color: #3b82f6; color: #fff;" onclick="saveStudioImageSettings(true)">🎨 Apply Style & Provider to All Prompts</button>
               <button class="btn-primary" style="font-size: 12px; padding: 6px 14px;" onclick="runStudioImagesWithSave(false)">▶ Generate All Images</button>
               <button class="btn-primary" style="font-size: 12px; padding: 6px 14px; background: linear-gradient(135deg, #059669 0%, #047857 100%); border-color: #10b981; font-weight: 700;" onclick="runStudioImagesWithSave(true)" title="Fetch online stock photos for all scenes without using local GPU">🌐 Fetch Online Stock Photos (All Scenes)</button>
             </div>
@@ -14737,7 +14763,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
 
           let perSceneModelOptions = '';
           allModels.forEach(m => {
-            perSceneModelOptions += `<option value="${m}" ${m === renderedModel ? 'selected' : ''}>${formatModelLabel(m)}</option>`;
+            perSceneModelOptions += `<option value="${m}" ${m === curModel ? 'selected' : ''}>${formatModelLabel(m)}</option>`;
           });
 
           let perSceneStyleOptions = '';
@@ -18234,9 +18260,11 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
     async function applyStudioStyleFromPromptsTab() {
       if (!currentProjectId) return;
       const styleEl = document.getElementById('studio-prompt-style');
-      if (!styleEl) return;
+      const modelEl = document.getElementById('studio-prompt-model');
+      if (!styleEl || !modelEl) return;
       const payload = {
         visual_style: styleEl.value,
+        checkpoint: modelEl.value,
         apply_to_prompts: true
       };
       try {
@@ -18246,7 +18274,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
           body: JSON.stringify(payload)
         })
 
-        alert("Visual style applied to all scene prompts!");
+        alert("Image style and provider saved and applied to all scene prompts!");
         loadStageStudio('prompts');
       } catch (e) {
         alert("Error: " + e.message);

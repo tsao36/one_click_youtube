@@ -10,10 +10,10 @@ def test_parisian_storybook_visual_style_is_registered_with_requested_prompt_det
     settings = yaml.safe_load((ROOT / "config" / "settings.yaml").read_text(encoding="utf-8"))
     style = settings["visual_styles"]["parisian_storybook"]
 
-    assert "watercolor and gouache textures" in style["style"]
-    assert "Le Café Parisien" in style["style"]
-    assert "traditional boulangerie" in style["style"]
-    assert "deep-blue \"Librairie\" bookstore" in style["style"]
+    assert "watercolor and gouache" in style["style"]
+    assert "people, objects, architecture, and backgrounds" in style["style"]
+    assert "do not add Paris landmarks" in style["style"]
+    assert "Paris street scene" in style["negative"]
     assert style["aspect_ratio"] == "16:9"
     assert style["stylize"] == 250
 

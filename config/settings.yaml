@@ -284,25 +284,23 @@ visual_styles:
       face, indistinct facial features, blank face, melted face, text, watermark,
       logo, 3D render, photo, photorealistic, harsh stark shadows
   parisian_storybook:
-    label: Parisian Storybook Illustration (巴黎童話街景)
+    label: Parisian Storybook Illustration (巴黎童話繪本風)
     style: >-
-      Whimsical digital illustration of a charming Parisian street scene on a bright
-      summer day, soft watercolor and gouache textures mixed with clean line work,
-      vibrant yet gentle colors, cozy storybook style. Wide view of classic Paris
-      buildings with ornate windows, flower boxes, and iron balconies. Central green-and-red
-      striped awning café "Le Café Parisien" with outdoor tables full of people chatting
-      and drinking coffee. To the left a traditional boulangerie with golden bread in
-      the windows, to the right a deep-blue "Librairie" bookstore. Lush green trees
-      with soft leafy canopies framing the top of the image. Busy sidewalk with diverse
-      pedestrians, a person on an electric scooter, green rental bikes, pigeons pecking
-      on the cobblestones, and a classic yellow vintage car. Warm sunlight, soft shadows,
-      slight sparkle in the air, highly detailed but playful and inviting atmosphere.
-    lighting: warm summer sunlight, soft natural shadows, gentle highlights, slight sparkle in the air
-    lens: wide 16:9 establishing view, eye-level street perspective, balanced storybook composition
-    mood: playful, cozy, inviting, lively, charming, optimistic
+      Parisian-inspired storybook illustration style, hand-painted watercolor and gouache
+      paper textures, delicate confident linework, softly rounded forms, warm pastel
+      palette with tasteful saturated accents, charming picture-book elegance, gentle
+      surface grain, polished illustrated detail. Apply this visual treatment consistently
+      to people, objects, architecture, and backgrounds while preserving each scene's
+      specified subject, setting, era, and framing. Parisian describes the illustration
+      aesthetic only; do not add Paris landmarks, streets, cafes, or other location details
+      unless the scene itself calls for them.
+    lighting: soft, warm, naturalistic illustrated lighting suited to the scene, gentle shadows and highlights
+    lens: follow each scene's specified framing and camera angle; no default location or establishing view
+    mood: whimsical, warm, charming, gentle, inviting, optimistic
     negative: photorealistic, 3D render, anime, dark mood, harsh contrast, blurry, lowres,
       distorted architecture, malformed people, extra limbs, duplicate people, watermark,
-      logo, illegible text, captions, subtitles
+      logo, illegible text, captions, subtitles, Eiffel Tower, Paris street, Paris cafe,
+      Parisian street scene unless explicitly requested by the scene
     aspect_ratio: '16:9'
     stylize: 250
   hyperreal_3d:
