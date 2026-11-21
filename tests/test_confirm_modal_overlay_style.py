@@ -10,6 +10,8 @@ def test_index_html_has_overlay_style_in_confirm_modal():
     
     # 1. Verify confirm modal contains the Select Message Overlay Style section
     assert 'id="create-video-confirm-modal"' in index_html
+    assert "WHAT'S MY TAKE💡 作者獨家觀點與結語 (What's My Take · 賦予影片靈魂與個人風格)" in index_html
+    assert "請記得在上方輸入您的獨家觀點" in index_html
     assert 'id="confirm-modal-overlay-row"' in index_html
     assert 'Select Message Overlay Style:' in index_html
     assert 'id="confirm-modal-callout-style"' in index_html

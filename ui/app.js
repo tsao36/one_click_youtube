@@ -2248,6 +2248,7 @@
         setVal('model-stage-script', 'ollama');
         setVal('model-stage-scenes', 'ollama');
         setVal('model-stage-prompts', 'ollama');
+        setVal('model-stage-fact-check', 'openai_compat');
         setVal('model-stage-images', 'comfyui');
         setVal('model-stage-voice', 'bluemagpie');
         setVal('model-stage-animation', isDrama ? 'local_actor' : 'kenburns');
@@ -2255,14 +2256,20 @@
         setVal('model-stage-render', 'h264_amf');
         setVal('cloud-toggle', 'false');
       } else if (preset === 'cloud') {
-        setVal('model-stage-research', isDrama ? 'gemini' : 'gemini_search');
-        setVal('model-stage-script', 'gemini');
-        setVal('model-stage-scenes', 'gemini');
-        setVal('model-stage-prompts', 'gemini');
+        // Current recommended cloud configuration: Gemini 4 Hydrogen for
+        // LLM stages, Nano Banana for images, VoAI for narration, three-
+        // movement music, and Veo for AI video. Subtitles and render remain
+        // local for reliability.
+        setVal('model-stage-research', 'gemini_4_hydrogen');
+        setVal('model-stage-script', 'gemini_4_hydrogen');
+        setVal('model-stage-scenes', 'gemini_4_hydrogen');
+        setVal('model-stage-prompts', 'gemini_4_hydrogen');
+        setVal('model-stage-fact-check', 'openai_compat');
         setVal('model-stage-images', 'nano-banana-2.1');
         setVal('checkpoint-select', 'nano-banana-2.1');
-        setVal('model-stage-voice', 'elevenlabs');
-        setVal('model-stage-animation', isDrama ? 'hedra' : 'veo');
+        setVal('model-stage-voice', 'voai');
+        setVal('model-stage-music', 'narrative_evolving');
+        setVal('model-stage-animation', 'veo');
         setVal('model-stage-subtitles', 'local');
         setVal('model-stage-render', 'h264_amf');
         setVal('cloud-toggle', 'true');
@@ -2271,6 +2278,7 @@
         setVal('model-stage-script', 'gemini');
         setVal('model-stage-scenes', 'gemini');
         setVal('model-stage-prompts', 'gemini');
+        setVal('model-stage-fact-check', 'openai_compat');
         setVal('model-stage-images', isDrama ? 'nano-banana-2.1' : 'comfyui');
         setVal('model-stage-voice', 'bluemagpie');
         setVal('model-stage-animation', isDrama ? 'hedra' : 'kenburns');
@@ -2432,7 +2440,7 @@
 
     function onStageModelChange(changedStage) {
       const cloudOpts = ['gemini_search', 'gemini_4_carbon', 'gemini_4_hydrogen', 'gemini', 'openai_compat', 'fal-ai/flux-1/schnell', 'nano-banana-2.1', 'gpt-image-1', 'imagen-3.0-generate-002', 'dalle3', 'imagen3', 'stock', 'stock_video', 'elevenlabs', 'voai', 'edge', 'veo', 'kling', 'runway', 'hedra'];
-      const stages = ['research', 'script', 'scenes', 'prompts', 'images', 'voice', 'animation', 'presenter', 'subtitles', 'render'];
+      const stages = ['research', 'script', 'scenes', 'prompts', 'images', 'voice', 'animation', 'presenter', 'subtitles', 'render', 'fact_check'];
       let cloudCount = 0;
       let localCount = 0;
       stages.forEach(st => {
@@ -2563,7 +2571,7 @@
     }
 
     function getSelectedStageModels() {
-      const stages = ['research', 'script', 'scenes', 'prompts', 'images', 'voice', 'animation', 'presenter', 'subtitles', 'render'];
+      const stages = ['research', 'script', 'scenes', 'prompts', 'images', 'voice', 'animation', 'presenter', 'subtitles', 'render', 'fact_check'];
       const res = {};
       stages.forEach(st => {
         const el = document.getElementById('model-stage-' + st);
@@ -21231,6 +21239,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
             if (p.language) document.getElementById('remotion-project-language').value = p.language;
             if (p.research_provider) document.getElementById('remotion-research-provider').value = p.research_provider;
             if (p.script_provider) document.getElementById('remotion-script-provider').value = p.script_provider;
+            if (p.fact_check_provider) document.getElementById('remotion-fact-check-provider').value = p.fact_check_provider;
             if (p.style_pack) document.getElementById('remotion-style-pack').value = p.style_pack;
             if (p.aspect_ratio) document.getElementById('remotion-project-ratio').value = p.aspect_ratio;
             if (p.resolution) document.getElementById('remotion-project-resolution').value = p.resolution;
@@ -21292,6 +21301,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
         language: document.getElementById('remotion-project-language')?.value || 'Traditional Chinese',
         research_provider: document.getElementById('remotion-research-provider')?.value || 'gemini_search',
         script_provider: document.getElementById('remotion-script-provider')?.value || 'openai_compat',
+        fact_check_provider: document.getElementById('remotion-fact-check-provider')?.value || 'openai_compat',
         style_pack: document.getElementById('remotion-style-pack')?.value || 'auto_all',
         voice_profile: document.getElementById('remotion-voice-select')?.value || null,
         default_avatar: document.getElementById('remotion-avatar-select')?.value || null,
@@ -21310,6 +21320,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       const language = document.getElementById('remotion-project-language')?.value || 'Traditional Chinese';
       const research_provider = document.getElementById('remotion-research-provider')?.value || 'gemini_search';
       const script_provider = document.getElementById('remotion-script-provider')?.value || 'openai_compat';
+      const fact_check_provider = document.getElementById('remotion-fact-check-provider')?.value || 'openai_compat';
       const btn = document.getElementById('btn-remotion-gen-script');
       const statusEl = document.getElementById('remotion-draft-status');
       if (btn) btn.disabled = true;
@@ -21318,7 +21329,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
         const res = await apiJson('/api/remotion/generate-script', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ topic, duration_minutes, language, llm_provider: research_provider, script_provider }),
+          body: JSON.stringify({ topic, duration_minutes, language, llm_provider: research_provider, script_provider, fact_check_provider }),
         });
         const scriptEl = document.getElementById('remotion-project-script');
         if (scriptEl && res.script) scriptEl.value = res.script;
@@ -21424,6 +21435,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       if (params.language) document.getElementById('remotion-project-language').value = params.language;
       if (params.research_provider) document.getElementById('remotion-research-provider').value = params.research_provider;
       if (params.script_provider) document.getElementById('remotion-script-provider').value = params.script_provider;
+      if (params.fact_check_provider) document.getElementById('remotion-fact-check-provider').value = params.fact_check_provider;
       if (params.style_pack) document.getElementById('remotion-style-pack').value = params.style_pack;
       if (params.presenter_placement) document.getElementById('remotion-presenter-placement').value = params.presenter_placement;
       if (params.voice_profile || params.default_avatar) _populateRemotionVoiceAndAvatarSelectors(params.voice_profile, params.default_avatar);

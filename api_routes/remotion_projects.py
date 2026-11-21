@@ -608,6 +608,9 @@ def start_remotion_project(project_id: str, background_tasks: BackgroundTasks):
     project.data.settings["avatar_enabled"] = any_presenter
     project.data.settings["project_mode"] = "remotion"
     project.data.settings.setdefault("stage_models", {})["animation"] = "remotion"
+    project.data.settings.setdefault("stage_models", {})["fact_check"] = (
+        parameters.get("fact_check_provider") or project.data.settings["stage_models"].get("fact_check") or "openai_compat"
+    )
     project.data.settings.setdefault("animation", {})["provider"] = "remotion"
     remotion["style_pack"] = style_pack
     remotion["draft"]["validation"] = validation

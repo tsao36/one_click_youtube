@@ -92,6 +92,7 @@
     "static_076": function(event) { selectCreatorRemotionStyle('remotion_evidence') },
     "static_077": function(event) { onStageModelChange('subtitles') },
     "static_078": function(event) { onStageModelChange('render') },
+    "static_301": function(event) { onStageModelChange('fact_check') },
     "static_079": function(event) { onPresenterPlacementChange() },
     "on_creator_presenter_avatar_change": function(event) { onPresenterAvatarChange() },
     "static_080": function(event) { switchTab('studio') },

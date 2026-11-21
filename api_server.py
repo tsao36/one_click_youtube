@@ -3750,9 +3750,30 @@ def update_scenes(project_id: str, scenes: list[Scene]):
             status_code=400,
             detail=f"每一幕都必須填寫台詞/旁白；以下啟用中的分鏡沒有台詞：{missing_narration} (Every active scene requires narration.)"
         )
+    existing_scenes = {scene.scene_id: scene for scene in p.scenes}
+    narration_changed = False
+    from core.base_pipeline import narration_fingerprint
+
+    for scene in scenes:
+        previous = existing_scenes.get(scene.scene_id)
+        previous_audio_meta = (previous.audio.meta or {}) if previous else {}
+        audio_text_mismatch = bool(
+            previous
+            and previous_audio_meta.get("narration_hash")
+            and previous_audio_meta["narration_hash"] != narration_fingerprint(scene.narration)
+        )
+        if previous and (previous.narration.strip() != scene.narration.strip() or audio_text_mismatch):
+            scene.audio.status = Status.PENDING
+            scene.audio.error = None
+            scene.audio.meta = scene.audio.meta or {}
+            scene.audio.meta["text_outdated"] = True
+            scene.audio.meta["previous_narration"] = previous.narration
+            narration_changed = True
     p.set_scenes(scenes)
     p.sync_avatar_disabled_state()
     p.clear_clips_cache()
+    if narration_changed:
+        p.invalidate("voice")
     p.set_stage("subtitles", Status.PENDING)
     p.set_stage("render", Status.PENDING)
     if not p.is_avatar_enabled():

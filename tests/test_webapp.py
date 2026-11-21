@@ -33,6 +33,7 @@ import core.project_manager as project_manager
 import generators.character_manager as character_manager
 import generators.voice_generator as voice_generator
 import agents.trend_researcher as trend_researcher
+from core.base_pipeline import narration_fingerprint
 from core.models import Scene, Status
 from core.project_manager import Project
 
@@ -269,6 +270,20 @@ class TestProjectLifecycle:
         put_res = client.put(f"/api/projects/{project_id}/scenes", json=scenes_payload)
         assert put_res.status_code == 200
         assert put_res.json()["count"] == 2
+
+        stored_project = Project(project_id)
+        stored_scenes = stored_project.scenes
+        stored_scenes[0].audio.status = Status.COMPLETED
+        stored_scenes[0].audio.meta = {"narration_hash": narration_fingerprint("First scene narration text")}
+        stored_project.set_scenes(stored_scenes)
+
+        scenes_payload[0]["narration"] = "Changed narration must regenerate voice"
+        changed_put_res = client.put(f"/api/projects/{project_id}/scenes", json=scenes_payload)
+        assert changed_put_res.status_code == 200
+        changed_scene = Project(project_id).scenes[0]
+        assert changed_scene.audio.status == Status.PENDING
+        assert changed_scene.audio.meta["text_outdated"] is True
+        assert changed_scene.audio.meta["previous_narration"] == "First scene narration text"
 
         # PATCH single scene
         patch_res = client.patch(

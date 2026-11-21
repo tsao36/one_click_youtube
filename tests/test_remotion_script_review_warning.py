@@ -37,8 +37,8 @@ def test_remotion_stage_studio_has_static_navigation_handler():
 
     assert "static_300" in events_js
     assert "switchTab('remotionstudio')" in events_js
-    assert 'src="/events.js?v=20261121_remotion_stage_studio_fix_v2"' in index_html
-    assert 'src="/app.js?v=20261121_remotion_stage_studio_fix_v2"' in index_html
+    assert 'src="/events.js?v=20261121_fact_check_model_v1"' in index_html
+    assert 'src="/app.js?v=20261121_fact_check_model_v1"' in index_html
 
 
 def test_remotion_stage_studio_matches_remotion_creator_stage_order_without_image_stages():

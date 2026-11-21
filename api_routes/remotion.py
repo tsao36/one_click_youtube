@@ -60,6 +60,7 @@ class RemotionGenerateScriptRequest(BaseModel):
     user_research: str = ""
     llm_provider: str = "gemini"
     script_provider: str | None = None
+    fact_check_provider: str | None = "openai_compat"
 
 
 def generate_remotion_script_data(
@@ -69,6 +70,7 @@ def generate_remotion_script_data(
     user_research: str = "",
     llm_provider: str = "gemini",
     script_provider: str | None = None,
+    fact_check_provider: str | None = "openai_compat",
 ) -> dict[str, Any]:
     """Generate a duration-calibrated script using Stage 1 research and Stage 2 script writer."""
     clean_topic = (topic or "").strip()
@@ -107,7 +109,10 @@ def generate_remotion_script_data(
     settings = {
         "video": {"duration_minutes": duration_val, "language": language},
         "script": {"speech_rate_wpm": 150},
-        "stage_models": {"script": script_provider} if script_provider else {},
+        "stage_models": {
+            **({"script": script_provider} if script_provider else {}),
+            "fact_check": fact_check_provider or "openai_compat",
+        },
     }
     try:
         scr = write_script(
@@ -151,6 +156,7 @@ def generate_remotion_script(req: RemotionGenerateScriptRequest):
         user_research=req.user_research,
         llm_provider=req.llm_provider,
         script_provider=req.script_provider,
+        fact_check_provider=req.fact_check_provider,
     )
 
 

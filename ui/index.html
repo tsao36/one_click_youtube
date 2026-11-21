@@ -126,6 +126,7 @@
         <label>研究模型 / Research LLM<select id="remotion-research-provider" style="width:100%;margin-top:5px;"><option value="gemini_search" selected>Cloud: Gemini Search Grounding</option><option value="gemini_4_carbon">Cloud: Gemini 4 Carbon</option><option value="gemini_4_hydrogen">Cloud: Gemini 4 Hydrogen</option><option value="openai_compat">Cloud: GPT-6 Luna</option><option value="ollama">Local fallback: qwen3:8b</option><option value="none">Disabled</option></select></label>
         <label>腳本模型 / Script LLM<select id="remotion-script-provider" style="width:100%;margin-top:5px;"><option value="openai_compat" selected>Cloud: GPT-6 Luna</option><option value="gemini">Cloud: Gemini Flash</option><option value="gemini_4_hydrogen">Cloud: Gemini 4 Hydrogen</option><option value="ollama">Local fallback: qwen3:8b</option></select></label>
         <label>Remotion 風格套件 / Style Pack<select id="remotion-style-pack" style="width:100%;margin-top:5px;"><option value="auto_all" selected>🤖 Auto All 全庫智能匹配</option><option value="rve_templates">🧩 RVE Community 81 Templates</option><option value="rve">📊 RVE 動態圖表套件</option><option value="modern_tech_explainer">✨ Gary Chen 現代科技解說</option><option value="coordinate_zero">🧭 座標零 桌面實驗室</option><option value="finance_market">📈 金融市場與財報</option><option value="archival_history">📜 歷史檔案與編年</option><option value="vox_journalism">🗞️ Vox 深度調查</option><option value="fox_documentary">📌 fOx 紀錄片資訊卡</option></select></label>
+        <label>事實查核 / Fact Check LLM<select id="remotion-fact-check-provider" style="width:100%;margin-top:5px;"><option value="openai_compat" selected>Cloud: GPT-6 Luna</option><option value="gemini_4_hydrogen">Cloud: Gemini 4 Hydrogen</option><option value="gemini_4_carbon">Cloud: Gemini 4 Carbon</option><option value="gemini">Cloud: Gemini Flash</option><option value="ollama">Local fallback: qwen3:8b</option></select></label>
         <label>聲音形象 / Voice Profile<select id="remotion-voice-select" style="width:100%;margin-top:5px;"><option value="">載入音色中...</option></select></label>
         <label>虛擬講者 / Avatar Presenter<select id="remotion-avatar-select" style="width:100%;margin-top:5px;"><option value="">(不使用虛擬講者)</option></select></label>
         <label>講者出鏡位置 / Placement<select id="remotion-presenter-placement" onchange="onRemotionPresenterPlacementChange()" style="width:100%;margin-top:5px;"><option value="none" selected>🚫 不出鏡 Pure Remotion</option><option value="intro">🎬 僅開頭 Scene 1</option><option value="intro_outro">🎯 開頭 + 結尾</option><option value="intro_middle_outro">⭐ 開頭 + 中間 + 結尾</option><option value="chapters">📑 各章節開頭</option><option value="all">🎙️ 全片講者</option></select></label>
@@ -749,6 +750,16 @@
                 <option value="gemini">Cloud: Google Gemini 3.8 Flash</option>
                 <option value="gemini_4_hydrogen">Cloud: Google Gemini 4 Hydrogen</option>
                 <option value="openai_compat">Cloud: OpenAI GPT-4o-mini</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label id="label-stage-model-fact-check">Fact Check LLM</label>
+              <select id="model-stage-fact-check" data-ui-change="static_301">
+                <option value="openai_compat" selected>Cloud: GPT-6 Luna (Recommended)</option>
+                <option value="gemini_4_hydrogen">Cloud: Google Gemini 4 Hydrogen</option>
+                <option value="gemini_4_carbon">Cloud: Google Gemini 4 Carbon</option>
+                <option value="gemini">Cloud: Gemini Flash</option>
+                <option value="ollama">Local: Ollama (qwen3:8b)</option>
               </select>
             </div>
             <div class="form-group">
@@ -4816,8 +4827,8 @@
   </div>
 
   <script src="/api.js"></script>
-  <script src="/events.js?v=20261121_remotion_stage_studio_fix_v2"></script>
-  <script src="/app.js?v=20261121_remotion_stage_studio_fix_v2"></script>
+  <script src="/events.js?v=20261121_fact_check_model_v1"></script>
+  <script src="/app.js?v=20261121_fact_check_model_v1"></script>
 
   <!-- Formula Manager Modal -->
   <div id="formula-manager-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 99999; align-items: center; justify-content: center; backdrop-filter: blur(4px);">
@@ -4915,6 +4926,16 @@
           </div>
           <div id="confirm-modal-topic" style="font-size:14px; font-weight:700; color:#38bdf8; word-break:break-word; line-height:1.4;">
             --
+          </div>
+        </div>
+
+        <!-- Reminder to add the author's personal perspective before proceeding -->
+        <div style="background:linear-gradient(135deg, rgba(245, 158, 11, 0.16), rgba(30, 20, 10, 0.5)); border:1.5px solid rgba(245, 158, 11, 0.55); border-radius:10px; padding:11px 14px; box-shadow:0 3px 12px rgba(245, 158, 11, 0.1);">
+          <div style="font-size:13px; font-weight:800; color:#fde68a; line-height:1.4;">
+            WHAT'S MY TAKE💡 作者獨家觀點與結語 (What's My Take · 賦予影片靈魂與個人風格)
+          </div>
+          <div style="font-size:11.5px; color:#fcd34d; margin-top:4px; line-height:1.4;">
+            請記得在上方輸入您的獨家觀點，讓影片更具個人風格。
           </div>
         </div>
 

@@ -121,6 +121,14 @@ def test_render_model_update_persists_for_idle_and_active_pipeline(project, monk
     assert Project(project.id).settings["rendering"]["encoder"] == "h264_amf"
 
 
+def test_fact_check_model_update_persists_for_project(project):
+    response = TestClient(api_server.app).post(f"/api/projects/{project.id}/stage-models", json={
+        "stage_models": {"fact_check": "openai_compat"},
+    })
+    assert response.status_code == 200
+    assert Project(project.id).settings["stage_models"]["fact_check"] == "openai_compat"
+
+
 def test_gemini_search_alias_resolves_to_gemini_without_probing_ollama(monkeypatch):
     import providers.llm as llm
     provider = Mock()

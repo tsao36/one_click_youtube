@@ -213,7 +213,8 @@ class DocumentaryPipeline(BasePipeline):
             # Double-check fact validity, purge PRC sources, and generate fact verification reports
             try:
                 from core.fact_checker import verify_project_facts
-                verify_project_facts(self.p, on_request=self._track_llm_request, provider_override=res_prov)
+                fact_check_prov = self.get_stage_model("fact_check", "openai_compat")
+                verify_project_facts(self.p, on_request=self._track_llm_request, provider_override=fact_check_prov)
             except Exception as fce:
                 log.warning("Stage 1 fact verification report generation failed: %s", fce)
 
@@ -373,7 +374,8 @@ class DocumentaryPipeline(BasePipeline):
             try:
                 self.p.activity("Stage 2/10: Verifying script factual grounding & numbers...")
                 from core.fact_checker import verify_script_facts
-                verify_script_facts(self.p, on_request=self._track_llm_request, provider_override=scr_prov, auto_patch=True)
+                fact_check_prov = self.get_stage_model("fact_check", "openai_compat")
+                verify_script_facts(self.p, on_request=self._track_llm_request, provider_override=fact_check_prov, auto_patch=True)
             except Exception as fce:
                 log.warning("Stage 2 script fact verification failed: %s", fce)
 

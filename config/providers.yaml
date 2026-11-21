@@ -32,6 +32,7 @@ llm:
     scene_planning:    {provider: openai_compat}
     prompt_generation: {provider: openai_compat}
     prompt_translation: {provider: openai_compat}
+    fact_check: {provider: openai_compat, model: gpt-6-luna}
     script_review: {provider: openai_compat, model: gpt-6-luna}
   # used automatically when the configured provider is not reachable
   fallback_order: [ollama]

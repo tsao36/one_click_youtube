@@ -92,3 +92,21 @@ def test_html_and_js_contain_options():
 
     assert "'gemini_4_carbon'" in js
     assert "'gemini_4_hydrogen'" in js
+    assert 'id="model-stage-fact-check"' in html
+    assert 'id="remotion-fact-check-provider"' in html
+    assert "fact_check_provider" in js
+
+
+def test_cloud_accelerated_preset_matches_current_cloud_defaults():
+    with open("ui/app.js", "r", encoding="utf-8") as f:
+        js = f.read()
+
+    cloud_block = js[js.index("} else if (preset === 'cloud') {"):js.index("} else if (preset === 'hybrid') {")]
+    for stage in ("research", "script", "scenes", "prompts"):
+        assert f"setVal('model-stage-{stage}', 'gemini_4_hydrogen')" in cloud_block
+    assert "setVal('model-stage-images', 'nano-banana-2.1')" in cloud_block
+    assert "setVal('model-stage-voice', 'voai')" in cloud_block
+    assert "setVal('model-stage-music', 'narrative_evolving')" in cloud_block
+    assert "setVal('model-stage-animation', 'veo')" in cloud_block
+    assert "setVal('model-stage-subtitles', 'local')" in cloud_block
+    assert "setVal('model-stage-render', 'h264_amf')" in cloud_block

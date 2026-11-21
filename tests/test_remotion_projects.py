@@ -165,6 +165,7 @@ def test_generate_remotion_script_endpoint_uses_gemini(monkeypatch):
     assert all(c["settings"]["video"]["language"] == "Traditional Chinese" for c in writer_calls)
     assert all(c["provider_override"] == "gemini" for c in research_calls)
     assert all(c["provider_override"] == "openai_compat" for c in writer_calls)
+    assert all(c["settings"]["stage_models"]["fact_check"] == "openai_compat" for c in writer_calls)
 
 
 def test_llm_remotion_scene_planner_selects_compositions_and_props(monkeypatch):
