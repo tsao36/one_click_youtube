@@ -6251,6 +6251,7 @@ def get_project_thumbnail(project_id: str):
             scenes_list.append({
                 "scene_id": s.scene_id,
                 "label": f"Scene {s.scene_id}: {(s.narration or s.visual_description or '')[:32]}",
+                "is_presenter": bool(getattr(s, "is_presenter", False) or s.visual_type in ("talking_head", "talking_actor")),
                 "image_url": f"/media/{project_id}/{p.rel(vis_path)}",
             })
     has_custom_bg = p.path("output", "thumbnail_bg_custom.png").exists()

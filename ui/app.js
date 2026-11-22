@@ -19316,7 +19316,8 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
           bgSel.innerHTML += `<option value="custom">📸 已上傳的自訂底圖 (Custom Uploaded Photo)</option>`;
         }
         (data.scenes || []).forEach(sc => {
-          bgSel.innerHTML += `<option value="scene_${sc.scene_id}">${sc.label}</option>`;
+          const presenterMark = sc.is_presenter ? ' 🎙️ Avatar Presenter' : '';
+          bgSel.innerHTML += `<option value="scene_${sc.scene_id}">${sc.label}${presenterMark}</option>`;
         });
         if (cfg.bg_source) bgSel.value = cfg.bg_source;
 
