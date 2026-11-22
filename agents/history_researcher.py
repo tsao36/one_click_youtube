@@ -178,7 +178,7 @@ def discover_dynasty_topic(exclude_topics: list[str] | None = None) -> dict[str,
                 "- 顛覆刻板印象的歷史翻案（被演義或傳奇小說誤導的真實歷史真相）\n\n"
                 "Requirements:\n"
                 "1. Output valid JSON only.\n"
-                "2. 'topic': High-CTR, curiosity-driven YouTube documentary title in standard Taiwan Traditional Chinese (台灣正體中文，嚴禁大陸簡體與大陸流行用語，用詞精準有力，引人入勝).\n"
+                "2. 'topic': High-CTR, curiosity-driven YouTube documentary title in standard Taiwan Traditional Chinese (台灣正體中文，嚴禁大陸簡體與大陸流行用語，用詞精準有力，引人入勝). Always begin the title with the exact prefix '5分鐘瞭解:'.\n"
                 "3. 'logline': 1-2 sentence compelling summary of what the video uncovers and explains.\n"
                 "4. 'category': Short category string (e.g. '中國朝代冷知識', '宋代生活奇觀', '明清宮廷秘辛', '秦漢黑科技與制度', '三國歷史翻案').\n"
                 "5. 'recommended_duration': 5.0 or 10.0.\n"
@@ -205,6 +205,8 @@ def discover_dynasty_topic(exclude_topics: list[str] | None = None) -> dict[str,
     if llm_result.get("topic"):
         data = llm_result
         data["topic"] = normalize_to_taiwan_mandarin(data["topic"])
+        if not data["topic"].startswith("5分鐘瞭解:"):
+            data["topic"] = f"5分鐘瞭解:{data['topic'].lstrip(':： -') }"
         if data.get("logline"):
             data["logline"] = normalize_to_taiwan_mandarin(data["logline"])
         if data.get("category"):

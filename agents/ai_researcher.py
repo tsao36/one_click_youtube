@@ -181,7 +181,7 @@ def discover_ai_topic(exclude_topics: list[str] | None = None) -> dict[str, Any]
                 "- 世界模型（World Models）與物理規律模擬（超越像素生成，進入物理空間規律預測）\n\n"
                 "Requirements:\n"
                 "1. Output valid JSON only.\n"
-                "2. 'topic': High-CTR, curiosity-driven YouTube documentary title in standard Taiwan Traditional Chinese (台灣正體中文，嚴禁大陸簡體與大陸用語，用詞精準有力，引人入勝).\n"
+                "2. 'topic': High-CTR, curiosity-driven YouTube documentary title in standard Taiwan Traditional Chinese (台灣正體中文，嚴禁大陸簡體與大陸用語，用詞精準有力，引人入勝). Always begin the title with the exact prefix '5分鐘瞭解:'.\n"
                 "3. 'logline': 1-2 sentence compelling summary of what the video uncovers, explains, and demystifies.\n"
                 "4. 'category': Short category string (e.g. '全球 AI 科技前沿', '前沿大模型與推理架構', '具身智慧與實體機器人', 'AI 晶片與超級運算硬體', '世界模型與前沿視覺生成').\n"
                 "5. 'recommended_duration': 5.0 or 10.0.\n"
@@ -208,6 +208,8 @@ def discover_ai_topic(exclude_topics: list[str] | None = None) -> dict[str, Any]
     if llm_result.get("topic"):
         data = llm_result
         data["topic"] = normalize_to_taiwan_mandarin(data["topic"])
+        if not data["topic"].startswith("5分鐘瞭解:"):
+            data["topic"] = f"5分鐘瞭解:{data['topic'].lstrip(':： -') }"
         if data.get("logline"):
             data["logline"] = normalize_to_taiwan_mandarin(data["logline"])
         if data.get("category"):

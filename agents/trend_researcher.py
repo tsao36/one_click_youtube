@@ -181,7 +181,7 @@ def discover_trending_topic(exclude_topics: list[str] | None = None) -> dict[str
                 "Pick or synthesize ONE explosive, high-interest, or deeply curious topic suitable for an educational documentary or tech explainer video.\\n"
                 "Requirements:\\n"
                 "1. Output valid JSON only.\\n"
-                "2. 'topic': Punchy, high-CTR YouTube documentary title in standard Taiwan Traditional Chinese (台灣繁體中文，嚴禁大陸用語).\\n"
+                "2. 'topic': Punchy, high-CTR YouTube documentary title in standard Taiwan Traditional Chinese (台灣繁體中文，嚴禁大陸用語). Always begin the title with the exact prefix '5分鐘瞭解:'.\\n"
                 "3. 'logline': 1-2 sentence compelling summary of what the video explains.\\n"
                 "4. 'category': Short topic category (e.g. 航太工程, 半導體科技, 天文物理, 能源科技, 國際歷史).\\n"
                 "5. 'recommended_duration': 5.0 or 10.0.\\n"
@@ -207,6 +207,8 @@ def discover_trending_topic(exclude_topics: list[str] | None = None) -> dict[str
     if llm_result.get("topic"):
         data = llm_result
         data["topic"] = normalize_to_taiwan_mandarin(data["topic"])
+        if not data["topic"].startswith("5分鐘瞭解:"):
+            data["topic"] = f"5分鐘瞭解:{data['topic'].lstrip(':： -') }"
         if data.get("logline"):
             data["logline"] = normalize_to_taiwan_mandarin(data["logline"])
         if data.get("category"):
