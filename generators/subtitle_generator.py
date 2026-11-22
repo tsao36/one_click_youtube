@@ -192,6 +192,23 @@ def caption_chars_per_line(width: int, height: int, style: str = "youtube_standa
     return max(8, int(usable / (font_px * 1.12)))
 
 
+_CJK_LINE_START_PUNCTUATION = "，、。；：！？,.!?;:)]}）】》」』”’"
+
+
+def _wrap_cjk_caption(text: str, max_chars: int, max_lines: int) -> list[str]:
+    """Wrap CJK text without leaving closing punctuation at the start of a line."""
+    lines: list[str] = []
+    remaining = text
+    while remaining and len(lines) < max_lines:
+        line = remaining[:max_chars]
+        remaining = remaining[max_chars:]
+        while remaining and remaining[0] in _CJK_LINE_START_PUNCTUATION:
+            line += remaining[0]
+            remaining = remaining[1:]
+        lines.append(line)
+    return lines
+
+
 def build_cues(scene_texts: list[tuple[str, Slot]], max_chars_per_line: int = 42, max_lines: int = 2,
                frame_width: int | None = None, frame_height: int | None = None,
                style: str = "youtube_standard") -> list[Cue]:
@@ -242,7 +259,7 @@ def build_cues(scene_texts: list[tuple[str, Slot]], max_chars_per_line: int = 42
             elif has_cjk:
                 p = normalize_to_taiwan_mandarin(p)
                 if len(p) > cjk_max:
-                    lines = [p[:cjk_max], p[cjk_max:cjk_max * 2]]
+                    lines = _wrap_cjk_caption(p, cjk_max, max_lines)
                 else:
                     lines = [p]
             else:
