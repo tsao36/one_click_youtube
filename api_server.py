@@ -2270,13 +2270,20 @@ def update_project_conclusion_endpoint(project_id: str, payload: dict[str, Any])
     p = get_project(project_id)
     author_conclusion = str(payload.get("author_conclusion", "")).strip()
     include_author_take = bool(payload.get("include_author_take", True))
+    conclusion_changed = (
+        str(p.data.settings.get("author_conclusion", "")).strip() != author_conclusion
+        or bool(p.data.settings.get("include_author_take", True)) != include_author_take
+    )
     p.data.settings["author_conclusion"] = author_conclusion
     p.data.settings["include_author_take"] = include_author_take
+    if conclusion_changed:
+        p.invalidate("script")
     p.save()
     return {
         "status": "saved",
         "author_conclusion": author_conclusion,
-        "include_author_take": include_author_take
+        "include_author_take": include_author_take,
+        "script_invalidated": conclusion_changed,
     }
 
 

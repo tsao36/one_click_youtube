@@ -13974,6 +13974,29 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       loadStageStudio(stKey);
     }
 
+    async function saveStudioAuthorConclusion() {
+      if (!currentProjectId) return alert("Please select a project first.");
+      const conclusionEl = document.getElementById('studio-author-conclusion');
+      if (!conclusionEl) return;
+      const settings = (currentProject && currentProject.data && currentProject.data.settings) || {};
+      try {
+        const result = await apiJson(`/api/projects/${currentProjectId}/conclusion`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            author_conclusion: conclusionEl.value.trim(),
+            include_author_take: settings.include_author_take !== false
+          })
+        });
+        showToast(result.script_invalidated
+          ? '作者觀點已儲存；腳本與後續階段已標記待重新執行。'
+          : '作者觀點已儲存。');
+        await loadStageStudio('script');
+      } catch (e) {
+        alert("Error saving author's conclusion: " + e.message);
+      }
+    }
+
     async function loadStageStudio(targetStage) {
       if (targetStage) activeStudioStage = targetStage;
       const wsEl = document.getElementById('studio-stage-workspace');

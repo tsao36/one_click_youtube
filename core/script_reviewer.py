@@ -27,18 +27,23 @@ def _is_ancient_story(research: dict[str, Any]) -> bool:
 
 def review_script(project, script: dict[str, Any], research: dict[str, Any], on_request=None) -> dict[str, Any]:
     ancient_story = _is_ancient_story(research)
+    settings = getattr(getattr(project, "data", None), "settings", {}) or {}
+    author_conclusion = str(settings.get("author_conclusion") or "").strip()
     system = ("You are a ruthless documentary script editor. Maximize information density: "
               "remove repetition, filler, vague adjectives, generic transitions and unsupported claims. "
-              "Preserve essential context, caveats and meaningful opposing views. Never invent facts or sources. Return only JSON.")
+              "Preserve essential context, caveats and meaningful opposing views. Never invent facts or sources. "
+              "Preserve the creator's supplied conclusion and its core stance in the final concluding section. Return only JSON.")
     task = "Review and finalize this script; fact-check claims against research and cite reliable sources."
     if ancient_story:
         task += " This is an ancient/historical story: unresolved historical evidence must not set high_risk or block generation; preserve uncertainty as a caveat instead."
     prompt = {"task": task,
               "rules": ["Mark every paragraph keep, rewrite, delete, or verify.",
                         "Set high_risk if a core conclusion changes, a key claim lacks support, or a high-impact topic remains uncertain.",
-                        "Preserve the exact script schema and section order."],
+                        "Preserve the exact script schema and section order.",
+                        "Preserve the creator's supplied conclusion and its core stance in the final concluding section."],
               "required": {"scores": {"information_density": 0, "necessity": 0, "credibility": 0, "clarity": 0, "overall": 0},
                            "items": [], "sources": [], "high_risk": False, "risk_reasons": [], "final_script": script},
+              "creator_conclusion": author_conclusion,
               "research": research, "script": script}
     client = LLMClient("script_review", on_request=on_request, json_retries=3, project_id=getattr(project, "id", ""))
     result = client.json(str(prompt), system=system, temperature=0.2, max_tokens=12000, validate=_validate)
