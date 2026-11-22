@@ -13,6 +13,7 @@ SYSTEM = (
     "Your mission is to generate visual prompts where EACH scene's imagery is directly, tangibly, and clearly tied to the spoken caption transcript. "
     "CRITICAL GUIDELINES:\n"
     "1. TRANSCRIPT INTEGRATION & DRAMATIC RELEVANCE: For EVERY scene, you MUST incorporate the specific core keywords, technical terminology, objects, visual metaphors, or actions from the 'Caption Transcript' directly into the 'subject' and 'environment'.\n"
+    "   - STYLE IS NOT SCENE CONTENT: Treat Global visual style as rendering guidance only. Do NOT copy locations, people, props, actions, or example scenes from the style into a scene unless its transcript or shot direction calls for them. Give each scene its own concrete subject and environment; never reuse a generic setting across unrelated scenes.\n"
     "   - CRISIS / OUTAGE / PARALYSIS STORYTELLING: When narration describes a crash, breakdown, outage, or paralyzation (e.g. 停擺, 當機, 癱瘓, 崩潰, 藍屏, crash, outage, paralyzed, emergency), depict concrete, high-tension visual proof of the event:\n"
     "     * Flight/transit departure boards filled with bright red 'CANCELLED' status or flashing system failure codes.\n"
     "     * Computer screens, terminals, and hospital diagnostic monitors glowing with the Blue Screen of Death (BSOD) or critical system halt prompts.\n"
@@ -470,6 +471,13 @@ def generate_prompts(scenes: list[Scene], style: dict, bible: dict, client: LLMC
             got = {int(x.get("id", -1)): x for x in items}
             if len(got) != len(items):
                 raise ValueError("Duplicate prompt ids")
+            incomplete = [
+                x.get("id", "?")
+                for x in items
+                if any(not str(x.get(field) or "").strip() for field in ("subject", "environment"))
+            ]
+            if incomplete:
+                raise ValueError(f"Missing scene-specific subject or environment for prompt ids: {incomplete}")
             if set(got) == chunk_ids:
                 return got
             if set(got) == set(range(1, len(chunk) + 1)):
@@ -479,13 +487,15 @@ def generate_prompts(scenes: list[Scene], style: dict, bible: dict, client: LLMC
         try:
             results.update(client.json(prompt, SYSTEM, temperature=0.5, validate=val))
         except Exception as e:
-            log.warning("Prompt batch %d failed (%s); composing from visual descriptions", b // batch + 1, e)
+            raise RuntimeError(f"Image prompt batch {b // batch + 1} failed; refusing narration-only prompt fallback: {e}") from e
         if progress:
             progress(min(b + batch, len(scenes)), len(scenes))
 
     out = []
     for s in scenes:
-        parts = results.get(s.scene_id) or {"subject": s.visual_description}
+        parts = results.get(s.scene_id)
+        if not parts:
+            raise RuntimeError(f"No scene-specific image prompt was returned for scene {s.scene_id}")
         s_ents = getattr(s, "entities", None) or []
         entity_desc = [ents[e] for e in s_ents if e in ents]
         s.prompt = compose(parts, style, entity_desc, s.visual_type, world_setting=world_setting, client=client)

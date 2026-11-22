@@ -38,7 +38,7 @@ from agents.script_writer import script_markdown, write_script
 from agents.prompts_common import merge_negative_prompts, UNIVERSAL_QUALITY_NEGATIVE
 from core.base_pipeline import BasePipeline, PipelineCancelled, apply_presenter_placement, is_avatar_overlapping_scene
 
-from core.config import ROOT, get_secret, load_providers
+from core.config import ROOT, get_secret, load_providers, load_settings
 
 from core.logging_setup import log
 
@@ -644,8 +644,17 @@ class DocumentaryPipeline(BasePipeline):
     # ---------------- Stage 4: Prompts ----------------
 
     def _run_prompts(self) -> None:
+        cfg = self.p.settings
+        seed = int(self.p.data.settings.get("seed", 12345))
+        style_settings = dict(cfg)
+        style_settings["visual_styles"] = load_settings().get("visual_styles", {})
+        style = project_style(style_settings, seed)
+        old_style = self.p.data.style or {}
+        style_fields = ("key", "style", "lighting", "lens", "mood", "negative", "aspect_ratio")
+        style_changed = bool(old_style) and any(old_style.get(field) != style.get(field) for field in style_fields)
+
         st = self.p.stage("prompts")
-        if st.status == Status.COMPLETED and self.p.path("prompts", "image_prompts.json").exists():
+        if st.status == Status.COMPLETED and self.p.path("prompts", "image_prompts.json").exists() and not style_changed:
             return
         if self._cancel_flag:
             raise PipelineCancelled()
@@ -654,14 +663,13 @@ class DocumentaryPipeline(BasePipeline):
         self.p.activity("Stage 4/10: Creating image generation prompts...")
         self.p.set_stage("prompts", Status.RUNNING)
 
-        cfg = self.p.settings
         scenes = self.p.scenes
         if not scenes:
             raise RuntimeError("No scenes available to prompt")
 
         from rendering.ffmpeg_renderer import scene_has_real_image
 
-        scenes_needing_prompts = [s for s in scenes if not scene_has_real_image(self.p, s)]
+        scenes_needing_prompts = scenes if style_changed else [s for s in scenes if not scene_has_real_image(self.p, s)]
         existing_raw = self.p.read_json("prompts/image_prompts.json", [])
         existing_by_id = (
             {item["scene_id"]: item for item in existing_raw if isinstance(item, dict) and "scene_id" in item}
@@ -691,11 +699,6 @@ class DocumentaryPipeline(BasePipeline):
             log.info("Skipped Stage 4 LLM prompts: all %d scenes already have real images.", len(scenes))
             return
 
-        seed = int(self.p.data.settings.get("seed", 12345))
-        style = project_style(cfg, seed)
-        self.p.data.style = style
-        self.p.save()
-
         bible = self.p.read_json("scenes/visual_bible.json", {"entities": []})
         from providers.llm import LLMClient
         prompts_prov = self.get_stage_model("prompts")
@@ -718,6 +721,7 @@ class DocumentaryPipeline(BasePipeline):
                 topic=self.p.data.topic,
                 world_setting=world_setting,
             )
+            self.p.data.style = style
             generated_by_id = {item["scene_id"]: item for item in generated if isinstance(item, dict) and "scene_id" in item}
 
             out_prompts = []
@@ -739,6 +743,18 @@ class DocumentaryPipeline(BasePipeline):
                     out_prompts.append(entry)
 
             self.p.write_json("prompts/image_prompts.json", out_prompts)
+            for s in scenes:
+                if s.scene_id not in generated_by_id:
+                    continue
+                s.image.meta = dict(s.image.meta or {})
+                prompt_stale = bool(s.image.meta.pop("prompt_stale", False))
+                if not (style_changed or prompt_stale):
+                    continue
+                if s.is_manual_upload or (s.image.meta or {}).get("is_manual_upload") or (s.image.meta or {}).get("source") == "manual_upload":
+                    continue
+                s.image.status = Status.PENDING
+                s.image.error = None
+                s.image.meta["image_outdated"] = True
             self.p.save_scenes()
             elapsed = round(max(0.1, time.perf_counter() - t0), 1)
             self.p.set_stage("prompts", Status.COMPLETED, done=len(out_prompts), total=len(out_prompts), duration_override=elapsed)
@@ -2084,7 +2100,14 @@ class DocumentaryPipeline(BasePipeline):
 
 
                 if generated:
-
+                    if s.image.meta:
+                        s.image.meta.pop("image_outdated", None)
+                    is_presenter_scene = getattr(s, "is_presenter", False) or s.visual_type in ("talking_head", "talking_actor")
+                    if s.ai_video and not is_presenter_scene and s.animation.status == Status.COMPLETED:
+                        s.animation.status = Status.PENDING
+                        s.animation.error = None
+                        s.animation.meta = dict(s.animation.meta or {})
+                        s.animation.meta["image_outdated"] = True
 
 
                     with self.p.lock:

@@ -1660,8 +1660,13 @@ def run_stage_endpoint(project_id: str, stage_name: str, background_tasks: Backg
     def prepare(project: Project):
         project.set_stage(stage_name, Status.PENDING)
 
+    def run_requested_stage(pipeline):
+        if stage_name == "images" and any((scene.image.meta or {}).get("prompt_stale") for scene in pipeline.p.scenes):
+            pipeline.run_stage("prompts")
+        pipeline.run_stage(stage_name)
+
     if not queue_pipeline_job(
-        p, background_tasks, lambda pipeline: pipeline.run_stage(stage_name), prepare=prepare
+        p, background_tasks, run_requested_stage, prepare=prepare
     ):
         return {"status": "already_running"}
     return {"status": "started_stage", "stage": stage_name}
@@ -2391,11 +2396,17 @@ def update_stage_data_endpoint(project_id: str, stage_name: str, payload: dict[s
         if "scenes" in payload:
             existing_scenes_map = {s.scene_id: s for s in p.scenes}
             modified_text_scenes = []
+            changed_prompt_scenes = set()
             incoming_scenes = []
             has_avatar_narr_change = False
             for raw_s in payload["scenes"]:
                 sc = Scene(**raw_s)
                 old_sc = existing_scenes_map.get(sc.scene_id)
+                if old_sc is None or any(
+                    getattr(old_sc, field) != getattr(sc, field)
+                    for field in ("narration", "visual_description", "entities", "visual_type", "prompt", "visual_prompt", "negative_prompt")
+                ):
+                    changed_prompt_scenes.add(sc.scene_id)
                 if old_sc and old_sc.narration.strip() != sc.narration.strip():
                     modified_text_scenes.append(sc.scene_id)
                     # Narration text changed! Invalidate old audio and mark for TTS regeneration
@@ -2420,9 +2431,17 @@ def update_stage_data_endpoint(project_id: str, stage_name: str, payload: dict[s
                 incoming_scenes.append(sc)
             p.set_scenes(incoming_scenes)
             if stage_name == "scenes":
-                from rendering.ffmpeg_renderer import all_scenes_have_real_images
-                if not all_scenes_have_real_images(p):
+                if changed_prompt_scenes:
+                    for sc in incoming_scenes:
+                        if sc.scene_id in changed_prompt_scenes:
+                            if sc.is_manual_upload or (sc.image.meta or {}).get("is_manual_upload") or (sc.image.meta or {}).get("source") == "manual_upload":
+                                continue
+                            sc.image.status = Status.PENDING
+                            sc.image.error = None
+                            sc.image.meta = dict(sc.image.meta or {})
+                            sc.image.meta["prompt_stale"] = True
                     p.invalidate("prompts")
+                    p.save_scenes()
                 if modified_text_scenes:
                     log.info("Scenes %s narration text modified; invalidating voice, subtitles, and render stages", modified_text_scenes)
                     p.invalidate("voice")
@@ -2435,7 +2454,15 @@ def update_stage_data_endpoint(project_id: str, stage_name: str, payload: dict[s
                         p.set_stage("presenter", Status.PENDING)
                         p.set_stage("animation", Status.PENDING)
             elif stage_name == "prompts":
+                for sc in incoming_scenes:
+                    if sc.is_manual_upload or (sc.image.meta or {}).get("is_manual_upload") or (sc.image.meta or {}).get("source") == "manual_upload":
+                        continue
+                    sc.image.status = Status.PENDING
+                    sc.image.error = None
+                    sc.image.meta = dict(sc.image.meta or {})
+                    sc.image.meta["image_outdated"] = True
                 p.invalidate("images")
+                p.save_scenes()
         if stage_name == "animation":
             if "remotion" in payload and isinstance(payload["remotion"], dict):
                 p.data.settings.setdefault("remotion", {}).update(payload["remotion"])
@@ -3912,6 +3939,8 @@ def get_image_live_status():
 def update_project_image_settings(project_id: str, req: ProjectImageSettingsRequest):
     p = get_project(project_id)
     video_s = p.data.settings.setdefault("video", {})
+    previous_visual_style = video_s.get("visual_style") or (p.data.style or {}).get("key")
+    provider_used = None
     images_s = p.data.settings.setdefault("images", {})
     stage_models = p.data.settings.setdefault("stage_models", {})
 
@@ -3936,26 +3965,102 @@ def update_project_image_settings(project_id: str, req: ProjectImageSettingsRequ
         images_s["cfg"] = req.cfg
 
     if req.apply_to_prompts and req.visual_style:
-        styles = load_settings().get("visual_styles", {})
-        st = styles.get(req.visual_style, {})
-        if st:
-            for s in p.scenes:
-                s.negative_prompt = st.get("negative", s.negative_prompt)
-                style_str = st.get("style", "")
-                lighting_str = st.get("lighting", "")
-                mood_str = st.get("mood", "")
-                lens_str = st.get("lens", "")
-                tags = [t for t in [style_str, lighting_str, lens_str, mood_str] if t]
-                if tags:
-                    clean_desc = (s.visual_description or s.prompt or "").split(",")[0].strip()
-                    s.prompt = f"{clean_desc}, {', '.join(tags)}, 16:9 widescreen composition, high detail"
+        from agents.prompt_generator import generate_prompts, project_style
+        from providers.llm import LLMClient
+
+        global_settings = load_settings()
+        prompt_settings = dict(global_settings)
+        prompt_settings["video"] = {
+            **global_settings.get("video", {}),
+            **p.settings.get("video", {}),
+            "visual_style": req.visual_style,
+        }
+        prompt_settings["visual_styles"] = global_settings.get("visual_styles", {})
+        seed = int(p.settings.get("seed", 12345))
+        style = project_style(prompt_settings, seed)
+        scenes = p.scenes
+        if scenes:
+            bible = p.read_json("scenes/visual_bible.json", {"entities": []})
+            research = p.read_json("research/research.json", {})
+            world_setting = research.get("world_setting") if isinstance(research, dict) else None
+            prompt_provider = (p.settings.get("stage_models") or {}).get("prompts")
+            provider_config = load_providers().get("llm", {})
+            default_provider = (provider_config.get("jobs", {}).get("prompt_generation") or {}).get("provider")
+            fallback_order = provider_config.get("fallback_order", [])
+            candidates = []
+            for candidate in [prompt_provider, default_provider, *fallback_order]:
+                if candidate and candidate not in candidates:
+                    candidates.append(candidate)
+            provider_candidates = candidates or [None]
+
+            generated = None
+            failures = []
+            for candidate in provider_candidates:
+                try:
+                    client = LLMClient("prompt_generation", provider_override=candidate, project_id=p.id)
+                    generated = generate_prompts(
+                        scenes,
+                        style,
+                        bible,
+                        client,
+                        batch=int(p.settings.get("scenes", {}).get("llm_batch_size", 8)),
+                        topic=p.data.topic,
+                        world_setting=world_setting,
+                    )
+                    provider_used = client.provider.name
+                    break
+                except Exception as e:
+                    failures.append(f"{candidate or 'default'}: {e}")
+                    if candidate != provider_candidates[-1]:
+                        log.warning("Prompt provider '%s' failed for style application; trying configured fallback: %s", candidate, e)
+            if generated is None:
+                detail = "; ".join(failures) or "No prompt provider is configured"
+                raise HTTPException(status_code=502, detail=f"Could not regenerate scene-specific prompts: {detail}")
+
+            p.write_json("prompts/image_prompts.json", generated)
+            p.data.style = style
+            p.set_stage("prompts", Status.COMPLETED, done=len(scenes), total=len(scenes))
+            for s in scenes:
+                s.visual_style = req.visual_style
+                if s.is_manual_upload or (s.image.meta or {}).get("is_manual_upload") or (s.image.meta or {}).get("source") == "manual_upload":
+                    continue
+                s.image.status = Status.PENDING
+                s.image.error = None
+                s.image.meta = dict(s.image.meta or {})
+                s.image.meta["image_outdated"] = True
             p.save_scenes()
             p.invalidate("images")
+
+    if req.visual_style and not req.apply_to_prompts:
+        from agents.prompt_generator import project_style
+
+        global_settings = load_settings()
+        style_settings = dict(global_settings)
+        style_settings["video"] = {
+            **global_settings.get("video", {}),
+            **p.settings.get("video", {}),
+            "visual_style": req.visual_style,
+        }
+        style_settings["visual_styles"] = global_settings.get("visual_styles", {})
+        candidate_style = project_style(style_settings, int(p.settings.get("seed", 12345)))
+        old_style = p.data.style or {}
+        style_fields = ("key", "style", "lighting", "lens", "mood", "negative", "aspect_ratio")
+        if previous_visual_style != req.visual_style or not old_style or any(old_style.get(field) != candidate_style.get(field) for field in style_fields):
+            for s in p.scenes:
+                if s.is_manual_upload or (s.image.meta or {}).get("is_manual_upload") or (s.image.meta or {}).get("source") == "manual_upload":
+                    continue
+                s.image.status = Status.PENDING
+                s.image.error = None
+                s.image.meta = dict(s.image.meta or {})
+                s.image.meta["prompt_stale"] = True
+            p.save_scenes()
+            p.invalidate("prompts")
 
     p.save()
     return {
         "status": "updated",
         "visual_style": video_s.get("visual_style"),
+        "prompt_generation_provider": provider_used,
         "checkpoint": images_s.get("checkpoint"),
         "steps": images_s.get("steps"),
         "cfg": images_s.get("cfg")

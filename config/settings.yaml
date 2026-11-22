@@ -337,12 +337,11 @@ visual_styles:
       late-1990s to early-2000s educational TV cartoon aesthetic, bold smooth dark
       outlines, flat warm color fills, restrained two-step cel shading, expressive
       oval eyes and readable facial expressions, simplified natural human proportions,
-      neat hairstyles and everyday clothing, cozy domestic interiors, clearly drawn
-      household props, uncluttered broadcast-ready composition
-    lighting: bright soft indoor ambient light, gentle warm highlights, minimal soft
+      neat hairstyles and everyday clothing, uncluttered broadcast-ready composition
+    lighting: bright soft even ambient light, gentle warm highlights, minimal soft
       cast shadows, evenly readable television graphics lighting
-    lens: flat 2D front-on or three-quarter medium-wide composition, eye-level view,
-      clear foreground subject and simple layered background
+    lens: eye-level illustrated perspective with scene-appropriate foreground and
+      background layering
     mood: cheerful, approachable, nostalgic, practical, family-friendly, informative
     negative: photorealistic, live action, 3D, CGI, clay render, painterly brushwork,
       anime action scene, chibi proportions, bald dot-eye stick figures, hyper-detailed

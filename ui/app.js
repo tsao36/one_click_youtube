@@ -12944,12 +12944,12 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       };
 
       try {
-        await apiRequest(`/api/projects/${currentProjectId}/image_settings`, {
+        const result = await apiRequest(`/api/projects/${currentProjectId}/image_settings`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
-        await onSaved();
+        await onSaved(result);
         return true;
       } catch (e) {
         alert("Error saving settings: " + e.message);
@@ -12959,7 +12959,8 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
 
     async function saveImageSettings(applyToPrompts = false) {
       return saveImageSettingsFor('insp', applyToPrompts, async () => {
-        alert(applyToPrompts ? "Image style & model saved and applied to all scene prompts!" : "Image style & model saved successfully!");
+        if (applyToPrompts) showToast('New prompts generated.');
+        else alert("Image style & model saved successfully!");
         openStageInspector(inspectedStageName || 'images');
       });
     }
@@ -12981,7 +12982,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
           body: JSON.stringify(payload)
         })
 
-        alert("Image style and provider saved and applied to all scene prompts!");
+        showToast('New prompts generated.');
         openStageInspector('prompts');
       } catch (e) {
         alert("Error: " + e.message);
@@ -18309,7 +18310,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
           body: JSON.stringify(payload)
         })
 
-        alert("Image style and provider saved and applied to all scene prompts!");
+        showToast('New prompts generated.');
         loadStageStudio('prompts');
       } catch (e) {
         alert("Error: " + e.message);

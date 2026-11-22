@@ -864,15 +864,27 @@ def direct_scenes(topic: str, raw: list[dict], bible: dict, settings: dict, clie
                   "Use phase_turn_text at key section turns to foretell the dramatic direction of the next phase.")
 
         def val(d, ids=[s["scene_id"] for s in chunk]):
-            got = {int(x.get("id", -1)): x for x in d.get("scenes", []) if isinstance(x, dict)}
-            if len([i for i in ids if i in got and got[i].get("visual_description")]) < max(1, int(len(ids) * 0.7)):
-                raise ValueError(f"only {len(got)} of {len(ids)} scenes returned")
-            return got
+            items = d.get("scenes", []) if isinstance(d, dict) else []
+            if not isinstance(items, list) or not all(isinstance(x, dict) for x in items):
+                raise ValueError("Expected a scene list")
+            got = {int(x.get("id", -1)): x for x in items}
+            if len(got) != len(items):
+                raise ValueError("Duplicate scene ids")
+            if set(got) == set(ids):
+                resolved = got
+            elif set(got) == set(range(1, len(ids) + 1)):
+                resolved = {scene_id: got[index] for index, scene_id in enumerate(ids, start=1)}
+            else:
+                raise ValueError(f"Scene ids do not cover this batch: expected {ids}, got {sorted(got)}")
+            missing = [i for i in ids if not str(resolved[i].get("visual_description") or "").strip()]
+            if missing:
+                raise ValueError(f"Missing concrete visual descriptions for scene ids: {missing}")
+            return resolved
 
         try:
             directions.update(client.json(prompt, SYSTEM, temperature=0.6, max_tokens=4096, validate=val))
         except Exception as e:
-            log.warning("Visual direction batch %d failed (%s); using narration as description", b // batch + 1, e)
+            raise RuntimeError(f"Visual direction batch {b // batch + 1} failed; refusing narration-only scene prompts: {e}") from e
         if progress:
             progress(min(b + batch, len(raw)), len(raw))
 
@@ -927,7 +939,7 @@ def direct_scenes(topic: str, raw: list[dict], bible: dict, settings: dict, clie
             scene_id=s["scene_id"], section=s["section"], narration=s["narration"],
             estimated_duration=s["estimated_duration"],
             visual_type=vt if vt in ("image", "diagram") else "image",
-            visual_description=(d.get("visual_description") or s["narration"])[:600],
+            visual_description=str(d["visual_description"]).strip()[:600],
             camera_motion=motion,
             importance=_clamp01(d.get("importance")), motion_potential=_clamp01(d.get("motion_potential")),
             narrative_emphasis=_clamp01(d.get("narrative_emphasis")),
@@ -938,7 +950,7 @@ def direct_scenes(topic: str, raw: list[dict], bible: dict, settings: dict, clie
             metric_callout=metric if (metric and isinstance(metric, dict)) else None,
             pause_after_ms=int(pause_val) if pause_val else None,
             subtitle_chunks=sub_chunks,
-            visual_prompt=(d.get("visual_description") or s["narration"])[:600],
+            visual_prompt=str(d["visual_description"]).strip()[:600],
             phase_turn_text=phase_turn or None,
             search_keyword=search_kw or None,
             media_source=media_src if search_kw else "ai",

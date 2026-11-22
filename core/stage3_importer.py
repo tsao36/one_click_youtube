@@ -720,6 +720,7 @@ def apply_stage3_import(
 
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     modified_scene_ids: list[int] = []
+    prompt_changed_scene_ids: set[int] = set()
     updated_scene_objs: list[Scene] = []
     avatar_narr_changed = False
 
@@ -734,6 +735,12 @@ def apply_stage3_import(
             sc_data = existing_sc.model_dump(mode="json")
             old_narration = existing_sc.narration.strip()
             new_narration = (raw_imp.get("narration") or "").strip()
+            if (
+                old_narration != new_narration
+                or (raw_imp.get("visual_description") and raw_imp["visual_description"].strip() != existing_sc.visual_description.strip())
+                or (raw_imp.get("visual_type") and raw_imp["visual_type"] != existing_sc.visual_type)
+            ):
+                prompt_changed_scene_ids.add(sid)
 
             # Update fields
             sc_data["narration"] = new_narration
@@ -800,6 +807,7 @@ def apply_stage3_import(
         else:
             # Newly added scene
             modified_scene_ids.append(sid)
+            prompt_changed_scene_ids.add(sid)
             sc = Scene(**raw_imp)
             if sc.meta is None:
                 sc.meta = {}
@@ -814,10 +822,18 @@ def apply_stage3_import(
 
     # Invalidate downstream stages if changes occurred
     if modified_scene_ids:
-        from rendering.ffmpeg_renderer import all_scenes_have_real_images
         project.set_scenes(updated_scene_objs)
-        if not all_scenes_have_real_images(project):
+        if prompt_changed_scene_ids:
+            for sc in updated_scene_objs:
+                if sc.scene_id in prompt_changed_scene_ids:
+                    if sc.is_manual_upload or (sc.image.meta or {}).get("is_manual_upload") or (sc.image.meta or {}).get("source") == "manual_upload":
+                        continue
+                    sc.image.status = Status.PENDING
+                    sc.image.error = None
+                    sc.image.meta = dict(sc.image.meta or {})
+                    sc.image.meta["prompt_stale"] = True
             project.invalidate("prompts")
+            project.save_scenes()
         # Check if any narration changed
         narr_changed = any(d.get("narration_changed") for d in diff_result.get("diffs", []))
         if narr_changed:

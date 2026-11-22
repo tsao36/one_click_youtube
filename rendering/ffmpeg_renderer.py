@@ -92,6 +92,14 @@ class RenderError(RuntimeError):
 
 def scene_has_real_image(project: Project, sc: Scene) -> bool:
     """Check whether a scene has a real, valid image on disk (not missing, not empty, and not a placeholder fallback)."""
+    is_manual_upload = sc.is_manual_upload or (sc.image.meta or {}).get("is_manual_upload") or (sc.image.meta or {}).get("source") == "manual_upload"
+    if is_manual_upload and sc.image.path:
+        manual_path = project.abs(sc.image.path)
+        if manual_path and manual_path.is_file() and manual_path.stat().st_size > 0:
+            return True
+    if sc.image and (sc.image.meta or {}).get("prompt_stale"):
+        return False
+
     if getattr(sc, "visual_type", "") == "phase_turn_card":
         return True
 
