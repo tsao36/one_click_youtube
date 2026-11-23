@@ -3409,6 +3409,7 @@
       const cardB = document.getElementById('creator-research-card');
       const aiVideoPctGroup = document.getElementById('creator-ai-video-pct-group');
       const stockGroup = document.getElementById('creator-stock-mode-group');
+      const realCharacterMediaGroup = document.getElementById('creator-real-character-media-group');
       const cardE = document.getElementById('creator-presenter-card');
       const remotionBtn = document.getElementById('btn-creator-enable-remotion');
       const remotionStrip = document.getElementById('creator-remotion-preview-strip');
@@ -3488,6 +3489,7 @@
         if (cardB) cardB.style.display = 'none';
         if (aiVideoPctGroup) aiVideoPctGroup.style.display = 'none';
         if (stockGroup) stockGroup.style.display = 'none';
+        if (realCharacterMediaGroup) realCharacterMediaGroup.style.display = 'none';
         if (cardE) cardE.style.display = 'none';
         if (remotionBtn) remotionBtn.style.display = 'none';
         if (remotionStrip) remotionStrip.style.display = 'none';
@@ -3546,6 +3548,7 @@
         }
       } else {
         currentCreatorProjectMode = 'documentary';
+        if (realCharacterMediaGroup) realCharacterMediaGroup.style.display = 'flex';
         if (docCard) {
           docCard.style.background = 'rgba(14, 165, 233, 0.12)';
           docCard.style.border = '2px solid #0284c7';
@@ -4869,6 +4872,7 @@
             include_author_take: document.getElementById('creator-include-author-take') ? document.getElementById('creator-include-author-take').checked : true,
             pause_for_conclusion: document.getElementById('creator-pause-for-conclusion') ? document.getElementById('creator-pause-for-conclusion').checked : false,
             auto_stock_mode: document.getElementById('auto-stock-mode')?.value || 'balanced',
+            enforce_character_real_ratio: document.getElementById('creator-enforce-real-character-media')?.checked ?? true,
             project_mode: 'documentary',
             aspect_ratio: '16:9',
             start_now: true

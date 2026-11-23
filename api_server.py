@@ -157,6 +157,7 @@ class CreateProjectRequest(BaseModel):
     pause_after_scenes: bool = False
     pause_after_stage3: bool = False
     auto_stock_mode: Optional[str] = "balanced"
+    enforce_character_real_ratio: bool = True
     project_mode: Optional[str] = "documentary"
     aspect_ratio: Optional[str] = "16:9"
     drama_formula: Optional[str] = "workplace_revenge"
@@ -430,6 +431,7 @@ def build_project_settings(
 
     auto_stock = req.auto_stock_mode or "balanced"
     settings.setdefault("images", {})["auto_stock_mode"] = auto_stock
+    settings["images"]["enforce_character_real_ratio"] = req.enforce_character_real_ratio
     if (
         req.checkpoint
         and req.checkpoint not in REMOTE_IMAGE_MODELS

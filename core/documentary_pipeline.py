@@ -590,7 +590,8 @@ class DocumentaryPipeline(BasePipeline):
             # Automatically enforce >= 90% real images/footage for scenes mentioning ALL identified characters
             try:
                 auto_stock_mode = self.p.data.settings.get("images", {}).get("auto_stock_mode") or self.p.settings.get("auto_stock_mode", "balanced")
-                if auto_stock_mode not in ("disabled", "off"):
+                enforce_character_real_ratio = self.p.data.settings.get("images", {}).get("enforce_character_real_ratio", True)
+                if enforce_character_real_ratio and auto_stock_mode not in ("disabled", "off"):
                     from core.character_detector import enforce_all_characters_real_image_ratio
                     enforce_all_characters_real_image_ratio(self.p, ratio=0.9)
             except Exception as enf_err:
