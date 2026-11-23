@@ -9717,7 +9717,7 @@
         const item = CALLOUT_STYLES_INFO[key];
         const isActive = key === currentVal;
         return `
-          <button type="button" class="btn-sec" onclick="selectCalloutStyle('${selectId}', '${containerId}', '${key}')"
+          <button type="button" class="btn-sec" data-callout-style="${key}"
             style="padding:3px 9px; font-size:11px; font-weight:700; border-radius:4px; transition:all .15s; cursor:pointer;
             ${isActive ? 'background:rgba(2, 132, 199, 0.25); border-color:#38bdf8; color:#38bdf8; box-shadow:0 0 8px rgba(56, 189, 248, 0.3);' : 'background:rgba(15, 23, 42, 0.7); border-color:#334155; color:#94a3b8;'}">
             ${item.chipLabel}
@@ -9732,7 +9732,7 @@
           const item = CALLOUT_STYLES_INFO[key];
           const isActive = key === currentVal;
           return `
-            <div onclick="selectCalloutStyle('${selectId}', '${containerId}', '${key}')"
+            <div data-callout-style="${key}"
               style="cursor:pointer; background:#080d16; border:1.5px solid ${isActive ? '#38bdf8' : '#1e293b'}; border-radius:6px; padding:7px; display:flex; flex-direction:column; gap:5px; transition:all .15s; ${isActive ? 'box-shadow:0 0 12px rgba(56, 189, 248, 0.3);' : ''}">
               <div style="display:flex; justify-content:space-between; align-items:center;">
                 <span style="font-size:11px; font-weight:700; color:${isActive ? '#38bdf8' : '#e2e8f0'}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${item.name}</span>
@@ -9839,6 +9839,16 @@
       const sel = document.getElementById(selectId);
       const cont = document.getElementById(containerId);
       if (!sel || !cont) return;
+
+      if (!cont.dataset.hasStyleClickListener) {
+        cont.dataset.hasStyleClickListener = 'true';
+        cont.addEventListener('click', (event) => {
+          const target = event.target.closest('[data-callout-style]');
+          if (!target || !cont.contains(target)) return;
+          event.preventDefault();
+          window.selectCalloutStyle(selectId, containerId, target.dataset.calloutStyle);
+        });
+      }
 
       if (!sel.dataset.hasPreviewListener) {
         sel.dataset.hasPreviewListener = 'true';
