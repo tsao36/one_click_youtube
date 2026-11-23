@@ -19962,7 +19962,12 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
 
       if (!title) return alert("Please provide a video title.");
 
-      const tags = tagsRaw.split(',').map(t => t.trim()).filter(Boolean);
+      const hashtagTags = tagsRaw.match(/#[^\s,#]+/g) || [];
+      const otherTags = tagsRaw.replace(/#[^\s,#]+/g, '').split(',');
+      const tags = [...otherTags, ...hashtagTags]
+        .map(t => t.trim().replace(/^#/, ''))
+        .filter(Boolean)
+        .filter((tag, index, all) => all.indexOf(tag) === index);
 
       // Switch to uploading view
       document.getElementById('yt-modal-ready-view').style.display = 'none';
