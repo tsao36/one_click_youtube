@@ -31,6 +31,43 @@ from core.project_manager import Project
 from core.taiwan_mandarin import normalize_to_taiwan_mandarin
 import re
 
+YOUTUBE_TITLE_PREFIX = "5分鐘瞭解:"
+
+
+def _ensure_youtube_title_prefix(title: str) -> str:
+    title = normalize_to_taiwan_mandarin(str(title or "").strip())
+    title = re.sub(r"^(?:5\s*分鐘瞭解\s*[:：]\s*)+", "", title, flags=re.IGNORECASE)
+    title = f"{YOUTUBE_TITLE_PREFIX}{title.strip()}"
+    if len(title) > 100:
+        title = title[:97].rstrip() + "..."
+    return title
+
+
+def _append_upload_hashtags(description: str, tags: list[str]) -> str:
+    def hashtag_for(tag: str) -> str:
+        normalized = normalize_to_taiwan_mandarin(str(tag or "").strip().lstrip("#"))
+        token = "".join(char for char in normalized if char.isalnum() or char == "_")
+        return f"#{token}" if token else ""
+
+    existing = {
+        hashtag_for(match.group(1)).casefold()
+        for match in re.finditer(r"(?<!\w)#([^\s#]+)", description or "")
+    }
+    additions = []
+    for tag in (tags or [])[:30]:
+        hashtag = hashtag_for(tag)
+        if hashtag and hashtag.casefold() not in existing:
+            existing.add(hashtag.casefold())
+            additions.append(hashtag)
+    if not additions:
+        return description or ""
+
+    suffix = "\n\n" + " ".join(additions)
+    body = (description or "").rstrip()
+    if len(body) + len(suffix) > 5000:
+        body = body[:max(0, 5000 - len(suffix))].rstrip()
+    return (body + suffix)[:5000]
+
 # Standard scopes for uploading videos, setting thumbnails, and reading channel info
 SCOPES = [
     "https://www.googleapis.com/auth/youtube.upload",
@@ -706,6 +743,7 @@ def generate_youtube_metadata(project: Project) -> dict[str, Any]:
     else:
         title = raw_title or f"Video: {project.id}"
     title = normalize_to_taiwan_mandarin(title)
+    title = _ensure_youtube_title_prefix(title)
 
     # 2. Build Chapter Markers aligned with Video Black Frames (Universal Framework)
     # YouTube requires chapters to start at 00:00 and have at least 3 chapters.
@@ -862,9 +900,10 @@ def _upload_video_worker(
     """Background worker that performs the resumable video upload to YouTube."""
     global active_uploads
     # Ensure title, description (with chapters), and tags are converted to Taiwan Traditional Chinese
-    title = normalize_to_taiwan_mandarin(title)
+    title = _ensure_youtube_title_prefix(title)
     description = normalize_to_taiwan_mandarin(description)
     tags = [normalize_to_taiwan_mandarin(t) for t in (tags or [])]
+    description = _append_upload_hashtags(description, tags)
 
     service = get_youtube_service()
     if not service:
