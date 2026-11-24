@@ -3,6 +3,7 @@
     let pollInterval = null;
     let pollGeneration = 0;
     let pollController = null;
+    const qualityReviewInFlight = new Set();
 
     // Use helpers from api.js if present, or assign fallback
     var nativeFetch = window.nativeFetch || (window.fetch ? window.fetch.bind(window) : null);
@@ -2181,6 +2182,8 @@
 
     function selectProject(pId) {
       if (currentProjectId !== pId) {
+        const reviewResults = document.getElementById('video-quality-review-results');
+        if (reviewResults) { reviewResults.style.display = 'none'; reviewResults.innerHTML = ''; }
         const stagesEl = document.getElementById('stages-container');
         if (stagesEl) stagesEl.innerHTML = '';
       }
@@ -5420,6 +5423,7 @@
       const pathEl = document.getElementById('preview-file-path');
       const btnPreviewStop = document.getElementById('btn-preview-stop-render');
       const btnActionStop = document.getElementById('btn-action-stop-render');
+      const qualityReviewBtn = document.getElementById('btn-video-quality-review');
 
       const subTitleEl = document.getElementById('preview-card-subtitle');
       const fileBanner = document.getElementById('preview-file-banner');
@@ -5523,6 +5527,16 @@
       }
 
       if (hasVideoFile) {
+        if (qualityReviewBtn) qualityReviewBtn.style.display = isRenderRunning ? 'none' : 'inline-flex';
+        if (!isRenderRunning) {
+          const renderVersion = (p && p.stages && p.stages.render && p.stages.render.updated_at) ||
+            (d && d.final_file && d.final_file.mtime) || (p && p.updated_at) || 'ready';
+          const reviewKey = `${currentProjectId}:${renderVersion}`;
+          if (localStorage.getItem('video_quality_reviewed') !== reviewKey && !qualityReviewInFlight.has(reviewKey)) {
+            qualityReviewInFlight.add(reviewKey);
+            runVideoQualityReview({ automatic: true, reviewKey, projectId: currentProjectId });
+          }
+        }
         if (fileBanner) fileBanner.style.display = 'flex';
         const vsrc = `/api/projects/${currentProjectId}/video`;
         const renderUpdated = (p && p.stages && p.stages.render && p.stages.render.updated_at) || '';
@@ -5581,6 +5595,7 @@
           }
         }
       } else {
+        if (qualityReviewBtn) qualityReviewBtn.style.display = 'none';
         if (vplayer) vplayer.style.display = 'none';
         if (noVideoBox) {
           noVideoBox.style.display = 'block';
@@ -5798,6 +5813,72 @@
         }
       }
     }
+
+    function displayVideoQualityReview(report) {
+      const panel = document.getElementById('video-quality-review-results');
+      if (!panel) return;
+      const statusStyle = { pass: '#4ade80', warning: '#fbbf24', fail: '#f87171', info: '#94a3b8' };
+      const checks = (report.checks || []).map(item => `<div style="margin:7px 0;"><b style="color:${statusStyle[item.status] || '#cbd5e1'}">${escapeHtml(String(item.status || 'info').toUpperCase())}</b> · <b>${escapeHtml(item.title)}</b><div style="color:#cbd5e1;margin-left:12px;">${escapeHtml(item.detail)}</div></div>`).join('');
+      const findings = (report.findings || []).map(item => `<li style="margin:7px 0;"><b>${escapeHtml(item.severity || 'info')} · ${escapeHtml(item.title)}</b>: ${escapeHtml(item.detail || '')}${item.timestamp_seconds != null ? ` <span style="color:#94a3b8">(${Number(item.timestamp_seconds).toFixed(1)}s)</span>` : ''}</li>`).join('') || '<li>No likely narration errors reported from the available transcript.</li>';
+      const suggestions = (report.suggested_manual_checks || []).map(item => `<li>${escapeHtml(item)}</li>`).join('');
+      panel.style.display = 'block';
+      panel.innerHTML = `<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;"><b style="font-size:16px;color:#ddd6fe;">AI Video Quality Review</b><span style="color:#94a3b8;font-size:12px;">${escapeHtml(report.video_filename || '')} · ${Number(report.duration_seconds || 0).toFixed(1)}s</span></div><div style="margin-top:10px;">${checks}</div><h4 style="margin:14px 0 6px;">AI findings</h4><ul style="margin:0;padding-left:20px;">${findings}</ul><div style="margin-top:10px;color:#94a3b8;font-size:12px;">${escapeHtml(report.transcript_status || '')}</div>${report.transcript ? `<details style="margin-top:8px;"><summary style="cursor:pointer;color:#c4b5fd;">Show recognized transcript</summary><pre style="white-space:pre-wrap;color:#cbd5e1;font:12px/1.5 inherit;">${escapeHtml(report.transcript)}</pre></details>` : ''}<h4 style="margin:14px 0 6px;">Suggested additional checks</h4><ul style="margin:0;padding-left:20px;color:#cbd5e1;">${suggestions}</ul>`;
+    }
+
+    function showVideoQualityWarning(report) {
+      const modal = document.getElementById('video-quality-warning-modal');
+      const body = document.getElementById('video-quality-warning-findings');
+      if (!modal || !body) return;
+      const problems = [
+        ...(report.checks || []).filter(item => ['warning', 'fail'].includes(item.status)).map(item => ({ title: item.title, detail: item.detail, severity: item.status })),
+        ...(report.findings || []).filter(item => ['critical', 'warning', 'high'].includes(String(item.severity || '').toLowerCase()))
+      ];
+      if (!problems.length) return;
+      body.innerHTML = problems.map(item => `<li style="margin:9px 0;"><b style="color:${item.severity === 'fail' || item.severity === 'critical' ? '#f87171' : '#fbbf24'}">${escapeHtml(item.severity.toUpperCase())} · ${escapeHtml(item.title)}</b><div style="color:#cbd5e1;margin-top:3px;">${escapeHtml(item.detail || '')}</div></li>`).join('');
+      modal.style.display = 'flex';
+    }
+
+    function closeVideoQualityWarning() {
+      const modal = document.getElementById('video-quality-warning-modal');
+      if (modal) modal.style.display = 'none';
+    }
+    window.closeVideoQualityWarning = closeVideoQualityWarning;
+
+    async function runVideoQualityReview(options = {}) {
+      if (!currentProjectId) return;
+      const projectId = options.projectId || currentProjectId;
+      const btn = document.getElementById('btn-video-quality-review');
+      const panel = document.getElementById('video-quality-review-results');
+      if (!panel) return;
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = '⏳ Reviewing rendered audio…';
+      }
+      if (!options.automatic) {
+        panel.style.display = 'block';
+        panel.innerHTML = '<div style="color:#c4b5fd;font-weight:700;">Analyzing media streams, silence and black frames, then comparing recognized speech with the intended narration. Speech transcription can take several minutes.</div>';
+      }
+      try {
+        const report = await apiJson(`/api/projects/${projectId}/quality-review`, { method: 'POST' });
+        if (currentProjectId === projectId) displayVideoQualityReview(report);
+        if (options.automatic) {
+          localStorage.setItem('video_quality_reviewed', options.reviewKey);
+          if (currentProjectId === projectId) showVideoQualityWarning(report);
+        }
+      } catch (error) {
+        if (!options.automatic) {
+          panel.style.display = 'block';
+          panel.innerHTML = `<div style="color:#fca5a5;font-weight:700;">Quality review failed: ${escapeHtml(error.message || String(error))}</div>`;
+        }
+      } finally {
+        if (options.reviewKey) qualityReviewInFlight.delete(options.reviewKey);
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = '✨ AI Video Quality Review';
+        }
+      }
+    }
+    window.runVideoQualityReview = runVideoQualityReview;
 
     async function openVideoFolder(selectFile = false) {
       if (!currentProjectId) return;

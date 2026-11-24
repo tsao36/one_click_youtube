@@ -1043,6 +1043,29 @@ def get_project_video(project_id: str):
     return FileResponse(final_abs, media_type="video/mp4", headers=no_cache)
 
 
+@app.post("/api/projects/{project_id}/quality-review")
+def review_project_video_quality(project_id: str):
+    """Inspect the rendered video and compare recognized speech with narration."""
+    if not (PROJECTS_DIR / project_id).exists():
+        raise HTTPException(status_code=404, detail="Project not found")
+    project = get_project(project_id)
+    try:
+        from core.video_quality_review import review_rendered_video
+        return review_rendered_video(project)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except Exception as exc:
+        log.exception("Rendered video quality review failed for %s", project_id)
+        raise HTTPException(status_code=500, detail=f"Quality review failed: {exc}") from exc
+
+
+@app.get("/api/projects/{project_id}/quality-review")
+def get_project_video_quality_review(project_id: str):
+    if not (PROJECTS_DIR / project_id).exists():
+        raise HTTPException(status_code=404, detail="Project not found")
+    return get_project(project_id).read_json("final/quality_review.json")
+
+
 @app.post("/api/projects/{project_id}/open_folder")
 def open_project_video_folder(project_id: str, select_file: bool = False):
     if not (PROJECTS_DIR / project_id).exists():
