@@ -5814,15 +5814,40 @@
       }
     }
 
+    function qualityReviewTimestampLink(item, closeWarning = false) {
+      if (item.timestamp_seconds == null || item.timestamp_seconds === '') return '';
+      const seconds = Number(item.timestamp_seconds);
+      if (!Number.isFinite(seconds) || seconds < 0) return '';
+      const close = closeWarning ? 'closeVideoQualityWarning();' : '';
+      return ` <a href="#final-video-player" onclick="${close}seekFinalVideoTo(${seconds});return false;" style="color:#93c5fd;text-decoration:underline;white-space:nowrap;">▶ ~${seconds.toFixed(1)}s · Check video</a>`;
+    }
+
+    function seekFinalVideoTo(seconds) {
+      const target = Number(seconds);
+      const player = document.getElementById('final-video-player');
+      if (!player || !Number.isFinite(target) || target < 0) return;
+      const seek = () => {
+        const boundedTarget = Number.isFinite(player.duration) ? Math.min(target, player.duration) : target;
+        player.currentTime = boundedTarget;
+        player.play().catch(() => {});
+      };
+      if (player.readyState >= 1) seek();
+      else player.addEventListener('loadedmetadata', seek, { once: true });
+      const modal = document.getElementById('video-quality-warning-modal');
+      if (modal && modal.style.display !== 'none') closeVideoQualityWarning();
+      player.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    window.seekFinalVideoTo = seekFinalVideoTo;
+
     function displayVideoQualityReview(report) {
       const panel = document.getElementById('video-quality-review-results');
       if (!panel) return;
       const statusStyle = { pass: '#4ade80', warning: '#fbbf24', fail: '#f87171', info: '#94a3b8' };
       const checks = (report.checks || []).map(item => `<div style="margin:7px 0;"><b style="color:${statusStyle[item.status] || '#cbd5e1'}">${escapeHtml(String(item.status || 'info').toUpperCase())}</b> · <b>${escapeHtml(item.title)}</b><div style="color:#cbd5e1;margin-left:12px;">${escapeHtml(item.detail)}</div></div>`).join('');
-      const findings = (report.findings || []).map(item => `<li style="margin:7px 0;"><b>${escapeHtml(item.severity || 'info')} · ${escapeHtml(item.title)}</b>: ${escapeHtml(item.detail || '')}${item.timestamp_seconds != null ? ` <span style="color:#94a3b8">(${Number(item.timestamp_seconds).toFixed(1)}s)</span>` : ''}</li>`).join('') || '<li>No likely narration errors reported from the available transcript.</li>';
+      const findings = (report.findings || []).map(item => `<li style="margin:7px 0;"><b>${escapeHtml(item.severity || 'info')} · ${escapeHtml(item.title)}</b>: ${escapeHtml(item.detail || '')}${qualityReviewTimestampLink(item)}</li>`).join('') || '<li>No likely spoken narration mismatches reported from the available transcript.</li>';
       const suggestions = (report.suggested_manual_checks || []).map(item => `<li>${escapeHtml(item)}</li>`).join('');
       panel.style.display = 'block';
-      panel.innerHTML = `<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;"><b style="font-size:16px;color:#ddd6fe;">AI Video Quality Review</b><span style="color:#94a3b8;font-size:12px;">${escapeHtml(report.video_filename || '')} · ${Number(report.duration_seconds || 0).toFixed(1)}s</span></div><div style="margin-top:10px;">${checks}</div><h4 style="margin:14px 0 6px;">AI findings</h4><ul style="margin:0;padding-left:20px;">${findings}</ul><div style="margin-top:10px;color:#94a3b8;font-size:12px;">${escapeHtml(report.transcript_status || '')}</div>${report.transcript ? `<details style="margin-top:8px;"><summary style="cursor:pointer;color:#c4b5fd;">Show recognized transcript</summary><pre style="white-space:pre-wrap;color:#cbd5e1;font:12px/1.5 inherit;">${escapeHtml(report.transcript)}</pre></details>` : ''}<h4 style="margin:14px 0 6px;">Suggested additional checks</h4><ul style="margin:0;padding-left:20px;color:#cbd5e1;">${suggestions}</ul>`;
+      panel.innerHTML = `<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;"><b style="font-size:16px;color:#ddd6fe;">AI Video Quality Review</b><span style="color:#94a3b8;font-size:12px;">${escapeHtml(report.video_filename || '')} · ${Number(report.duration_seconds || 0).toFixed(1)}s</span></div><div style="margin-top:10px;">${checks}</div><h4 style="margin:14px 0 6px;">AI findings</h4><ul style="margin:0;padding-left:20px;">${findings}</ul><div style="margin-top:6px;color:#94a3b8;font-size:12px;">Timestamp links seek the video player; locations are approximate. Transcript differences that sound the same are not treated as spoken errors.</div><div style="margin-top:6px;color:#94a3b8;font-size:12px;">${escapeHtml(report.transcript_status || '')}</div>${report.transcript ? `<details style="margin-top:8px;"><summary style="cursor:pointer;color:#c4b5fd;">Show recognized transcript</summary><pre style="white-space:pre-wrap;color:#cbd5e1;font:12px/1.5 inherit;">${escapeHtml(report.transcript)}</pre></details>` : ''}<h4 style="margin:14px 0 6px;">Suggested additional checks</h4><ul style="margin:0;padding-left:20px;color:#cbd5e1;">${suggestions}</ul>`;
     }
 
     function showVideoQualityWarning(report) {
@@ -5834,7 +5859,7 @@
         ...(report.findings || []).filter(item => ['critical', 'warning', 'high'].includes(String(item.severity || '').toLowerCase()))
       ];
       if (!problems.length) return;
-      body.innerHTML = problems.map(item => `<li style="margin:9px 0;"><b style="color:${item.severity === 'fail' || item.severity === 'critical' ? '#f87171' : '#fbbf24'}">${escapeHtml(item.severity.toUpperCase())} · ${escapeHtml(item.title)}</b><div style="color:#cbd5e1;margin-top:3px;">${escapeHtml(item.detail || '')}</div></li>`).join('');
+      body.innerHTML = problems.map(item => `<li style="margin:9px 0;"><b style="color:${item.severity === 'fail' || item.severity === 'critical' ? '#f87171' : '#fbbf24'}">${escapeHtml(item.severity.toUpperCase())} · ${escapeHtml(item.title)}</b><div style="color:#cbd5e1;margin-top:3px;">${escapeHtml(item.detail || '')}${qualityReviewTimestampLink(item, true)}</div></li>`).join('');
       modal.style.display = 'flex';
     }
 

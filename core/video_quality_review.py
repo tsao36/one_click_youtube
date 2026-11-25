@@ -91,14 +91,22 @@ def review_rendered_video(project) -> dict[str, Any]:
                     "audio_stream_count": len(audio_streams),
                     "narration_speaker_labels": sorted({str(getattr(s, "speaker", "") or "Narrator") for s in scenes}),
                     "audio_channels": [s.get("channels") for s in audio_streams]}, ensure_ascii=False),
-        system=("You are reviewing a rendered video using only the supplied media metadata and speech transcript. "
-                "Compare the transcription with intended narration and flag likely TTS omissions, substitutions, "
-                "repetitions, unintelligible speech, or suspiciously short/empty speech. Do not invent visual or "
-                "speaker-diarization observations; this input contains no video frames and the transcript is not "
-                "speaker-labeled. Return JSON with findings: an array of {title, severity (critical|warning|info), "
-                "detail, timestamp_seconds (number or null)}. If evidence is insufficient, say so. Also check whether "
-                "the provided narration speaker labels imply an unexpected speaker change, while clearly separating "
-                "that metadata check from identifying actual voices."),
+        system=("You are reviewing a rendered video's speech using the intended narration and an ASR transcript. "
+                "The transcript is only a recognizer hypothesis, not ground truth for what was spoken. Compare the "
+                "pronunciation implied by each transcript phrase with the intended narration, not the Chinese "
+                "characters or spelling. Do not report a mismatch when the phrases are homophones or close enough "
+                "in pronunciation that the ASR could reasonably have chosen the other characters (for example, "
+                "韌性/任性, 新詩/新師, 財源/裁員, 期程/其成, or 健檢/漸減). Those are transcript spelling "
+                "differences, not evidence of an audio problem. Emit a warning only for a meaning-changing phrase "
+                "whose spoken sounds materially differ, such as 八年 versus 二年, or for a clear omission, addition, "
+                "repetition, or unintelligible section that the transcript supports. When uncertain whether a mismatch "
+                "is phonetic or ASR-only, omit it rather than warn. An empty findings array is appropriate when all "
+                "differences are homophones or otherwise unsupported. Give approximate timestamp_seconds for each "
+                "actionable finding. Do not invent visual or speaker-diarization observations; no video frames are "
+                "provided and the transcript is not speaker-labeled. Return JSON with findings: an array of {title, "
+                "severity (critical|warning|info), detail, timestamp_seconds (number or null)}. Also check whether "
+                "the narration speaker labels imply an unexpected speaker change, while clearly separating that "
+                "metadata check from identifying actual voices."),
         temperature=0.1, max_tokens=2500, validate=_validate_review,
     )
     speaker_labels = {str(getattr(s, "speaker", "") or "Narrator") for s in scenes}
