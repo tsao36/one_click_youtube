@@ -134,6 +134,8 @@ def write_script(topic: str, research: dict, settings: dict, on_request,
                 structure[-1] = "Author's Take: Echoes of History"
 
     brief = (f"Topic: {topic}\nMain question: {research.get('main_question')}\nAudience: {research.get('audience')}\n"
+             f"Narrative angle: {research.get('narrative_angle', '')}\nEmotional arc: {research.get('emotional_arc', '')}\n"
+             f"Memorable moments to build toward: {research.get('memorable_moments', [])}\n"
              f"Key concepts: {research.get('key_concepts')}\nMisconceptions: {research.get('misconceptions')}\n"
              f"Interesting facts: {research.get('interesting_facts')}\n"
              f"{user_res_prompt}"
@@ -196,7 +198,7 @@ def write_script(topic: str, research: dict, settings: dict, on_request,
                       f"Now write ONLY the section '{name}' (purpose: {purpose}). Length: about {budget} words.{tw_note}\n"
                       f"The previous section ended with: \"{prev}\"\nLater sections will cover: {later} - do not cover them now.\n"
                       + ("Open with a vivid, concrete hook in the first sentence.\n" if i == 0 else "")
-                      + ("End with a satisfying takeaway, not a summary of every section.\n" if i == len(structure) - 1 else "")
+                      + ("End with one specific, resonant payoff (image, consequence, question, or author insight) that echoes the central question; avoid generic moralizing or recap.\n" if i == len(structure) - 1 else "")
                       + "Output only the narration text.")
             raw_text = _clean(client.text(prompt, system, temperature=0.8, max_tokens=max(4096, budget * 4)))
             if is_tw:

@@ -34,6 +34,9 @@ SYSTEM = (
 SCHEMA = """{
   "main_question": "the core question the video answers",
   "audience": "who is watching and what they already know",
+  "narrative_angle": "the most compelling, distinctive, fact-grounded way into this topic",
+  "emotional_arc": "how audience interest or emotion should develop from opening through ending",
+  "memorable_moments": ["specific reveal, contrast, decision, image, or consequence worth building toward", "..."],
   "key_concepts": ["concept: one-line plain explanation", "..."],
   "misconceptions": ["common misconception and the correction", "..."],
   "interesting_facts": ["surprising but accurate fact", "..."],
@@ -62,6 +65,9 @@ def _validate(d):
     d.setdefault("key_concepts", [])
     d.setdefault("misconceptions", [])
     d.setdefault("interesting_facts", [])
+    d.setdefault("narrative_angle", "")
+    d.setdefault("emotional_arc", "")
+    d.setdefault("memorable_moments", [])
     ws = d.setdefault("world_setting", {})
     if not isinstance(ws, dict):
         ws = {}
@@ -244,9 +250,13 @@ def research(
               f"{research_context}{user_guidance}"
               f"\nAnalyse the topic and return JSON exactly in this shape:\n{SCHEMA}\n"
               "Provide 4-8 items for each list. Section titles must be specific to the topic.\n"
+              "Choose one distinctive narrative_angle rather than a generic overview. Shape an emotional_arc with changing stakes, "
+              "curiosity, and payoff. Make memorable_moments concrete and verifiable. In narrative_structure, give every section "
+              "a story purpose: advance the central question, reveal a new complication or surprising connection, and create a reason "
+              "to continue. Do not manufacture conflict or exaggerate facts.\n"
               "CRITICAL FOR WORLD SETTING: All fields inside 'world_setting' ('temporal_era', 'environment_reality', 'key_settings', 'ensemble_specs', 'negative_anachronisms') "
               "MUST be written strictly in ENGLISH descriptive visual keywords for text-to-image models (SDXL/FLUX), even when narration language is Chinese. "
-              "All other fields (main_question, audience, key_concepts, interesting_facts, narrative_structure) must be in the specified narration language.")
+              "All other fields (main_question, audience, narrative_angle, emotional_arc, memorable_moments, key_concepts, interesting_facts, narrative_structure) must be in the specified narration language.")
     data = client.json(prompt, SYSTEM, temperature=0.5, validate=_validate)
     if world_setting_override is not None:
         data["world_setting"] = world_setting_override

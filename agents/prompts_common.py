@@ -119,6 +119,10 @@ def merge_negative_prompts(*prompts: str | list[str] | None) -> str:
     return ", ".join(tokens)
 
 NARRATION_RULES = f"""Rules for narration:
+- Build a memorable story, not a list of facts: establish a central curiosity question, raise or complicate the stakes across sections, and pay it off clearly.
+- Give each section a distinct dramatic job and at least one concrete scene, decision, contrast, or reveal grounded in the research; vary pace between explanation and vivid moments.
+- Prefer specific, surprising details over generic claims. Use restraint: never invent conflict, emotion, dialogue, or certainty for drama.
+- End on one resonant image, consequence, question, or creator insight that grows naturally from the evidence; avoid generic moralizing or a routine recap.
 - Write for the ear: natural spoken sentences, varied length, mostly 8-22 words.
 - Fast micro-documentary pacing: break narration into short, punchy clauses (6-14 Chinese characters per clause), with tight 14-22 character semantic beats.
 - Zero filler words: Strictly eliminate verbal crutches and empty filler phrases such as "然後", "其實呢", "其實", "我們可以看到", "可以看到", "接下來我們看", "值得一提的是", "也就是說", "事實上". Move the narrative forward with direct subject-verb-impact delivery.

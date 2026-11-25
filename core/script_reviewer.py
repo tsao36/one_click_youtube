@@ -29,19 +29,24 @@ def review_script(project, script: dict[str, Any], research: dict[str, Any], on_
     ancient_story = _is_ancient_story(research)
     settings = getattr(getattr(project, "data", None), "settings", {}) or {}
     author_conclusion = str(settings.get("author_conclusion") or "").strip()
-    system = ("You are a ruthless documentary script editor. Maximize information density: "
-              "remove repetition, filler, vague adjectives, generic transitions and unsupported claims. "
+    system = ("You are a discerning documentary story editor. Improve information density, entertainment, and memorability: "
+              "remove repetition, filler, vague adjectives, generic transitions and unsupported claims, but preserve vivid evidence-based scenes, "
+              "useful suspense, emotional progression, surprising contrasts, and distinctive moments that make the story stick. "
+              "Do not flatten dramatic pacing into an encyclopedia summary or add sensationalism. "
               "Preserve essential context, caveats and meaningful opposing views. Never invent facts or sources. "
               "Preserve the creator's supplied conclusion and its core stance in the final concluding section. Return only JSON.")
-    task = "Review and finalize this script; fact-check claims against research and cite reliable sources."
+    task = "Review and finalize this script; fact-check claims against research and cite reliable sources. Improve the curiosity arc, pacing, and evidence-based memorable payoff where weak."
     if ancient_story:
         task += " This is an ancient/historical story: unresolved historical evidence must not set high_risk or block generation; preserve uncertainty as a caveat instead."
     prompt = {"task": task,
               "rules": ["Mark every paragraph keep, rewrite, delete, or verify.",
+                        "Score entertainment and memorability; retain concrete scenes, reveals, contrasts, and emotional progression that are supported by evidence.",
+                        "Ensure the opening creates a specific curiosity gap and the ending pays it off with a distinctive, non-generic impression.",
+                        "Do not add sensationalism, fabricated details, or remove meaningful suspense merely to maximize brevity.",
                         "Set high_risk if a core conclusion changes, a key claim lacks support, or a high-impact topic remains uncertain.",
                         "Preserve the exact script schema and section order.",
                         "Preserve the creator's supplied conclusion and its core stance in the final concluding section."],
-              "required": {"scores": {"information_density": 0, "necessity": 0, "credibility": 0, "clarity": 0, "overall": 0},
+              "required": {"scores": {"information_density": 0, "necessity": 0, "credibility": 0, "clarity": 0, "entertainment": 0, "memorability": 0, "overall": 0},
                            "items": [], "sources": [], "high_risk": False, "risk_reasons": [], "final_script": script},
               "creator_conclusion": author_conclusion,
               "research": research, "script": script}
