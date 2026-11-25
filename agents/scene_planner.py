@@ -161,7 +161,10 @@ def _split_long(sentence: str, max_units: int) -> list[str]:
                     w = w[max_units:]
                 if w:
                     final.append(" ".join(w))
-    return final
+    # A clause separator should not be the last character of a scene. When a
+    # long narration is split at an enumeration comma, discard that trailing
+    # separator from the preceding scene; keep internal punctuation intact.
+    return [piece.rstrip("、") for piece in final if piece.rstrip("、")]
 
 
 def balance_scene_quotes(scenes: list[dict]) -> list[dict]:
