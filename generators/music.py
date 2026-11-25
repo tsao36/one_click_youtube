@@ -981,7 +981,12 @@ def plan_music_timeline(
             selection_mode="deterministic_global" if selected_meta else "legacy_fallback",
         )
         segments.append(seg)
-        record_track_selection(trk.name, project_id=key, directory=directory)
+        track_history_id = (
+            trk.relative_to(ROOT / directory).as_posix()
+            if (ROOT / directory) in trk.parents
+            else trk.name
+        )
+        record_track_selection(track_history_id, project_id=key, directory=directory)
 
     qa = validate_music_plan(segments, total_duration)
     if qa["status"] != "pass":

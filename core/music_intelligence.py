@@ -177,6 +177,17 @@ def optimize_soundtrack(
     if not intents or not safe:
         return []
     recent = recent_ids or set()
+    # History used to store basenames while catalog IDs include their folder.
+    # Match both forms so existing history entries still work after migration.
+    recent_names = {Path(str(item)).name for item in recent}
+    non_recent = [
+        meta for meta in safe
+        if _track_id(meta) not in recent and Path(_track_id(meta)).name not in recent_names
+    ]
+    # Prefer a fresh track whenever one is available in the selected style pool.
+    # Retain the full safe pool only when every candidate is recent.
+    if non_recent:
+        safe = non_recent
     layers: list[dict[str, tuple[float, str | None, dict[str, float]]]] = []
     for index, intent in enumerate(intents):
         layer: dict[str, tuple[float, str | None, dict[str, float]]] = {}
@@ -187,7 +198,6 @@ def optimize_soundtrack(
             if semantic_ai > 0.0:
                 local = local * 0.85 + semantic_ai * 0.15
                 breakdown["semantic_ai"] = round(semantic_ai, 4)
-            local -= 0.04 if ident in recent else 0.0
             if index == 0:
                 layer[ident] = (local, None, breakdown)
                 continue
