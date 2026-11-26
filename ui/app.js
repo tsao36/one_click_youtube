@@ -4876,6 +4876,7 @@
             pause_for_conclusion: document.getElementById('creator-pause-for-conclusion') ? document.getElementById('creator-pause-for-conclusion').checked : false,
             auto_stock_mode: document.getElementById('auto-stock-mode')?.value || 'balanced',
             enforce_character_real_ratio: document.getElementById('creator-enforce-real-character-media')?.checked ?? true,
+            character_real_ratio: (parseInt(document.getElementById('creator-real-character-ratio')?.value || '90', 10) / 100),
             project_mode: 'documentary',
             aspect_ratio: '16:9',
             start_now: true
@@ -13595,8 +13596,9 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
               <button type="button" class="btn-sec" style="font-size: 11px; padding: 6px 12px; color: #93c5fd; border-color: #3b82f6;" onclick="rescanProjectCharacters(${isInspector})">
                 🔄 重新檢索素材
               </button>
-              <button type="button" class="btn-primary" style="font-size: 11px; padding: 6px 14px; background: linear-gradient(135deg, #e11d48 0%, #be123c 100%); font-weight: 700; border: 1px solid #f43f5e;" onclick="enforceMainCharacterRealRatio(${isInspector})">
-                ⚡ 確保主角分鏡 ≥ 90% 真實素材
+              <label style="display:inline-flex; align-items:center; gap:6px; color:#fbbf24; font-size:11px;">真實素材目標 <input id="char-real-ratio-${isInspector ? 'inspector' : 'studio'}-${cIdx}" type="range" min="0" max="100" step="5" value="90" style="width:100px; accent-color:#f59e0b;" oninput="this.nextElementSibling.textContent=this.value+'%'"> <span>90%</span></label>
+              <button type="button" class="btn-primary" style="font-size: 11px; padding: 6px 14px; background: linear-gradient(135deg, #e11d48 0%, #be123c 100%); font-weight: 700; border: 1px solid #f43f5e;" onclick="enforceMainCharacterRealRatio(${isInspector}, ${cIdx})">
+                ⚡ 確保主角分鏡達指定真實素材比例
               </button>
               <button type="button" class="btn-primary" style="font-size: 11px; padding: 6px 14px; background: linear-gradient(135deg, #059669 0%, #047857 100%); font-weight: 700; border: 1px solid #10b981;" onclick="applyApprovedCharacterMedia(${isInspector})">
                 🔗 一鍵套用至對應分鏡
@@ -13867,17 +13869,19 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
       }
     }
 
-    async function enforceMainCharacterRealRatio(isInspector) {
+    async function enforceMainCharacterRealRatio(isInspector, charIdx) {
       if (!currentProjectId) return alert("請先選取專案");
-      if (!confirm("確定要將主角提及分鏡的真實素材（實拍影片與劇照）提高至 90% 以上嗎？\n\n系統將自動分析所有提及主角的分鏡，自動抓取並裁切約 10 秒 YouTube 實拍片段與真實劇照覆蓋 AI 生成圖。")) {
+      const ratioInput = document.getElementById(`char-real-ratio-${isInspector ? 'inspector' : 'studio'}-${charIdx}`);
+      const ratio = ratioInput ? parseInt(ratioInput.value, 10) / 100 : 0.9;
+      if (!confirm(`確定要將主角提及分鏡的真實素材提高至 ${Math.round(ratio * 100)}% 嗎？\n\n系統將自動分析所有提及主角的分鏡，自動抓取並裁切約 10 秒 YouTube 實拍片段與真實劇照覆蓋 AI 生成圖。`)) {
         return;
       }
       try {
-        if (typeof showToast === 'function') showToast("⚡ 正在分析主角登場分鏡並提高真實影音佔比至 90% (需數十秒)...");
+        if (typeof showToast === 'function') showToast(`⚡ 正在分析主角登場分鏡並提高真實影音佔比至 ${Math.round(ratio * 100)}% (需數十秒)...`);
         const result = await apiJson(`/api/projects/${currentProjectId}/characters/enforce_real_ratio`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ratio: 0.9, clip_ratio: 0.7 })
+          body: JSON.stringify({ ratio, clip_ratio: 0.7 })
         });
 
         if (result.status === 'success') {

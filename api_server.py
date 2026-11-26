@@ -158,6 +158,7 @@ class CreateProjectRequest(BaseModel):
     pause_after_stage3: bool = False
     auto_stock_mode: Optional[str] = "balanced"
     enforce_character_real_ratio: bool = True
+    character_real_ratio: float = 0.9
     project_mode: Optional[str] = "documentary"
     aspect_ratio: Optional[str] = "16:9"
     drama_formula: Optional[str] = "workplace_revenge"
@@ -432,6 +433,7 @@ def build_project_settings(
     auto_stock = req.auto_stock_mode or "balanced"
     settings.setdefault("images", {})["auto_stock_mode"] = auto_stock
     settings["images"]["enforce_character_real_ratio"] = req.enforce_character_real_ratio
+    settings["images"]["character_real_ratio"] = max(0.0, min(1.0, req.character_real_ratio))
     if (
         req.checkpoint
         and req.checkpoint not in REMOTE_IMAGE_MODELS
@@ -2677,7 +2679,7 @@ def boost_character_ratio_endpoint(project_id: str, payload: dict[str, Any]):
 def enforce_character_real_ratio_endpoint(project_id: str, payload: dict[str, Any]):
     """Ensure at least ratio (default 90%) of scenes mentioning the main character use authentic real visuals."""
     p = get_project(project_id)
-    ratio = float(payload.get("ratio", 0.9))
+    ratio = max(0.0, min(1.0, float(payload.get("ratio", 0.9))))
     clip_ratio = float(payload.get("clip_ratio", 0.7))
     extra_queries = payload.get("extra_queries", [])
     from core.character_detector import enforce_main_character_real_image_ratio
