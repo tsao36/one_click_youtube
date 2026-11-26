@@ -515,6 +515,11 @@
             <!-- Textarea -->
             <textarea id="creator-user-research" rows="7" placeholder="貼上或輸入您的自訂研究資料、關鍵事實、技術參數、故事大綱、專家名言或逐字稿...&#10;（AI 將在此基礎上梳理 Stage 1 研究報告並撰寫 Stage 2 旁白腳本，確保內容完全符合您的專業要求）" data-ui-input="static_054" style="width: 100%; box-sizing: border-box; font-size: 12.5px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; line-height: 1.5; background: rgba(5, 8, 15, 0.85); border: 1px solid rgba(148, 163, 184, 0.3); border-radius: var(--radius); padding: 10px 12px; color: #f8fafc; resize: vertical;"></textarea>
 
+            <label style="display:flex; align-items:flex-start; gap:8px; margin-top:9px; color:#fbbf24; font-size:12px; font-weight:600; cursor:pointer;">
+              <input type="checkbox" id="creator-skip-script-fact-check" checked style="width:15px; height:15px; margin-top:1px; accent-color:#f59e0b; flex-shrink:0;">
+              <span>略過第二輪腳本查核與自動改寫 (Skip script review/fact-check when I provide my own draft)<br><span style="font-size:11px; color:#94a3b8; font-weight:400;">只在上方有輸入自訂內容時生效；取消勾選會保留完整查核與修訂。</span></span>
+            </label>
+
             <!-- Footer Bar: Counts & Pause Checkbox -->
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 8px; font-size: 11.5px; color: #94a3b8;">
               <div id="creator-research-stats">
@@ -653,7 +658,7 @@
                 <span id="callout-style-hint" style="font-size: 11px; color: #FF5A1F; font-weight: 600;">左上角 · 橘色強調線大數字</span>
               </label>
               <select id="creator-callout-style">
-                <option value="neutral_centered">中性置中大字 (Neutral Centered · 輕度壓暗背景)</option>
+                <option value="neutral_centered">中性置中大字 (Neutral Centered · 緊湊黑底卡片)</option>
                 <option value="modern_pill">極簡深色毛玻璃膠囊橫幅 (Modern Glass Pill · 現代俐落質感)</option>
                 <option value="archival_parchment">歷史檔案古籍牛皮紙印章 (Archival Parchment · 歷史紀錄片推薦)</option>
                 <option value="historical_timeline">歷史紀年文獻卡 (Historical Timeline · 巨型年份/數字 + 硃紅底線)</option>
@@ -671,7 +676,7 @@
             <div>
               <b style="color: #38bdf8; font-size: 13px;">場景重點訊息特效 (Centered Message Overlay)</b>
               <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">
-                根據旁白關鍵詞與核心觀點，在部分場景中央顯示大型重點訊息，並輕度壓暗背景（下方字幕維持原位）
+                根據旁白關鍵詞與核心觀點，在部分場景中央顯示緊湊黑底重點卡片，不再壓暗整個背景
               </div>
             </div>
             <label style="position: relative; display: inline-block; width: 44px; height: 24px; margin: 0; cursor: pointer;">
@@ -2367,7 +2372,7 @@
         <div class="form-group">
           <label>🎬 場景重點訊息風格 (Scene Message Overlay Style)</label>
           <select id="set-callout-banner-style">
-            <option value="neutral_centered">中性置中大字 (Neutral Centered · 輕度壓暗背景)</option>
+            <option value="neutral_centered">中性置中大字 (Neutral Centered · 緊湊黑底卡片)</option>
             <option value="modern_pill">極簡深色毛玻璃膠囊橫幅 (Modern Glass Pill · 現代俐落質感)</option>
             <option value="archival_parchment">歷史檔案古籍牛皮紙印章 (Archival Parchment · 歷史紀錄片推薦)</option>
             <option value="historical_timeline">歷史紀年文獻卡 (Historical Timeline · 巨型年份/數字 + 硃紅底線)</option>
@@ -2379,7 +2384,7 @@
             <option value="none">停用場景訊息 · 純淨圖像 (No Message Overlay · 僅 Ken Burns/AI 圖像)</option>
           </select>
           <div style="font-size: 11px; color: #94a3b8; margin-top: 3px;">
-            預設將背景輕度壓暗，於畫面中央顯示大型白色重點訊息；亦可切換其他題材樣式或完全停用。
+            於畫面中央以緊湊、不透明黑底卡片顯示大型白色重點訊息；亦可切換其他題材樣式或完全停用。
           </div>
           <div id="settings-callout-preview-container" style="margin-top: 10px;"></div>
 
@@ -2562,7 +2567,7 @@
         <div>
           <b style="color: #38bdf8; font-size: 13px;">場景重點訊息特效 (Centered Message Overlay)</b>
           <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">
-            根據旁白關鍵詞與核心觀點，在部分場景中央顯示大型重點訊息，並輕度壓暗背景（下方字幕維持原位）
+            根據旁白關鍵詞與核心觀點，在部分場景中央顯示緊湊、不透明黑底重點卡片，不再壓暗整個背景
           </div>
         </div>
         <label style="position: relative; display: inline-block; width: 44px; height: 24px; margin: 0; cursor: pointer;">
@@ -4736,7 +4741,7 @@
             <span id="ro-callout-style-badge" style="font-size:11px; color:#FF5A1F; font-weight:600;">左上角 · 橘色強調線大數字</span>
           </label>
           <select id="ro-callout-style" onchange="onRoCalloutStyleChange()" data-ui-change="on_ro_callout_style_change" style="width:100%; padding:9px 12px; font-size:13px; font-weight:600; background:#070d18; border:1px solid #0284c7; color:#fff; border-radius:6px; cursor:pointer;">
-            <option value="neutral_centered">中性置中大字 (Neutral Centered · 輕度壓暗背景)</option>
+            <option value="neutral_centered">中性置中大字 (Neutral Centered · 緊湊黑底卡片)</option>
             <option value="modern_pill">極簡深色毛玻璃膠囊橫幅 (Modern Glass Pill · 現代俐落霓虹)</option>
             <option value="archival_parchment">歷史檔案古籍牛皮紙印章 (Archival Parchment · 歷史紀錄片推薦)</option>
             <option value="historical_timeline">歷史紀年文獻卡 (Historical Timeline · 巨型年份/數字 + 硃紅底線)</option>
@@ -4757,7 +4762,7 @@
               場景重點訊息特效 (Scene Message Overlay Callouts)
             </div>
             <div style="font-size:11px; color:#94a3b8; margin-top:2px;">
-              根據分鏡台詞核心觀點，在精彩場景中央浮現重點卡片，並輕度壓暗背景以聚焦視覺。
+              根據分鏡台詞核心觀點，在精彩場景中央浮現緊湊黑底重點卡片，不會壓暗整個背景。
             </div>
           </div>
           <label style="position:relative; display:inline-block; width:44px; height:24px; margin:0; cursor:pointer; flex-shrink:0;">
@@ -4832,8 +4837,8 @@
   </div>
 
   <script src="/api.js"></script>
-  <script src="/events.js?v=20261121_fact_check_model_v1"></script>
-  <script src="/app.js?v=20261121_fact_check_model_v1"></script>
+  <script src="/events.js?v=20261126_centered_overlay_v2"></script>
+  <script src="/app.js?v=20261126_centered_overlay_v2"></script>
 
   <!-- Formula Manager Modal -->
   <div id="formula-manager-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 99999; align-items: center; justify-content: center; backdrop-filter: blur(4px);">
@@ -5025,12 +5030,14 @@
             <div style="display:flex; align-items:center; gap:6px; max-width:62%; justify-content:flex-end;">
               <select id="confirm-modal-callout-style" onchange="onConfirmCalloutStyleChange()" data-ui-change="on_confirm_callout_style_change" style="background:#070d18; border:1.5px solid #FF5A1F; color:#fed7aa; font-size:12.5px; font-weight:700; padding:6px 10px; border-radius:6px; cursor:pointer; max-width:100%; text-overflow:ellipsis;">
                 <option value="corner_metric" selected>🔥 左上數據卡 (Corner Metric · 左上角大數字)</option>
-                <option value="neutral_centered">🎬 中性置中大字 (Neutral Centered · 輕度壓暗背景)</option>
+                <option value="neutral_centered">🎬 中性置中大字 (Neutral Centered · 緊湊黑底卡片)</option>
                 <option value="modern_pill">💎 極簡深色毛玻璃膠囊橫幅 (Modern Glass Pill)</option>
                 <option value="archival_parchment">📜 歷史檔案古籍牛皮紙印章 (Archival Parchment)</option>
                 <option value="historical_timeline">🏛️ 歷史紀年文獻卡 (Historical Timeline)</option>
                 <option value="minimal_clean">✨ 極簡無框俐落字體 (Minimal Clean)</option>
                 <option value="broadcast_news">📺 專題電視新聞橫條 (Broadcast News Bar)</option>
+                <option value="comparison_badge">🔴 比一比徽章 (Comparison Badge · 紅框短標題)</option>
+                <option value="youtube_editorial">🎥 YouTube 編輯標題卡 (YouTube Editorial · 左下角白紅大標題)</option>
                 <option value="none">🚫 停用場景訊息 · 純淨圖像 (No Message Overlay)</option>
               </select>
             </div>

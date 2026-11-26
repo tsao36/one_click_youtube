@@ -4868,6 +4868,7 @@
               density: 'full'
             } : null)),
             user_research: userResearch || null,
+            skip_script_fact_check: Boolean(userResearch && document.getElementById('creator-skip-script-fact-check')?.checked),
             research_mode: researchMode,
             pause_after_research: pauseAfterResearch,
             pause_after_scenes: pauseAfterStage3,
@@ -9155,8 +9156,8 @@
         key: 'neutral_centered',
         name: '中性置中大字',
         en: 'Neutral Centered',
-        badge: '置中大字 · 輕度壓暗背景',
-        desc: '於畫面中央浮現清晰大字，並輕度壓暗全景背景（保留下方字幕原位），視覺聚焦力強、具備張力。',
+        badge: '置中大字 · 緊湊黑底卡片',
+        desc: '於畫面中央以緊湊的不透明黑底卡片顯示大字，不再壓暗或遮蓋整個背景。',
         tag: '重點解析',
         title: '歷史的關鍵轉折點',
         subtitle: '權力博弈與時代變革的深刻分水嶺',
@@ -9167,7 +9168,7 @@
         defaultSubPt: 36,
         defaultText: '#FFFFFF',
         defaultBg: '#000000',
-        defaultBgOpacity: 0.58,
+        defaultBgOpacity: 1.0,
         defaultMotion: 'fade_drift',
         defaultEntranceMs: 320,
         defaultDisplaySec: 3.0,
@@ -9672,8 +9673,7 @@
 
       if (styleKey === 'neutral_centered') {
         overlayHtml = `
-          <div style="position:absolute; inset:0; background:${hexToRgba(bgColor, bgOpacity * 0.7)}; backdrop-filter:blur(1px); pointer-events:none;"></div>
-          <div style="position:absolute; top:30%; bottom:30%; left:0; right:0; background:${hexToRgba(bgColor, bgOpacity)}; border-top:1px solid rgba(255,255,255,0.08); border-bottom:1px solid rgba(255,255,255,0.08); pointer-events:none;"></div>
+          <div style="position:absolute; top:37%; left:8%; width:84%; height:26%; box-sizing:border-box; background:${hexToRgba('#000000', 1)}; border:1px solid rgba(255,255,255,0.12); border-radius:8px; pointer-events:none;"></div>
           <div ${animId} class="overlay-motion-animated" style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:2; padding:0 ${isMini ? '8px' : '16px'}; text-align:center; pointer-events:none; ${animStyle}">
             <div style="font-size:${titleSize}; font-weight:900; color:${textColor}; letter-spacing:0.04em; text-shadow:0 2px 10px rgba(0,0,0,0.95), 0 0 1px #000; line-height:1.3;">
               ${info.title}
@@ -11840,7 +11840,7 @@
               <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; background:#0c1526; padding:10px 14px; border-radius:6px; border:1px solid #1e3a8a;">
                 <div>
                   <b style="color:#38bdf8; font-size:13px;">✨ 場景重點訊息特效</b>
-                  <div style="font-size:11px; color:#94a3b8; margin-top:2px;">在部分場景中央顯示大型重點訊息，並輕度壓暗背景（下方字幕維持原位）</div>
+                  <div style="font-size:11px; color:#94a3b8; margin-top:2px;">在部分場景中央顯示緊湊黑底重點卡片，不再壓暗整個背景</div>
                 </div>
                 <label style="position:relative; display:inline-block; width:44px; height:24px; margin:0; cursor:pointer;">
                   <input type="checkbox" id="insp-motion-callouts" ${motionEnabled ? 'checked' : ''} onchange="toggleProjectMotionCallouts(this.checked)" style="opacity:0; width:0; height:0;">
@@ -11852,7 +11852,7 @@
               <div style="margin-bottom:10px; background:#080d16; border:1px solid #1e293b; border-radius:6px; padding:10px 14px;">
                 <label for="insp-callout-style" style="display:block; color:#cbd5e1; font-size:12px; font-weight:700; margin-bottom:6px;">Message overlay style</label>
                 <select id="insp-callout-style" style="width:100%; padding:7px 9px; background:#04070e; border:1px solid #334155; color:#e2e8f0; border-radius:4px;">
-                  <option value="neutral_centered" ${calloutStyle === 'neutral_centered' ? 'selected' : ''}>Neutral centered — large text with dimmed background</option>
+                  <option value="neutral_centered" ${calloutStyle === 'neutral_centered' ? 'selected' : ''}>Neutral centered — large text in a compact black card</option>
                   <option value="modern_pill" ${calloutStyle === 'modern_pill' ? 'selected' : ''}>Modern glass pill — top banner</option>
                   <option value="archival_parchment" ${calloutStyle === 'archival_parchment' ? 'selected' : ''}>Archival parchment — top banner</option>
                   <option value="historical_timeline" ${calloutStyle === 'historical_timeline' ? 'selected' : ''}>Historical timeline — top-left year badge & red underline</option>
@@ -16094,7 +16094,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
               <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; background:#0c1526; padding:12px 16px; border-radius:8px; border:1px solid #1e3a8a;">
                 <div>
                   <b style="color:#38bdf8; font-size:14px;">✨ 場景重點訊息特效</b>
-                  <div style="font-size:12px; color:#94a3b8; margin-top:2px;">依據當前旁白關鍵詞與核心觀點，在部分場景中央顯示大型訊息並輕度壓暗背景</div>
+                  <div style="font-size:12px; color:#94a3b8; margin-top:2px;">依據當前旁白關鍵詞與核心觀點，在部分場景中央顯示緊湊黑底訊息卡</div>
                 </div>
                 <label style="position:relative; display:inline-block; width:46px; height:26px; margin:0; cursor:pointer;">
                   <input type="checkbox" id="studio-motion-callouts" ${motionEnabled ? 'checked' : ''} onchange="toggleProjectMotionCallouts(this.checked)" style="opacity:0; width:0; height:0;">
@@ -16106,7 +16106,7 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
               <div style="margin-bottom:14px; background:#080d16; border:1px solid #1e293b; border-radius:8px; padding:12px 16px;">
                 <label for="studio-callout-style" style="display:block; color:#cbd5e1; font-size:12px; font-weight:700; margin-bottom:7px;">Message overlay style</label>
                 <select id="studio-callout-style" style="width:100%; padding:8px 10px; background:#04070e; border:1px solid #334155; color:#e2e8f0; border-radius:5px;">
-                  <option value="neutral_centered" ${calloutStyle === 'neutral_centered' ? 'selected' : ''}>Neutral centered — large text with dimmed background</option>
+                  <option value="neutral_centered" ${calloutStyle === 'neutral_centered' ? 'selected' : ''}>Neutral centered — large text in a compact black card</option>
                   <option value="modern_pill" ${calloutStyle === 'modern_pill' ? 'selected' : ''}>Modern glass pill — top banner</option>
                   <option value="archival_parchment" ${calloutStyle === 'archival_parchment' ? 'selected' : ''}>Archival parchment — top banner</option>
                   <option value="historical_timeline" ${calloutStyle === 'historical_timeline' ? 'selected' : ''}>Historical timeline — top-left year badge & red underline</option>

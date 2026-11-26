@@ -347,9 +347,18 @@ class DocumentaryPipeline(BasePipeline):
             self.p.path("script", "script.md").write_text(script_markdown(scr), encoding="utf-8")
             self.p.write_json("script/script_original.json", scr)
             self.p.path("script", "script_original.md").write_text(script_markdown(scr), encoding="utf-8")
-            self.p.activity("Stage 2/10: Reviewing script for information density...")
-            from core.script_reviewer import review_script
-            review = review_script(self.p, scr, res, on_request=self._track_llm_request)
+            skip_script_fact_check = bool(cfg.get("skip_script_fact_check") and cfg.get("user_research"))
+            if skip_script_fact_check:
+                review = {
+                    "final_script": scr,
+                    "high_risk": False,
+                    "review_status": "skipped_by_user",
+                    "review_note": "Automated script review and fact-checking were skipped by the user.",
+                }
+            else:
+                self.p.activity("Stage 2/10: Reviewing script for information density...")
+                from core.script_reviewer import review_script
+                review = review_script(self.p, scr, res, on_request=self._track_llm_request)
             if review.get("high_risk"):
                 review["review_status"] = "pending_user_review"
                 review["pipeline_continued_after_high_risk"] = True
@@ -371,13 +380,14 @@ class DocumentaryPipeline(BasePipeline):
             self.p.path("script", "script.md").write_text(script_markdown(scr), encoding="utf-8")
 
             # Stage 2: Fact check script against research dossier to catch hallucinations and invalid multipliers
-            try:
-                self.p.activity("Stage 2/10: Verifying script factual grounding & numbers...")
-                from core.fact_checker import verify_script_facts
-                fact_check_prov = self.get_stage_model("fact_check", "openai_compat")
-                verify_script_facts(self.p, on_request=self._track_llm_request, provider_override=fact_check_prov, auto_patch=True)
-            except Exception as fce:
-                log.warning("Stage 2 script fact verification failed: %s", fce)
+            if not skip_script_fact_check:
+                try:
+                    self.p.activity("Stage 2/10: Verifying script factual grounding & numbers...")
+                    from core.fact_checker import verify_script_facts
+                    fact_check_prov = self.get_stage_model("fact_check", "openai_compat")
+                    verify_script_facts(self.p, on_request=self._track_llm_request, provider_override=fact_check_prov, auto_patch=True)
+                except Exception as fce:
+                    log.warning("Stage 2 script fact verification failed: %s", fce)
 
             self.p.data.title = scr.get("title", self.p.data.topic)
 

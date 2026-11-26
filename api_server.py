@@ -152,6 +152,7 @@ class CreateProjectRequest(BaseModel):
     presenter_placement: Optional[str] = "none"
     default_avatar: Optional[str] = None
     user_research: Optional[str] = None
+    skip_script_fact_check: bool = False
     research_mode: Optional[str] = "auto"
     pause_after_research: bool = False
     pause_after_scenes: bool = False
@@ -456,6 +457,7 @@ def build_project_settings(
 
     if req.user_research:
         settings["user_research"] = req.user_research.strip()
+    settings["skip_script_fact_check"] = bool(req.skip_script_fact_check and req.user_research and req.user_research.strip())
     if req.research_mode:
         settings["research_mode"] = req.research_mode
     if req.pause_after_research:

@@ -440,22 +440,17 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                     # intentionally migrated here so existing projects stop using
                     # the old technology-themed top banner as well.
                     center_y = round(height / 2)
+                    band_left = round(width * 0.08)
+                    band_right = round(width * 0.92)
                     band_top = round(height * 0.37)
                     band_bottom = round(height * 0.63)
                     fade_in_nc = max(80, ov_entrance_ms - 60)
                     fade = f"\\fad({fade_in_nc},260)"
-                    full_frame = f"m 0 0 l {width} 0 l {width} {height} l 0 {height}"
-                    center_band = f"m 0 {band_top} l {width} {band_top} l {width} {band_bottom} l 0 {band_bottom}"
+                    center_band = f"m {band_left} {band_top} l {band_right} {band_top} l {band_right} {band_bottom} l {band_left} {band_bottom}"
 
-                    nc_bg_col = hex_to_ass_color(ov_bg_color, "&H00000000&")
-                    nc_full_alpha = "&H98&" if ov_bg_opacity is None else opacity_to_ass_alpha(float(ov_bg_opacity) * 0.65, "&H98&")
-                    nc_band_alpha = "&H55&" if ov_bg_opacity is None else opacity_to_ass_alpha(float(ov_bg_opacity), "&H55&")
+                    nc_bg_col = hex_to_ass_color("#000000", "&H00000000&")
+                    nc_band_alpha = "&H00&"
 
-                    raw_events.append((
-                        c_start,
-                        f"Dialogue: 1,{_ts_ass(c_start)},{_ts_ass(c_end)},FoxCalloutBox,,0,0,0,,"
-                        f"{{\\an7\\pos(0,0)\\p1\\bord0\\shad0\\1c{nc_bg_col}\\1a{nc_full_alpha}{fade}}}{full_frame}",
-                    ))
                     raw_events.append((
                         c_start,
                         f"Dialogue: 2,{_ts_ass(c_start)},{_ts_ass(c_end)},FoxCalloutBox,,0,0,0,,"
