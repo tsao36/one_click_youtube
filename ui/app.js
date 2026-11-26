@@ -5843,7 +5843,7 @@
       const panel = document.getElementById('video-quality-review-results');
       if (!panel) return;
       const statusStyle = { pass: '#4ade80', warning: '#fbbf24', fail: '#f87171', info: '#94a3b8' };
-      const checks = (report.checks || []).map(item => `<div style="margin:7px 0;"><b style="color:${statusStyle[item.status] || '#cbd5e1'}">${escapeHtml(String(item.status || 'info').toUpperCase())}</b> · <b>${escapeHtml(item.title)}</b><div style="color:#cbd5e1;margin-left:12px;">${escapeHtml(item.detail)}</div></div>`).join('');
+      const checks = (report.checks || []).filter(item => item.title !== 'Black frames').map(item => `<div style="margin:7px 0;"><b style="color:${statusStyle[item.status] || '#cbd5e1'}">${escapeHtml(String(item.status || 'info').toUpperCase())}</b> · <b>${escapeHtml(item.title)}</b><div style="color:#cbd5e1;margin-left:12px;">${escapeHtml(item.detail)}</div></div>`).join('');
       const findings = (report.findings || []).map(item => `<li style="margin:7px 0;"><b>${escapeHtml(item.severity || 'info')} · ${escapeHtml(item.title)}</b>: ${escapeHtml(item.detail || '')}${qualityReviewTimestampLink(item)}</li>`).join('') || '<li>No likely spoken narration mismatches reported from the available transcript.</li>';
       const suggestions = (report.suggested_manual_checks || []).map(item => `<li>${escapeHtml(item)}</li>`).join('');
       panel.style.display = 'block';
@@ -5855,7 +5855,7 @@
       const body = document.getElementById('video-quality-warning-findings');
       if (!modal || !body) return;
       const problems = [
-        ...(report.checks || []).filter(item => ['warning', 'fail'].includes(item.status)).map(item => ({ title: item.title, detail: item.detail, severity: item.status })),
+        ...(report.checks || []).filter(item => item.title !== 'Black frames' && ['warning', 'fail'].includes(item.status)).map(item => ({ title: item.title, detail: item.detail, severity: item.status })),
         ...(report.findings || []).filter(item => ['critical', 'warning', 'high'].includes(String(item.severity || '').toLowerCase()))
       ];
       if (!problems.length) return;
@@ -5881,7 +5881,7 @@
       }
       if (!options.automatic) {
         panel.style.display = 'block';
-        panel.innerHTML = '<div style="color:#c4b5fd;font-weight:700;">Analyzing media streams, silence and black frames, then comparing recognized speech with the intended narration. Speech transcription can take several minutes.</div>';
+        panel.innerHTML = '<div style="color:#c4b5fd;font-weight:700;">Analyzing media streams and silence, then comparing recognized speech with the intended narration. Speech transcription can take several minutes.</div>';
       }
       try {
         const report = await apiJson(`/api/projects/${projectId}/quality-review`, { method: 'POST' });

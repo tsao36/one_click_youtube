@@ -45,23 +45,17 @@ def review_rendered_video(project) -> dict[str, Any]:
          "detail": f"{len(audio_streams)} audio stream(s) found."},
     ]
 
-    silence_count = black_count = None
+    silence_count = None
     if audio_streams and video_streams:
         cmd = [ffmpeg_bin(), "-hide_banner", "-nostats", "-i", str(video_path),
-               "-vf", "blackdetect=d=2:pix_th=0.10",
                "-af", "silencedetect=noise=-45dB:d=3", "-f", "null", "-"]
         proc = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace",
                               timeout=max(120, int(duration * 2) if duration else 120),
                               creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
         log_text = proc.stderr or ""
         silence_count = len(re.findall(r"silence_start:", log_text))
-        black_count = len(re.findall(r"black_start:", log_text))
-        checks.extend([
-            {"title": "Prolonged silence", "status": "warning" if silence_count else "pass",
-             "detail": f"Detected {silence_count} silence interval(s) of at least 3 seconds; music-only sections may be intentional."},
-            {"title": "Black frames", "status": "warning" if black_count else "pass",
-             "detail": f"Detected {black_count} black interval(s) of at least 2 seconds; intentional fades may be included."},
-        ])
+        checks.append({"title": "Prolonged silence", "status": "warning" if silence_count else "pass",
+                       "detail": f"Detected {silence_count} silence interval(s) of at least 3 seconds; music-only sections may be intentional."})
 
     scenes = [s for s in project.active_scenes()]
     expected_narration = "\n".join(f"Scene {s.scene_id}: {s.narration}" for s in scenes)
@@ -122,6 +116,6 @@ def review_rendered_video(project) -> dict[str, Any]:
                                           "Listen for clipped peaks, abrupt edits, and music masking narration."],
               "metadata": {"model": getattr(client.provider, "model", ""), "duration_seconds": duration,
                            "audio_stream_count": len(audio_streams), "video_stream_count": len(video_streams),
-                           "silence_intervals": silence_count, "black_intervals": black_count}}
+                           "silence_intervals": silence_count}}
     project.write_json("final/quality_review.json", report)
     return report
