@@ -662,9 +662,9 @@ class Imagen302ImageProvider(ImageProvider):
 
 class NanoBanana21ImageProvider(ImageProvider):
 
-    """Google Nano Banana 2.1 (gemini-nano-banana-2.1) native high-efficiency multimodal image generation.
+    """Nano Banana 2 Lite images generated through Gemini Batch API.
 
-    Supports Batch Processing ($0.0168/image) and standard online generation ($0.0336/image).
+    Batch output pricing is $0.0168 per 1K image, plus prompt input tokens.
 
     """
 
@@ -675,13 +675,9 @@ class NanoBanana21ImageProvider(ImageProvider):
     def __init__(self, settings: dict):
 
         self.s = settings.get("images", {})
-        self.models_to_try = [
-            "gemini-2.5-flash-image",
-            "gemini-3.1-flash-image",
-            "gemini-nano-banana-2.1",
-            "gemini-3-pro-image",
-        ]
+        self.models_to_try = ["gemini-3.1-flash-lite-image"]
         self.rate_per_image = 0.0168
+        self.supports_batch = True
 
     @property
 
@@ -693,9 +689,151 @@ class NanoBanana21ImageProvider(ImageProvider):
 
     def available(self) -> tuple[bool, str]:
 
-        return (True, "Gemini API key configured (Nano Banana 2.1)") if self.key else (False, "GEMINI_API_KEY not set in .env")
+        return (True, "Gemini API key configured (Nano Banana 2 Lite Batch)") if self.key else (False, "GEMINI_API_KEY not set in .env")
 
     def generate(self, req: ImageRequest, cancel: Callable[[], bool] | None = None) -> dict:
+        return self.generate_batch([req], cancel=cancel)[0]
+
+    def _batch_request(self, req: ImageRequest) -> dict:
+        aspect_desc = "16:9 widescreen format, high resolution, cinematic composition" if req.width >= req.height else "9:16 vertical portrait format, high resolution"
+        clean_prompt = req.prompt.strip()
+        if len(clean_prompt) > 2500:
+            boundary = max(clean_prompt.rfind(",", 0, 2500), clean_prompt.rfind(".", 0, 2500))
+            clean_prompt = clean_prompt[:boundary if boundary > 1000 else 2500].strip(" ,.")
+
+        full_neg = merge_negative_prompts(UNIVERSAL_QUALITY_NEGATIVE, req.negative)
+        system_prompt = build_image_system_prompt(full_neg)
+        has_multi = bool(re.search(
+            r"\b(people|crowd|audience|workers|engineers|team|soldiers|officers|officials|judges|lawyers|men|women|group|citizens|bystanders|spectators|passersby|military|personnel|colleagues|students|children|kids|boys|girls|youths|siblings|teens|toddlers|friends|trio|pair|assembly|delegates|representatives|jurors|technocrats|bureaucrats|experts|specialists|staff|crew|panel|committee|cabinet|activists|journalists|reporters)\b",
+            clean_prompt,
+            re.IGNORECASE,
+        ))
+        multi_directive = (
+            "CRITICAL MULTI-PERSON ENSEMBLE REQUIREMENT: Every person in this image MUST be rendered with a completely distinct, "
+            "unique facial structure, different age, varied skin tone and texture, unique eye shape, different haircut or hairstyle, "
+            "and unique personal expression. STRICTLY FORBIDDEN: identical faces, duplicate people, clone lookalikes, twin faces, "
+            "or same face syndrome across different people. "
+            if has_multi else ""
+        )
+        enhanced_prompt = (
+            f"{clean_prompt}. {aspect_desc}. {multi_directive}"
+            "Ensure natural anatomy, clear facial features, varied appearances, and no identical or cloned people. "
+            f"Avoid: {full_neg}."
+        )
+
+        contents_parts = []
+        ref_img = req.extra.get("reference_image") or req.extra.get("character_reference_image")
+        char_name = req.extra.get("character_name") or ""
+        ref_b64, ref_mime = load_reference_image_base64(ref_img)
+        if ref_b64 and ref_mime:
+            contents_parts.append({"inlineData": {"mimeType": ref_mime, "data": ref_b64}})
+            enhanced_prompt = (
+                f"AUTHENTIC REFERENCE PHOTO PROVIDED for {char_name or 'the character'}; preserve recognizable facial likeness. "
+                f"Adapt it to the requested style and scene: {enhanced_prompt}"
+            )
+        contents_parts.append({"text": enhanced_prompt})
+        return {
+            "systemInstruction": {"parts": [{"text": system_prompt}]},
+            "contents": [{"role": "user", "parts": contents_parts}],
+            "generationConfig": {"responseModalities": ["IMAGE", "TEXT"]},
+        }
+
+    def generate_batch(self, reqs: list[ImageRequest], cancel: Callable[[], bool] | None = None) -> list[dict]:
+        """Generate a scene group through Gemini Batch API at batch pricing."""
+        import base64
+        import io
+        import json
+        import tempfile
+        import time
+        from google import genai
+        from google.genai import types
+        from PIL import Image
+
+        if not reqs:
+            return []
+        if not self.key:
+            raise RuntimeError("GEMINI_API_KEY not set in .env (required for Nano Banana batch generation)")
+        if cancel and cancel():
+            raise RuntimeError("Image batch generation cancelled")
+
+        model = "gemini-3.1-flash-lite-image"
+        batch_requests = [
+            {"key": str(i), "request": self._batch_request(req)}
+            for i, req in enumerate(reqs)
+        ]
+        client = genai.Client(api_key=self.key, http_options={"api_version": "v1beta"})
+        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", suffix=".jsonl", delete=False) as batch_file:
+            batch_path = Path(batch_file.name)
+            for batch_request in batch_requests:
+                batch_file.write(json.dumps(batch_request, ensure_ascii=False) + "\n")
+        try:
+            uploaded = client.files.upload(
+                file=str(batch_path),
+                config=types.UploadFileConfig(display_name=f"youtube-images-{int(time.time())}", mime_type="jsonl"),
+            )
+            job = client.batches.create(
+                model=model,
+                src=uploaded.name,
+                config={"display_name": f"youtube-images-{int(time.time())}"},
+            )
+        finally:
+            batch_path.unlink(missing_ok=True)
+        job_name = job.name
+        if not job_name:
+            raise RuntimeError("Gemini Batch API response omitted job name")
+
+        terminal_states = {"JOB_STATE_SUCCEEDED", "JOB_STATE_FAILED", "JOB_STATE_CANCELLED", "JOB_STATE_EXPIRED"}
+        while True:
+            if cancel and cancel():
+                raise RuntimeError(f"Image batch {job_name} is still running; cancellation stops local waiting only")
+            job = client.batches.get(name=job_name)
+            state_value = job.state
+            state = getattr(state_value, "name", str(state_value))
+            if state in terminal_states:
+                break
+            callback = reqs[0].extra.get("progress_callback")
+            if callback:
+                callback(0, len(reqs), f"Gemini batch: {state}")
+            time.sleep(10)
+        if state != "JOB_STATE_SUCCEEDED":
+            raise RuntimeError(f"Gemini image batch {job_name} ended in {state}: {getattr(job, 'error', '')}")
+
+        dest = getattr(job, "dest", None)
+        inline_responses = getattr(dest, "inlined_responses", None) or []
+        if not inline_responses and getattr(dest, "file_name", None):
+            output_bytes = client.files.download(file=dest.file_name)
+            inline_responses = [json.loads(line) for line in output_bytes.decode("utf-8").splitlines() if line.strip()]
+        by_key = {}
+        for item in inline_responses:
+            key = str(item.get("key") or (item.get("metadata") or {}).get("key", len(by_key)))
+            by_key[key] = item.get("response") or item.get("result", {}).get("response") or {}
+
+        results = []
+        for i, req in enumerate(reqs):
+            data = by_key.get(str(i), {})
+            candidates = data.get("candidates", [])
+            parts = candidates[0].get("content", {}).get("parts", []) if candidates else []
+            image_data = next((p.get("inlineData", {}).get("data") or p.get("inline_data", {}).get("data") for p in parts if p.get("inlineData", {}).get("data") or p.get("inline_data", {}).get("data")), None)
+            if not image_data:
+                results.append({"error": f"Gemini batch returned no image for scene request {i}"})
+                continue
+            with Image.open(io.BytesIO(base64.b64decode(image_data))) as im:
+                rgb = imprint_ai_image_label(im.convert("RGB"))
+                req.output.parent.mkdir(parents=True, exist_ok=True)
+                rgb.save(req.output, format="PNG")
+                width, height = rgb.size
+            _check_not_blank(req.output)
+            results.append({
+                "provider": self.name, "model": model, "billing_mode": "batch",
+                "seed": req.seed, "width": width, "height": height,
+                "prompt": req.prompt, "is_cloud": True, "is_ai": True,
+                "ai_imprinted": True, "rate_per_image": self.rate_per_image,
+                "has_reference_image": bool(req.extra.get("reference_image") or req.extra.get("character_reference_image")),
+                "batch_job": job_name,
+            })
+        return results
+
+    def _generate_sync_legacy(self, req: ImageRequest, cancel: Callable[[], bool] | None = None) -> dict:
 
         import base64
 
@@ -936,6 +1074,10 @@ class NanoBananaImageProvider(NanoBanana21ImageProvider):
         self.name = name
         self.models_to_try = [model]
         self.rate_per_image = 0.067 if name == "nano-banana-2" else 0.134
+        self.supports_batch = False
+
+    def generate(self, req: ImageRequest, cancel: Callable[[], bool] | None = None) -> dict:
+        return self._generate_sync_legacy(req, cancel=cancel)
 
 class Imagen3ImageProvider(ImageProvider):
 

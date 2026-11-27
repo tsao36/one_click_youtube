@@ -56,12 +56,15 @@ PRICING = {
         "minimax_video_01": 0.25,           # MiniMax Video-01 Dynamic Scene (~$0.05/sec, 5s clip)
         "minimax": 0.25,
         "canonical_character_portrait": 0.0, # Pre-existing local character anchor portrait (Free)
-        "nano-banana-2.1": 0.0168,          # Google Nano Banana 2.1 ($0.0168 batch / $0.0336 online)
+        "nano-banana-2.1": 0.0336,          # Backward-compatible alias for Nano Banana 2 Lite standard output
         "nano-banana-2": 0.067,             # Gemini 3.1 Flash Image, standard 1K output image
         "nano-banana-pro": 0.134,           # Gemini 3 Pro Image, standard 1K/2K output image
-        "gemini-nano-banana-2.1": 0.0168,
-        "nano-banana": 0.0168,
-        "banana": 0.0168,
+        "gemini-nano-banana-2.1": 0.0336,
+        "gemini-3.1-flash-image": 0.067,
+        "gemini-3.1-flash-lite-image": 0.0336,
+        "nano-banana-2-lite": 0.0336,
+        "nano-banana": 0.039,
+        "banana": 0.039,
         "gpt-image-1": 0.080,               # OpenAI gpt-image-1 1536x1024 ($0.080)
         "gpt_image_1": 0.080,
         "imagen-3.0-generate-002": 0.040,   # Google Imagen 3.0 Generate 002 ($0.040)
@@ -81,6 +84,22 @@ PRICING = {
         "stock": 0.0,                       # Online Stock Photos (Free)
         "comfyui": 0.0,                     # Local AMD GPU DirectML (Free)
         "placeholder": 0.0,
+    },
+    # Gemini image output rates for Batch API requests (per generated image).
+    # Gemini Batch API is asynchronous; these rates must only be used when the
+    # request was submitted through Batch API.
+    "images_batch": {
+        "gemini-2.5-flash-image": 0.0195,       # Deprecated Nano Banana, 1K output
+        "gemini-3.1-flash-image": 0.034,        # Nano Banana 2, 1K output
+        "gemini-3.1-flash-lite-image": 0.0168,  # Nano Banana 2 Lite, 1K output
+        "gemini-3-pro-image": 0.067,            # Nano Banana Pro, 1K/2K output
+    },
+    # Gemini image prompt input rates per 1M tokens, for estimated prompt cost.
+    "images_input_per_1m": {
+        "gemini-2.5-flash-image": 0.15,
+        "gemini-3.1-flash-image": 0.25,
+        "gemini-3.1-flash-lite-image": 0.125,
+        "gemini-3-pro-image": 1.0,
     },
     # TTS providers (per 1,000 characters)
     "tts": {
@@ -337,13 +356,20 @@ def calculate_project_costs(project: Any) -> dict[str, Any]:
         p_name = meta.get("provider") or img_prov_default
         p_key = p_name.lower().strip()
         unit_rate = PRICING["images"].get(p_key, 0.0)
+        image_model = str(meta.get("model") or "").lower()
+        if meta.get("billing_mode") == "batch" and image_model in PRICING["images_batch"]:
+            unit_rate = PRICING["images_batch"][image_model]
         # Check if actually completed
         is_done = getattr(img_st, "status", None) in ("COMPLETED", Status.COMPLETED if "Status" in globals() else "COMPLETED")
         if is_done and unit_rate > 0:
-            img_cost += unit_rate
+            prompt_chars = len(getattr(s, "prompt", "") or "") + len(getattr(s, "visual_description", "") or "")
+            input_rate = PRICING["images_input_per_1m"].get(image_model, 0.0) if meta.get("billing_mode") == "batch" else 0.0
+            estimated_input_tokens = max(0, round((prompt_chars + 2000) / 4)) if input_rate else 0
+            img_cost += unit_rate + (estimated_input_tokens * input_rate / 1_000_000)
             cloud_img_count += 1
-            if p_name not in img_prov_summary:
-                img_prov_summary.append(p_name)
+            display_provider = "Nano Banana 2 Lite Batch API" if meta.get("billing_mode") == "batch" else p_name
+            if display_provider not in img_prov_summary:
+                img_prov_summary.append(display_provider)
         elif is_done:
             local_img_count += 1
             if p_name not in img_prov_summary:

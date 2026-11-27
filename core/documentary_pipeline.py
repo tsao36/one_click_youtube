@@ -895,6 +895,7 @@ class DocumentaryPipeline(BasePipeline):
             DEFAULT_MIN_SCENE_DISTANCE,
         )
         media_registry = get_project_media_registry(scenes)
+        batch_pending = []
 
         try:
             for idx, s in enumerate(scenes):
@@ -1224,6 +1225,7 @@ class DocumentaryPipeline(BasePipeline):
 
 
                 generated = False
+                queued_for_batch = False
 
 
 
@@ -1720,6 +1722,13 @@ class DocumentaryPipeline(BasePipeline):
                         break
                     s.image.attempts = attempt
                     try:
+                        if getattr(provider, "supports_batch", False):
+                            batch_pending.append((provider, s, req, existing_img_meta, prev_img_takes, current_model_name))
+                            s.image.status = Status.PENDING
+                            s.image.error = None
+                            generated = True
+                            queued_for_batch = True
+                            break
                         meta = provider.generate(req, cancel=self.is_cancelled)
                         merged_meta = dict(existing_img_meta)
                         merged_meta.update(meta)
@@ -2111,7 +2120,7 @@ class DocumentaryPipeline(BasePipeline):
 
 
 
-                if generated:
+                if generated and not queued_for_batch:
                     if s.image.meta:
                         s.image.meta.pop("image_outdated", None)
                     is_presenter_scene = getattr(s, "is_presenter", False) or s.visual_type in ("talking_head", "talking_actor")
@@ -2162,7 +2171,7 @@ class DocumentaryPipeline(BasePipeline):
 
 
 
-                else:
+                elif not queued_for_batch:
 
 
 
@@ -2183,6 +2192,49 @@ class DocumentaryPipeline(BasePipeline):
 
 
                 self.p.progress("images", done, total)
+
+            if batch_pending:
+                batches = {}
+                for item in batch_pending:
+                    batches.setdefault(id(item[0]), []).append(item)
+                for items in batches.values():
+                    batch_provider = items[0][0]
+                    batch_reqs = [item[2] for item in items]
+                    self.p.activity(f"Stage 5/10: Submitting {len(items)} images through Gemini Batch API (discounted batch pricing)...")
+                    try:
+                        batch_metas = batch_provider.generate_batch(batch_reqs, cancel=self.is_cancelled)
+                        if len(batch_metas) != len(items):
+                            raise RuntimeError(f"Gemini Batch API returned {len(batch_metas)} images for {len(items)} requests")
+                    except Exception as batch_error:
+                        for _, scene, _, _, _, _ in items:
+                            scene.image.status = Status.FAILED
+                            scene.image.error = str(batch_error)
+                        self.p.save_scenes()
+                        continue
+
+                    for (_, scene, req, prior_meta, prior_takes, model_name), meta in zip(items, batch_metas):
+                        if meta.get("error"):
+                            scene.image.status = Status.FAILED
+                            scene.image.error = meta["error"]
+                            self.p.save_scenes()
+                            continue
+                        merged_meta = dict(prior_meta)
+                        merged_meta.update(meta)
+                        merged_meta["takes"] = prior_takes
+                        scene.image.status = Status.COMPLETED
+                        scene.image.path = self.p.rel(req.output)
+                        scene.image.meta = merged_meta
+                        scene.image.error = None
+                        with self.p.lock:
+                            self.p.data.usage.images_cloud += 1
+                        try:
+                            from core.versioning import record_scene_image_take
+                            record_scene_image_take(self.p, scene.scene_id, scene.image.path, model_name, scene.prompt or "", scene.visual_style or "")
+                        except Exception as tk_err:
+                            log.debug("Take record note: %s", tk_err)
+                        self.p.save_scenes()
+                        done = sum(1 for sc in scenes if sc.image.status == Status.COMPLETED)
+                        self.p.progress("images", done, total)
 
 
 
