@@ -57,6 +57,8 @@ PRICING = {
         "minimax": 0.25,
         "canonical_character_portrait": 0.0, # Pre-existing local character anchor portrait (Free)
         "nano-banana-2.1": 0.0168,          # Google Nano Banana 2.1 ($0.0168 batch / $0.0336 online)
+        "nano-banana-2": 0.067,             # Gemini 3.1 Flash Image, standard 1K output image
+        "nano-banana-pro": 0.134,           # Gemini 3 Pro Image, standard 1K/2K output image
         "gemini-nano-banana-2.1": 0.0168,
         "nano-banana": 0.0168,
         "banana": 0.0168,

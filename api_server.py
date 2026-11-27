@@ -362,7 +362,7 @@ KNOWN_VOICE_PROVIDERS = (
     "voai", "edge", "sapi", "openai_tts",
 )
 REMOTE_IMAGE_MODELS = {
-    "nano-banana-2.1", "dalle3", "imagen3", "gpt-image-1",
+    "nano-banana-2.1", "nano-banana-2", "nano-banana-pro", "dalle3", "imagen3", "gpt-image-1",
     "imagen-3.0-generate-002", "imagen-30.0-generate-002",
     "fal-ai/flux-1/schnell", "fal-ai/flux/schnell", "stock",
 }
@@ -797,6 +797,8 @@ def get_stage_models_catalogue():
                 {"id": "stock", "name": "Online Stock Photos & Footage — $0.00", "type": "free", "available": True, "desc": "Royalty-free online stock footage & photos from Wikimedia & Pexels (Free)"},
                 {"id": "fal-ai/flux-1/schnell", "name": "Fal.ai fal-ai/flux-1/schnell (Cloud API) — $0.003/img", "type": "cloud", "available": has_fal, "desc": "Ultra-fast 4-step FLUX.1 [schnell] 16:9 generation (~$0.003/img, ~$0.12 per 40 scenes)"},
                 {"id": "nano-banana-2.1", "name": "Google Nano Banana 2.1 (Cloud API) — $0.0168/img", "type": "cloud", "available": has_gemini, "desc": "Native high-efficiency Google Nano Banana 2.1 Batch ($0.0168/img, ~$0.67 per 40 scenes)"},
+                {"id": "nano-banana-2", "name": "Google Nano Banana 2 (Gemini 3.1 Flash Image)", "type": "cloud", "available": has_gemini, "desc": "Pinned to Gemini 3.1 Flash Image"},
+                {"id": "nano-banana-pro", "name": "Google Nano Banana Pro (Gemini 3 Pro Image)", "type": "cloud", "available": has_gemini, "desc": "Pinned to Gemini 3 Pro Image"},
                 {"id": "gpt-image-1", "name": "OpenAI gpt-image-1 (Cloud API) — $0.08/img", "type": "cloud", "available": has_openai, "desc": "1536x1024 High-Detail Multimodal Image Generation (~$0.08/img, ~$3.20 per 40 scenes)"},
                 {"id": "imagen-3.0-generate-002", "name": "Google imagen-3.0-generate-002 (Cloud API) — $0.04/img", "type": "cloud", "available": has_gemini, "desc": "Native 16:9 Google Imagen 3.0 Generate 002 (~$0.04/img, ~$1.60 per 40 scenes)"},
                 {"id": "dalle3", "name": "OpenAI DALL-E 3 (Cloud API) — $0.04/img", "type": "cloud", "available": has_openai, "desc": "1792x1024 widescreen photorealism (~$0.04/img, ~$1.60 per 40 scenes)"},
@@ -1770,7 +1772,7 @@ def get_stage_data_endpoint(project_id: str, stage_name: str):
         except Exception:
             pass
         models_list = get_available_checkpoints()
-        for extra_m in ("nano-banana-2.1", "imagen3", "dalle3", "imagen-3.0-generate-002", "gpt-image-1", "fal-ai/flux-1/schnell", "stock"):
+        for extra_m in ("nano-banana-pro", "nano-banana-2", "nano-banana-2.1", "imagen3", "dalle3", "imagen-3.0-generate-002", "gpt-image-1", "fal-ai/flux-1/schnell", "stock"):
             if extra_m not in models_list:
                 models_list = [extra_m] + models_list
         scenes_data = []
@@ -3888,7 +3890,7 @@ def get_image_styles():
 @app.get("/api/images/models")
 def get_image_models():
     ckpts = get_available_checkpoints()
-    for extra_m in ("nano-banana-2.1", "imagen3", "dalle3", "imagen-3.0-generate-002", "gpt-image-1", "fal-ai/flux-1/schnell", "stock"):
+    for extra_m in ("nano-banana-pro", "nano-banana-2", "nano-banana-2.1", "imagen3", "dalle3", "imagen-3.0-generate-002", "gpt-image-1", "fal-ai/flux-1/schnell", "stock"):
         if extra_m not in ckpts:
             ckpts = [extra_m] + ckpts
     return {"models": ckpts}
@@ -3987,7 +3989,7 @@ def update_project_image_settings(project_id: str, req: ProjectImageSettingsRequ
             images_s["provider"] = "stock"
             images_s["checkpoint"] = "stock"
             stage_models["images"] = "stock"
-        elif req.checkpoint in ("fal-ai/flux-1/schnell", "fal-ai/flux/schnell", "nano-banana-2.1", "gpt-image-1", "imagen-3.0-generate-002", "dalle3", "imagen3"):
+        elif req.checkpoint in ("fal-ai/flux-1/schnell", "fal-ai/flux/schnell", "nano-banana-2.1", "nano-banana-2", "nano-banana-pro", "gpt-image-1", "imagen-3.0-generate-002", "dalle3", "imagen3"):
             images_s["provider"] = req.checkpoint
             images_s["checkpoint"] = req.checkpoint
             stage_models["images"] = req.checkpoint
@@ -4135,6 +4137,10 @@ def regenerate_scene_image(project_id: str, scene_id: int, req_body: Optional[Re
         prov_name = "imagen3"
     elif chosen_model in ("nano-banana-2.1", "nano_banana_21", "gemini-nano-banana-2.1", "banana"):
         prov_name = "nano-banana-2.1"
+    elif chosen_model in ("nano-banana-2", "gemini-3.1-flash-image"):
+        prov_name = "nano-banana-2"
+    elif chosen_model in ("nano-banana-pro", "gemini-3-pro-image"):
+        prov_name = "nano-banana-pro"
     elif chosen_model == "placeholder":
         prov_name = "placeholder"
     else:

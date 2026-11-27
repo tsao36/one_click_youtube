@@ -675,6 +675,13 @@ class NanoBanana21ImageProvider(ImageProvider):
     def __init__(self, settings: dict):
 
         self.s = settings.get("images", {})
+        self.models_to_try = [
+            "gemini-2.5-flash-image",
+            "gemini-3.1-flash-image",
+            "gemini-nano-banana-2.1",
+            "gemini-3-pro-image",
+        ]
+        self.rate_per_image = 0.0168
 
     @property
 
@@ -706,17 +713,7 @@ class NanoBanana21ImageProvider(ImageProvider):
 
             raise RuntimeError("GEMINI_API_KEY not set in .env (required for Nano Banana 2.1)")
 
-        models_to_try = [
-
-            "gemini-2.5-flash-image",
-
-            "gemini-3.1-flash-image",
-
-            "gemini-nano-banana-2.1",
-
-            "gemini-3-pro-image",
-
-        ]
+        models_to_try = self.models_to_try
 
         aspect_desc = "16:9 widescreen format, high resolution, cinematic composition" if req.width >= req.height else "9:16 vertical portrait format, high resolution"
 
@@ -875,7 +872,7 @@ class NanoBanana21ImageProvider(ImageProvider):
 
                         return {
 
-                            "provider": "nano-banana-2.1",
+                            "provider": self.name,
 
                             "model": m,
 
@@ -893,7 +890,7 @@ class NanoBanana21ImageProvider(ImageProvider):
 
                             "ai_imprinted": True,
 
-                            "rate_per_image": 0.0168,
+                            "rate_per_image": self.rate_per_image,
 
                             "has_reference_image": bool(ref_b64),
 
@@ -928,7 +925,17 @@ class NanoBanana21ImageProvider(ImageProvider):
             else:
                 last_error = f"{m} failed ({r.status_code}): {r.text[:200]}"
 
-        raise RuntimeError(f"Google Nano Banana 2.1 generation failed: {last_error}")
+        raise RuntimeError(f"Google {self.name} generation failed: {last_error}")
+
+
+class NanoBananaImageProvider(NanoBanana21ImageProvider):
+    """Google Nano Banana models with an explicit, non-fallback model choice."""
+
+    def __init__(self, settings: dict, name: str, model: str):
+        super().__init__(settings)
+        self.name = name
+        self.models_to_try = [model]
+        self.rate_per_image = 0.067 if name == "nano-banana-2" else 0.134
 
 class Imagen3ImageProvider(ImageProvider):
 
@@ -1499,6 +1506,14 @@ def get_image_provider(name: str, settings: dict) -> ImageProvider:
     if name in ("nano-banana-2.1", "nano_banana_21", "gemini-nano-banana-2.1", "nano-banana", "nano_banana", "banana-2.1", "banana"):
 
         return NanoBanana21ImageProvider(settings)
+
+    if name in ("nano-banana-2", "gemini-3.1-flash-image"):
+
+        return NanoBananaImageProvider(settings, "nano-banana-2", "gemini-3.1-flash-image")
+
+    if name in ("nano-banana-pro", "gemini-3-pro-image"):
+
+        return NanoBananaImageProvider(settings, "nano-banana-pro", "gemini-3-pro-image")
 
     if name in ("imagen3", "imagen-3", "gemini_image", "google"):
 
