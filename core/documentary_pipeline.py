@@ -59,6 +59,87 @@ from rendering.ffmpeg_renderer import project_timeline
 from rendering.transitions import total_length
 
 
+def _creator_json_dossier(raw: str) -> tuple[dict, dict] | None:
+    """Return compatible research and script artifacts from a Creator JSON dossier."""
+    if not raw:
+        return None
+    start = raw.find("{")
+    if start < 0:
+        return None
+    try:
+        dossier, _ = json.JSONDecoder().raw_decode(raw[start:])
+    except (json.JSONDecodeError, TypeError):
+        return None
+    if not isinstance(dossier, dict) or not dossier.get("main_question"):
+        return None
+
+    raw_script = dossier.get("script")
+    sections = []
+    if isinstance(raw_script, list):
+        sections = [
+            {"name": str(item.get("name") or item.get("section") or f"Part {i + 1}"),
+             "text": str(item.get("text") or "").strip()}
+            for i, item in enumerate(raw_script) if isinstance(item, dict) and item.get("text")
+        ]
+    elif isinstance(raw_script, dict) and isinstance(raw_script.get("sections"), list):
+        sections = [
+            {"name": str(item.get("name") or item.get("section") or f"Part {i + 1}"),
+             "text": str(item.get("text") or "").strip()}
+            for i, item in enumerate(raw_script["sections"]) if isinstance(item, dict) and item.get("text")
+        ]
+    elif isinstance(raw_script, str) and raw_script.strip():
+        script_text = raw_script.strip()
+        headings = list(re.finditer(r"(?m)^【([^】\n]+)】\s*\n", script_text))
+        if headings:
+            for i, heading in enumerate(headings):
+                end = headings[i + 1].start() if i + 1 < len(headings) else len(script_text)
+                section_text = script_text[heading.end():end].strip()
+                if section_text:
+                    sections.append({"name": heading.group(1).strip(), "text": section_text})
+        else:
+            sections = [{"name": "旁白", "text": script_text}]
+    if not sections:
+        return None
+
+    research = {key: dossier.get(key) for key in (
+        "main_question", "audience", "narrative_angle", "emotional_arc", "memorable_moments",
+        "key_concepts", "misconceptions", "interesting_facts", "narrative_structure", "sources",
+    ) if key in dossier}
+    research.setdefault("narrative_structure", [])
+    research.setdefault("key_concepts", [])
+    research.setdefault("misconceptions", [])
+    research.setdefault("interesting_facts", [])
+    research.setdefault("sources", [])
+    research["mode"] = "creator_json_import"
+    world_setting = dossier.get("world_setting")
+    research["world_setting"] = world_setting if isinstance(world_setting, dict) else {}
+    for key in ("temporal_era", "environment_reality", "key_settings", "ensemble_specs"):
+        value = research["world_setting"].get(key)
+        if isinstance(value, (dict, list)):
+            research["world_setting"][key] = json.dumps(value, ensure_ascii=False)
+        elif value is not None and not isinstance(value, str):
+            research["world_setting"][key] = str(value)
+    if not isinstance(research["world_setting"].get("negative_anachronisms"), list):
+        research["world_setting"]["negative_anachronisms"] = []
+
+    from agents.script_writer import words
+    word_count = sum(words(section["text"]) for section in sections)
+    try:
+        target_word_count = int(dossier.get("target_words") or word_count)
+    except (TypeError, ValueError):
+        target_word_count = word_count
+    imported_script = {
+        "topic": dossier.get("title") or dossier.get("topic") or "",
+        "title": dossier.get("title") or dossier.get("topic") or "",
+        "sections": sections,
+        "word_count": word_count,
+        "target_words": target_word_count,
+        "creator_supplied": True,
+    }
+    imported_script["taiwan_mandarin_verified"] = False
+    return research, imported_script
+
+
 
 
 
@@ -119,6 +200,21 @@ class DocumentaryPipeline(BasePipeline):
 
 
         research_mode = cfg.get("research_mode") or self.p.data.settings.get("research_mode", "auto")
+
+        imported = _creator_json_dossier(user_research)
+        if imported:
+            research_data, imported_script = imported
+            imported_script["topic"] = imported_script["topic"] or self.p.data.topic
+            imported_script["title"] = imported_script["title"] or self.p.data.topic
+            self.p.activity("Stage 1/10: Using Creator JSON dossier and supplied script...")
+            self.p.write_json("research/research.json", research_data)
+            self.p.write_json("script/imported_script.json", imported_script)
+            self.p.write_text("research/user_research.md", f"# User-Submitted Research JSON\n\n{user_research.strip()}\n")
+            self.p.data.title = imported_script["title"] or self.p.data.topic
+            self.p.set_stage("research", Status.COMPLETED, done=1, total=1, duration_override=0.1)
+            self.p.save()
+            log.info("Imported Creator JSON dossier and supplied script; skipped Stage 1 generation")
+            return
 
 
 
@@ -335,6 +431,31 @@ class DocumentaryPipeline(BasePipeline):
         try:
 
 
+
+            imported_script = self.p.read_json("script/imported_script.json")
+            if imported_script and imported_script.get("creator_supplied"):
+                scr = imported_script
+                self.p.activity("Stage 2/10: Using Creator-supplied script...")
+                self.p.write_json("script/script.json", scr)
+                self.p.write_json("script/script_original.json", scr)
+                self.p.write_json("script/script_final.json", scr)
+                markdown = script_markdown(scr)
+                self.p.write_text("script/script.md", markdown)
+                self.p.write_text("script/script_original.md", markdown)
+                self.p.write_text("script/script_final.md", markdown)
+                review = {
+                    "final_script": scr,
+                    "high_risk": False,
+                    "review_status": "skipped_user_supplied_script",
+                    "review_note": "Script generation, automated review, and script fact-check were skipped because the Creator supplied this script in JSON.",
+                }
+                self.p.write_json("script/script_review_report.json", review)
+                self.p.write_text("script/script_review_report.md", str(review))
+                self.p.data.title = scr.get("title", self.p.data.topic)
+                self.p.set_stage("script", Status.COMPLETED, done=scr["word_count"], total=scr["target_words"], duration_override=0.1)
+                self.p.save()
+                log.info("Used Creator-supplied script; skipped Stage 2 generation and review")
+                return
 
             scr = write_script(self.p.data.topic, res, cfg, self._track_llm_request, partial=partial, on_section=on_sec, provider_override=scr_prov)
 

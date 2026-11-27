@@ -472,6 +472,7 @@
             <div style="font-size: 12px; color: #cbd5e1; line-height: 1.5; margin-bottom: 10px;">
               在全自動影片生成前，您可以提交個人的研究筆記、訪談逐字稿、論文摘要、專利技術細節或獨家事實素材。
               <strong>Stage 1 (研究分析)</strong> 與 <strong>Stage 2 (腳本撰寫)</strong> 將嚴格以此為最高事實依據 (Ground Truth)，確保內容精準無幻覺。
+              若貼上包含 <code>main_question</code> 與非空 <code>script</code> 欄位的 JSON，系統會直接匯入並略過 Stage 1、Stage 2 的生成與查核，以節省時間與 Token。
             </div>
 
             <!-- Mode Selection -->
@@ -513,7 +514,7 @@
             <div id="creator-research-upload-status" style="display: none; font-size: 11.5px; color: #38bdf8; margin-bottom: 6px; padding: 4px 8px; background: rgba(56, 189, 248, 0.1); border-radius: 4px;"></div>
 
             <!-- Textarea -->
-            <textarea id="creator-user-research" rows="7" placeholder="貼上或輸入您的自訂研究資料、關鍵事實、技術參數、故事大綱、專家名言或逐字稿...&#10;（AI 將在此基礎上梳理 Stage 1 研究報告並撰寫 Stage 2 旁白腳本，確保內容完全符合您的專業要求）" data-ui-input="static_054" style="width: 100%; box-sizing: border-box; font-size: 12.5px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; line-height: 1.5; background: rgba(5, 8, 15, 0.85); border: 1px solid rgba(148, 163, 184, 0.3); border-radius: var(--radius); padding: 10px 12px; color: #f8fafc; resize: vertical;"></textarea>
+            <textarea id="creator-user-research" rows="7" placeholder="貼上或輸入您的自訂研究資料、關鍵事實、技術參數、故事大綱、專家名言或逐字稿...&#10;JSON 若含 main_question 與非空 script，會直接使用並略過 Stage 1/2 的生成與查核。" data-ui-input="static_054" style="width: 100%; box-sizing: border-box; font-size: 12.5px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; line-height: 1.5; background: rgba(5, 8, 15, 0.85); border: 1px solid rgba(148, 163, 184, 0.3); border-radius: var(--radius); padding: 10px 12px; color: #f8fafc; resize: vertical;"></textarea>
 
             <label style="display:flex; align-items:flex-start; gap:8px; margin-top:9px; color:#fbbf24; font-size:12px; font-weight:600; cursor:pointer;">
               <input type="checkbox" id="creator-skip-script-fact-check" checked style="width:15px; height:15px; margin-top:1px; accent-color:#f59e0b; flex-shrink:0;">
