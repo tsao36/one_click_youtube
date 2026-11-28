@@ -98,3 +98,76 @@ def test_image_breakdown_detects_batch_pricing_and_mixed_modes():
 
     # Most expensive (nano-banana-pro standard $0.134) is still ranked #1 above 2x batch ($0.0337)
     assert img_details["breakdown"][0]["provider"] == "nano-banana-pro"
+
+
+def test_nano_banana_pro_and_2_default_to_batch_api(tmp_path):
+    import base64
+    import io
+    from unittest.mock import MagicMock, patch
+    from PIL import Image
+    from providers.images import ImageRequest, get_image_provider
+
+    pro = get_image_provider("nano-banana-pro", {})
+    assert pro.supports_batch is True
+    assert pro.models_to_try == ["gemini-3-pro-image"]
+    assert pro.rate_per_image == 0.067
+
+    nb2 = get_image_provider("nano-banana-2", {})
+    assert nb2.supports_batch is True
+    assert nb2.models_to_try == ["gemini-3.1-flash-image"]
+    assert nb2.rate_per_image == 0.034
+
+    pro_sync = get_image_provider("nano-banana-pro", {"images": {"use_batch_api": False}})
+    assert pro_sync.supports_batch is False
+    assert pro_sync.rate_per_image == 0.134
+
+    # Verify generate_batch submits the provider's actual model (gemini-3-pro-image)
+    buf = io.BytesIO()
+    Image.new("RGB", (64, 64), (40, 120, 200)).save(buf, format="PNG")
+    img_b64 = base64.b64encode(buf.getvalue()).decode("ascii")
+
+    fake_client = MagicMock()
+    fake_client.files.upload.return_value = SimpleNamespace(name="files/batch-in")
+    fake_client.batches.create.return_value = SimpleNamespace(name="batches/job-123")
+    fake_client.batches.get.return_value = SimpleNamespace(
+        name="batches/job-123",
+        state=SimpleNamespace(name="JOB_STATE_SUCCEEDED"),
+        dest=SimpleNamespace(
+            inlined_responses=[
+                {
+                    "key": "0",
+                    "response": {
+                        "candidates": [
+                            {"content": {"parts": [{"inlineData": {"data": img_b64}}]}}
+                        ]
+                    },
+                }
+            ],
+            file_name=None,
+        ),
+    )
+
+    out_path = tmp_path / "scene_001.png"
+    req = ImageRequest(prompt="Taipei skyline at sunset", negative="", output=out_path, width=1280, height=720, seed=42)
+
+    with patch("core.config.get_secret", return_value="fake-key"), \
+         patch("google.genai.Client", return_value=fake_client), \
+         patch("providers.images._check_not_blank"):
+        metas = pro.generate_batch([req])
+
+    assert fake_client.batches.create.call_args.kwargs["model"] == "gemini-3-pro-image"
+    assert len(metas) == 1
+    assert metas[0]["provider"] == "nano-banana-pro"
+    assert metas[0]["model"] == "gemini-3-pro-image"
+    assert metas[0]["billing_mode"] == "batch"
+    assert metas[0]["rate_per_image"] == 0.067
+
+    # And verify pricing engine prices nano-banana-pro batch at $0.067/img + input
+    res = calculate_project_costs(_make_project([_make_scene(1, img_meta=metas[0])]))
+    img_det = res["stage_details"]["images"]
+    assert img_det["batch_count"] == 1
+    assert img_det["standard_count"] == 0
+    assert img_det["breakdown"][0]["billing_mode"] == "batch"
+    assert img_det["breakdown"][0]["unit_rate"] == 0.067
+    assert img_det["breakdown"][0]["cost"] < 0.07
+

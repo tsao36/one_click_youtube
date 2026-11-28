@@ -692,7 +692,10 @@ class NanoBanana21ImageProvider(ImageProvider):
         return (True, "Gemini API key configured (Nano Banana 2 Lite Batch)") if self.key else (False, "GEMINI_API_KEY not set in .env")
 
     def generate(self, req: ImageRequest, cancel: Callable[[], bool] | None = None) -> dict:
-        return self.generate_batch([req], cancel=cancel)[0]
+        res = self.generate_batch([req], cancel=cancel)[0]
+        if res.get("error"):
+            raise RuntimeError(res["error"])
+        return res
 
     def _batch_request(self, req: ImageRequest) -> dict:
         aspect_desc = "16:9 widescreen format, high resolution, cinematic composition" if req.width >= req.height else "9:16 vertical portrait format, high resolution"
@@ -756,7 +759,7 @@ class NanoBanana21ImageProvider(ImageProvider):
         if cancel and cancel():
             raise RuntimeError("Image batch generation cancelled")
 
-        model = "gemini-3.1-flash-lite-image"
+        model = self.models_to_try[0] if self.models_to_try else "gemini-3.1-flash-lite-image"
         batch_requests = [
             {"key": str(i), "request": self._batch_request(req)}
             for i, req in enumerate(reqs)
@@ -1067,16 +1070,31 @@ class NanoBanana21ImageProvider(ImageProvider):
 
 
 class NanoBananaImageProvider(NanoBanana21ImageProvider):
-    """Google Nano Banana models with an explicit, non-fallback model choice."""
+    """Google Nano Banana models with an explicit, non-fallback model choice.
+
+    Uses Gemini Batch API by default (50% lower output pricing: $0.067/img for
+    nano-banana-pro, $0.034/img for nano-banana-2). Set
+    ``settings["images"]["use_batch_api"] = False`` to force synchronous calls.
+    """
 
     def __init__(self, settings: dict, name: str, model: str):
         super().__init__(settings)
         self.name = name
         self.models_to_try = [model]
-        self.rate_per_image = 0.067 if name == "nano-banana-2" else 0.134
-        self.supports_batch = False
+        use_batch = bool((settings or {}).get("images", {}).get("use_batch_api", True))
+        self.supports_batch = use_batch
+        if use_batch:
+            self.rate_per_image = 0.034 if name == "nano-banana-2" else 0.067
+        else:
+            self.rate_per_image = 0.067 if name == "nano-banana-2" else 0.134
+
+    def available(self) -> tuple[bool, str]:
+        mode = "Batch" if self.supports_batch else "Standard"
+        return (True, f"Gemini API key configured ({self.name} {mode})") if self.key else (False, "GEMINI_API_KEY not set in .env")
 
     def generate(self, req: ImageRequest, cancel: Callable[[], bool] | None = None) -> dict:
+        if self.supports_batch:
+            return super().generate(req, cancel=cancel)
         return self._generate_sync_legacy(req, cancel=cancel)
 
 class Imagen3ImageProvider(ImageProvider):

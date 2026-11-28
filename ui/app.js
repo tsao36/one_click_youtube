@@ -1822,8 +1822,8 @@
     function formatModelLabel(modelName) {
       if (!modelName) return 'Default Model';
       if (modelName === 'nano-banana-2.1' || modelName === 'gemini-nano-banana-2.1' || modelName === 'nano-banana') return '☁️ Google Nano Banana 2 Lite (Gemini 3.1 Flash Lite Image Batch • $0.0168/img + prompt input)';
-      if (modelName === 'nano-banana-2') return '☁️ Google Nano Banana 2 (Gemini 3.1 Flash Image)';
-      if (modelName === 'nano-banana-pro') return '☁️ Google Nano Banana Pro (Gemini 3 Pro Image)';
+      if (modelName === 'nano-banana-2') return '☁️ Google Nano Banana 2 (Gemini 3.1 Flash Image Batch • $0.034/img + prompt input)';
+      if (modelName === 'nano-banana-pro') return '☁️ Google Nano Banana Pro (Gemini 3 Pro Image Batch • $0.067/img + prompt input)';
       if (modelName === 'stock' || modelName === 'stock_photos') return '🌐 Online Stock Photos ($0.00 / Free)';
       if (modelName === 'fal-ai/flux-1/schnell' || modelName === 'fal-ai/flux/schnell' || modelName === 'flux-schnell') return '☁️ Fal.ai fal-ai/flux-1/schnell ($0.003/img • ~$0.12/40 scenes)';
       if (modelName === 'gpt-image-1' || modelName === 'gpt_image_1') return '☁️ OpenAI gpt-image-1 ($0.08/img • ~$3.20/40 scenes)';
@@ -1866,8 +1866,8 @@
     const CANONICAL_IMAGE_ENGINES = [
       { val: 'fal-ai/flux-1/schnell', label: 'Cloud API: fal-ai/flux-1/schnell ($0.003/img • ~$0.12/40 sc) (Default)' },
       { val: 'nano-banana-2.1', label: 'Cloud API: Google Nano Banana 2 Lite (Batch API • $0.0168/img + prompt input)' },
-      { val: 'nano-banana-2', label: 'Cloud API: Google Nano Banana 2 / Gemini 3.1 Flash Image (~$0.067/img)' },
-      { val: 'nano-banana-pro', label: 'Cloud API: Google Nano Banana Pro / Gemini 3 Pro Image (~$0.134/img) (Recommended)' },
+      { val: 'nano-banana-2', label: 'Cloud API: Google Nano Banana 2 / Gemini 3.1 Flash Image (Batch API • $0.034/img + input)' },
+      { val: 'nano-banana-pro', label: 'Cloud API: Google Nano Banana Pro / Gemini 3 Pro Image (Batch API • $0.067/img + input) (Recommended)' },
       { val: 'comfyui', label: 'Local GPU: ComfyUI DirectML ($0.00 / Free)' },
       { val: 'stock', label: '🌐 Online Stock Photos & Footage ($0.00 / Free, 0 VRAM)' },
       { val: 'gpt-image-1', label: 'Cloud API: OpenAI gpt-image-1 ($0.08/img • ~$3.20/40 sc)' },
@@ -14366,8 +14366,8 @@ function performResearchReplace(textareaId, findInputId, replaceInputId, matchCa
           <div style="display:flex; align-items:center; gap:6px; font-size:12px; background:var(--bg-sunken); padding:4px 8px; border-radius:var(--radius-sm); border:1px solid var(--border-subtle);">
             <label style="font-size:12px; font-weight:700; color:var(--text-muted); margin:0;">Model:</label>
             <select style="padding:4px 8px; font-size:12px; border-radius:var(--radius-sm); background:var(--bg-canvas); color:var(--text-primary); border:1px solid var(--border-muted);" onchange="updateStudioStageModel('images', this.value)">
-              <option value="nano-banana-pro" ${currentSm === 'nano-banana-pro' || !currentSm ? 'selected' : ''}>Cloud API: Google Nano Banana Pro / Gemini 3 Pro Image (~$0.134/img) (Recommended)</option>
-              <option value="nano-banana-2" ${currentSm === 'nano-banana-2' ? 'selected' : ''}>Cloud API: Google Nano Banana 2 / Gemini 3.1 Flash Image (~$0.067/img)</option>
+              <option value="nano-banana-pro" ${currentSm === 'nano-banana-pro' || !currentSm ? 'selected' : ''}>Cloud API: Google Nano Banana Pro / Gemini 3 Pro Image (Batch API, $0.067/img + input) (Recommended)</option>
+              <option value="nano-banana-2" ${currentSm === 'nano-banana-2' ? 'selected' : ''}>Cloud API: Google Nano Banana 2 / Gemini 3.1 Flash Image (Batch API, $0.034/img + input)</option>
               <option value="nano-banana-2.1" ${currentSm === 'nano-banana-2.1' ? 'selected' : ''}>Cloud API: Google Nano Banana 2 Lite (Batch API, $0.0168/img + input)</option>
               <option value="fal-ai/flux-1/schnell" ${currentSm === 'fal-ai/flux-1/schnell' || currentSm === 'fal-ai/flux/schnell' ? 'selected' : ''}>Cloud API: fal-ai/flux-1/schnell ($0.003/img • ~$0.12/40 sc)</option>
               <option value="comfyui" ${currentSm === 'comfyui' ? 'selected' : ''}>Local GPU: ComfyUI DirectML ($0.00 / Free)</option>
