@@ -1384,9 +1384,8 @@ class BasePipeline:
             if avatar_profile:
                 self.p.data.settings["default_avatar"] = avatar_profile
 
-            # Handle Voice Profile update alongside avatar
-            # If avatar presenter is used, always use the voice profile of the avatar presenter
-            if not voice_profile or voice_profile in ("auto", "keep"):
+            # Only resolve the avatar's linked voice when voice_profile is explicitly "auto".
+            if voice_profile == "auto":
                 target_av = avatar_profile or self.p.data.settings.get("default_avatar")
                 if target_av:
                     try:
@@ -1397,7 +1396,11 @@ class BasePipeline:
                     except Exception:
                         pass
 
-            has_voice_update = bool(voice_profile and voice_profile.strip() and voice_profile != "keep")
+            has_voice_update = bool(
+                voice_profile
+                and voice_profile.strip()
+                and voice_profile not in ("keep", "auto")
+            )
 
             if has_voice_update:
 

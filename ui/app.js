@@ -4402,6 +4402,32 @@
       return _isCheckboxGroupChecked(PAUSE_AFTER_STAGE3_CHECKBOX_IDS);
     }
 
+    function syncConfirmSetting(sourceId, value) {
+      const source = document.getElementById(sourceId);
+      if (!source) return;
+      source.value = value;
+      source.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    window.syncConfirmSetting = syncConfirmSetting;
+
+    function copyConfirmOptions(sourceId, confirmId) {
+      const source = document.getElementById(sourceId);
+      const confirm = document.getElementById(confirmId);
+      if (!source || !confirm) return;
+      confirm.innerHTML = source.innerHTML;
+      confirm.value = source.value;
+      confirm.disabled = false;
+    }
+
+    function setConfirmDisplayValue(confirmId, value, label) {
+      const confirm = document.getElementById(confirmId);
+      if (!confirm) return;
+      confirm.innerHTML = '';
+      confirm.add(new Option(label, value));
+      confirm.value = value;
+      confirm.disabled = true;
+    }
+
     function confirmAndProceedWithVideo() {
       const action = pendingCreationAction;
       closeCreateVideoConfirmModal();
@@ -4525,14 +4551,12 @@
       // Populate modal fields
       const modalTopicEl = document.getElementById('confirm-modal-topic');
       if (modalTopicEl) modalTopicEl.textContent = topic;
-      const modalDurEl = document.getElementById('confirm-modal-duration');
-      if (modalDurEl) modalDurEl.textContent = `${durationSec} 秒 (${durationSec}s)`;
-      const modalVoiceEl = document.getElementById('confirm-modal-voice');
-      if (modalVoiceEl) modalVoiceEl.textContent = '角色專屬音色 (Character Voice TTS)';
-      const modalAvatarEl = document.getElementById('confirm-modal-avatar');
-      if (modalAvatarEl) modalAvatarEl.textContent = charNames;
-      const modalLangEl = document.getElementById('confirm-modal-language');
-      if (modalLangEl) modalLangEl.textContent = 'Traditional Chinese (繁體中文)';
+      setConfirmDisplayValue('confirm-modal-duration', durationSec, `${durationSec} 秒 (${durationSec}s)`);
+      setConfirmDisplayValue('confirm-modal-voice', 'character_voice', '角色專屬音色 (Character Voice TTS)');
+      setConfirmDisplayValue('confirm-modal-avatar', 'drama_cast', charNames);
+      const modalPlacementEl = document.getElementById('confirm-modal-placement');
+      if (modalPlacementEl) modalPlacementEl.style.display = 'none';
+      setConfirmDisplayValue('confirm-modal-language', 'Traditional Chinese', 'Traditional Chinese (繁體中文)');
 
       const remotionRow = document.getElementById('confirm-modal-remotion-row');
       if (remotionRow) remotionRow.style.display = 'none';
@@ -4648,11 +4672,8 @@
 
       const durationEl = document.getElementById('duration');
       const duration = durationEl ? parseFloat(durationEl.value) : 10;
-      const durationText = durationEl?.options[durationEl.selectedIndex]?.text || `${duration} Minutes`;
-
       const languageEl = document.getElementById('language');
       const language = languageEl ? languageEl.value : 'Traditional Chinese';
-      const languageText = languageEl?.options[languageEl.selectedIndex]?.text || language;
 
       const voiceEl = document.getElementById('voice-select');
       let voice = voiceEl ? voiceEl.value : '';
@@ -4665,8 +4686,6 @@
       if (chosenVoiceObj && chosenVoiceObj.provider) {
         voice = chosenVoiceObj.name;
       }
-      const voiceText = voiceEl?.options[voiceEl.selectedIndex]?.text || voice || 'Default Voice';
-
       const placementEl = document.getElementById('creator-presenter-placement');
       const presenterPlacement = placementEl ? placementEl.value : (document.getElementById('creator-auto-presenter') && document.getElementById('creator-auto-presenter').checked ? 'intro' : 'none');
       const avatarEl = document.getElementById('creator-presenter-avatar');
@@ -4676,30 +4695,21 @@
       const stageModels = getSelectedStageModels();
       const ai_pct = parseFloat(document.getElementById('ai-video-pct')?.value || '0');
 
-      // Avatar character selection display text
       const isPureRemotionNoPresenter = (window.activeRemotionPreset === 'gary_chen' || (stageModels.animation === 'remotion' && ai_pct === 0 && window.activeRemotionPreset !== 'blueprint'));
-      let avatarText = '🚫 不出鏡 (None / No presenter avatar)';
-      if (!isPureRemotionNoPresenter && autoPresenter && presenterPlacement !== 'none') {
-        const avName = avatarEl?.options[avatarEl.selectedIndex]?.text || defaultAvatar || 'Presenter Avatar';
-        const plName = placementEl?.options[placementEl.selectedIndex]?.text || presenterPlacement;
-        avatarText = `${avName} · [${plName}]`;
-      }
 
       // Remotion style (if Remotion is selected)
       const remotionInfo = getActiveRemotionStyleInfo(stageModels, ai_pct);
 
       // Populate confirmation modal fields
+      copyConfirmOptions('duration', 'confirm-modal-duration');
+      copyConfirmOptions('voice-select', 'confirm-modal-voice');
+      copyConfirmOptions('creator-presenter-avatar', 'confirm-modal-avatar');
+      copyConfirmOptions('creator-presenter-placement', 'confirm-modal-placement');
+      const modalPlacementEl = document.getElementById('confirm-modal-placement');
+      if (modalPlacementEl) modalPlacementEl.style.display = '';
+      copyConfirmOptions('language', 'confirm-modal-language');
       const modalTopicEl = document.getElementById('confirm-modal-topic');
       if (modalTopicEl) modalTopicEl.textContent = topic;
-      const modalDurEl = document.getElementById('confirm-modal-duration');
-      if (modalDurEl) modalDurEl.textContent = durationText;
-      const modalVoiceEl = document.getElementById('confirm-modal-voice');
-      if (modalVoiceEl) modalVoiceEl.textContent = voiceText;
-      const modalAvatarEl = document.getElementById('confirm-modal-avatar');
-      if (modalAvatarEl) modalAvatarEl.textContent = avatarText;
-      const modalLangEl = document.getElementById('confirm-modal-language');
-      if (modalLangEl) modalLangEl.textContent = languageText;
-
       const remotionRow = document.getElementById('confirm-modal-remotion-row');
       const remotionStyleEl = document.getElementById('confirm-modal-remotion-style');
       if (remotionInfo.isSelected) {
@@ -5686,12 +5696,23 @@
           stageBreakdownHtml += '</div></div>';
         }
 
-        const stageCosts = u.stage_costs || {};
-        const stageDetails = u.stage_details || {};
-        const totalCost = u.estimated_cost_usd !== undefined ? u.estimated_cost_usd : 0;
+        let stageCosts = u.stage_costs || {};
+        let stageDetails = u.stage_details || {};
+        let totalCost = u.estimated_cost_usd !== undefined ? u.estimated_cost_usd : 0;
+        if (!stageDetails.images || !Array.isArray(stageDetails.images.breakdown)) {
+          try {
+            const freshCosts = await apiJson(`/api/projects/${currentProjectId}/costs`);
+            if (freshCosts && freshCosts.stage_details) {
+              stageCosts = freshCosts.stage_costs || stageCosts;
+              stageDetails = freshCosts.stage_details || stageDetails;
+              if (freshCosts.total_cost_usd !== undefined) totalCost = freshCosts.total_cost_usd;
+            }
+          } catch (e) { /* keep cached usage */ }
+        }
         const isCloudAccelerated = (p && p.settings && p.settings.cloud && p.settings.cloud.enabled) || totalCost > 0;
 
         let costRows = '';
+        const fmtUsd = (val) => val > 0 ? (val < 0.0001 ? '< $0.0001' : (val < 0.01 ? '$' + val.toFixed(4) : '$' + val.toFixed(3))) : '$0.0000';
         stageMeta.forEach(sm => {
           const c = stageCosts[sm.key] !== undefined ? stageCosts[sm.key] : 0.0;
           const det = stageDetails[sm.key] || {};
@@ -5700,20 +5721,35 @@
           const units = det.units || '';
           const sSec = stageDursMap[sm.key] || 0;
           const timeStr = sSec > 0 ? formatDuration(sSec) : '—';
-          const costStr = c > 0 ? (c < 0.0001 ? '< $0.0001' : (c < 0.01 ? '$' + c.toFixed(4) : '$' + c.toFixed(3))) : '$0.0000';
+          const costStr = fmtUsd(c);
           const isFree = c === 0.0;
           const costBadgeStyle = isFree
             ? 'background: rgba(100, 116, 139, 0.15); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.2);'
             : 'background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); font-weight: 700;';
 
+          let stageBillingBadge = '';
+          if (sm.key === 'images') {
+            const bCnt = Number(det.batch_count || 0);
+            const sCnt = Number(det.standard_count || 0);
+            if (bCnt > 0 && sCnt === 0) {
+              stageBillingBadge = ' <span style="font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 3px; background: rgba(16, 185, 129, 0.18); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35); vertical-align: middle;">⚡ BATCH PRICING</span>';
+            } else if (bCnt > 0 && sCnt > 0) {
+              stageBillingBadge = ' <span style="font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 3px; background: rgba(245, 158, 11, 0.18); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35); vertical-align: middle;">MIXED BATCH / STD</span>';
+            } else if (sCnt > 0) {
+              stageBillingBadge = ' <span style="font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 3px; background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35); vertical-align: middle;">STANDARD (NO BATCH)</span>';
+            }
+          }
+
+          const hasImgBreakdown = sm.key === 'images' && Array.isArray(det.breakdown) && det.breakdown.length > 0;
+
           costRows += `
-            <tr style="border-bottom: 1px solid #142033;">
+            <tr style="border-bottom: 1px solid ${hasImgBreakdown ? '#1e3a5f' : '#142033'};">
               <td style="padding: 6px 8px; font-weight: 600; color: #cbd5e1; white-space: nowrap;">
-                ${sm.icon} ${sm.title}
+                ${sm.icon} ${sm.title}${stageBillingBadge}
               </td>
               <td style="padding: 6px 8px; color: #94a3b8; font-size: 11px;">
-                <div style="font-weight: 600; color: #cbd5e1;">${prov}</div>
-                ${units ? `<div style="color: #64748b; font-size: 10px;">${units}</div>` : ''}
+                <div style="font-weight: 600; color: #cbd5e1;">${escapeHtml(prov)}</div>
+                ${units ? `<div style="color: #64748b; font-size: 10px;">${escapeHtml(units)}</div>` : ''}
               </td>
               <td style="padding: 6px 8px; text-align: right; white-space: nowrap; font-family: monospace; color: #38bdf8; font-weight: 600;">
                 ⏱️ ${timeStr}
@@ -5725,6 +5761,77 @@
               </td>
             </tr>
           `;
+
+          if (hasImgBreakdown) {
+            const topPaidCost = Math.max(...det.breakdown.map(b => Number(b.cost || 0)), 0);
+            det.breakdown.forEach((b, idx) => {
+              const bCost = Number(b.cost || 0);
+              const bCount = Number(b.count || 0);
+              const bRate = Number(b.unit_rate || 0);
+              const bInputCost = Number(b.input_cost || 0);
+              const bShare = Number(b.share_pct || 0);
+              const bMode = b.billing_mode || (b.is_batch ? 'batch' : (bCost > 0 ? 'standard' : 'free'));
+              const isTopDriver = bCost > 0 && bCost === topPaidCost && idx === 0;
+              const isLastSub = idx === det.breakdown.length - 1;
+
+              let modePill = '<span style="font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 3px; background: rgba(100, 116, 139, 0.16); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.22);">FREE / LOCAL</span>';
+              if (bMode === 'batch') {
+                modePill = '<span style="font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 3px; background: rgba(16, 185, 129, 0.18); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.35);">⚡ BATCH API</span>';
+              } else if (bMode === 'standard') {
+                modePill = '<span style="font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 3px; background: rgba(245, 158, 11, 0.16); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.35);">STANDARD (SYNC)</span>';
+              }
+
+              const topTag = isTopDriver
+                ? ' <span style="font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 3px; background: rgba(239, 68, 68, 0.16); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.35);">TOP COST</span>'
+                : '';
+
+              const modelLabel = (b.model && b.model.toLowerCase() !== String(b.provider || '').toLowerCase())
+                ? ` <span style="color: #64748b; font-size: 10px; font-family: monospace;">(${escapeHtml(b.model)})</span>`
+                : '';
+
+              const rateStr = bRate > 0 ? `$${bRate < 0.01 ? bRate.toFixed(4) : bRate.toFixed(3)}/img` : '$0/img';
+              const inputStr = bInputCost > 0 ? ` + ${fmtUsd(bInputCost)} input` : '';
+              let batchHint = '';
+              if (bMode === 'standard' && b.batch_available_rate && bRate > 0) {
+                const bAvail = Number(b.batch_available_rate);
+                const savePct = Math.round((1 - (bAvail / bRate)) * 100);
+                batchHint = `<div style="color: #94a3b8; font-size: 10px; margin-top: 2px;">Batch API rate: <span style="color: #34d399; font-family: monospace;">$${bAvail < 0.01 ? bAvail.toFixed(4) : bAvail.toFixed(3)}/img</span>${savePct > 0 ? ` (~${savePct}% lower)` : ''}</div>`;
+              }
+
+              const subCostBadgeStyle = bCost === 0
+                ? 'background: rgba(100, 116, 139, 0.12); color: #64748b; border: 1px solid rgba(148, 163, 184, 0.16);'
+                : (isTopDriver
+                  ? 'background: rgba(239, 68, 68, 0.14); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.35); font-weight: 700;'
+                  : 'background: rgba(16, 185, 129, 0.12); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.28); font-weight: 600;');
+
+              const shareHtml = bCost > 0
+                ? `<span style="color: ${isTopDriver ? '#fca5a5' : '#94a3b8'}; font-size: 10px; font-family: monospace;">${bShare.toFixed(1)}% of imgs</span>`
+                : '<span style="color: #475569; font-size: 10px;">—</span>';
+
+              costRows += `
+                <tr class="image-cost-subrow" style="background: rgba(15, 23, 42, 0.55); border-bottom: 1px solid ${isLastSub ? '#1e3a5f' : 'rgba(30, 58, 95, 0.35)'};">
+                  <td style="padding: 4px 8px 4px 24px; color: #94a3b8; font-size: 11px; white-space: nowrap; border-left: 2px solid ${isTopDriver ? '#ef4444' : (bMode === 'batch' ? '#10b981' : '#1e3a5f')};">
+                    <span style="color: #475569; margin-right: 4px;">↳</span><span style="color: ${bCost > 0 ? '#e2e8f0' : '#94a3b8'}; font-weight: ${bCost > 0 ? '600' : '500'};">${escapeHtml(b.provider || 'unknown')}</span>${modelLabel}${topTag}
+                  </td>
+                  <td style="padding: 4px 8px; color: #94a3b8; font-size: 11px;">
+                    <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                      ${modePill}
+                      <span style="color: #cbd5e1; font-size: 10.5px; font-family: monospace;">${bCount} ${bCount === 1 ? 'img' : 'imgs'} × ${rateStr}${inputStr}</span>
+                    </div>
+                    ${batchHint}
+                  </td>
+                  <td style="padding: 4px 8px; text-align: right; white-space: nowrap;">
+                    ${shareHtml}
+                  </td>
+                  <td style="padding: 4px 8px; text-align: right; white-space: nowrap;">
+                    <span style="display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: 10.5px; font-family: monospace; ${subCostBadgeStyle}">
+                      ${fmtUsd(bCost)}
+                    </span>
+                  </td>
+                </tr>
+              `;
+            });
+          }
         });
 
         const totalCostStr = totalCost > 0
@@ -9832,7 +9939,7 @@
         const item = CALLOUT_STYLES_INFO[key];
         const isActive = key === currentVal;
         return `
-          <button type="button" class="btn-sec" data-callout-style="${key}"
+          <button type="button" class="btn-sec" data-callout-style="${key}" onclick="selectCalloutStyle('${selectId}', '${containerId}', '${key}')"
             style="padding:3px 9px; font-size:11px; font-weight:700; border-radius:4px; transition:all .15s; cursor:pointer;
             ${isActive ? 'background:rgba(2, 132, 199, 0.25); border-color:#38bdf8; color:#38bdf8; box-shadow:0 0 8px rgba(56, 189, 248, 0.3);' : 'background:rgba(15, 23, 42, 0.7); border-color:#334155; color:#94a3b8;'}">
             ${item.chipLabel}
@@ -9847,7 +9954,7 @@
           const item = CALLOUT_STYLES_INFO[key];
           const isActive = key === currentVal;
           return `
-            <div data-callout-style="${key}"
+            <div data-callout-style="${key}" onclick="selectCalloutStyle('${selectId}', '${containerId}', '${key}')"
               style="cursor:pointer; background:#080d16; border:1.5px solid ${isActive ? '#38bdf8' : '#1e293b'}; border-radius:6px; padding:7px; display:flex; flex-direction:column; gap:5px; transition:all .15s; ${isActive ? 'box-shadow:0 0 12px rgba(56, 189, 248, 0.3);' : ''}">
               <div style="display:flex; justify-content:space-between; align-items:center;">
                 <span style="font-size:11px; font-weight:700; color:${isActive ? '#38bdf8' : '#e2e8f0'}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${item.name}</span>

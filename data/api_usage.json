@@ -1,7 +1,7 @@
 {
   "version": 1,
   "created_at": "2026-11-16T22:32:40.174600",
-  "updated_at": "2026-11-22T07:04:05.668975",
+  "updated_at": "2026-11-28T01:11:24.878621",
   "daily": {
     "2026-11-16": {
       "date": "2026-11-16",
@@ -714,13 +714,13 @@
       "date": "2026-11-22",
       "stages": {
         "prompts": {
-          "prompt_tokens": 11152,
-          "completion_tokens": 12508,
-          "total_tokens": 23660,
+          "prompt_tokens": 205440,
+          "completion_tokens": 107612,
+          "total_tokens": 313052,
           "wasted_tokens": 0,
-          "cost_usd": 0.0,
-          "requests": 46,
-          "failed_requests": 0,
+          "cost_usd": 1.01671,
+          "requests": 139,
+          "failed_requests": 3,
           "models": {
             "gpt-6-luna": {
               "prompt_tokens": 11152,
@@ -730,29 +730,776 @@
               "cost_usd": 0.0,
               "requests": 46,
               "failed_requests": 0
+            },
+            "gemini-4-hydrogen": {
+              "prompt_tokens": 194288,
+              "completion_tokens": 95104,
+              "total_tokens": 289392,
+              "wasted_tokens": 0,
+              "cost_usd": 1.01671,
+              "requests": 93,
+              "failed_requests": 3
+            }
+          }
+        },
+        "research": {
+          "prompt_tokens": 32591,
+          "completion_tokens": 31375,
+          "total_tokens": 63966,
+          "wasted_tokens": 27142,
+          "cost_usd": 0.128966,
+          "requests": 14,
+          "failed_requests": 8,
+          "models": {
+            "gemini-4-hydrogen": {
+              "prompt_tokens": 18108,
+              "completion_tokens": 13476,
+              "total_tokens": 31584,
+              "wasted_tokens": 0,
+              "cost_usd": 0.128232,
+              "requests": 4,
+              "failed_requests": 0
+            },
+            "gpt-6-luna": {
+              "prompt_tokens": 10758,
+              "completion_tokens": 16384,
+              "total_tokens": 27142,
+              "wasted_tokens": 27142,
+              "cost_usd": 0.0,
+              "requests": 8,
+              "failed_requests": 8
+            },
+            "gemini-flash-latest": {
+              "prompt_tokens": 3725,
+              "completion_tokens": 1515,
+              "total_tokens": 5240,
+              "wasted_tokens": 0,
+              "cost_usd": 0.000734,
+              "requests": 2,
+              "failed_requests": 0
+            }
+          }
+        },
+        "script": {
+          "prompt_tokens": 166656,
+          "completion_tokens": 2360,
+          "total_tokens": 169016,
+          "wasted_tokens": 0,
+          "cost_usd": 0.267686,
+          "requests": 15,
+          "failed_requests": 0,
+          "models": {
+            "gemini-4-hydrogen": {
+              "prompt_tokens": 166656,
+              "completion_tokens": 2360,
+              "total_tokens": 169016,
+              "wasted_tokens": 0,
+              "cost_usd": 0.267686,
+              "requests": 15,
+              "failed_requests": 0
+            }
+          }
+        },
+        "script_review": {
+          "prompt_tokens": 52959,
+          "completion_tokens": 6850,
+          "total_tokens": 59809,
+          "wasted_tokens": 0,
+          "cost_usd": 0.0,
+          "requests": 2,
+          "failed_requests": 0,
+          "models": {
+            "gpt-6-luna": {
+              "prompt_tokens": 52959,
+              "completion_tokens": 6850,
+              "total_tokens": 59809,
+              "wasted_tokens": 0,
+              "cost_usd": 0.0,
+              "requests": 2,
+              "failed_requests": 0
+            }
+          }
+        },
+        "scenes": {
+          "prompt_tokens": 27556,
+          "completion_tokens": 24726,
+          "total_tokens": 52282,
+          "wasted_tokens": 0,
+          "cost_usd": 0.226778,
+          "requests": 15,
+          "failed_requests": 0,
+          "models": {
+            "gemini-4-hydrogen": {
+              "prompt_tokens": 27556,
+              "completion_tokens": 24726,
+              "total_tokens": 52282,
+              "wasted_tokens": 0,
+              "cost_usd": 0.226778,
+              "requests": 15,
+              "failed_requests": 0
             }
           }
         }
       },
-      "total_tokens": 23660,
-      "prompt_tokens": 11152,
-      "completion_tokens": 12508,
+      "total_tokens": 658125,
+      "prompt_tokens": 485202,
+      "completion_tokens": 172923,
+      "wasted_tokens": 27142,
+      "cost_usd": 1.64014,
+      "requests": 185,
+      "failed_requests": 11
+    },
+    "2026-11-23": {
+      "date": "2026-11-23",
+      "stages": {
+        "script": {
+          "prompt_tokens": 87965,
+          "completion_tokens": 1374,
+          "total_tokens": 89339,
+          "wasted_tokens": 0,
+          "cost_usd": 0.150253,
+          "requests": 10,
+          "failed_requests": 2,
+          "models": {
+            "gemini-4-hydrogen": {
+              "prompt_tokens": 87965,
+              "completion_tokens": 1374,
+              "total_tokens": 89339,
+              "wasted_tokens": 0,
+              "cost_usd": 0.150253,
+              "requests": 10,
+              "failed_requests": 2
+            }
+          }
+        },
+        "research": {
+          "prompt_tokens": 18317,
+          "completion_tokens": 15818,
+          "total_tokens": 34135,
+          "wasted_tokens": 14014,
+          "cost_usd": 0.078897,
+          "requests": 10,
+          "failed_requests": 7,
+          "models": {
+            "gemini-4-hydrogen": {
+              "prompt_tokens": 10299,
+              "completion_tokens": 6805,
+              "total_tokens": 17104,
+              "wasted_tokens": 0,
+              "cost_usd": 0.078486,
+              "requests": 5,
+              "failed_requests": 3
+            },
+            "gpt-6-luna": {
+              "prompt_tokens": 5822,
+              "completion_tokens": 8192,
+              "total_tokens": 14014,
+              "wasted_tokens": 14014,
+              "cost_usd": 0.0,
+              "requests": 4,
+              "failed_requests": 4
+            },
+            "gemini-flash-latest": {
+              "prompt_tokens": 2196,
+              "completion_tokens": 821,
+              "total_tokens": 3017,
+              "wasted_tokens": 0,
+              "cost_usd": 0.000411,
+              "requests": 1,
+              "failed_requests": 0
+            }
+          }
+        },
+        "script_review": {
+          "prompt_tokens": 36292,
+          "completion_tokens": 6385,
+          "total_tokens": 42677,
+          "wasted_tokens": 0,
+          "cost_usd": 0.0,
+          "requests": 1,
+          "failed_requests": 0,
+          "models": {
+            "gpt-6-luna": {
+              "prompt_tokens": 36292,
+              "completion_tokens": 6385,
+              "total_tokens": 42677,
+              "wasted_tokens": 0,
+              "cost_usd": 0.0,
+              "requests": 1,
+              "failed_requests": 0
+            }
+          }
+        },
+        "scenes": {
+          "prompt_tokens": 24079,
+          "completion_tokens": 22504,
+          "total_tokens": 46583,
+          "wasted_tokens": 0,
+          "cost_usd": 0.204898,
+          "requests": 12,
+          "failed_requests": 0,
+          "models": {
+            "gemini-4-hydrogen": {
+              "prompt_tokens": 24079,
+              "completion_tokens": 22504,
+              "total_tokens": 46583,
+              "wasted_tokens": 0,
+              "cost_usd": 0.204898,
+              "requests": 12,
+              "failed_requests": 0
+            }
+          }
+        },
+        "prompts": {
+          "prompt_tokens": 34857,
+          "completion_tokens": 11340,
+          "total_tokens": 46197,
+          "wasted_tokens": 0,
+          "cost_usd": 0.137338,
+          "requests": 10,
+          "failed_requests": 0,
+          "models": {
+            "gemini-4-hydrogen": {
+              "prompt_tokens": 34857,
+              "completion_tokens": 11340,
+              "total_tokens": 46197,
+              "wasted_tokens": 0,
+              "cost_usd": 0.137338,
+              "requests": 10,
+              "failed_requests": 0
+            }
+          }
+        }
+      },
+      "total_tokens": 258931,
+      "prompt_tokens": 201510,
+      "completion_tokens": 57421,
+      "wasted_tokens": 14014,
+      "cost_usd": 0.571381,
+      "requests": 43,
+      "failed_requests": 9
+    },
+    "2026-11-24": {
+      "date": "2026-11-24",
+      "stages": {
+        "research": {
+          "prompt_tokens": 15344,
+          "completion_tokens": 12240,
+          "total_tokens": 27584,
+          "wasted_tokens": 13488,
+          "cost_usd": 0.040574,
+          "requests": 7,
+          "failed_requests": 4,
+          "models": {
+            "gemini-4-hydrogen": {
+              "prompt_tokens": 8311,
+              "completion_tokens": 3717,
+              "total_tokens": 12028,
+              "wasted_tokens": 0,
+              "cost_usd": 0.040344,
+              "requests": 2,
+              "failed_requests": 0
+            },
+            "gpt-6-luna": {
+              "prompt_tokens": 5296,
+              "completion_tokens": 8192,
+              "total_tokens": 13488,
+              "wasted_tokens": 13488,
+              "cost_usd": 0.0,
+              "requests": 4,
+              "failed_requests": 4
+            },
+            "gemini-flash-latest": {
+              "prompt_tokens": 1737,
+              "completion_tokens": 331,
+              "total_tokens": 2068,
+              "wasted_tokens": 0,
+              "cost_usd": 0.00023,
+              "requests": 1,
+              "failed_requests": 0
+            }
+          }
+        },
+        "script": {
+          "prompt_tokens": 81195,
+          "completion_tokens": 1227,
+          "total_tokens": 82422,
+          "wasted_tokens": 0,
+          "cost_usd": 0.130996,
+          "requests": 7,
+          "failed_requests": 0,
+          "models": {
+            "gemini-4-hydrogen": {
+              "prompt_tokens": 81195,
+              "completion_tokens": 1227,
+              "total_tokens": 82422,
+              "wasted_tokens": 0,
+              "cost_usd": 0.130996,
+              "requests": 7,
+              "failed_requests": 0
+            }
+          }
+        },
+        "script_review": {
+          "prompt_tokens": 28087,
+          "completion_tokens": 3999,
+          "total_tokens": 32086,
+          "wasted_tokens": 0,
+          "cost_usd": 0.0,
+          "requests": 1,
+          "failed_requests": 0,
+          "models": {
+            "gpt-6-luna": {
+              "prompt_tokens": 28087,
+              "completion_tokens": 3999,
+              "total_tokens": 32086,
+              "wasted_tokens": 0,
+              "cost_usd": 0.0,
+              "requests": 1,
+              "failed_requests": 0
+            }
+          }
+        },
+        "scenes": {
+          "prompt_tokens": 15910,
+          "completion_tokens": 15060,
+          "total_tokens": 30970,
+          "wasted_tokens": 0,
+          "cost_usd": 0.136816,
+          "requests": 9,
+          "failed_requests": 0,
+          "models": {
+            "gemini-4-hydrogen": {
+              "prompt_tokens": 15910,
+              "completion_tokens": 15060,
+              "total_tokens": 30970,
+              "wasted_tokens": 0,
+              "cost_usd": 0.136816,
+              "requests": 9,
+              "failed_requests": 0
+            }
+          }
+        },
+        "prompts": {
+          "prompt_tokens": 20873,
+          "completion_tokens": 7340,
+          "total_tokens": 28213,
+          "wasted_tokens": 0,
+          "cost_usd": 0.08636,
+          "requests": 7,
+          "failed_requests": 0,
+          "models": {
+            "gemini-4-hydrogen": {
+              "prompt_tokens": 20873,
+              "completion_tokens": 7340,
+              "total_tokens": 28213,
+              "wasted_tokens": 0,
+              "cost_usd": 0.08636,
+              "requests": 7,
+              "failed_requests": 0
+            }
+          }
+        }
+      },
+      "total_tokens": 201275,
+      "prompt_tokens": 161409,
+      "completion_tokens": 39866,
+      "wasted_tokens": 13488,
+      "cost_usd": 0.394745,
+      "requests": 31,
+      "failed_requests": 4
+    },
+    "2026-11-25": {
+      "date": "2026-11-25",
+      "stages": {
+        "script": {
+          "prompt_tokens": 786,
+          "completion_tokens": 101,
+          "total_tokens": 887,
+          "wasted_tokens": 0,
+          "cost_usd": 0.001936,
+          "requests": 1,
+          "failed_requests": 0,
+          "models": {
+            "gemini-4-hydrogen": {
+              "prompt_tokens": 786,
+              "completion_tokens": 101,
+              "total_tokens": 887,
+              "wasted_tokens": 0,
+              "cost_usd": 0.001936,
+              "requests": 1,
+              "failed_requests": 0
+            }
+          }
+        },
+        "script_review": {
+          "prompt_tokens": 5377,
+          "completion_tokens": 4865,
+          "total_tokens": 10242,
+          "wasted_tokens": 0,
+          "cost_usd": 0.0,
+          "requests": 2,
+          "failed_requests": 0,
+          "models": {
+            "gpt-6-luna": {
+              "prompt_tokens": 5377,
+              "completion_tokens": 4865,
+              "total_tokens": 10242,
+              "wasted_tokens": 0,
+              "cost_usd": 0.0,
+              "requests": 2,
+              "failed_requests": 0
+            }
+          }
+        }
+      },
+      "total_tokens": 11129,
+      "prompt_tokens": 6163,
+      "completion_tokens": 4966,
+      "wasted_tokens": 0,
+      "cost_usd": 0.001936,
+      "requests": 3,
+      "failed_requests": 0
+    },
+    "2026-11-26": {
+      "date": "2026-11-26",
+      "stages": {
+        "research": {
+          "prompt_tokens": 49284,
+          "completion_tokens": 50755,
+          "total_tokens": 100039,
+          "wasted_tokens": 62908,
+          "cost_usd": 0.227453,
+          "requests": 23,
+          "failed_requests": 14,
+          "models": {
+            "gemini-4-hydrogen": {
+              "prompt_tokens": 29407,
+              "completion_tokens": 24324,
+              "total_tokens": 53731,
+              "wasted_tokens": 23224,
+              "cost_usd": 0.226539,
+              "requests": 8,
+              "failed_requests": 2
+            },
+            "gpt-6-luna": {
+              "prompt_tokens": 15108,
+              "completion_tokens": 24576,
+              "total_tokens": 39684,
+              "wasted_tokens": 39684,
+              "cost_usd": 0.0,
+              "requests": 12,
+              "failed_requests": 12
+            },
+            "gemini-flash-latest": {
+              "prompt_tokens": 4769,
+              "completion_tokens": 1855,
+              "total_tokens": 6624,
+              "wasted_tokens": 0,
+              "cost_usd": 0.000914,
+              "requests": 3,
+              "failed_requests": 0
+            }
+          }
+        },
+        "script": {
+          "prompt_tokens": 282494,
+          "completion_tokens": 3920,
+          "total_tokens": 286414,
+          "wasted_tokens": 0,
+          "cost_usd": 0.453141,
+          "requests": 28,
+          "failed_requests": 0,
+          "models": {
+            "gemini-4-hydrogen": {
+              "prompt_tokens": 282494,
+              "completion_tokens": 3920,
+              "total_tokens": 286414,
+              "wasted_tokens": 0,
+              "cost_usd": 0.453141,
+              "requests": 28,
+              "failed_requests": 0
+            }
+          }
+        },
+        "script_review": {
+          "prompt_tokens": 153627,
+          "completion_tokens": 58697,
+          "total_tokens": 212324,
+          "wasted_tokens": 63090,
+          "cost_usd": 0.0,
+          "requests": 26,
+          "failed_requests": 12,
+          "models": {
+            "gpt-6-luna": {
+              "prompt_tokens": 153627,
+              "completion_tokens": 58697,
+              "total_tokens": 212324,
+              "wasted_tokens": 63090,
+              "cost_usd": 0.0,
+              "requests": 26,
+              "failed_requests": 12
+            }
+          }
+        },
+        "scenes": {
+          "prompt_tokens": 45132,
+          "completion_tokens": 39081,
+          "total_tokens": 84213,
+          "wasted_tokens": 0,
+          "cost_usd": 0.360805,
+          "requests": 26,
+          "failed_requests": 0,
+          "models": {
+            "gemini-4-hydrogen": {
+              "prompt_tokens": 45132,
+              "completion_tokens": 39081,
+              "total_tokens": 84213,
+              "wasted_tokens": 0,
+              "cost_usd": 0.360805,
+              "requests": 26,
+              "failed_requests": 0
+            }
+          }
+        },
+        "prompts": {
+          "prompt_tokens": 59081,
+          "completion_tokens": 21383,
+          "total_tokens": 80464,
+          "wasted_tokens": 0,
+          "cost_usd": 0.248994,
+          "requests": 21,
+          "failed_requests": 0,
+          "models": {
+            "gemini-4-hydrogen": {
+              "prompt_tokens": 59081,
+              "completion_tokens": 21383,
+              "total_tokens": 80464,
+              "wasted_tokens": 0,
+              "cost_usd": 0.248994,
+              "requests": 21,
+              "failed_requests": 0
+            }
+          }
+        }
+      },
+      "total_tokens": 763454,
+      "prompt_tokens": 589618,
+      "completion_tokens": 173836,
+      "wasted_tokens": 125998,
+      "cost_usd": 1.290391,
+      "requests": 124,
+      "failed_requests": 26
+    },
+    "2026-11-27": {
+      "date": "2026-11-27",
+      "stages": {
+        "research": {
+          "prompt_tokens": 24643,
+          "completion_tokens": 28684,
+          "total_tokens": 53327,
+          "wasted_tokens": 25324,
+          "cost_usd": 0.066529,
+          "requests": 19,
+          "failed_requests": 13,
+          "models": {
+            "gemini-flash-latest": {
+              "prompt_tokens": 9823,
+              "completion_tokens": 6733,
+              "total_tokens": 16556,
+              "wasted_tokens": 0,
+              "cost_usd": 0.003957,
+              "requests": 6,
+              "failed_requests": 2
+            },
+            "gemini-4-hydrogen": {
+              "prompt_tokens": 5880,
+              "completion_tokens": 5567,
+              "total_tokens": 11447,
+              "wasted_tokens": 0,
+              "cost_usd": 0.062573,
+              "requests": 5,
+              "failed_requests": 3
+            },
+            "gpt-6-luna": {
+              "prompt_tokens": 8940,
+              "completion_tokens": 16384,
+              "total_tokens": 25324,
+              "wasted_tokens": 25324,
+              "cost_usd": 0.0,
+              "requests": 8,
+              "failed_requests": 8
+            }
+          }
+        },
+        "script": {
+          "prompt_tokens": 223911,
+          "completion_tokens": 14435,
+          "total_tokens": 238346,
+          "wasted_tokens": 0,
+          "cost_usd": 0.099358,
+          "requests": 32,
+          "failed_requests": 3,
+          "models": {
+            "gemini-4-hydrogen": {
+              "prompt_tokens": 59865,
+              "completion_tokens": 1275,
+              "total_tokens": 61140,
+              "wasted_tokens": 0,
+              "cost_usd": 0.099358,
+              "requests": 10,
+              "failed_requests": 0
+            },
+            "qwen3:8b": {
+              "prompt_tokens": 0,
+              "completion_tokens": 0,
+              "total_tokens": 0,
+              "wasted_tokens": 0,
+              "cost_usd": 0.0,
+              "requests": 3,
+              "failed_requests": 3
+            },
+            "gpt-6-luna": {
+              "prompt_tokens": 164046,
+              "completion_tokens": 13160,
+              "total_tokens": 177206,
+              "wasted_tokens": 0,
+              "cost_usd": 0.0,
+              "requests": 19,
+              "failed_requests": 0
+            }
+          }
+        },
+        "script_review": {
+          "prompt_tokens": 29070,
+          "completion_tokens": 13661,
+          "total_tokens": 42731,
+          "wasted_tokens": 6014,
+          "cost_usd": 0.0,
+          "requests": 6,
+          "failed_requests": 1,
+          "models": {
+            "gpt-6-luna": {
+              "prompt_tokens": 29070,
+              "completion_tokens": 13661,
+              "total_tokens": 42731,
+              "wasted_tokens": 6014,
+              "cost_usd": 0.0,
+              "requests": 6,
+              "failed_requests": 1
+            }
+          }
+        },
+        "scenes": {
+          "prompt_tokens": 60593,
+          "completion_tokens": 66372,
+          "total_tokens": 126965,
+          "wasted_tokens": 16830,
+          "cost_usd": 0.457038,
+          "requests": 35,
+          "failed_requests": 3,
+          "models": {
+            "gemini-4-hydrogen": {
+              "prompt_tokens": 50330,
+              "completion_tokens": 50872,
+              "total_tokens": 101202,
+              "wasted_tokens": 16830,
+              "cost_usd": 0.457038,
+              "requests": 28,
+              "failed_requests": 3
+            },
+            "gpt-6-luna": {
+              "prompt_tokens": 10263,
+              "completion_tokens": 15500,
+              "total_tokens": 25763,
+              "wasted_tokens": 0,
+              "cost_usd": 0.0,
+              "requests": 7,
+              "failed_requests": 0
+            }
+          }
+        },
+        "prompts": {
+          "prompt_tokens": 135932,
+          "completion_tokens": 68820,
+          "total_tokens": 204752,
+          "wasted_tokens": 0,
+          "cost_usd": 0.637848,
+          "requests": 101,
+          "failed_requests": 0,
+          "models": {
+            "gemini-4-hydrogen": {
+              "prompt_tokens": 121882,
+              "completion_tokens": 60670,
+              "total_tokens": 182552,
+              "wasted_tokens": 0,
+              "cost_usd": 0.637848,
+              "requests": 96,
+              "failed_requests": 0
+            },
+            "gpt-6-luna": {
+              "prompt_tokens": 14050,
+              "completion_tokens": 8150,
+              "total_tokens": 22200,
+              "wasted_tokens": 0,
+              "cost_usd": 0.0,
+              "requests": 5,
+              "failed_requests": 0
+            }
+          }
+        }
+      },
+      "total_tokens": 666121,
+      "prompt_tokens": 474149,
+      "completion_tokens": 191972,
+      "wasted_tokens": 48168,
+      "cost_usd": 1.260775,
+      "requests": 193,
+      "failed_requests": 20
+    },
+    "2026-11-28": {
+      "date": "2026-11-28",
+      "stages": {
+        "script_review": {
+          "prompt_tokens": 2192,
+          "completion_tokens": 1734,
+          "total_tokens": 3926,
+          "wasted_tokens": 0,
+          "cost_usd": 0.0,
+          "requests": 1,
+          "failed_requests": 0,
+          "models": {
+            "gpt-6-luna": {
+              "prompt_tokens": 2192,
+              "completion_tokens": 1734,
+              "total_tokens": 3926,
+              "wasted_tokens": 0,
+              "cost_usd": 0.0,
+              "requests": 1,
+              "failed_requests": 0
+            }
+          }
+        }
+      },
+      "total_tokens": 3926,
+      "prompt_tokens": 2192,
+      "completion_tokens": 1734,
       "wasted_tokens": 0,
       "cost_usd": 0.0,
-      "requests": 46,
+      "requests": 1,
       "failed_requests": 0
     }
   },
   "cumulative": {
     "stages": {
       "research": {
-        "prompt_tokens": 195090,
-        "completion_tokens": 117028,
-        "total_tokens": 312118,
-        "wasted_tokens": 51919,
-        "cost_usd": 0.328564,
-        "requests": 107,
-        "failed_requests": 14,
+        "prompt_tokens": 335269,
+        "completion_tokens": 255900,
+        "total_tokens": 591169,
+        "wasted_tokens": 194795,
+        "cost_usd": 0.870984,
+        "requests": 180,
+        "failed_requests": 60,
         "models": {
           "gemini-3.8-flash": {
             "prompt_tokens": 14500,
@@ -764,22 +1511,22 @@
             "failed_requests": 0
           },
           "gemini-flash-latest": {
-            "prompt_tokens": 95158,
-            "completion_tokens": 58177,
-            "total_tokens": 153335,
+            "prompt_tokens": 117408,
+            "completion_tokens": 69432,
+            "total_tokens": 186840,
             "wasted_tokens": 0,
-            "cost_usd": 0.024591,
-            "requests": 77,
-            "failed_requests": 0
+            "cost_usd": 0.030837,
+            "requests": 90,
+            "failed_requests": 2
           },
           "gemini-4-hydrogen": {
-            "prompt_tokens": 37948,
-            "completion_tokens": 32523,
-            "total_tokens": 70471,
-            "wasted_tokens": 0,
-            "cost_usd": 0.300843,
-            "requests": 11,
-            "failed_requests": 0
+            "prompt_tokens": 109953,
+            "completion_tokens": 86412,
+            "total_tokens": 196365,
+            "wasted_tokens": 23224,
+            "cost_usd": 0.837017,
+            "requests": 35,
+            "failed_requests": 8
           },
           "qwen3:8b": {
             "prompt_tokens": 41344,
@@ -791,24 +1538,24 @@
             "failed_requests": 10
           },
           "gpt-6-luna": {
-            "prompt_tokens": 6140,
-            "completion_tokens": 8192,
-            "total_tokens": 14332,
-            "wasted_tokens": 14332,
+            "prompt_tokens": 52064,
+            "completion_tokens": 81920,
+            "total_tokens": 133984,
+            "wasted_tokens": 133984,
             "cost_usd": 0.0,
-            "requests": 4,
-            "failed_requests": 4
+            "requests": 40,
+            "failed_requests": 40
           }
         }
       },
       "script": {
-        "prompt_tokens": 716908,
-        "completion_tokens": 45792,
-        "total_tokens": 762700,
+        "prompt_tokens": 1559915,
+        "completion_tokens": 69209,
+        "total_tokens": 1629124,
         "wasted_tokens": 27785,
-        "cost_usd": 0.513936,
-        "requests": 128,
-        "failed_requests": 5,
+        "cost_usd": 1.617309,
+        "requests": 221,
+        "failed_requests": 10,
         "models": {
           "gemini-3.8-flash": {
             "prompt_tokens": 28400,
@@ -825,8 +1572,8 @@
             "total_tokens": 209688,
             "wasted_tokens": 0,
             "cost_usd": 0.0,
-            "requests": 60,
-            "failed_requests": 0
+            "requests": 63,
+            "failed_requests": 3
           },
           "gemini-flash-latest": {
             "prompt_tokens": 201859,
@@ -838,24 +1585,33 @@
             "failed_requests": 3
           },
           "gemini-4-hydrogen": {
-            "prompt_tokens": 294823,
-            "completion_tokens": 5285,
-            "total_tokens": 300108,
+            "prompt_tokens": 973784,
+            "completion_tokens": 15542,
+            "total_tokens": 989326,
             "wasted_tokens": 0,
-            "cost_usd": 0.48987,
-            "requests": 33,
-            "failed_requests": 2
+            "cost_usd": 1.593239,
+            "requests": 104,
+            "failed_requests": 4
+          },
+          "gpt-6-luna": {
+            "prompt_tokens": 164046,
+            "completion_tokens": 13160,
+            "total_tokens": 177206,
+            "wasted_tokens": 0,
+            "cost_usd": 0.0,
+            "requests": 19,
+            "failed_requests": 0
           }
         }
       },
       "scenes": {
-        "prompt_tokens": 92382,
-        "completion_tokens": 82846,
-        "total_tokens": 175228,
-        "wasted_tokens": 1500,
-        "cost_usd": 0.801663,
-        "requests": 101,
-        "failed_requests": 57,
+        "prompt_tokens": 265652,
+        "completion_tokens": 250589,
+        "total_tokens": 516241,
+        "wasted_tokens": 18330,
+        "cost_usd": 2.18799,
+        "requests": 198,
+        "failed_requests": 60,
         "models": {
           "gemini-3.8-flash": {
             "prompt_tokens": 19800,
@@ -867,13 +1623,13 @@
             "failed_requests": 0
           },
           "gemini-4-hydrogen": {
-            "prompt_tokens": 72582,
-            "completion_tokens": 73646,
-            "total_tokens": 146228,
-            "wasted_tokens": 0,
-            "cost_usd": 0.781218,
-            "requests": 73,
-            "failed_requests": 30
+            "prompt_tokens": 235589,
+            "completion_tokens": 225889,
+            "total_tokens": 461478,
+            "wasted_tokens": 16830,
+            "cost_usd": 2.167548,
+            "requests": 163,
+            "failed_requests": 33
           },
           "gemini-flash-latest": {
             "prompt_tokens": 0,
@@ -883,17 +1639,26 @@
             "cost_usd": 0.0162,
             "requests": 27,
             "failed_requests": 27
+          },
+          "gpt-6-luna": {
+            "prompt_tokens": 10263,
+            "completion_tokens": 15500,
+            "total_tokens": 25763,
+            "wasted_tokens": 0,
+            "cost_usd": 0.0,
+            "requests": 7,
+            "failed_requests": 0
           }
         }
       },
       "prompts": {
-        "prompt_tokens": 154705,
-        "completion_tokens": 74416,
-        "total_tokens": 229121,
+        "prompt_tokens": 599736,
+        "completion_tokens": 278403,
+        "total_tokens": 878139,
         "wasted_tokens": 0,
-        "cost_usd": 0.639623,
-        "requests": 213,
-        "failed_requests": 94,
+        "cost_usd": 2.766871,
+        "requests": 445,
+        "failed_requests": 97,
         "models": {
           "gemini-3.8-flash": {
             "prompt_tokens": 12300,
@@ -914,13 +1679,13 @@
             "failed_requests": 0
           },
           "gemini-4-hydrogen": {
-            "prompt_tokens": 63021,
-            "completion_tokens": 21518,
-            "total_tokens": 84539,
+            "prompt_tokens": 494002,
+            "completion_tokens": 217355,
+            "total_tokens": 711357,
             "wasted_tokens": 0,
-            "cost_usd": 0.631915,
-            "requests": 115,
-            "failed_requests": 94
+            "cost_usd": 2.759154,
+            "requests": 342,
+            "failed_requests": 97
           },
           "gpt-4o-mini": {
             "prompt_tokens": 91,
@@ -932,43 +1697,43 @@
             "failed_requests": 0
           },
           "gpt-6-luna": {
-            "prompt_tokens": 49612,
-            "completion_tokens": 37757,
-            "total_tokens": 87369,
+            "prompt_tokens": 63662,
+            "completion_tokens": 45907,
+            "total_tokens": 109569,
             "wasted_tokens": 0,
             "cost_usd": 0.0,
-            "requests": 85,
+            "requests": 90,
             "failed_requests": 0
           }
         }
       },
       "script_review": {
-        "prompt_tokens": 232561,
-        "completion_tokens": 50004,
-        "total_tokens": 282565,
-        "wasted_tokens": 0,
+        "prompt_tokens": 540165,
+        "completion_tokens": 146195,
+        "total_tokens": 686360,
+        "wasted_tokens": 69104,
         "cost_usd": 0.0,
-        "requests": 18,
-        "failed_requests": 9,
+        "requests": 57,
+        "failed_requests": 22,
         "models": {
           "gpt-6-luna": {
-            "prompt_tokens": 232561,
-            "completion_tokens": 50004,
-            "total_tokens": 282565,
-            "wasted_tokens": 0,
+            "prompt_tokens": 540165,
+            "completion_tokens": 146195,
+            "total_tokens": 686360,
+            "wasted_tokens": 69104,
             "cost_usd": 0.0,
-            "requests": 18,
-            "failed_requests": 9
+            "requests": 57,
+            "failed_requests": 22
           }
         }
       }
     },
-    "total_tokens": 1761732,
-    "prompt_tokens": 1391646,
-    "completion_tokens": 370086,
-    "wasted_tokens": 81204,
-    "cost_usd": 2.283781,
-    "requests": 567,
-    "failed_requests": 179
+    "total_tokens": 4301033,
+    "prompt_tokens": 3300737,
+    "completion_tokens": 1000296,
+    "wasted_tokens": 310014,
+    "cost_usd": 7.44316,
+    "requests": 1101,
+    "failed_requests": 249
   }
 }

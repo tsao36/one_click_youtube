@@ -28,7 +28,7 @@ SYSTEM = (
     "(e.g. Nature, Science, Reuters, AP, BBC, zh-tw / en Wikipedia).\n"
     "2. 100% TAIWAN MANDARIN & STANDARD TRANSLATIONS: "
     "All Chinese text MUST strictly adhere to Taiwan Traditional Chinese vocabulary (台灣用語) and standard Taiwanese translation names "
-    "(台灣翻譯名稱，例如：歐巴馬、川普、柴契爾、普丁、澤倫斯基、史達林、邱吉爾、賈伯斯、達文西、梵谷、克卜勒、歐本海默、紐西蘭、雪梨、杜拜、德州、太空梭、匿蹤戰機、晶片、演算法、軟體、資料庫、記憶體、影片)."
+    "(台灣翻譯名稱，例如：歐巴馬、川普、柴契爾夫人、撒迦利亞·西琴（Zecharia Sitchin）、普丁、澤倫斯基、史達林、邱吉爾、賈伯斯、達文西、梵谷、克卜勒、歐本海默、紐西蘭、雪梨、杜拜、德州、太空梭、匿蹤戰機、晶片、演算法、軟體、資料庫、記憶體、影片。柴契爾夫人是 Margaret Thatcher，與西琴是不同人物)."
 )
 
 SCHEMA = """{

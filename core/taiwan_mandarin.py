@@ -316,6 +316,7 @@ TAIWAN_MANDARIN_SYSTEM_PROMPT = """
 
 6. 【外國人名、國際地名與國名：100% 臺灣標準翻譯名稱（❌ 嚴格禁止中國大陸譯名）】：
    - 外國人名臺灣標準（括號內為嚴禁使用之大陸譯名）：
+     * 撒迦利亞·西琴（Zecharia Sitchin；不可與柴契爾夫人 Margaret Thatcher 混淆）
      * 歐巴馬（❌ 奧巴馬）
      * 川普（❌ 特朗普）
      * 柯林頓（❌ 克林頓）
@@ -633,6 +634,10 @@ _TAIWAN_TERM_MAPPINGS: List[Tuple[re.Pattern, str]] = [
     (re.compile(r"特[麼么]"), "真是"),
 
     # --- 9. Foreign Personalities & Historical Figures (外國人名臺灣標準翻譯) ---
+    (re.compile(r"\bZecharia\s+Sitchin\b", re.IGNORECASE), "撒迦利亞·西琴（Zecharia Sitchin）"),
+    (re.compile(r"(?:柴契爾|撒切[爾尔])(?:·|・|\s)?(?:席|西)琴"), "撒迦利亞·西琴"),
+    (re.compile(r"撒迦利亞[·・ ]席琴"), "撒迦利亞·西琴"),
+    (re.compile(r"席琴"), "西琴"),
     (re.compile(r"[奧奥]巴[馬马]"), "歐巴馬"),
     (re.compile(r"特[朗]普"), "川普"),
     (re.compile(r"克林[頓顿]"), "柯林頓"),

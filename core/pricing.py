@@ -347,41 +347,141 @@ def calculate_project_costs(project: Any) -> dict[str, Any]:
     img_prov_default = stage_models.get("images") or settings.get("images", {}).get("provider", "comfyui")
     img_cost = 0.0
     cloud_img_count = 0
+    batch_img_count = 0
+    standard_img_count = 0
     local_img_count = 0
     img_prov_summary = []
+    # Bucket key: (provider, model, billing_mode)
+    img_buckets: dict[tuple[str, str, str], dict[str, Any]] = {}
+
+    _provider_to_batch_model = {
+        "nano-banana-pro": "gemini-3-pro-image",
+        "nano-banana-2": "gemini-3.1-flash-image",
+        "nano-banana-2.1": "gemini-3.1-flash-lite-image",
+        "nano-banana-2-lite": "gemini-3.1-flash-lite-image",
+        "gemini-nano-banana-2.1": "gemini-3.1-flash-lite-image",
+        "gemini-2.5-flash-image": "gemini-2.5-flash-image",
+        "gemini-3.1-flash-image": "gemini-3.1-flash-image",
+        "gemini-3.1-flash-lite-image": "gemini-3.1-flash-lite-image",
+        "gemini-3-pro-image": "gemini-3-pro-image",
+    }
 
     for s in scenes:
         img_st = getattr(s, "image", None)
         meta = getattr(img_st, "meta", {}) or {} if img_st else {}
-        p_name = meta.get("provider") or img_prov_default
+        p_name = str(meta.get("provider") or img_prov_default)
         p_key = p_name.lower().strip()
         unit_rate = PRICING["images"].get(p_key, 0.0)
-        image_model = str(meta.get("model") or "").lower()
-        if meta.get("billing_mode") == "batch" and image_model in PRICING["images_batch"]:
+        image_model = str(meta.get("model") or "").lower().strip()
+        is_batch = str(meta.get("billing_mode") or "").lower().strip() == "batch"
+        if is_batch and image_model in PRICING["images_batch"]:
             unit_rate = PRICING["images_batch"][image_model]
         # Check if actually completed
         is_done = getattr(img_st, "status", None) in ("COMPLETED", Status.COMPLETED if "Status" in globals() else "COMPLETED")
         if is_done and unit_rate > 0:
             prompt_chars = len(getattr(s, "prompt", "") or "") + len(getattr(s, "visual_description", "") or "")
-            input_rate = PRICING["images_input_per_1m"].get(image_model, 0.0) if meta.get("billing_mode") == "batch" else 0.0
+            input_rate = PRICING["images_input_per_1m"].get(image_model, 0.0) if is_batch else 0.0
             estimated_input_tokens = max(0, round((prompt_chars + 2000) / 4)) if input_rate else 0
-            img_cost += unit_rate + (estimated_input_tokens * input_rate / 1_000_000)
+            input_cost = estimated_input_tokens * input_rate / 1_000_000
+            scene_img_cost = unit_rate + input_cost
+            img_cost += scene_img_cost
             cloud_img_count += 1
-            display_provider = "Nano Banana 2 Lite Batch API" if meta.get("billing_mode") == "batch" else p_name
+            billing_mode = "batch" if is_batch else "standard"
+            if is_batch:
+                batch_img_count += 1
+                display_provider = (
+                    "Nano Banana 2 Lite Batch API"
+                    if (image_model == "gemini-3.1-flash-lite-image" or p_key == "nano-banana-2.1")
+                    else f"{p_name} (Batch API)"
+                )
+            else:
+                standard_img_count += 1
+                display_provider = p_name
             if display_provider not in img_prov_summary:
                 img_prov_summary.append(display_provider)
+
+            batch_model_key = image_model or _provider_to_batch_model.get(p_key, "")
+            batch_avail_rate = (
+                PRICING["images_batch"].get(batch_model_key)
+                if (not is_batch and batch_model_key in PRICING["images_batch"])
+                else None
+            )
+            b_key = (p_name, image_model, billing_mode)
+            if b_key not in img_buckets:
+                img_buckets[b_key] = {
+                    "provider": p_name,
+                    "model": image_model or None,
+                    "billing_mode": billing_mode,
+                    "is_batch": is_batch,
+                    "is_cloud": True,
+                    "count": 0,
+                    "unit_rate": unit_rate,
+                    "input_cost": 0.0,
+                    "cost": 0.0,
+                    "batch_available_rate": batch_avail_rate,
+                }
+            img_buckets[b_key]["count"] += 1
+            img_buckets[b_key]["input_cost"] += input_cost
+            img_buckets[b_key]["cost"] += scene_img_cost
         elif is_done:
             local_img_count += 1
             if p_name not in img_prov_summary:
                 img_prov_summary.append(p_name)
+            b_key = (p_name, image_model, "free")
+            if b_key not in img_buckets:
+                img_buckets[b_key] = {
+                    "provider": p_name,
+                    "model": image_model or None,
+                    "billing_mode": "free",
+                    "is_batch": False,
+                    "is_cloud": False,
+                    "count": 0,
+                    "unit_rate": 0.0,
+                    "input_cost": 0.0,
+                    "cost": 0.0,
+                    "batch_available_rate": None,
+                }
+            img_buckets[b_key]["count"] += 1
+
+    img_breakdown: list[dict[str, Any]] = []
+    for item in img_buckets.values():
+        b_cost = round(item["cost"], 4)
+        share_pct = round((item["cost"] / img_cost) * 100.0, 1) if img_cost > 0 else 0.0
+        img_breakdown.append({
+            "provider": item["provider"],
+            "model": item["model"],
+            "billing_mode": item["billing_mode"],
+            "is_batch": item["is_batch"],
+            "is_cloud": item["is_cloud"],
+            "count": item["count"],
+            "unit_rate": round(item["unit_rate"], 6),
+            "input_cost": round(item["input_cost"], 6),
+            "cost": b_cost,
+            "share_pct": share_pct,
+            "batch_available_rate": item["batch_available_rate"],
+        })
+    img_breakdown.sort(key=lambda x: (-x["cost"], -x["count"], x["provider"]))
+
+    if batch_img_count > 0 and standard_img_count > 0:
+        img_units = f"{scene_count} images ({batch_img_count} batch, {standard_img_count} standard, {local_img_count} local)"
+    elif batch_img_count > 0:
+        img_units = f"{scene_count} images ({batch_img_count} cloud batch, {local_img_count} local)"
+    elif standard_img_count > 0:
+        img_units = f"{scene_count} images ({standard_img_count} cloud standard, {local_img_count} local)"
+    else:
+        img_units = f"{scene_count} images ({cloud_img_count} cloud, {local_img_count} local)"
 
     prov_str = ", ".join(img_prov_summary) if img_prov_summary else img_prov_default
     stage_costs["images"] = round(img_cost, 4)
     stage_details["images"] = {
         "cost": round(img_cost, 4),
         "provider": prov_str,
-        "description": f"{cloud_img_count} Cloud images @ rate, {local_img_count} Local GPU images (Free)" if cloud_img_count else "Local AMD GPU DirectML (Free)",
-        "units": f"{scene_count} images ({cloud_img_count} cloud, {local_img_count} local)"
+        "description": f"{cloud_img_count} Cloud images ({batch_img_count} batch, {standard_img_count} standard), {local_img_count} Local/Free images" if cloud_img_count else "Local AMD GPU DirectML (Free)",
+        "units": img_units,
+        "batch_count": batch_img_count,
+        "standard_count": standard_img_count,
+        "free_count": local_img_count,
+        "breakdown": img_breakdown,
     }
 
     # 6. VOICE (TTS)

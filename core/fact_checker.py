@@ -750,12 +750,22 @@ def verify_script_facts(
         if patched_any:
             # Recompute word count and save updated script.json and script.md
             from agents.script_writer import script_markdown, words
+            for sec in script_data.get("sections", []):
+                sec["name"] = normalize_to_taiwan_mandarin(sec.get("name", ""))
+                sec["text"] = normalize_to_taiwan_mandarin(sec.get("text", ""))
+            script_data["title"] = normalize_to_taiwan_mandarin(script_data.get("title", ""))
             script_data["word_count"] = sum(words(s["text"]) for s in script_data["sections"])
             with open(script_file, "w", encoding="utf-8") as f:
                 json.dump(script_data, f, ensure_ascii=False, indent=2)
 
             script_md_file = project.path("script", "script.md")
             script_md_file.write_text(script_markdown(script_data), encoding="utf-8")
+            final_file = project.path("script", "script_final.json")
+            if final_file.exists():
+                with open(final_file, "w", encoding="utf-8") as f:
+                    json.dump(script_data, f, ensure_ascii=False, indent=2)
+                project.path("script", "script_final.md").write_text(
+                    script_markdown(script_data), encoding="utf-8")
             log.info("Script auto-patch applied and saved to script.json & script.md")
 
     # Save reports

@@ -935,7 +935,8 @@ def get_project_details(project_id: str):
         if not p.data.activity or "interrupted" not in p.data.activity.lower():
             p.data.activity = "Interrupted (click Resume to continue)"
         p.save()
-    if not p.data.usage.stage_costs:
+    img_details = (p.data.usage.stage_details or {}).get("images") or {}
+    if not p.data.usage.stage_costs or "breakdown" not in img_details:
         try:
             from core.pricing import calculate_and_update_project_costs
             calculate_and_update_project_costs(p)

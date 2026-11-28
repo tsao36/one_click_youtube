@@ -33,6 +33,9 @@ def review_script(project, script: dict[str, Any], research: dict[str, Any], on_
               "remove repetition, filler, vague adjectives, generic transitions and unsupported claims, but preserve vivid evidence-based scenes, "
               "useful suspense, emotional progression, surprising contrasts, and distinctive moments that make the story stick. "
               "Do not flatten dramatic pacing into an encyclopedia summary or add sensationalism. "
+              "For the opening, preserve the hook's allocated length, start with a concrete curiosity gap rather than a disclaimer or correction, "
+              "and make the introduction advance to evidence without repeating stacked caveats. "
+              "Keep any necessary uncertainty concise and next to the relevant evidence. "
               "Preserve essential context, caveats and meaningful opposing views. Never invent facts or sources. "
               "Preserve the creator's supplied conclusion and its core stance in the final concluding section. Return only JSON.")
     task = "Review and finalize this script; fact-check claims against research and cite reliable sources. Improve the curiosity arc, pacing, and evidence-based memorable payoff where weak."
@@ -42,6 +45,8 @@ def review_script(project, script: dict[str, Any], research: dict[str, Any], on_
               "rules": ["Mark every paragraph keep, rewrite, delete, or verify.",
                         "Score entertainment and memorability; retain concrete scenes, reveals, contrasts, and emotional progression that are supported by evidence.",
                         "Ensure the opening creates a specific curiosity gap and the ending pays it off with a distinctive, non-generic impression.",
+                        "Keep the Hook and Introduction concise; do not open with a correction or disclaimer, and do not repeat caveats across adjacent sentences.",
+                        "Preserve section length budgets; the first concrete clue should appear in the opening, not after a long preamble.",
                         "Do not add sensationalism, fabricated details, or remove meaningful suspense merely to maximize brevity.",
                         "Set high_risk if a core conclusion changes, a key claim lacks support, or a high-impact topic remains uncertain.",
                         "Preserve the exact script schema and section order.",
@@ -52,6 +57,12 @@ def review_script(project, script: dict[str, Any], research: dict[str, Any], on_
               "research": research, "script": script}
     client = LLMClient("script_review", on_request=on_request, json_retries=3, project_id=getattr(project, "id", ""))
     result = client.json(str(prompt), system=system, temperature=0.2, max_tokens=12000, validate=_validate)
+    from agents.script_writer import fit_opening_sections
+    from core.taiwan_mandarin import is_taiwan_mandarin
+    language = (settings.get("video") or {}).get("language", "Traditional Chinese")
+    result["final_script"] = fit_opening_sections(
+        result["final_script"], settings, client, system,
+        is_taiwan_mandarin(language, str(result["final_script"].get("topic", ""))))
     if ancient_story and result.get("high_risk"):
         result["high_risk"] = False
         result["fact_check_confirmation_skipped"] = True

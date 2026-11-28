@@ -120,6 +120,9 @@ def merge_negative_prompts(*prompts: str | list[str] | None) -> str:
 
 NARRATION_RULES = f"""Rules for narration:
 - Build a memorable story, not a list of facts: establish a central curiosity question, raise or complicate the stakes across sections, and pay it off clearly.
+- Opening rule: begin with a concrete image, surprising detail, or unresolved question. Do not open by correcting the premise, disclaiming what is unproven, or listing an expert's interpretation. Earn the audience's curiosity first; introduce concise evidence limits alongside the relevant evidence later.
+- Avoid repetitive hedging: attribute disputed claims clearly once, then move on. Do not stack variations of "not proven", "not confirmed", or "needs independent evidence" in adjacent sentences. Preserve necessary uncertainty without making every line a disclaimer.
+- The hook and introduction must move quickly toward the first concrete piece of evidence. The hook poses the central question; the introduction advances it with a specific clue and must not repeat the hook or spend a paragraph explaining what the video cannot conclude.
 - Give each section a distinct dramatic job and at least one concrete scene, decision, contrast, or reveal grounded in the research; vary pace between explanation and vivid moments.
 - Prefer specific, surprising details over generic claims. Use restraint: never invent conflict, emotion, dialogue, or certainty for drama.
 - End on one resonant image, consequence, question, or creator insight that grows naturally from the evidence; avoid generic moralizing or a routine recap.
